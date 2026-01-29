@@ -1,0 +1,13 @@
+{% if completed_jobs %}
+<div>
+    <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs font-medium text-success-400 uppercase tracking-wide">Recently Completed</span>
+        <span class="text-xs text-surface-200">({{ completed_jobs|length }})</span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        {% for job in completed_jobs %}
+        {% include "partials/timelapses/completed_job.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

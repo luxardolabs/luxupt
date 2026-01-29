@@ -1,0 +1,79 @@
+{% extends "layouts/base.html" %}
+{% from "macros/cards.html" import stat_card, card %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/badges.html" import status_chip %}
+
+{% block title %}{{ camera.name }} - LuxUPT{% endblock %}
+
+{% block content %}
+<!-- Page header -->
+<div class="flex items-center gap-4">
+    <a href="/cameras" class="text-surface-200 hover:text-surface-100">
+        {{ icon('chevron-left', 'w-5 h-5') }}
+    </a>
+    <div>
+        <h1 class="text-2xl font-bold text-white">{{ camera.name }}</h1>
+        <p class="text-surface-200">{{ camera.safe_name }}</p>
+    </div>
+    <span class="ml-auto">
+        {{ status_chip('connected' if camera.is_connected else 'disconnected') }}
+    </span>
+</div>
+
+<!-- Stats -->
+<div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {{ stat_card("Total Captures", stats.total_captures|default(0), icon_name="photo", color="info") }}
+    {{ stat_card("Today", stats.captures_today|default(0), icon_name="calendar", color="success") }}
+    {{ stat_card("Timelapses", stats.timelapse_count|default(0), icon_name="film", color="primary") }}
+    {{ stat_card("Type", camera.type|default("Unknown"), icon_name="camera", color="warning") }}
+</div>
+
+<!-- Latest capture -->
+{% if latest_capture %}
+{% call card("Latest Capture") %}
+<div class="flex gap-4">
+    <div class="flex-shrink-0">
+        <a href="/images/file/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.timestamp }}" target="_blank" class="block">
+            <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+                 alt="Latest capture"
+                 class="w-64 h-auto rounded-lg border border-surface-400/50 hover:border-surface-300 transition-colors"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden w-64 h-36 items-center justify-center bg-surface-900 rounded-lg border border-surface-400/50">
+                {{ icon('camera', 'w-12 h-12 text-surface-200') }}
+            </div>
+        </a>
+    </div>
+    <div class="flex-1 space-y-2">
+        <p class="text-sm text-surface-200">Captured at</p>
+        <p class="text-surface-100">{{ latest_capture.capture_datetime | format_datetime('log') }}</p>
+        <p class="text-sm text-surface-200 mt-4">Interval</p>
+        <p class="text-surface-100">{{ latest_capture.interval }}s</p>
+        {% if latest_capture.file_size %}
+        <p class="text-sm text-surface-200 mt-4">Size</p>
+        <p class="text-surface-100">{{ latest_capture.file_size | file_size }}</p>
+        {% endif %}
+        {% if latest_capture.capture_method %}
+        <p class="text-sm text-surface-200 mt-4">Method</p>
+        <p class="text-surface-100">{{ latest_capture.capture_method|upper }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endcall %}
+{% endif %}
+
+<!-- Quick actions -->
+{% call card("Quick Actions") %}
+<div class="flex flex-wrap gap-3">
+    <a href="/images?camera={{ camera.safe_name }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-colors">
+        {{ icon('photo', 'w-5 h-5') }}
+        <span>View Images</span>
+    </a>
+    <a href="/timelapses?camera={{ camera.safe_name }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-colors">
+        {{ icon('film', 'w-5 h-5') }}
+        <span>View Timelapses</span>
+    </a>
+</div>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{# Timelapse video lightbox - loaded via HTMX #}
+{% from "macros/icons.html" import icon %}
+<div id="lightbox-backdrop"
+     class="fixed inset-0 z-50 bg-black/95"
+     onclick="if(event.target === this) Lightbox.close()">
+
+    <!-- Close button -->
+    <button onclick="Lightbox.close()"
+            class="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-10">
+        {{ icon('x-mark', 'w-8 h-8') }}
+    </button>
+
+    <!-- Video container -->
+    <div class="absolute inset-0 flex items-center justify-center p-8">
+        <div class="max-w-[90vw] max-h-[90vh] flex flex-col items-center">
+            <!-- Video player -->
+            <video id="timelapse-video"
+                   controls
+                   autoplay
+                   class="max-w-full max-h-[75vh] rounded-lg shadow-2xl"
+                   src="/timelapses/{{ timelapse.id }}/video">
+                Your browser does not support the video tag.
+            </video>
+
+            <!-- Info and actions -->
+            <div class="mt-4 flex flex-col items-center gap-4">
+                <div class="text-center text-white">
+                    <p class="text-lg font-medium">{{ timelapse.camera_safe_name|replace('_', ' ') }}</p>
+                    <p class="text-sm text-white/70">{{ timelapse.timelapse_date | date }} - {{ timelapse.interval }}s interval</p>
+                    <div class="flex items-center justify-center gap-4 mt-2 text-xs text-white/50">
+                        {% if timelapse.frame_count %}
+                        <span>{{ timelapse.frame_count }} frames</span>
+                        {% endif %}
+                        {% if timelapse.duration_seconds %}
+                        <span>{{ timelapse.duration_seconds|round(1) }}s</span>
+                        {% endif %}
+                        {% if timelapse.resolution %}
+                        <span>{{ timelapse.resolution }}</span>
+                        {% endif %}
+                        {% if timelapse.file_size %}
+                        <span>{{ timelapse.file_size | file_size }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex items-center gap-3">
+                    <a href="/timelapses/{{ timelapse.id }}/video"
+                       download="{{ timelapse.file_name or (timelapse.camera_safe_name ~ '_' ~ (timelapse.timelapse_date | date('%Y%m%d')) ~ '.mp4') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors">
+                        {{ icon('arrow-down-tray', 'w-5 h-5') }}
+                        <span>Download</span>
+                    </a>
+                    <button onclick="Lightbox.close()"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-400 text-white hover:bg-surface-300 transition-colors">
+                        {{ icon('x-mark', 'w-5 h-5') }}
+                        <span>Close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

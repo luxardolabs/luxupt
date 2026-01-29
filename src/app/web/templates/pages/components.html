@@ -1,0 +1,116 @@
+{#
+===============================================================================
+LUXUPT COMPONENT LIBRARY - CANONICAL DESIGN REFERENCE
+===============================================================================
+
+AI INSTRUCTIONS - READ THIS BEFORE CREATING ANY NEW PAGES:
+
+1. This page (/system/components) is the SINGLE SOURCE OF TRUTH for UI patterns
+2. Before building any new page, VISIT THIS PAGE and follow its patterns exactly
+3. DO NOT invent new color schemes or make up colors
+
+THE GOLDEN RULE:
+  Clickable = PRIMARY (magenta)
+  Gray = DISABLED only - never use gray for active/clickable elements
+
+ICON COLORS:
+| State          | Class              | Use For                         |
+|----------------|--------------------|---------------------------------|
+| Clickable      | text-primary-400   | View, Edit, Settings, any click |
+| Decorative     | text-white         | Card headers, labels            |
+| Decorative     | text-surface-200   | Secondary decorative icons      |
+| Status         | text-success/warning/danger-400 | Status indicators  |
+
+TEXT HIERARCHY (2 levels only):
+| Class           | Use For                                   |
+|-----------------|-------------------------------------------|
+| text-white      | Headings, card titles, important labels   |
+| text-surface-200| Everything else that needs to be read     |
+
+Keep it simple: white for emphasis, surface-200 for everything else.
+
+BACKGROUNDS:
+| Class              | Use For                    |
+|--------------------|----------------------------|
+| bg-surface-900     | Page background, inputs    |
+| bg-surface-500/50  | Cards, containers          |
+| bg-surface-800/50  | Nested sections            |
+
+BORDER RADIUS:
+- rounded-xl = Cards, containers, panels (1rem)
+- rounded-lg = Buttons, inputs, nested elements (0.5rem)
+- rounded-full = Pills, avatars, dots
+
+===============================================================================
+#}
+
+{% extends "layouts/base.html" %}
+{% from "macros/icons.html" import icon, icon_box, live_ping %}
+{% from "macros/badges.html" import chip, status_chip, dot_indicator, count_badge, interval_badge, file_size %}
+{% from "macros/buttons.html" import primary, secondary, success, danger, warning, ghost, icon_button %}
+{% from "macros/cards.html" import stat_card, card, section_card %}
+{% from "macros/forms.html" import text_input, select, filter_select, checkbox, toggle, date_input, textarea %}
+{% from "macros/navigation.html" import page_header, tab_nav %}
+
+{% set tabs = [
+    {"id": "status", "label": "Status", "href": "/system", "icon_name": "server"},
+    {"id": "users", "label": "Users", "href": "/system/users", "icon_name": "users"}
+] + ([{"id": "components", "label": "Components", "href": "/system/components", "icon_name": "swatch"}] if dev_mode else []) %}
+
+{% block title %}Component Library - LuxUPT{% endblock %}
+
+{% block content %}
+{% call page_header("Component Library", "Canonical UI reference for LuxUPT") %}
+{% endcall %}
+
+{{ tab_nav(tabs, "components") }}
+
+<!-- Table of Contents -->
+<div class="mt-6 mb-8 p-4 rounded-xl border border-surface-400/30 bg-surface-500/50">
+    <h2 class="text-sm font-medium text-surface-200 uppercase tracking-wide mb-3">Jump to Section</h2>
+    <div class="flex flex-wrap gap-2">
+        <a href="#colors" class="text-sm text-primary-400 hover:text-primary-300">Colors</a>
+        <span class="text-surface-200">|</span>
+        <a href="#surfaces" class="text-sm text-primary-400 hover:text-primary-300">Surfaces</a>
+        <span class="text-surface-200">|</span>
+        <a href="#buttons" class="text-sm text-primary-400 hover:text-primary-300">Buttons</a>
+        <span class="text-surface-200">|</span>
+        <a href="#badges" class="text-sm text-primary-400 hover:text-primary-300">Badges & Chips</a>
+        <span class="text-surface-200">|</span>
+        <a href="#icons" class="text-sm text-primary-400 hover:text-primary-300">Icons</a>
+        <span class="text-surface-200">|</span>
+        <a href="#cards" class="text-sm text-primary-400 hover:text-primary-300">Cards</a>
+        <span class="text-surface-200">|</span>
+        <a href="#forms" class="text-sm text-primary-400 hover:text-primary-300">Forms</a>
+        <span class="text-surface-200">|</span>
+        <a href="#panels" class="text-sm text-primary-400 hover:text-primary-300">Panels</a>
+    </div>
+</div>
+
+<div class="space-y-12">
+    {# ===== SECTION: COLOR PALETTE ===== #}
+    {% include "pages/components/colors.html" %}
+
+    {# ===== SECTION: SURFACES & BACKGROUNDS ===== #}
+    {% include "pages/components/surfaces.html" %}
+
+    {# ===== SECTION: BUTTONS ===== #}
+    {% include "pages/components/buttons.html" %}
+
+    {# ===== SECTION: BADGES & CHIPS ===== #}
+    {% include "pages/components/badges.html" %}
+
+    {# ===== SECTION: ICONS ===== #}
+    {% include "pages/components/icons.html" %}
+
+    {# ===== SECTION: CARDS ===== #}
+    {% include "pages/components/cards.html" %}
+
+    {# ===== SECTION: FORMS ===== #}
+    {% include "pages/components/forms.html" %}
+
+    {# ===== SECTION: PANELS ===== #}
+    {% include "pages/components/panels.html" %}
+</div>
+
+{% endblock %}

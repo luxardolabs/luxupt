@@ -1,0 +1,67 @@
+{% extends "layouts/base.html" %}
+{% from "macros/cards.html" import card, image_card, stat_card, empty_state %}
+{% from "macros/forms.html" import filter_select %}
+{% from "macros/navigation.html" import htmx_pagination, page_header, section %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import danger %}
+
+{% block title %}Images - LuxUPT{% endblock %}
+
+{% block content %}
+{# Build camera options with camera_id as value #}
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{% call page_header("Images", "Browse captured snapshots") %}
+    <div class="flex flex-wrap items-center gap-3">
+        <form id="filters-form"
+              hx-get="/images/partials/grid"
+              hx-target="#image-grid"
+              hx-trigger="change"
+              hx-swap="innerHTML"
+              class="flex flex-wrap items-center gap-3"
+              onchange="updateUrlFromFilters(this)">
+            {{ filter_select("camera", camera_options, selected=filters.camera, placeholder="All Cameras") }}
+            {{ filter_select("date", available_dates|map('string')|list, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
+            {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
+            {{ filter_select("per_page", [{"value": "36", "label": "36"}, {"value": "72", "label": "72"}, {"value": "108", "label": "108"}], selected=pagination.per_page|string, placeholder="Per Page") }}
+        </form>
+        {{ danger("Delete", icon_name="trash", size="md", hx_attrs={"hx-get": "/images/delete", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    </div>
+{% endcall %}
+
+{# Statistics Section #}
+{% call section("Statistics", "chart-bar") %}
+<div class="grid gap-4 grid-cols-2 lg:grid-cols-5">
+    {{ stat_card("Total Images", pagination.total_count, icon_name="photo", color="primary") }}
+    {{ stat_card("Storage", total_size_gb ~ " GB", icon_name="server", color="info") }}
+    {{ stat_card("Cameras", cameras|length, icon_name="camera", color="success") }}
+    {{ stat_card("Dates", available_dates|length, icon_name="calendar", color="warning") }}
+    {{ stat_card("Intervals", available_intervals|length, icon_name="clock", color="surface") }}
+</div>
+{% endcall %}
+
+{# Image Browser Section #}
+{% call section("Image Browser", "photo") %}
+<div id="image-grid">
+    {% if images %}
+    <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {% for capture in images %}
+        {{ image_card(capture, filters) }}
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.total_pages > 1 %}
+    <div class="mt-4">
+        {{ htmx_pagination(pagination, "image-grid", "/images/partials/grid", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "per_page": pagination.per_page}) }}
+    </div>
+    {% endif %}
+    {% else %}
+    {{ empty_state('photo', 'No images found', 'Try adjusting your filters or wait for captures') }}
+    {% endif %}
+</div>
+{% endcall %}
+{% endblock %}

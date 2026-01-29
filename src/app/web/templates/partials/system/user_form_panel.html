@@ -1,0 +1,104 @@
+{# User create/edit form panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/icons.html" import icon %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-md') %}
+    {% if edit_user %}
+    {{ panel_header('Edit User', 'Update user account') }}
+    {% else %}
+    {{ panel_header('Add User', 'Create a new user account') }}
+    {% endif %}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6">
+        <form id="user-form"
+              {% if edit_user %}
+              hx-post="/system/users/{{ edit_user.id }}"
+              {% else %}
+              hx-post="/system/users"
+              {% endif %}
+              hx-target="#user-form-result"
+              hx-swap="innerHTML"
+              class="space-y-5">
+
+            <!-- Username -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-white mb-2">
+                    Username
+                </label>
+                <input id="username"
+                       name="username"
+                       type="text"
+                       autocomplete="username"
+                       required
+                       maxlength="64"
+                       value="{{ edit_user.username if edit_user else '' }}"
+                       placeholder="Enter username"
+                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+            </div>
+
+            <!-- Password -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-white mb-2">
+                    Password
+                    {% if edit_user %}
+                    <span class="text-surface-200 font-normal">(leave blank to keep current)</span>
+                    {% endif %}
+                </label>
+                <input id="password"
+                       name="password"
+                       type="password"
+                       autocomplete="new-password"
+                       {% if not edit_user %}required{% endif %}
+                       placeholder="{% if edit_user %}Enter new password{% else %}Enter password{% endif %}"
+                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+            </div>
+
+            <!-- Confirm Password -->
+            <div>
+                <label for="confirm_password" class="block text-sm font-medium text-white mb-2">
+                    Confirm Password
+                </label>
+                <input id="confirm_password"
+                       name="confirm_password"
+                       type="password"
+                       autocomplete="new-password"
+                       {% if not edit_user %}required{% endif %}
+                       placeholder="Confirm password"
+                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+            </div>
+
+            <!-- Admin Toggle -->
+            <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-white">Administrator</h3>
+                        <p class="text-xs text-surface-200 mt-0.5">Grant full administrative access</p>
+                    </div>
+                    <div class="relative">
+                        <input type="checkbox"
+                               name="is_admin"
+                               value="true"
+                               class="peer sr-only"
+                               {{ 'checked' if (edit_user and edit_user.is_admin) or not edit_user }}>
+                        <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                        <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Result Area -->
+            <div id="user-form-result"></div>
+
+        </form>
+    </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary('Save' if edit_user else 'Create User', type='submit', icon_name='check', hx_attrs={'form': 'user-form'}) }}
+    {% endcall %}
+{% endcall %}

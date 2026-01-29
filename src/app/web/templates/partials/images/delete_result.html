@@ -1,0 +1,34 @@
+{# Result after deletion #}
+{% from "macros/alerts.html" import alert_block %}
+{% from "macros/forms.html" import select %}
+
+<!-- Success Message -->
+{% call alert_block("success", title="Deletion Complete") %}
+<ul class="space-y-0.5">
+    <li>{{ result.db_records_deleted }} database records removed</li>
+    <li>{{ result.files_to_clean }} files queued for cleanup</li>
+</ul>
+<p class="text-xs text-surface-400 mt-1">File cleanup is running in the background.</p>
+{% endcall %}
+
+<!-- Updated preview of remaining images -->
+<div class="mt-4">
+    {% include "partials/images/delete_preview.html" %}
+</div>
+
+<!-- OOB swap to reset filter form with fresh options -->
+<form id="delete-filters-form"
+      hx-swap-oob="outerHTML:#delete-filters-form"
+      hx-get="/images/delete/preview"
+      hx-target="#delete-preview"
+      hx-trigger="change">
+    <div class="grid grid-cols-[2fr_1fr_1fr] gap-4">
+        {{ select("camera", cameras, label="Camera", placeholder="All Cameras") }}
+        <div id="date-field">
+            {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates") }}
+        </div>
+        <div id="interval-field">
+            {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals") }}
+        </div>
+    </div>
+</form>

@@ -1,0 +1,112 @@
+{# Alert macros for notices, warnings, and messages #}
+{% from "macros/icons.html" import icon %}
+
+{% macro alert(message, type="info", title=none, icon_name=none) %}
+{# Alert banner with icon, optional title, and message
+   Types: info, success, warning, danger
+#}
+{% set styles = {
+    'info': {
+        'border': 'border-info-500/30',
+        'bg': 'bg-info-500/10',
+        'icon': 'text-info-400',
+        'title': 'text-info-300',
+        'text': 'text-info-200',
+        'default_icon': 'information-circle'
+    },
+    'success': {
+        'border': 'border-success-500/30',
+        'bg': 'bg-success-500/10',
+        'icon': 'text-success-400',
+        'title': 'text-success-300',
+        'text': 'text-success-200',
+        'default_icon': 'check-circle'
+    },
+    'warning': {
+        'border': 'border-warning-500/30',
+        'bg': 'bg-warning-500/10',
+        'icon': 'text-warning-400',
+        'title': 'text-warning-300',
+        'text': 'text-warning-200',
+        'default_icon': 'exclamation-triangle'
+    },
+    'danger': {
+        'border': 'border-danger-500/30',
+        'bg': 'bg-danger-500/10',
+        'icon': 'text-danger-400',
+        'title': 'text-danger-300',
+        'text': 'text-danger-200',
+        'default_icon': 'x-circle'
+    }
+} %}
+{% set s = styles.get(type, styles.info) %}
+{% set icon_to_use = icon_name or s.default_icon %}
+<div class="rounded-lg border {{ s.border }} {{ s.bg }} p-4">
+    <div class="flex items-start gap-3">
+        {{ icon(icon_to_use, 'w-6 h-6 ' ~ s.icon ~ ' flex-shrink-0 mt-0.5') }}
+        <div class="flex-1">
+            {% if title %}
+            <p class="font-medium {{ s.title }}">{{ title }}</p>
+            {% endif %}
+            <div class="text-sm {{ s.text }} {% if title %}mt-1{% endif %}">
+                {{ message }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro alert_block(type="info", title=none, icon_name=none) %}
+{# Alert with block content via caller()
+   Use when you need more complex content inside the alert
+#}
+{% set styles = {
+    'info': {
+        'border': 'border-info-500/30',
+        'bg': 'bg-info-500/10',
+        'icon': 'text-info-400',
+        'title': 'text-info-300',
+        'text': 'text-info-200',
+        'default_icon': 'information-circle'
+    },
+    'success': {
+        'border': 'border-success-500/30',
+        'bg': 'bg-success-500/10',
+        'icon': 'text-success-400',
+        'title': 'text-success-300',
+        'text': 'text-success-200',
+        'default_icon': 'check-circle'
+    },
+    'warning': {
+        'border': 'border-warning-500/30',
+        'bg': 'bg-warning-500/10',
+        'icon': 'text-warning-400',
+        'title': 'text-warning-300',
+        'text': 'text-warning-200',
+        'default_icon': 'exclamation-triangle'
+    },
+    'danger': {
+        'border': 'border-danger-500/30',
+        'bg': 'bg-danger-500/10',
+        'icon': 'text-danger-400',
+        'title': 'text-danger-300',
+        'text': 'text-danger-200',
+        'default_icon': 'x-circle'
+    }
+} %}
+{% set s = styles.get(type, styles.info) %}
+{% set icon_to_use = icon_name or s.default_icon %}
+<div class="rounded-lg border {{ s.border }} {{ s.bg }} p-4">
+    <div class="flex items-start gap-3">
+        {{ icon(icon_to_use, 'w-6 h-6 ' ~ s.icon ~ ' flex-shrink-0 mt-0.5') }}
+        <div class="flex-1">
+            {% if title %}
+            <p class="font-medium {{ s.title }}">{{ title }}</p>
+            {% endif %}
+            <div class="text-sm {{ s.text }} {% if title %}mt-1{% endif %}">
+                {{ caller() }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

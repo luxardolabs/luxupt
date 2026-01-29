@@ -1,0 +1,105 @@
+{# Backup settings panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import primary_loading, ghost %}
+{% from "macros/icons.html" import icon %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-md') %}
+    {{ panel_header('Database Backup', 'Configure automatic SQLite backups') }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6">
+        <form id="backup-form"
+              hx-post="/system/backup-settings"
+              hx-target="#backup-form-result"
+              hx-swap="innerHTML"
+              hx-indicator="#backup-save-btn"
+              hx-disabled-elt="#backup-save-btn"
+              class="space-y-5"
+              x-data="{ enabled: {{ 'true' if backup_settings.enabled else 'false' }} }">
+
+            <!-- Enable Toggle -->
+            <label class="flex items-center justify-between cursor-pointer rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                <div>
+                    <span class="text-sm font-medium text-white">Enable Backups</span>
+                    <p class="text-xs text-surface-200">Automatically backup the database on a schedule</p>
+                </div>
+                <div class="relative">
+                    <input type="checkbox" name="enabled" value="true" class="peer sr-only"
+                           x-model="enabled"
+                           {{ 'checked' if backup_settings.enabled }}>
+                    <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                    <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                </div>
+            </label>
+
+            <!-- Settings (shown when enabled) -->
+            <div x-show="enabled" x-transition class="space-y-5">
+                <!-- Retention -->
+                <div>
+                    <label for="retention" class="block text-sm font-medium text-white mb-2">
+                        Backups to Keep
+                    </label>
+                    <input id="retention"
+                           name="retention"
+                           type="number"
+                           min="1"
+                           max="100"
+                           value="{{ backup_settings.retention if backup_settings.retention > 0 else 5 }}"
+                           placeholder="5"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    <p class="mt-1 text-xs text-surface-200">
+                        Number of recent backups to retain. Older backups are automatically deleted.
+                    </p>
+                </div>
+
+                <!-- Interval -->
+                <div>
+                    <label for="interval_hours" class="block text-sm font-medium text-white mb-2">
+                        Backup Interval
+                        <span class="text-surface-200 font-normal">(hours)</span>
+                    </label>
+                    <input id="interval_hours"
+                           name="interval_hours"
+                           type="number"
+                           min="1"
+                           max="168"
+                           value="{{ interval_hours }}"
+                           placeholder="1"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    <p class="mt-1 text-xs text-surface-200">
+                        How often to create a backup (1-168 hours).
+                    </p>
+                </div>
+
+                <!-- Backup Directory -->
+                <div>
+                    <label for="backup_dir" class="block text-sm font-medium text-white mb-2">
+                        Backup Directory
+                    </label>
+                    <input id="backup_dir"
+                           name="backup_dir"
+                           type="text"
+                           maxlength="256"
+                           value="{{ backup_settings.backup_dir }}"
+                           placeholder="backups"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm font-mono">
+                    <p class="mt-1 text-xs text-surface-200">
+                        Directory name relative to output path.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Result Area -->
+            <div id="backup-form-result"></div>
+
+        </form>
+    </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary_loading('Save Settings', loading_text='Saving...', icon_name='check', form='backup-form', id='backup-save-btn') }}
+    {% endcall %}
+{% endcall %}

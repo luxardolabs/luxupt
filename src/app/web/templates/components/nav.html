@@ -1,0 +1,88 @@
+{% from "macros/nav.html" import nav_link, nav_logo, nav_status, nav_action, nav_user %}
+{% from "macros/icons.html" import icon %}
+
+<nav class="fixed top-0 left-0 right-0 z-50 border-b border-surface-400/30 bg-surface-900/95 backdrop-blur-sm"
+     x-data="{ mobileMenuOpen: false }">
+    <div class="mx-auto max-w-[1800px] px-4 lg:px-6">
+        <div class="flex h-16 items-center justify-between">
+            <!-- Logo -->
+            {{ nav_logo() }}
+
+            <!-- Desktop Navigation Links -->
+            <div class="hidden md:flex md:items-center md:gap-6">
+                {{ nav_link("/cameras", "Cameras", request.url.path.startswith('/cameras'), 'video-camera') }}
+                {{ nav_link("/images", "Images", request.url.path.startswith('/images'), 'photo') }}
+                {{ nav_link("/timelapses", "Timelapses", request.url.path.startswith('/timelapses'), 'film') }}
+                {{ nav_link("/system", "System", request.url.path.startswith('/system'), 'cog-6-tooth') }}
+            </div>
+
+            <!-- Right side -->
+            <div class="flex items-center gap-4">
+                {{ nav_status("Running", true) }}
+                {% if user %}{{ nav_user(user) }}{% endif %}
+                {{ nav_action("/logout", "Logout") }}
+
+                <!-- Mobile menu button -->
+                <button type="button"
+                        @click="mobileMenuOpen = !mobileMenuOpen"
+                        class="md:hidden p-2 rounded-lg text-surface-200 hover:text-white hover:bg-surface-700 transition-colors"
+                        :aria-expanded="mobileMenuOpen">
+                    <span class="sr-only">Open menu</span>
+                    <template x-if="!mobileMenuOpen">
+                        {{ icon('bars-3', 'w-6 h-6') }}
+                    </template>
+                    <template x-if="mobileMenuOpen">
+                        {{ icon('x-mark', 'w-6 h-6') }}
+                    </template>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div x-show="mobileMenuOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="md:hidden border-t border-surface-400/30 bg-surface-900/98 backdrop-blur-sm"
+         @click.outside="mobileMenuOpen = false">
+        <div class="px-4 py-3 space-y-1">
+            <a href="/cameras"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/cameras') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon('video-camera', 'w-5 h-5') }}
+                Cameras
+            </a>
+            <a href="/images"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/images') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon('photo', 'w-5 h-5') }}
+                Images
+            </a>
+            <a href="/timelapses"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/timelapses') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon('film', 'w-5 h-5') }}
+                Timelapses
+            </a>
+            <a href="/system"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon('cog-6-tooth', 'w-5 h-5') }}
+                System
+            </a>
+            <div class="border-t border-surface-400/30 mt-2 pt-2">
+                {% if user %}
+                <div class="flex items-center gap-3 px-3 py-2 text-sm text-surface-200">
+                    {{ icon('user', 'w-5 h-5') }}
+                    <span>{{ user }}</span>
+                </div>
+                {% endif %}
+                <a href="/logout"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium text-surface-200 hover:text-white hover:bg-surface-700 transition-colors">
+                    {{ icon('arrow-right-on-rectangle', 'w-5 h-5') }}
+                    Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>

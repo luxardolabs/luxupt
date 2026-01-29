@@ -1,0 +1,462 @@
+{# Card macros for consistent styling #}
+{% from "macros/icons.html" import icon, delete_icon_button %}
+{% from "macros/buttons.html" import icon_button %}
+{% from "macros/badges.html" import status_chip, chip, file_size %}
+
+{% macro empty_state(icon_name, title, description=none, action=none) %}
+{# Standardized empty state display with centered icon, title, and optional description/action #}
+<div class="flex flex-col items-center justify-center py-16">
+    <div class="rounded-full bg-surface-700/50 p-6 mb-4">
+        {{ icon(icon_name, 'w-12 h-12 text-surface-200') }}
+    </div>
+    <p class="text-lg font-medium text-surface-200">{{ title }}</p>
+    {% if description %}
+    <p class="text-sm text-surface-200 mt-1">{{ description }}</p>
+    {% endif %}
+    {% if action %}
+    <div class="mt-4">{{ action }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro stat_card(label, value, icon_name=none, trend=none, color='primary', subtitle=none, value_prefix=none, value_suffix=none, hx_attrs=none, mobile_full=false) %}
+{# Color configurations for stat cards
+   mobile_full: When true, card spans full width on mobile (col-span-2) but normal on sm+ #}
+{% set colors = {
+    'primary': {
+        'icon': 'text-primary-400',
+        'icon_bg': 'bg-primary-500/15',
+        'glow': 'group-hover:shadow-glow',
+        'border_hover': 'group-hover:border-primary-500/50',
+        'gradient': 'from-primary-500/10 via-transparent to-transparent'
+    },
+    'success': {
+        'icon': 'text-success-400',
+        'icon_bg': 'bg-success-500/15',
+        'glow': 'group-hover:shadow-glow-success',
+        'border_hover': 'group-hover:border-success-500/50',
+        'gradient': 'from-success-500/10 via-transparent to-transparent'
+    },
+    'warning': {
+        'icon': 'text-warning-400',
+        'icon_bg': 'bg-warning-500/15',
+        'glow': 'group-hover:shadow-glow-warning',
+        'border_hover': 'group-hover:border-warning-500/50',
+        'gradient': 'from-warning-500/10 via-transparent to-transparent'
+    },
+    'danger': {
+        'icon': 'text-danger-400',
+        'icon_bg': 'bg-danger-500/15',
+        'glow': 'group-hover:shadow-glow-danger',
+        'border_hover': 'group-hover:border-danger-500/50',
+        'gradient': 'from-danger-500/10 via-transparent to-transparent'
+    },
+    'info': {
+        'icon': 'text-info-400',
+        'icon_bg': 'bg-info-500/15',
+        'glow': 'group-hover:shadow-glow-info',
+        'border_hover': 'group-hover:border-info-500/50',
+        'gradient': 'from-info-500/10 via-transparent to-transparent'
+    }
+} %}
+{% set c = colors.get(color, colors.primary) %}
+<div class="group relative overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50 backdrop-blur-sm p-4 transition-all duration-300 flex flex-col justify-center {{ c.glow }} {{ c.border_hover }}{% if mobile_full %} col-span-2 sm:col-span-1{% endif %}{% if hx_attrs %} cursor-pointer{% endif %}"
+     {% if hx_attrs %}{% for key, val in hx_attrs.items() %}{{ key }}="{{ val }}" {% endfor %}{% endif %}>
+    {# Gradient overlay #}
+    <div class="absolute inset-0 bg-gradient-to-br {{ c.gradient }} opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    <div class="relative flex items-center gap-4">
+        {% if icon_name %}
+        <div class="flex-shrink-0 self-center flex items-center justify-center w-12 h-12 rounded-lg border border-{{ color }}-500/30 {{ c.icon_bg }} transition-transform duration-300 group-hover:scale-110">
+            {{ icon(icon_name, 'w-6 h-6 ' ~ c.icon) }}
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-surface-200 uppercase tracking-wide">{{ label }}</p>
+            <p class="text-2xl font-bold text-white mt-0.5">
+                {% if value_prefix %}<span class="text-success-400">{{ value_prefix }}</span><span class="text-surface-200 mx-0.5">/</span>{% endif %}
+                {{ value }}
+                {% if value_suffix %}<span class="text-sm font-normal text-surface-200 ml-1">{{ value_suffix }}</span>{% endif %}
+            </p>
+            {% if subtitle %}<p class="text-xs text-surface-200 mt-0.5">{{ subtitle }}</p>{% endif %}
+        </div>
+        {% if trend %}
+        <div class="flex-shrink-0 flex items-center gap-1 text-sm font-medium {% if trend > 0 %}text-success-400{% elif trend < 0 %}text-danger-400{% else %}text-surface-200{% endif %}">
+            {% if trend > 0 %}
+            {{ icon('arrow-trending-up', 'w-4 h-4') }}
+            {% elif trend < 0 %}
+            {{ icon('arrow-trending-down', 'w-4 h-4') }}
+            {% endif %}
+            <span>{% if trend > 0 %}+{% endif %}{{ trend }}%</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro card(title=none, subtitle=none, icon_name=none, color='primary', padding=true) %}
+{# Color configurations for card headers with gradients #}
+{% set colors = {
+    'primary': {'icon': 'text-primary-300', 'icon_bg': 'bg-primary-500/20', 'border': 'border-primary-500/30', 'gradient': 'from-primary-500/20 via-primary-500/10 to-transparent'},
+    'success': {'icon': 'text-success-300', 'icon_bg': 'bg-success-500/20', 'border': 'border-success-500/30', 'gradient': 'from-success-500/20 via-success-500/10 to-transparent'},
+    'warning': {'icon': 'text-warning-300', 'icon_bg': 'bg-warning-500/20', 'border': 'border-warning-500/30', 'gradient': 'from-warning-500/20 via-warning-500/10 to-transparent'},
+    'danger': {'icon': 'text-danger-300', 'icon_bg': 'bg-danger-500/20', 'border': 'border-danger-500/30', 'gradient': 'from-danger-500/20 via-danger-500/10 to-transparent'},
+    'info': {'icon': 'text-info-300', 'icon_bg': 'bg-info-500/20', 'border': 'border-info-500/30', 'gradient': 'from-info-500/20 via-info-500/10 to-transparent'}
+} %}
+{% set c = colors.get(color, colors.primary) %}
+<div class="card {% if not padding %}overflow-hidden{% endif %}">
+    {% if title %}
+    <div class="card-header flex items-center gap-3 rounded-t-xl bg-gradient-to-r {{ c.gradient }}">
+        {% if icon_name %}
+        <div class="w-10 h-10 rounded-lg border {{ c.border }} {{ c.icon_bg }} flex items-center justify-center backdrop-blur-sm">
+            {{ icon(icon_name, 'w-5 h-5 ' ~ c.icon) }}
+        </div>
+        {% endif %}
+        <div>
+            <h3 class="card-title">{{ title }}</h3>
+            {% if subtitle %}
+            <p class="card-subtitle">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="{% if padding %}card-body{% endif %}">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro section_card(title, subtitle=none, badge=none, highlight=false) %}
+{# Section card for use within panels - has gradient header #}
+{# highlight: adds a purple glow effect to draw attention (e.g., for first-time setup) #}
+<div class="rounded-xl border {{ 'border-primary-500 shadow-glow-lg' if highlight else 'border-surface-400/30' }} bg-surface-800/50 overflow-hidden">
+    <div class="px-4 py-3 border-b border-surface-400/20 bg-gradient-to-r from-primary-600/20 via-surface-700/30 to-surface-700/30 flex items-center justify-between">
+        <div>
+            <h3 class="text-sm font-semibold text-white">{{ title }}</h3>
+            {% if subtitle %}
+            <p class="text-xs text-surface-200 mt-0.5">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        {% if badge %}
+        {{ badge }}
+        {% endif %}
+    </div>
+    <div class="p-4">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro camera_card(camera, latest_capture=none, stats=none) %}
+<div id="camera-card-{{ camera.safe_name }}"
+     class="group relative overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 hover:shadow-lg cursor-pointer"
+     hx-get="/cameras/{{ camera.camera_id }}/settings"
+     hx-target="#panel-container"
+     hx-swap="innerHTML">
+    <!-- Thumbnail -->
+    <div class="relative aspect-video bg-surface-800">
+        {% if latest_capture and latest_capture.timestamp %}
+        <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+             alt="{{ camera.name }}"
+             class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+             loading="lazy"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="hidden h-full items-center justify-center">
+            {{ icon('camera', 'w-12 h-12 text-surface-200') }}
+        </div>
+        {% else %}
+        <div class="flex h-full items-center justify-center">
+            {{ icon('camera', 'w-12 h-12 text-surface-200') }}
+        </div>
+        {% endif %}
+        <!-- Status indicator -->
+        <div class="absolute right-2 top-2">
+            <span class="flex h-3 w-3 rounded-full {% if camera.is_connected %}bg-success-500{% else %}bg-danger-500{% endif %}">
+                {% if camera.is_connected %}
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-400 opacity-75"></span>
+                {% endif %}
+            </span>
+        </div>
+        <!-- Hover overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-surface-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    </div>
+    <!-- Info -->
+    <div class="p-3">
+        <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+                <h4 class="font-medium text-white truncate">{{ camera.name }}</h4>
+                <p class="text-sm text-surface-200">
+                    {% if latest_capture and latest_capture.capture_datetime %}
+                    {{ latest_capture.capture_datetime | timeago }}
+                    {% else %}
+                    No captures yet
+                    {% endif %}
+                </p>
+            </div>
+            <!-- Quick action buttons -->
+            <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation();">
+                {{ icon_button('photo', 'View Images', href='/images?camera=' ~ camera.camera_id, size='sm', variant='primary') }}
+                {{ icon_button('film', 'View Timelapses', href='/timelapses?camera=' ~ camera.camera_id, size='sm', variant='primary') }}
+            </div>
+        </div>
+        <!-- Stats -->
+        {% if stats %}
+        <div class="mt-2 pt-2 border-t border-surface-400/30 text-sm">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div class="flex justify-between">
+                    <span class="text-surface-300">Captures</span>
+                    <span class="text-white font-medium">{{ stats.total_captures | number_format }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-surface-300">Success</span>
+                    <span class="text-success-400 font-medium">{{ stats.success_rate | round(1) }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-surface-300">Videos</span>
+                    <span class="text-primary-400 font-medium">{{ stats.timelapse_count }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-surface-300">Days</span>
+                    <span class="text-white font-medium">{{ stats.capture_days }}</span>
+                </div>
+            </div>
+            <!-- Today's captures by interval -->
+            {% if stats.interval_stats %}
+            <div class="mt-1.5 pt-1.5 border-t border-surface-400/20">
+                <!-- Summary state line -->
+                <div class="flex items-center justify-between text-xs text-surface-300 mb-1.5">
+                    <span>Today</span>
+                    {% if stats.today_summary %}
+                    <span class="font-medium">
+                        <span class="text-success-400">{{ stats.today_summary.success | number_format }}</span>
+                        {%- if stats.today_summary.failed > 0 %}<span class="text-danger-400"> · {{ stats.today_summary.failed }}✗</span>{% endif %}
+                        <span class="text-surface-400"> / {{ stats.today_summary.expected | number_format }}</span>
+                        <span class="{% if stats.today_summary.rate >= 95 %}text-success-400{% elif stats.today_summary.rate >= 80 %}text-warning-400{% else %}text-danger-400{% endif %}"> {{ stats.today_summary.rate }}%</span>
+                    </span>
+                    {% else %}
+                    <span class="text-white font-medium">{{ stats.captures_today | number_format }}</span>
+                    {% endif %}
+                </div>
+                <!-- Per-interval table -->
+                <div class="text-xs">
+                    <div class="flex items-center text-[10px] text-surface-200 uppercase tracking-wider mb-0.5">
+                        <span class="w-9"></span>
+                        <span class="flex-1 text-right">ok</span>
+                        <span class="w-9 text-right">fail</span>
+                        <span class="flex-1 text-right">exp</span>
+                        <span class="w-12 text-right">rate</span>
+                    </div>
+                    {% for interval, data in stats.interval_stats.items() | sort %}
+                    <div class="flex items-center py-px">
+                        <span class="w-9 text-surface-200">{{ interval }}s</span>
+                        <span class="flex-1 text-right text-success-400">{{ data.success | number_format }}</span>
+                        <span class="w-9 text-right {% if data.failed > 0 %}text-danger-400{% else %}text-surface-200{% endif %}">{{ data.failed }}</span>
+                        <span class="flex-1 text-right text-white">{{ data.expected | number_format }}</span>
+                        <span class="w-12 text-right font-medium {% if data.rate >= 95 %}text-success-400{% elif data.rate >= 80 %}text-warning-400{% else %}text-danger-400{% endif %}">{{ data.rate }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="mt-1.5 pt-1.5 border-t border-surface-400/20">
+                <div class="flex items-center justify-between text-xs text-surface-300">
+                    <span>Today</span>
+                    <span class="text-surface-200">No activity today</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro image_card(capture, filters=none) %}
+{# Build filter params for lightbox navigation #}
+{% set filter_params = [] %}
+{% if filters and filters.camera %}{% set _ = filter_params.append('camera=' ~ filters.camera) %}{% endif %}
+{% if filters and filters.date %}{% set _ = filter_params.append('date=' ~ filters.date) %}{% endif %}
+{% if filters and filters.interval %}{% set _ = filter_params.append('interval=' ~ filters.interval) %}{% endif %}
+{% set filter_str = filter_params|join('&') %}
+{# Always include the capture's own interval to avoid ambiguity when same timestamp exists at multiple intervals #}
+{% set lightbox_interval = 'interval=' ~ capture.interval %}
+{% set lightbox_params = (filter_str ~ '&' ~ lightbox_interval) if filter_str else lightbox_interval %}
+<div class="group relative overflow-hidden rounded-lg border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 cursor-pointer"
+     hx-get="/images/lightbox/{{ capture.camera_safe_name }}/{{ capture.timestamp }}?{{ lightbox_params }}"
+     hx-target="#lightbox-container"
+     hx-swap="innerHTML">
+    <div class="relative aspect-video bg-surface-800">
+        <img src="/images/thumbnail/{{ capture.camera_safe_name }}/{{ capture.interval }}/{{ capture.capture_date }}/{{ capture.timestamp }}?size=256"
+             alt="{{ capture.camera_safe_name }}"
+             class="h-full w-full object-cover transition-transform group-hover:scale-105"
+             loading="lazy"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+        <div class="fallback-icon hidden h-full w-full items-center justify-center absolute inset-0 bg-surface-800">
+            {{ icon('photo', 'w-12 h-12 text-surface-200') }}
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-surface-900/80 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 p-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <p class="text-xs text-surface-100 truncate">{{ capture.camera_safe_name|replace('_', ' ') }}</p>
+        <p class="text-xs text-surface-200">{{ capture.capture_datetime | format_datetime('log') }}</p>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro running_job_card(job) %}
+{# Large card for running jobs with live thumbnail - max-w-sm keeps cards reasonably sized #}
+<div class="rounded-xl border border-primary-500/50 bg-surface-900/80 overflow-hidden max-w-sm"
+     id="job-{{ job.job_id }}"
+     hx-ext="morph"
+     hx-get="/timelapses/partials/job/{{ job.job_id }}"
+     hx-trigger="every 1s"
+     hx-swap="morph:outerHTML">
+    {# Thumbnail - natural aspect ratio from image #}
+    <div class="relative bg-surface-800">
+        {% if job.current_image %}
+        <img src="/images/thumbnail/{{ job.camera_safe_name }}/{{ job.interval }}/{{ job.target_date }}/{{ job.current_image }}?size=512"
+             alt="Current frame"
+             class="w-full h-auto">
+        {% else %}
+        <div class="w-full aspect-video flex items-center justify-center text-surface-500">
+            {{ icon("film", "w-12 h-12") }}
+        </div>
+        {% endif %}
+        {# Status badge overlay #}
+        <div class="absolute top-2 left-2">
+            {{ status_chip('running') }}
+        </div>
+        {# Progress overlay at bottom of image #}
+        <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-surface-900/80">
+            <div class="h-full bg-primary-500 transition-all duration-300"
+                 style="width: {{ job.progress }}%"></div>
+        </div>
+    </div>
+    {# Card info #}
+    <div class="p-3">
+        <div class="flex items-center justify-between mb-1">
+            <span class="font-medium text-surface-100 text-sm truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
+            {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Cancel job') }}
+        </div>
+        <p class="text-xs text-surface-200 truncate mb-1">{{ job.message or 'Processing...' }}</p>
+        <div class="flex items-center gap-3 text-xs text-surface-200">
+            <span>{{ job.target_date }}</span>
+            <span>{{ job.interval }}s</span>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro pending_job_card(job) %}
+{# Card for pending/waiting jobs - matches grid layout #}
+<div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 flex flex-col"
+     id="job-{{ job.job_id }}"
+     hx-ext="morph"
+     hx-get="/timelapses/partials/job/{{ job.job_id }}"
+     hx-trigger="every 3s"
+     hx-swap="morph:outerHTML">
+    {# Header with badge and delete #}
+    <div class="flex items-center justify-between mb-2">
+        {{ status_chip('pending') }}
+        {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Cancel job') }}
+    </div>
+    {# Camera name #}
+    <p class="text-sm font-medium text-white truncate mb-2" title="{{ job.camera_safe_name }}">
+        {{ job.camera_safe_name | replace('_', ' ') }}
+    </p>
+    {# Details #}
+    <div class="mt-auto space-y-1 text-xs text-surface-200">
+        <div class="flex items-center gap-1.5">
+            {{ icon("calendar", "w-3.5 h-3.5 text-surface-200") }}
+            <span>{{ job.target_date }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            {{ icon("clock", "w-3.5 h-3.5 text-surface-200") }}
+            <span>{{ job.interval }}s interval</span>
+        </div>
+        {% if job.image_count %}
+        <div class="flex items-center gap-1.5">
+            {{ icon("photo", "w-3.5 h-3.5 text-surface-200") }}
+            <span>{{ job.image_count }} images</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro completed_job_card(job) %}
+{# Compact card for completed/failed jobs in Recently Completed section #}
+<div class="rounded-lg border border-surface-400/30 bg-surface-900/50 p-2" id="job-{{ job.job_id }}">
+    <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+            {{ status_chip(job.status) }}
+            <span class="text-sm text-white truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
+        </div>
+        {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Remove from list') }}
+    </div>
+    <p class="text-xs text-surface-200 mt-0.5">
+        for <span class="text-surface-100">{{ job.target_date }}</span> · {{ job.interval }}s
+        {%- if job.total_frames %} · {{ "{:,}".format(job.total_frames) }} frames{% endif %}
+        {%- if job.started_at and job.completed_at %} · took {{ (job.completed_at - job.started_at) | duration }}{% endif %}
+    </p>
+    <p class="text-sm text-surface-200">
+        {% if job.completed_at %}finished {{ job.completed_at | format_datetime('friendly') }}{% elif job.started_at %}started {{ job.started_at | format_datetime('friendly') }}{% else %}created {{ job.created_at | format_datetime('friendly') }}{% endif %}
+    </p>
+    {% if job.status == 'failed' and (job.message or job.error) %}
+    <p class="text-xs text-danger-400 truncate" title="{{ job.message or job.error }}">{{ job.message or job.error }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro timelapse_card(timelapse) %}
+<div id="timelapse-{{ timelapse.id }}" class="overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50">
+    <div class="relative aspect-video bg-surface-800">
+        {% if timelapse.status == 'completed' and timelapse.file_path %}
+        <img src="/timelapses/{{ timelapse.id }}/thumbnail"
+             alt="{{ timelapse.camera_safe_name }} timelapse"
+             class="h-full w-full object-cover"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="hidden h-full items-center justify-center absolute inset-0 bg-surface-800">
+            {{ icon('film', 'w-12 h-12 text-surface-200') }}
+        </div>
+        <div hx-get="/timelapses/{{ timelapse.id }}/lightbox"
+             hx-target="#lightbox-container"
+             hx-swap="innerHTML"
+             class="absolute inset-0 flex items-center justify-center group cursor-pointer">
+            <span class="rounded-full bg-surface-900/80 p-3 text-white transition-transform group-hover:scale-110">
+                {{ icon('play-solid', 'w-8 h-8') }}
+            </span>
+        </div>
+        {% else %}
+        <div class="flex h-full items-center justify-center">
+            {{ icon('film', 'w-12 h-12 text-surface-200') }}
+        </div>
+        {% endif %}
+    </div>
+    <div class="p-4">
+        <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-white truncate">{{ timelapse.camera_safe_name|replace('_', ' ') }}</h4>
+                <p class="text-sm text-surface-200">{{ timelapse.timelapse_date | date }} · {{ timelapse.interval }}s</p>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if timelapse.status == 'completed' and timelapse.file_path %}
+                {{ icon_button('arrow-down-tray', 'Download video', href='/timelapses/' ~ timelapse.id ~ '/video', size='sm', variant='success', download=timelapse.file_name or (timelapse.camera_safe_name ~ '.mp4')) }}
+                {% endif %}
+                {{ delete_icon_button(hx_delete='/timelapses/' ~ timelapse.id, hx_target='#timelapse-' ~ timelapse.id, hx_swap='delete', title='Delete timelapse') }}
+            </div>
+        </div>
+        {% if timelapse.status == 'completed' %}
+        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-surface-200">
+            <span>{{ timelapse.frame_count }} frames</span>
+            <span>{{ timelapse.duration_seconds|round(1) }}s</span>
+            {% if timelapse.resolution %}
+            <span>{{ timelapse.resolution }}</span>
+            {% endif %}
+            {% if timelapse.file_size %}
+            <span>{{ timelapse.file_size | file_size }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}

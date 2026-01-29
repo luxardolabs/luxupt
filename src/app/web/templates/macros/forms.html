@@ -1,0 +1,150 @@
+{# Form macros for consistent styling #}
+{% from "macros/icons.html" import icon %}
+
+{# Base input classes used across all form elements #}
+{% set input_base = "block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-base sm:text-sm text-white placeholder-surface-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed" %}
+{% set label_base = "block text-sm font-medium text-white mb-1.5" %}
+
+{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none) %}
+<div>
+    {% if label %}
+    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    {% endif %}
+    <div class="relative">
+        {% if icon_name %}
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            {{ icon(icon_name, 'w-5 h-5 text-surface-200') }}
+        </div>
+        {% endif %}
+        <input type="{{ type }}"
+               id="{{ name }}"
+               name="{{ name }}"
+               value="{{ value }}"
+               placeholder="{{ placeholder }}"
+               class="{{ input_base }} {% if icon_name %}pl-10{% endif %}"
+               {{ 'required' if required }}
+               {{ 'disabled' if disabled }}>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro select(name, options, label=none, selected=none, placeholder="Select...", required=false, disabled=false, hx_attrs={}) %}
+<div>
+    {% if label %}
+    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    {% endif %}
+    <select id="{{ name }}"
+            name="{{ name }}"
+            class="{{ input_base }} cursor-pointer"
+            {{ 'required' if required }}
+            {{ 'disabled' if disabled }}
+            {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+        <option value="" {{ 'selected' if selected is none or selected == '' }}>{{ placeholder }}</option>
+        {% for opt in options %}
+            {% if opt is mapping %}
+            <option value="{{ opt.value }}" {{ 'selected' if selected == opt.value }}>{{ opt.label }}</option>
+            {% else %}
+            <option value="{{ opt }}" {{ 'selected' if selected|string == opt|string }}>{{ opt }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{% macro filter_select(name, options, selected=none, placeholder="All", size="md", hx_attrs={}) %}
+{# Compact filter select for toolbars #}
+{% set sizes = {
+    'sm': 'pl-2 pr-7 py-1.5',
+    'md': 'pl-3 pr-8 py-2'
+} %}
+{% set size_class = sizes.get(size, sizes.md) %}
+<select id="{{ name }}"
+        name="{{ name }}"
+        class="rounded-lg border border-surface-500 bg-surface-700 {{ size_class }} text-base sm:text-sm text-white transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    <option value="" {{ 'selected' if selected is none or selected == '' }}>{{ placeholder }}</option>
+    {% for opt in options %}
+        {% if opt is mapping %}
+        <option value="{{ opt.value }}" {{ 'selected' if selected == opt.value }}>{{ opt.label }}</option>
+        {% else %}
+        <option value="{{ opt }}" {{ 'selected' if selected|string == opt|string }}>{{ opt }}</option>
+        {% endif %}
+    {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro checkbox(name, label, checked=false, value="true") %}
+<label class="inline-flex items-center gap-3 cursor-pointer group">
+    <div class="relative">
+        <input type="checkbox"
+               name="{{ name }}"
+               value="{{ value }}"
+               class="peer sr-only"
+               {{ 'checked' if checked }}>
+        <div class="h-5 w-5 rounded-md border border-surface-400 bg-surface-900 transition-colors peer-checked:border-primary-500 peer-checked:bg-primary-500 peer-focus:ring-2 peer-focus:ring-primary-500/20">
+            <svg class="h-5 w-5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+    </div>
+    <span class="text-sm text-surface-200 group-hover:text-white transition-colors">{{ label }}</span>
+</label>
+{% endmacro %}
+
+{% macro toggle(name, label, checked=false, value="true") %}
+{# Toggle switch for on/off settings #}
+<label class="inline-flex items-center gap-3 cursor-pointer group">
+    <div class="relative">
+        <input type="checkbox"
+               name="{{ name }}"
+               value="{{ value }}"
+               class="peer sr-only"
+               {{ 'checked' if checked }}>
+        <div class="h-6 w-11 rounded-full bg-surface-600 transition-colors peer-checked:bg-primary-500 peer-focus:ring-2 peer-focus:ring-primary-500/20"></div>
+        <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
+    </div>
+    <span class="text-sm text-white group-hover:text-surface-200 transition-colors">{{ label }}</span>
+</label>
+{% endmacro %}
+
+{% macro date_input(name, label=none, value=none, required=false) %}
+<div>
+    {% if label %}
+    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    {% endif %}
+    <input type="date"
+           id="{{ name }}"
+           name="{{ name }}"
+           value="{{ value.isoformat() if value else '' }}"
+           class="{{ input_base }}"
+           {{ 'required' if required }}>
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label=none, value="", placeholder="", rows=4, required=false, disabled=false) %}
+<div>
+    {% if label %}
+    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    {% endif %}
+    <textarea id="{{ name }}"
+              name="{{ name }}"
+              placeholder="{{ placeholder }}"
+              rows="{{ rows }}"
+              class="{{ input_base }} resize-none"
+              {{ 'required' if required }}
+              {{ 'disabled' if disabled }}>{{ value }}</textarea>
+</div>
+{% endmacro %}
+
+{% macro form_group(label=none, help=none) %}
+{# Wrapper for form fields with optional help text #}
+<div class="space-y-1">
+    {% if label %}
+    <label class="{{ label_base }}">{{ label }}</label>
+    {% endif %}
+    {{ caller() }}
+    {% if help %}
+    <p class="text-xs text-surface-200 mt-1">{{ help }}</p>
+    {% endif %}
+</div>
+{% endmacro %}

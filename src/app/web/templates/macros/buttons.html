@@ -1,0 +1,222 @@
+{# Button macros for consistent styling #}
+{% from "macros/icons.html" import icon %}
+
+{# Base button classes #}
+{% set btn_base = "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none" %}
+{% set btn_sizes = {
+    'sm': 'px-3 py-1.5 text-xs',
+    'md': 'px-4 py-2 text-sm',
+    'lg': 'px-5 py-2.5 text-sm'
+} %}
+
+{% macro primary(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro primary_loading(text, loading_text="Processing...", type="submit", size="md", icon_name=none, form=none, id=none) %}
+{# Primary button with HTMX loading state - shows spinner during request #}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% set btn_id = id or 'btn-' ~ range(10000, 99999) | random %}
+<button id="{{ btn_id }}" type="{{ type }}"
+        {% if form %}form="{{ form }}"{% endif %}
+        class="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-900 disabled:opacity-50 disabled:cursor-not-allowed {{ size_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500">
+    <span class="htmx-indicator inline-flex items-center gap-2">
+        {{ icon('arrow-path', 'w-5 h-5 animate-spin') }}
+        {{ loading_text }}
+    </span>
+    <span class="btn-default inline-flex items-center gap-2">
+        {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+        {{ text }}
+    </span>
+</button>
+<style>
+    #{{ btn_id }}.htmx-request .btn-default { display: none; }
+    #{{ btn_id }}:not(.htmx-request) .htmx-indicator { display: none; }
+</style>
+{% endmacro %}
+
+{% macro secondary(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{# Outlined primary button - clearly clickable secondary action #}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} border border-primary-500/50 text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 hover:border-primary-400 focus:ring-primary-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} border border-primary-500/50 text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 hover:border-primary-400 focus:ring-primary-500"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro success(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} bg-success-500 text-white shadow-lg shadow-success-500/25 hover:bg-success-400 hover:shadow-success-500/40 focus:ring-success-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} bg-success-500 text-white shadow-lg shadow-success-500/25 hover:bg-success-400 hover:shadow-success-500/40 focus:ring-success-500"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro danger(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} bg-danger-500 text-white shadow-lg shadow-danger-500/25 hover:bg-danger-400 hover:shadow-danger-500/40 focus:ring-danger-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} bg-danger-500 text-white shadow-lg shadow-danger-500/25 hover:bg-danger-400 hover:shadow-danger-500/40 focus:ring-danger-500"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro danger_confirm(text, confirm_text="Click again to confirm", loading_text="Processing...", size="md", icon_name=none, hx_delete=none, hx_post=none, hx_target="body", hx_swap="innerHTML", timeout=3000) %}
+{# Danger button with double-tap confirmation pattern using Alpine.js #}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% set method = 'DELETE' if hx_delete else 'POST' %}
+{% set url = hx_delete if hx_delete else hx_post %}
+<button type="button"
+        x-data="{ confirm: false, loading: false }"
+        @click="if(loading) return; if(confirm) { loading = true; htmx.ajax('{{ method }}', '{{ url }}', {target: '{{ hx_target }}', swap: '{{ hx_swap }}'}).then(() => { loading = false; confirm = false; }); } else { confirm = true; setTimeout(() => confirm = false, {{ timeout }}); }"
+        :class="loading ? 'bg-surface-500 cursor-wait opacity-75' : (confirm ? 'bg-danger-600 shadow-glow-danger' : 'bg-danger-500 shadow-danger-500/25 hover:bg-danger-400 hover:shadow-danger-500/40')"
+        :disabled="loading"
+        class="{{ btn_base }} {{ size_class }} text-white shadow-lg focus:ring-danger-500 transition-all">
+    <span x-show="loading" class="flex items-center gap-2">
+        {{ icon('arrow-path', 'w-5 h-5 animate-spin') }}
+        <span>{{ loading_text }}</span>
+    </span>
+    <span x-show="!loading" class="flex items-center gap-2">
+        {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+        <span x-text="confirm ? '{{ confirm_text }}' : '{{ text }}'">{{ text }}</span>
+    </span>
+</button>
+{% endmacro %}
+
+{% macro warning(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} bg-warning-500 text-surface-900 shadow-lg shadow-warning-500/25 hover:bg-warning-400 hover:shadow-warning-500/40 focus:ring-warning-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} bg-warning-500 text-surface-900 shadow-lg shadow-warning-500/25 hover:bg-warning-400 hover:shadow-warning-500/40 focus:ring-warning-500"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro ghost(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{# Subtle button for Cancel, Close, Back - de-emphasized but clearly clickable #}
+{% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ btn_base }} {{ size_class }} border border-surface-400/50 text-white hover:bg-surface-500/50 hover:border-surface-300 focus:ring-surface-400 {{ 'pointer-events-none opacity-50' if disabled }}"
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ btn_base }} {{ size_class }} border border-surface-400/50 text-white hover:bg-surface-500/50 hover:border-surface-300 focus:ring-surface-400"
+        {{ 'disabled' if disabled }}
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro icon_button(icon_name, label, type="button", size="md", variant="ghost", hx_attrs={}, href=none, download=none) %}
+{# Square icon button - looks like a real button with icon centered #}
+{% set sizes = {
+    'sm': 'w-8 h-8',
+    'md': 'w-10 h-10',
+    'lg': 'w-12 h-12'
+} %}
+{% set icon_sizes = {
+    'sm': 'w-4 h-4',
+    'md': 'w-5 h-5',
+    'lg': 'w-6 h-6'
+} %}
+{% set variants = {
+    'primary': 'border-primary-500/50 text-primary-400 hover:text-primary-300 hover:bg-primary-500/20 hover:border-primary-400',
+    'ghost': 'border-surface-400/50 text-surface-200 hover:text-white hover:bg-surface-500/50 hover:border-surface-300',
+    'danger': 'border-danger-500/50 text-danger-400 hover:text-danger-300 hover:bg-danger-500/20 hover:border-danger-400',
+    'success': 'border-success-500/50 text-success-400 hover:text-success-300 hover:bg-success-500/20 hover:border-success-400'
+} %}
+{% set base = "inline-flex items-center justify-center rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-900" %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}"
+   title="{{ label }}"
+   aria-label="{{ label }}"
+   {% if download %}download="{{ download }}"{% endif %}
+   {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {{ icon(icon_name, icon_sizes[size]) }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}"
+        title="{{ label }}"
+        aria-label="{{ label }}"
+        {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+    {{ icon(icon_name, icon_sizes[size]) }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro button_group() %}
+{# Container for grouping buttons together #}
+<div class="inline-flex items-center gap-2">
+    {{ caller() }}
+</div>
+{% endmacro %}

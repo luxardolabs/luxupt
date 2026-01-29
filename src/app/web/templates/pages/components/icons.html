@@ -1,0 +1,198 @@
+{# =========================================================================
+   ICONS - icon(), icon_box(), live_ping()
+   ========================================================================= #}
+{% from "macros/icons.html" import icon, icon_box, live_ping %}
+
+<div id="icons" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Icons</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ icon('camera', 'w-5 h-5 text-primary-400') }}{% endraw %}</code>
+        - Uses Heroicons v2
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== ICON BASICS ===== #}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Sizes</p>
+                <div class="flex items-end gap-4">
+                    <div class="text-center">
+                        {{ icon('camera', 'w-4 h-4 text-surface-200') }}
+                        <p class="text-[10px] text-surface-200 mt-1">w-4</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('camera', 'w-5 h-5 text-surface-200') }}
+                        <p class="text-[10px] text-surface-200 mt-1">w-5</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('camera', 'w-6 h-6 text-surface-200') }}
+                        <p class="text-[10px] text-surface-200 mt-1">w-6</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('camera', 'w-8 h-8 text-surface-200') }}
+                        <p class="text-[10px] text-surface-200 mt-1">w-8</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('camera', 'w-10 h-10 text-surface-200') }}
+                        <p class="text-[10px] text-surface-200 mt-1">w-10</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Colors</p>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-white') }}
+                        <span class="text-[10px] text-surface-200">white</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-surface-200') }}
+                        <span class="text-[10px] text-surface-200">surface</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-primary-400') }}
+                        <span class="text-[10px] text-surface-200">primary</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-success-400') }}
+                        <span class="text-[10px] text-surface-200">success</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-warning-400') }}
+                        <span class="text-[10px] text-surface-200">warning</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ icon('camera', 'w-6 h-6 text-danger-400') }}
+                        <span class="text-[10px] text-surface-200">danger</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Outline vs Solid</p>
+                <p class="text-sm text-surface-200 mb-3">Add <code class="text-primary-300">-solid</code> suffix</p>
+                <div class="flex flex-wrap gap-4">
+                    <div class="text-center">
+                        {{ icon('check-circle', 'w-8 h-8 text-success-400') }}
+                        <p class="text-[10px] text-surface-200 mt-1">outline</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('check-circle-solid', 'w-8 h-8 text-success-400') }}
+                        <p class="text-[10px] text-surface-200 mt-1">solid</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('play', 'w-8 h-8 text-primary-400') }}
+                        <p class="text-[10px] text-surface-200 mt-1">outline</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon('play-solid', 'w-8 h-8 text-primary-400') }}
+                        <p class="text-[10px] text-surface-200 mt-1">solid</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== COMMON ICONS ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Common Icons</p>
+            <div class="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-4">
+                {% for name in ['camera', 'film', 'photo', 'video-camera', 'signal', 'wifi', 'cog-6-tooth', 'adjustments-horizontal', 'play', 'pause', 'stop', 'arrow-path', 'check', 'x-mark', 'plus', 'minus', 'trash', 'pencil-square', 'eye', 'clock', 'calendar', 'chart-bar', 'arrow-down-tray', 'arrow-up-tray'] %}
+                <div class="text-center">
+                    {{ icon(name, 'w-6 h-6 text-surface-200') }}
+                    <p class="text-[9px] text-surface-200 mt-1 truncate">{{ name }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ===== ICON BOX ===== #}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">Icon Box (with hover glow)</p>
+                <p class="text-sm text-surface-200 mb-4">
+                    <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ icon_box('camera', 'success', 'md') }}{% endraw %}</code>
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <div class="text-center">
+                        {{ icon_box('camera', 'primary', 'sm') }}
+                        <p class="text-[10px] text-surface-200 mt-2">primary sm</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon_box('film', 'success', 'md') }}
+                        <p class="text-[10px] text-surface-200 mt-2">success md</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon_box('cog-6-tooth', 'warning', 'lg') }}
+                        <p class="text-[10px] text-surface-200 mt-2">warning lg</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon_box('exclamation-triangle', 'danger', 'md') }}
+                        <p class="text-[10px] text-surface-200 mt-2">danger md</p>
+                    </div>
+                    <div class="text-center">
+                        {{ icon_box('information-circle', 'info', 'md') }}
+                        <p class="text-[10px] text-surface-200 mt-2">info md</p>
+                    </div>
+                </div>
+                <p class="text-xs text-surface-200 mt-3">Hover over icons to see glow effect</p>
+            </div>
+
+            <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+                <p class="text-xs font-medium text-warning-400 uppercase mb-4">Semantic Icon Color Rules</p>
+                <div class="space-y-3 text-xs">
+                    <div class="flex items-center gap-3 p-2 rounded bg-surface-900/50">
+                        {{ icon('eye', 'w-5 h-5 text-primary-400') }}
+                        {{ icon('pencil-square', 'w-5 h-5 text-primary-400') }}
+                        <span class="text-surface-200">Primary action</span>
+                        <code class="ml-auto text-primary-300">text-primary-400</code>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 rounded bg-surface-900/50">
+                        {{ icon('check-circle', 'w-5 h-5 text-success-400') }}
+                        {{ icon('signal', 'w-5 h-5 text-success-400') }}
+                        <span class="text-surface-200">Success</span>
+                        <code class="ml-auto text-success-300">text-success-400</code>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 rounded bg-surface-900/50">
+                        {{ icon('exclamation-triangle', 'w-5 h-5 text-warning-400') }}
+                        {{ icon('clock', 'w-5 h-5 text-warning-400') }}
+                        <span class="text-surface-200">Warning</span>
+                        <code class="ml-auto text-warning-300">text-warning-400</code>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 rounded bg-surface-900/50">
+                        {{ icon('x-circle', 'w-5 h-5 text-danger-400') }}
+                        {{ icon('trash', 'w-5 h-5 text-danger-400') }}
+                        <span class="text-surface-200">Danger</span>
+                        <code class="ml-auto text-danger-300">text-danger-400</code>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 rounded bg-surface-900/50">
+                        {{ icon('camera', 'w-5 h-5 text-surface-200') }}
+                        {{ icon('cog-6-tooth', 'w-5 h-5 text-surface-200') }}
+                        <span class="text-surface-200">Decorative</span>
+                        <code class="ml-auto text-surface-300">text-surface-200</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import & Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/icons.html" import icon, icon_box, live_ping %}
+
+{# Basic icon #}
+{{ icon('camera', 'w-5 h-5 text-surface-200') }}
+
+{# Solid variant #}
+{{ icon('play-solid', 'w-6 h-6 text-primary-400') }}
+
+{# Icon with glow box #}
+{{ icon_box('film', 'success', 'md') }}
+
+{# Animated live ping #}
+{{ live_ping('md', 'success') }}{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>
