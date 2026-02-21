@@ -86,19 +86,25 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 
 ### RTSP Capture Failing
 
-**Symptom:** RTSP capture fails but API capture works.
+**Symptom:** RTSP capture fails but API capture works. Camera shows "RTSP Stream Not Tested" after detection.
 
 **Possible Causes:**
 
-1. **RTSP not enabled on camera**
+1. **Camera set to Enhanced encoding (most common)**
+   - Enhanced encoding uses H.265/HEVC, which does not provide compatible RTSP streams
+   - In UniFi Protect: Device Settings → Video → Encoding → set to **Standard** (H.264)
+   - This is a UniFi Protect platform requirement that affects all third-party RTSP integrations (Home Assistant, Frigate, etc.)
+   - See [FAQ: Why do some cameras show "RTSP Stream Not Tested"?](#why-do-some-cameras-show-rtsp-stream-not-tested) below
+
+2. **RTSP not enabled on camera**
    - In UniFi Protect: Device Settings → Advanced → Enable RTSP
    - Make sure to enable the quality level you want (High, Medium, or Low)
 
-2. **RTSP timeout too short**
+3. **RTSP timeout too short**
    - Increase **RTSP Timeout** in Capture Settings
    - Default is reasonable, but slow networks may need more
 
-3. **FFmpeg issues**
+4. **FFmpeg issues**
    - Check logs: `docker logs luxupt | grep -i ffmpeg`
    - RTSP capture requires FFmpeg, which is included in the container
 
@@ -479,6 +485,44 @@ All volume mounts that the container writes to must be writable by uid 1000.
 1. **Filter mismatch** — Check your filters (camera, date, interval)
 2. **Images on disk but not in database** — Rare, but can happen if database was reset
 3. **Thumbnail generation failing** — Check logs for thumbnail errors
+
+---
+
+## FAQ
+
+### Why do some cameras show "RTSP Stream Not Tested"?
+
+This means the RTSP detection test could not capture a frame from the camera's RTSP stream. The most common cause is that the camera is set to **Enhanced** encoding in UniFi Protect.
+
+**Background:** UniFi Protect offers two encoding modes:
+
+- **Standard** — Uses H.264, which is universally compatible with RTSP clients
+- **Enhanced** — Uses H.265/HEVC, which provides better compression but does not work with most third-party RTSP integrations
+
+This is not specific to LuxUPT. Home Assistant, Frigate, Homebridge, go2rtc, and other tools that consume RTSP streams from UniFi Protect all require Standard encoding.
+
+**Fix:**
+
+1. Open UniFi Protect
+2. Go to each affected camera's Settings → Video
+3. Change Encoding from **Enhanced** to **Standard**
+4. In LuxUPT, click **Re-detect** on the camera to re-test RTSP
+
+After switching to Standard, the RTSP stream test should succeed and show the camera's full resolution.
+
+**Note:** You may have cameras with identical models and settings where some work and some don't. Double-check that encoding is set to Standard on every camera individually — this setting is per-camera, not global.
+
+---
+
+### Can I use Enhanced encoding for recording and Standard for RTSP?
+
+No. UniFi Protect applies the encoding setting to both recording and RTSP streams. If you need RTSP access (for LuxUPT or any other integration), the camera must use Standard encoding.
+
+---
+
+### Does this affect API snapshot capture?
+
+No. The API snapshot endpoint works regardless of encoding setting. Only RTSP stream capture is affected. If you don't need the higher resolution that RTSP provides, you can use API capture method instead and keep Enhanced encoding.
 
 ---
 

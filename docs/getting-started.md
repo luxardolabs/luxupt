@@ -6,6 +6,7 @@ This guide walks you through setting up LuxUPT from scratch.
 
 - **Docker and Docker Compose** — LuxUPT runs as a Docker container
 - **UniFi Protect system** — Latest version recommended (tested with 6.2.88)
+- **Camera encoding set to Standard** — UniFi Protect cameras must use **Standard** (H.264) encoding for RTSP streams to work. Enhanced (H.265) encoding does not provide compatible RTSP streams. Set this in UniFi Protect under each camera's Settings → Video → Encoding
 - **API key** — Generated from your UniFi Protect system
 
 ## Getting Your API Key
