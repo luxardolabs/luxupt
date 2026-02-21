@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Annotated
 
 import config
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from fastapi import Depends
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -74,6 +76,40 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
+def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
+    """Run Alembic migrations to upgrade the database schema.
+
+    This ensures existing databases get schema updates when upgrading to new versions.
+    Migrations are idempotent - they check if changes are needed before applying.
+    """
+    # Get path to alembic.ini relative to this file
+    app_dir = Path(__file__).parent.parent
+    alembic_ini = app_dir / "alembic.ini"
+
+    if not alembic_ini.exists():
+        logger.warning("alembic.ini not found, skipping migrations", extra={"path": str(alembic_ini)})
+        return
+
+    try:
+        alembic_cfg = AlembicConfig(str(alembic_ini))
+        # Override the script location to be absolute
+        alembic_cfg.set_main_option("script_location", str(app_dir / "db" / "migrations"))
+
+        logger.info("Running database migrations")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations complete")
+    except Exception as e:
+        # Log but don't fail startup - migrations might already be applied
+        logger.warning("Migration warning (may be expected)", extra={"error": str(e)})
+    finally:
+        # Alembic's env.py calls fileConfig(alembic.ini) which replaces the root logger
+        # with a WARN-level stderr handler and disables all existing app loggers.
+        # Re-initialize our logging to restore the JSON/text handler on stdout at INFO level.
+        from logging_config import setup_logging
+
+        setup_logging()
+
+
 async def init_db() -> None:
     """Initialize database tables."""
     from logging_config import get_logger
@@ -115,6 +151,10 @@ async def init_db() -> None:
                 logger.info("Incremental auto-vacuum enabled")
 
             await conn.run_sync(Base.metadata.create_all)
+
+        # Run Alembic migrations to apply any schema changes
+        # This handles upgrades for existing databases
+        _run_migrations(logger)
     except Exception as e:
         # Handle race condition where another process might have created tables
         if "already exists" in str(e).lower():

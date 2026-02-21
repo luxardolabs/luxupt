@@ -55,7 +55,7 @@ class JobService:
         target_date: date,
         interval: int,
         camera_id: str | None = None,
-        override_deletion: bool = False,
+        keep_images: bool = True,
     ) -> Job:
         """Create a new timelapse job."""
         return await job_crud.create_job(
@@ -65,7 +65,7 @@ class JobService:
             target_date=target_date,
             interval=interval,
             camera_id=camera_id,
-            override_deletion=override_deletion,
+            keep_images=keep_images,
         )
 
     async def get_active(self) -> list[Job]:
@@ -241,10 +241,10 @@ class JobProcessor:
             )
 
     def start_job(
-        self, job_id: str, date_str: str, camera: str, interval: int, override_deletion: bool = False
+        self, job_id: str, date_str: str, camera: str, interval: int, keep_images: bool | None = None
     ) -> None:
         """Queue a job for processing in the background (respects concurrency limit)."""
-        asyncio.create_task(self._process_job(job_id, date_str, camera, interval, override_deletion))
+        asyncio.create_task(self._process_job(job_id, date_str, camera, interval, keep_images))
 
     async def update_job_progress(
         self,
@@ -274,7 +274,7 @@ class JobProcessor:
             logger.warning("Failed to update job progress", extra={"job_id": job_id, "error": str(e)})
 
     async def _process_job(
-        self, job_id: str, date_str: str, camera: str, interval: int, override_deletion: bool = False
+        self, job_id: str, date_str: str, camera: str, interval: int, keep_images: bool | None = None
     ) -> None:
         """Process a timelapse job with progress tracking (waits for semaphore)."""
         # Get settings and ensure semaphore exists (thread-safe)
@@ -297,13 +297,11 @@ class JobProcessor:
                 # Load encoding settings from database
                 encoding_settings = EncodingSettings.from_scheduler_settings(scheduler_settings)
 
-                # Determine keep_images setting
-                keep_images = scheduler_settings.keep_images
-                if override_deletion:
-                    keep_images = True
-                    await self.update_job_progress(
-                        job_id, 5, "running", "Image deletion DISABLED for this job (user override)"
-                    )
+                # Determine keep_images: use scheduler setting if not explicitly specified
+                if keep_images is None:
+                    keep_images = scheduler_settings.keep_images
+                elif keep_images and not scheduler_settings.keep_images:
+                    await self.update_job_progress(job_id, 5, "running", "Keeping images for this job (job override)")
 
                 # Initialize camera manager with settings from database
                 cm_settings = await self._load_camera_manager_settings()

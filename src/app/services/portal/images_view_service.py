@@ -367,7 +367,11 @@ class ImagesViewService:
         date_str: str | None = None,
         interval: int | None = None,
     ) -> dict:
-        """Get preview of what would be deleted with cascading filter options."""
+        """Get preview of what would be deleted with cascading filter options.
+
+        Args:
+            camera: camera_id (UUID) from dropdown.
+        """
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
 

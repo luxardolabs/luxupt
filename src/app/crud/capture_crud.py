@@ -592,6 +592,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
     ) -> list[dict]:
         """Get summary of captures that would be deleted, grouped by camera/date/interval.
 
+        Args:
+            camera: camera_id (UUID) to filter by.
+
         Returns list of dicts with camera (safe_name for paths), camera_id, date, interval, count, total_size.
         """
         query = select(
@@ -646,6 +649,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
     ) -> list[dict]:
         """Get file paths and cleanup metadata for captures matching filters.
 
+        Args:
+            camera: camera_id (UUID) to filter by.
+
         Returns minimal dicts with: camera (safe_name), date, interval, file_path.
         """
         query = select(
@@ -681,7 +687,13 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         capture_date: date | None = None,
         interval: int | None = None,
     ) -> int:
-        """Bulk delete captures matching filters in a single SQL DELETE. Returns count deleted."""
+        """Bulk delete captures matching filters in a single SQL DELETE.
+
+        Args:
+            camera: camera_id (UUID) to filter by.
+
+        Returns count deleted.
+        """
         query = delete(Capture)
 
         if camera:

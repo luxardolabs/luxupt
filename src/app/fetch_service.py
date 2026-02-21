@@ -539,6 +539,15 @@ class FetchService:
             except Exception as e:
                 logger.error("Error monitoring settings changes", extra={"error": str(e)})
 
+    async def _check_fetch_enabled(self) -> bool:
+        """Check if fetch is globally enabled in database settings."""
+        try:
+            async with async_session() as session:
+                return await fetch_settings_crud.is_enabled(session)
+        except Exception as e:
+            logger.warning("Failed to check fetch enabled status", extra={"error": str(e)})
+            return True  # Default to enabled if check fails
+
     async def _run_interval(self, interval: int) -> None:
         """Run capture loop for a specific interval."""
         logger.info("Starting interval capture loop", extra={"interval": interval})
@@ -576,7 +585,19 @@ class FetchService:
         in_flight: set[asyncio.Task] = set()
         max_in_flight = 2  # Allow current + 1 overlap, skip if further behind
 
+        # Track last enabled check time to avoid checking on every iteration
+        last_enabled_check = 0.0
+
         while self.running:
+            # Check if fetch is globally enabled (throttled to SETTINGS_RELOAD_INTERVAL)
+            now_time = time.time()
+            if now_time - last_enabled_check >= config.SETTINGS_RELOAD_INTERVAL:
+                last_enabled_check = now_time
+                if not await self._check_fetch_enabled():
+                    logger.debug("Fetch disabled, skipping capture", extra={"interval": interval})
+                    await asyncio.sleep(config.SETTINGS_RELOAD_INTERVAL)
+                    continue
+
             # Snap to the current aligned timestamp using integer division
             # This is robust against asyncio.sleep overshoot — no exact-second polling needed
             now_ts = int(time.time())

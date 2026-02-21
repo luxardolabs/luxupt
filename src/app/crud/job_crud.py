@@ -76,7 +76,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         target_date: date,
         interval: int,
         camera_id: str | None = None,
-        override_deletion: bool = False,
+        keep_images: bool = True,
     ) -> Job:
         """Create a new timelapse job."""
         job = Job(
@@ -85,7 +85,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             camera_id=camera_id,
             target_date=target_date,
             interval=interval,
-            override_deletion=override_deletion,
+            keep_images=keep_images,
             status=JobStatus.PENDING,
             progress=0.0,
             created_at=datetime.now(),

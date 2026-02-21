@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 import config
 from camera_manager import CameraManager, CameraManagerSettings
-from crud import job_crud, timelapse_crud
+from crud import camera_crud, job_crud, timelapse_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from crud.scheduler_settings_crud import scheduler_settings_crud
 from db.connection import async_session
@@ -500,10 +500,15 @@ class TimelapseService:
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Count results
+            # Count results and log any errors
             successful = sum(1 for result in results if result is True)
             failed = sum(1 for result in results if isinstance(result, Exception))
             skipped = len(results) - successful - failed
+
+            # Log each exception so failures aren't silently swallowed
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error("Timelapse task failed", extra={"error": str(result), "type": type(result).__name__})
 
             logger.info(
                 "Timelapse creation summary",
@@ -556,7 +561,8 @@ class TimelapseService:
         job_processor = get_job_processor()
 
         # Process the job directly (not in background since we're already async)
-        await job_processor._process_job(job_id, date_str, camera_name, interval, override_deletion=keep_images)
+        # Don't pass keep_images - let job processor use scheduler setting from database
+        await job_processor._process_job(job_id, date_str, camera_name, interval)
 
         # Check the result
         async with async_session() as db:
@@ -685,9 +691,12 @@ class TimelapseService:
             # Delete source images, thumbnails, and database records
             try:
                 async with async_session() as db:
+                    # Resolve safe_name → camera_id (UUID) for DB queries
+                    camera_obj = await camera_crud.get_by_safe_name(db, camera_name)
+                    camera_id = camera_obj.camera_id if camera_obj else None
                     cleanup_service = CaptureCleanupService(db)
                     result = await cleanup_service.delete_by_filters(
-                        camera=camera_name,
+                        camera=camera_id,
                         capture_date=target_date.date(),
                         interval=interval,
                     )

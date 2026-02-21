@@ -286,7 +286,7 @@ async def get_image_thumbnail(
     capture_date: date,
     timestamp: int,
     size: int | None = Query(None, ge=50, le=1024),
-    user: str = Depends(get_current_user),
+    _user: str = Depends(get_current_user),
 ) -> Response:
     """Serve thumbnail for an image.
 

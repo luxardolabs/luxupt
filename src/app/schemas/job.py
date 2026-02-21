@@ -12,7 +12,7 @@ class JobBase(BaseModel):
     camera_safe_name: str = Field(..., max_length=255)
     target_date: date
     interval: int
-    override_deletion: bool = False
+    keep_images: bool = True
 
 
 class JobCreate(JobBase):

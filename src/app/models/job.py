@@ -43,7 +43,7 @@ class Job(Base):
     pid: Mapped[int | None] = mapped_column(Integer, nullable=True)  # FFmpeg process ID for killing
 
     # Override settings
-    override_deletion: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    keep_images: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Timing
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -75,7 +75,7 @@ class Job(Base):
             "status": self.status,
             "progress": self.progress,
             "message": self.message,
-            "override_deletion": self.override_deletion,
+            "keep_images": self.keep_images,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
