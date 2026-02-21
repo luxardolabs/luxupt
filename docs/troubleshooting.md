@@ -231,11 +231,18 @@ docker logs luxupt | grep -i "error\|failed\|camera"
    - Check available space: System page → Storage
    - Delete old images or videos to free space
 
-3. **FFmpeg timeout**
+3. **Out of memory**
+   - FFmpeg memory usage scales with video resolution and number of source images
+   - If FFmpeg is killed by the OS (OOM), the error will show "FFmpeg process killed (no output)"
+   - Common in LXC containers or memory-constrained environments
+   - **Solution:** Increase container/host memory — 16GB is a safe target for many high-resolution cameras
+   - Manual creation may succeed while scheduled runs fail if other processes are competing for memory at the scheduled time
+
+4. **FFmpeg timeout**
    - Large timelapses (thousands of images) may exceed the timeout
    - Increase Timeout in Scheduler → Video Encoding
 
-4. **Corrupted images**
+5. **Corrupted images**
    - Some images may be corrupted
    - Check the source images in the Images browser
 

@@ -890,14 +890,24 @@ class TimelapseService:
                     self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
                     return False
             else:
-                error_msg = stderr[:200] if stderr else "FFmpeg encoding failed"
+                logger.debug(
+                    "FFmpeg timelapse full stderr",
+                    extra={"camera": camera_name, "interval": interval, "stderr": stderr or ""},
+                )
+                if not stderr or not stderr.strip():
+                    error_msg = (
+                        "FFmpeg process killed (no output) — likely out of memory. "
+                        "Check container/host memory limits."
+                    )
+                else:
+                    error_msg = stderr[:500]
                 await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
                 logger.error(
                     "FFmpeg failed",
                     extra={
                         "camera": camera_name,
                         "interval": interval,
-                        "error": error_msg[:200],
+                        "error": error_msg,
                     },
                 )
                 await async_fs.path_unlink(output_path, missing_ok=True)  # Remove partial file
