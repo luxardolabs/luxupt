@@ -719,7 +719,19 @@ class CameraManager:
                         return make_result(False, error=error_msg)
                 else:
                     stderr_text = stderr.decode("utf-8", errors="ignore") if stderr else ""
-                    error_msg = f"FFmpeg error: {stderr_text[:100]}" if stderr_text else "FFmpeg failed"
+                    logger.debug(
+                        "RTSP capture FFmpeg full stderr",
+                        extra={"camera": camera.name, "interval": interval, "stderr": stderr_text},
+                    )
+                    # Detect H.265/HEVC codec issues (camera set to Enhanced encoding)
+                    stderr_lower = stderr_text.lower()
+                    if "hevc" in stderr_lower or "h265" in stderr_lower or "hev1" in stderr_lower:
+                        error_msg = (
+                            "Camera may be using Enhanced (H.265) encoding — "
+                            "switch to Standard (H.264) in UniFi Protect settings"
+                        )
+                    else:
+                        error_msg = f"FFmpeg error: {stderr_text[:500]}" if stderr_text else "FFmpeg failed"
                     logger.error(
                         "RTSP capture failed - FFmpeg error",
                         extra={"camera": camera.name, "interval": interval, "error": error_msg},
