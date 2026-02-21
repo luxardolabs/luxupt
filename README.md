@@ -3,7 +3,7 @@
 **Automatic timelapse videos from your UniFi Protect cameras.**
 
 ![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
-![Docker](https://img.shields.io/docker/pulls/luxardolabs/luxupt)
+![GHCR](https://img.shields.io/badge/ghcr.io-luxardolabs%2Fluxupt-blue?logo=github)
 
 You've invested in UniFi Protect. LuxUPT turns that investment into something more—capturing snapshots around the clock and compiling them into timelapse videos automatically. Watch your construction site progress, your garden grow through the seasons, or simply see what happened while you were away.
 
