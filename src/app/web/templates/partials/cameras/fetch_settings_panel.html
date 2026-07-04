@@ -1,0 +1,321 @@
+{# Fetch/Capture settings panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/cards.html" import section_card %}
+{% from "macros/buttons.html" import primary, primary_loading, ghost %}
+{% from "macros/forms.html" import select %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-2xl') %}
+    {{ panel_header('Capture Settings', 'Configure capture intervals, API connection, and performance') }}
+
+        <!-- Content -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+            <form id="fetch-settings-form"
+                  hx-post="/cameras/fetch-settings"
+                  hx-target="#fetch-settings-result"
+                  hx-swap="innerHTML"
+                  hx-indicator="#save-btn"
+                  hx-disabled-elt="#save-btn"
+                  class="space-y-6">
+
+                <!-- ===== CAPTURE SETTINGS SECTION ===== -->
+                {% call section_card('Capture') %}
+                <div class="space-y-4">
+                    <!-- Enable & High Quality Toggles -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-white">Capture Enabled</span>
+                                <p class="text-xs text-surface-200">Enable image capture globally</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" name="enabled" value="true" class="peer sr-only"
+                                       {{ 'checked' if settings.enabled }}>
+                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-white">High Quality</span>
+                                <p class="text-xs text-surface-200">Request 1080p+ snapshots</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" name="high_quality_snapshots" value="true" class="peer sr-only"
+                                       {{ 'checked' if settings.high_quality_snapshots }}>
+                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Intervals -->
+                    <div class="border-t border-surface-400/20 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-white">Capture Intervals</span>
+                            <button type="button" onclick="FormUtils.addInterval()"
+                                    class="text-xs text-primary-400 hover:text-primary-300 inline-flex items-center gap-1">
+                                {{ icon('plus', 'w-3 h-3') }} Add
+                            </button>
+                        </div>
+                        <div id="intervals-container" class="flex flex-wrap gap-2">
+                            {% for interval in settings.get_intervals() %}
+                            <div class="interval-row flex items-center gap-1 bg-surface-700/50 rounded-lg px-2 py-1">
+                                <input type="number" name="intervals" value="{{ interval }}" min="5" max="3600"
+                                       class="w-16 rounded border-0 bg-transparent px-1 py-0.5 text-sm text-white text-center focus:ring-1 focus:ring-primary-500">
+                                <span class="text-xs text-surface-200">sec</span>
+                                <button type="button" onclick="FormUtils.removeInterval(this)"
+                                        class="p-0.5 text-surface-200 hover:text-danger-400 transition-colors">
+                                    {{ icon('x-mark', 'w-3 h-3') }}
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Capture Method & RTSP Quality -->
+                    <div class="border-t border-surface-400/20 pt-4 grid grid-cols-2 gap-4">
+                        {{ select("default_capture_method", [{"value": "auto", "label": "Auto"}, {"value": "api", "label": "API Snapshot"}, {"value": "rtsp", "label": "RTSP Stream"}], label="Default Method", selected=settings.default_capture_method) }}
+                        {{ select("default_rtsp_quality", [{"value": "high", "label": "High"}, {"value": "medium", "label": "Medium"}, {"value": "low", "label": "Low"}], label="RTSP Quality", selected=settings.default_rtsp_quality) }}
+                    </div>
+
+                    <!-- RTSP Output Format, PNG Compression & Timeout -->
+                    <div class="grid grid-cols-3 gap-4 mt-4">
+                        <div>
+                            {{ select("rtsp_output_format", [{"value": "png", "label": "PNG (Lossless)"}, {"value": "jpg", "label": "JPEG (Smaller)"}], label="RTSP Format", selected=settings.rtsp_output_format) }}
+                            <p class="text-xs text-surface-200 mt-1">PNG better for timelapse</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-white mb-2">PNG Compression</label>
+                            <div class="relative">
+                                <input type="number" name="png_compression_level"
+                                       value="{{ settings.png_compression_level }}"
+                                       min="0" max="9"
+                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">0-9</span>
+                            </div>
+                            <p class="text-xs text-surface-200 mt-1">6=balanced, 9=smallest</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-white mb-2">RTSP Timeout</label>
+                            <div class="relative">
+                                <input type="number" name="rtsp_capture_timeout"
+                                       value="{{ settings.rtsp_capture_timeout }}"
+                                       min="5" max="60"
+                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">sec</span>
+                            </div>
+                            <p class="text-xs text-surface-200 mt-1">Timeout per capture</p>
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- ===== API CONNECTION SECTION ===== -->
+                {% set api_badge %}
+                    {% if api_config.has_api_key and api_config.has_base_url and not settings.api_key and not settings.base_url %}
+                    <span class="inline-flex items-center gap-1.5 text-xs text-success-400 bg-success-500/10 px-2 py-1 rounded-lg">
+                        {{ icon('check-circle', 'w-4 h-4') }}
+                        Using ENV
+                    </span>
+                    {% elif not api_config.has_api_key or not api_config.has_base_url %}
+                    <span class="inline-flex items-center gap-1.5 text-xs text-warning-400 bg-warning-500/10 px-2 py-1 rounded-lg">
+                        {{ icon('exclamation-triangle', 'w-4 h-4') }}
+                        Needs config
+                    </span>
+                    {% endif %}
+                {% endset %}
+                {% call section_card('API Connection', 'Leave empty to use environment variables', api_badge, highlight=needs_api) %}
+                <div class="space-y-4">
+                    <!-- Base URL -->
+                    <div>
+                        <label for="base_url" class="block text-sm font-medium text-white mb-1.5">Base URL</label>
+                        {% if api_config.has_base_url and not settings.base_url %}
+                        <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
+                            {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
+                            <span class="truncate">{{ api_config.base_url_display }}</span>
+                            <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
+                        </div>
+                        <input type="url" id="base_url" name="base_url" value=""
+                               placeholder="Enter to override..."
+                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% else %}
+                        <input type="url" id="base_url" name="base_url"
+                               value="{{ settings.base_url or '' }}"
+                               placeholder="https://unifi.local/proxy/protect/integration/v1"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% endif %}
+                    </div>
+
+                    <!-- API Key -->
+                    <div>
+                        <label for="api_key" class="block text-sm font-medium text-white mb-1.5">API Key</label>
+                        {% if api_config.has_api_key and not settings.api_key %}
+                        <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
+                            {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
+                            <span>••••••••••••••••</span>
+                            <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
+                        </div>
+                        <input type="password" id="api_key" name="api_key" value=""
+                               placeholder="Enter to override..."
+                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% else %}
+                        <input type="password" id="api_key" name="api_key"
+                               value="{{ settings.api_key or '' }}"
+                               placeholder="Enter API key..."
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% endif %}
+                    </div>
+
+                    <!-- SSL Verification -->
+                    <label class="flex items-center justify-between cursor-pointer border-t border-surface-400/20 pt-4">
+                        <div>
+                            <span class="text-sm font-medium text-white">Verify SSL</span>
+                            <p class="text-xs text-surface-200">Disable for self-signed certificates{% if settings.verify_ssl is none %} <span class="text-surface-200">(ENV: {{ 'enabled' if api_config.verify_ssl else 'disabled' }})</span>{% endif %}</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" name="verify_ssl" value="true" class="peer sr-only"
+                                   {{ 'checked' if settings.verify_ssl or (settings.verify_ssl is none and api_config.verify_ssl) }}>
+                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                        </div>
+                    </label>
+
+                    <!-- Camera Refresh -->
+                    <div class="flex items-center justify-between border-t border-surface-400/20 pt-4">
+                        <div>
+                            <span class="text-sm font-medium text-white">Camera Refresh</span>
+                            <p class="text-xs text-surface-200">How often to check for new cameras</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" name="camera_refresh_interval"
+                                   value="{{ settings.camera_refresh_interval }}"
+                                   min="60" max="3600"
+                                   class="w-20 rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="text-xs text-surface-200">sec</span>
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- ===== CAMERA DISTRIBUTION SECTION ===== -->
+                {% call section_card('Camera Distribution', 'Stagger camera captures to reduce API load') %}
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Min Offset -->
+                    <div>
+                        <label class="block text-sm font-medium text-white mb-1.5">Min Offset</label>
+                        <div class="relative">
+                            <input type="number" name="min_offset_seconds"
+                                   value="{{ settings.min_offset_seconds }}"
+                                   min="1" max="60"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">seconds</span>
+                        </div>
+                        <p class="text-xs text-surface-200 mt-1">Minimum time between camera captures</p>
+                    </div>
+                    <!-- Max Offset -->
+                    <div>
+                        <label class="block text-sm font-medium text-white mb-1.5">Max Offset</label>
+                        <div class="relative">
+                            <input type="number" name="max_offset_seconds"
+                                   value="{{ settings.max_offset_seconds }}"
+                                   min="1" max="300"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">seconds</span>
+                        </div>
+                        <p class="text-xs text-surface-200 mt-1">Maximum time between camera captures</p>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- ===== PERFORMANCE SECTION ===== -->
+                {% call section_card('Performance & Reliability') %}
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    <!-- Timeout -->
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Timeout</label>
+                        <div class="relative">
+                            <input type="number" name="request_timeout"
+                                   value="{{ settings.request_timeout }}"
+                                   min="5" max="120"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
+                        </div>
+                    </div>
+                    <!-- Max Retries -->
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Retries</label>
+                        <input type="number" name="max_retries"
+                               value="{{ settings.max_retries }}"
+                               min="0" max="10"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    </div>
+                    <!-- Retry Delay -->
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Retry Delay</label>
+                        <div class="relative">
+                            <input type="number" name="retry_delay"
+                                   value="{{ settings.retry_delay }}"
+                                   min="1" max="30"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
+                        </div>
+                    </div>
+                    <!-- Rate Limit -->
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Rate Limit</label>
+                        <div class="relative">
+                            <input type="number" name="rate_limit"
+                                   value="{{ settings.rate_limit }}"
+                                   min="1" max="100"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-surface-200">/s</span>
+                        </div>
+                    </div>
+                    <!-- Safety Buffer -->
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Buffer</label>
+                        <input type="number" name="rate_limit_buffer"
+                               value="{{ settings.rate_limit_buffer }}"
+                               min="0.1" max="1.0" step="0.1"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- ===== DISABLED CAMERAS SECTION ===== -->
+                {% if inactive_cameras %}
+                {% call section_card('Disabled Cameras', 'Toggle on and save to re-enable') %}
+                <div class="space-y-2">
+                    {% for camera in inactive_cameras %}
+                    <label class="flex items-center justify-between rounded-lg border border-surface-400/30 bg-surface-700/50 px-3 py-2 cursor-pointer">
+                        <div class="flex items-center gap-2 min-w-0">
+                            {{ icon('camera', 'w-4 h-4 text-surface-200 shrink-0') }}
+                            <span class="text-sm text-white truncate">{{ camera.name }}</span>
+                        </div>
+                        <div class="relative shrink-0 ml-2">
+                            <input type="checkbox" name="reactivate_cameras" value="{{ camera.camera_id }}" class="peer sr-only">
+                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endcall %}
+                {% endif %}
+
+                <!-- Result Area -->
+                <div id="fetch-settings-result"></div>
+
+            </form>
+        </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary_loading('Save Settings', loading_text='Connecting...' if needs_api else 'Saving...', icon_name='check', form='fetch-settings-form', id='save-btn') }}
+    {% endcall %}
+{% endcall %}
+

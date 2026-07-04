@@ -1,0 +1,235 @@
+{# =========================================================================
+   COLOR SYSTEM - Simplified, focused color rules
+   ========================================================================= #}
+{% from "macros/icons.html" import icon %}
+
+<div id="colors" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Color System</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Simplified color rules - memorize these, follow them exactly
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== THE GOLDEN RULE ===== #}
+        <div class="rounded-xl border-2 border-primary-500/50 bg-primary-500/10 p-6">
+            <p class="text-lg font-bold text-primary-300 mb-3">The Golden Rule</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0">
+                        {{ icon('cursor-arrow-rays', 'w-6 h-6 text-primary-400') }}
+                    </div>
+                    <div>
+                        <p class="font-semibold text-white">Clickable = PRIMARY</p>
+                        <p class="text-sm text-surface-200 mt-1">Icons, links, and interactive elements use <code class="text-primary-300">text-primary-400</code></p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-surface-700/50 flex items-center justify-center shrink-0">
+                        {{ icon('no-symbol', 'w-6 h-6 text-surface-200') }}
+                    </div>
+                    <div>
+                        <p class="font-semibold text-white">Gray = DISABLED only</p>
+                        <p class="text-sm text-surface-200 mt-1">Gray icons mean "you can't click this" - never use for active elements</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== ICON COLORS ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-4">Icon Colors</p>
+            <div class="grid md:grid-cols-3 gap-4">
+                <!-- Active/Clickable -->
+                <div class="rounded-lg border border-primary-500/30 bg-primary-500/10 p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        {{ icon('eye', 'w-6 h-6 text-primary-400') }}
+                        {{ icon('pencil-square', 'w-6 h-6 text-primary-400') }}
+                        {{ icon('cog-6-tooth', 'w-6 h-6 text-primary-400') }}
+                        {{ icon('plus', 'w-6 h-6 text-primary-400') }}
+                    </div>
+                    <p class="text-sm font-medium text-white">Active / Clickable</p>
+                    <code class="text-xs text-primary-300">text-primary-400</code>
+                    <p class="text-xs text-surface-200 mt-2">View, Edit, Settings, Add - anything you can click</p>
+                </div>
+                <!-- Decorative/Neutral -->
+                <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        {{ icon('camera', 'w-6 h-6 text-white') }}
+                        {{ icon('film', 'w-6 h-6 text-white') }}
+                        {{ icon('clock', 'w-6 h-6 text-white') }}
+                        {{ icon('calendar', 'w-6 h-6 text-white') }}
+                    </div>
+                    <p class="text-sm font-medium text-white">Decorative / Labels</p>
+                    <code class="text-xs text-primary-300">text-white</code>
+                    <p class="text-xs text-surface-200 mt-2">Card headers, stat icons, non-interactive labels</p>
+                </div>
+                <!-- Disabled -->
+                <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        {{ icon('eye', 'w-6 h-6 text-surface-200') }}
+                        {{ icon('pencil-square', 'w-6 h-6 text-surface-200') }}
+                        {{ icon('cog-6-tooth', 'w-6 h-6 text-surface-200') }}
+                        {{ icon('plus', 'w-6 h-6 text-surface-200') }}
+                    </div>
+                    <p class="text-sm font-medium text-white">Disabled</p>
+                    <code class="text-xs text-primary-300">text-surface-200</code>
+                    <p class="text-xs text-surface-200 mt-2">Can't be clicked, unavailable, inactive state</p>
+                </div>
+            </div>
+        </div>
+
+        {# ===== TEXT HIERARCHY ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-4">Text Hierarchy (2 levels only)</p>
+            <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4 space-y-4">
+                <div class="flex items-center gap-6">
+                    <code class="text-xs text-primary-300 font-mono w-36 shrink-0">text-white</code>
+                    <span class="text-white font-medium">Headings, important labels, card titles</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <code class="text-xs text-primary-300 font-mono w-36 shrink-0">text-surface-200</code>
+                    <span class="text-surface-200">Everything else - body text, metadata, descriptions, labels</span>
+                </div>
+            </div>
+            <div class="mt-4 p-3 rounded-lg border border-success-500/30 bg-success-500/10">
+                <p class="text-sm text-white font-medium">Keep it simple: white for emphasis, surface-200 for everything else</p>
+                <p class="text-xs text-surface-200 mt-1">No surface-300 or surface-400 for text. If it needs to be read, it needs to be visible.</p>
+            </div>
+        </div>
+
+        {# ===== LINKS & INTERACTIVE TEXT ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-4">Links & Interactive Text</p>
+            <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4 space-y-3">
+                <div class="flex items-center gap-4">
+                    <a href="#" class="text-primary-400 hover:text-primary-300">This is a link</a>
+                    <code class="text-xs text-primary-300">text-primary-400 hover:text-primary-300</code>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="text-primary-400 hover:text-primary-300">Clickable text button</button>
+                    <code class="text-xs text-primary-300">text-primary-400 hover:text-primary-300</code>
+                </div>
+            </div>
+            <p class="text-xs text-surface-200 mt-3">
+                All clickable text uses primary color, not gray or white
+            </p>
+        </div>
+
+        {# ===== SEMANTIC COLORS (STATUS ONLY) ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-4">Semantic Colors (Status Indicators Only)</p>
+            <p class="text-sm text-surface-200 mb-4">
+                Only use these for <strong class="text-white">status indicators</strong>, not for general UI elements
+            </p>
+            <div class="grid md:grid-cols-4 gap-4">
+                <div class="rounded-lg border border-success-500/30 bg-success-500/10 p-4 text-center">
+                    <div class="flex justify-center gap-2 mb-2">
+                        {{ icon('check-circle', 'w-6 h-6 text-success-400') }}
+                        {{ icon('signal', 'w-6 h-6 text-success-400') }}
+                    </div>
+                    <p class="text-sm font-medium text-success-400">Success</p>
+                    <p class="text-xs text-surface-200 mt-1">Connected, completed, active</p>
+                </div>
+                <div class="rounded-lg border border-warning-500/30 bg-warning-500/10 p-4 text-center">
+                    <div class="flex justify-center gap-2 mb-2">
+                        {{ icon('clock', 'w-6 h-6 text-warning-400') }}
+                        {{ icon('exclamation-triangle', 'w-6 h-6 text-warning-400') }}
+                    </div>
+                    <p class="text-sm font-medium text-warning-400">Warning</p>
+                    <p class="text-xs text-surface-200 mt-1">Pending, needs attention</p>
+                </div>
+                <div class="rounded-lg border border-danger-500/30 bg-danger-500/10 p-4 text-center">
+                    <div class="flex justify-center gap-2 mb-2">
+                        {{ icon('x-circle', 'w-6 h-6 text-danger-400') }}
+                        {{ icon('trash', 'w-6 h-6 text-danger-400') }}
+                    </div>
+                    <p class="text-sm font-medium text-danger-400">Danger</p>
+                    <p class="text-xs text-surface-200 mt-1">Error, failed, delete</p>
+                </div>
+                <div class="rounded-lg border border-info-500/30 bg-info-500/10 p-4 text-center">
+                    <div class="flex justify-center gap-2 mb-2">
+                        {{ icon('information-circle', 'w-6 h-6 text-info-400') }}
+                        {{ icon('arrow-path', 'w-6 h-6 text-info-400') }}
+                    </div>
+                    <p class="text-sm font-medium text-info-400">Info</p>
+                    <p class="text-xs text-surface-200 mt-1">Information, loading</p>
+                </div>
+            </div>
+        </div>
+
+        {# ===== COLOR SWATCHES ===== #}
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-4">Primary (Magenta)</p>
+                <div class="flex gap-2">
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-primary-300"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">300</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-primary-400 ring-2 ring-white/50"></div>
+                        <p class="text-[10px] text-white font-medium mt-1">400</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-primary-500"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">500</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-primary-600"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">600</p>
+                    </div>
+                </div>
+                <p class="text-xs text-surface-200 mt-2">400 for text/icons, 500 for buttons</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-4">Surface (Grays)</p>
+                <div class="flex gap-2">
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-surface-200"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">200</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-surface-400"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">400</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-surface-500"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">500</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-surface-800"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">800</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-10 rounded-lg bg-surface-900 ring-1 ring-surface-400/50"></div>
+                        <p class="text-[10px] text-surface-200 mt-1">900</p>
+                    </div>
+                </div>
+                <p class="text-xs text-surface-200 mt-2">400 for borders, 900 for page bg</p>
+            </div>
+        </div>
+
+        {# ===== QUICK REFERENCE ===== #}
+        <div class="rounded-lg border border-primary-500/30 bg-surface-900/50 p-4">
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">Quick Reference</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>ICONS
+  Clickable:     text-primary-400
+  Decorative:    text-white or text-surface-200
+  Status:        text-success-400 / warning-400 / danger-400
+
+TEXT (2 levels only)
+  Emphasis:      text-white
+  Everything:    text-surface-200
+
+LINKS
+  Default:       text-primary-400 hover:text-primary-300
+
+BACKGROUNDS
+  Page:          bg-surface-900
+  Card:          bg-surface-500/50
+  Nested:        bg-surface-800/50</code></pre>
+        </div>
+
+    </div>
+</div>

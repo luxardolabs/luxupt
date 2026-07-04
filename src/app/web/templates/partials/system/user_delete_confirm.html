@@ -1,0 +1,74 @@
+{# User delete confirmation panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import danger, ghost %}
+{% from "macros/icons.html" import icon %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-md') %}
+    {{ panel_header('Delete User', 'Confirm user deletion') }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6">
+        {% if delete_user %}
+        <div class="text-center">
+            <!-- Warning Icon -->
+            <div class="mx-auto w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
+                {{ icon('exclamation-triangle', 'w-8 h-8 text-danger-400') }}
+            </div>
+
+            <h3 class="text-lg font-medium text-white mb-2">
+                Delete "{{ delete_user.username }}"?
+            </h3>
+
+            {% if user_count <= 1 %}
+            <div class="rounded-lg border border-warning-500/30 bg-warning-500/10 px-4 py-3 text-sm text-warning-400 mb-4">
+                {{ icon('shield-exclamation', 'w-5 h-5 inline mr-1') }}
+                Cannot delete the last user. Create another user first.
+            </div>
+            {% else %}
+            <p class="text-surface-200 text-sm mb-6">
+                This action cannot be undone. The user will be permanently removed.
+            </p>
+            {% endif %}
+
+            <!-- User Info -->
+            <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4 text-left mb-6">
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-surface-200">Username:</span>
+                        <span class="text-white font-medium">{{ delete_user.username }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-surface-200">Role:</span>
+                        <span class="text-white">{{ 'Administrator' if delete_user.is_admin else 'User' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-surface-200">Created:</span>
+                        <span class="text-white">{{ delete_user.created_at|timeago }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Area -->
+            <div id="user-form-result"></div>
+        </div>
+        {% else %}
+        <div class="text-center text-surface-200">
+            User not found.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {% if delete_user and user_count > 1 %}
+        {{ danger('Delete User', icon_name='trash', hx_attrs={
+            'hx-delete': '/system/users/' ~ delete_user.id,
+            'hx-target': '#user-form-result',
+            'hx-swap': 'innerHTML'
+        }) }}
+        {% endif %}
+    {% endcall %}
+{% endcall %}

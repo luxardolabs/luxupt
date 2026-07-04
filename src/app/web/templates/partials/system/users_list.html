@@ -1,0 +1,103 @@
+{# Users list partial - loaded via HTMX #}
+{% from "macros/icons.html" import icon %}
+{% from "macros/badges.html" import chip %}
+{% from "macros/cards.html" import empty_state %}
+
+{% if users %}
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-surface-400/30">
+        <thead>
+            <tr>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Username
+                </th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Source
+                </th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Role
+                </th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Last Login
+                </th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Created
+                </th>
+                <th scope="col" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-200">
+                    Actions
+                </th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-400/20">
+            {% for u in users %}
+            <tr class="hover:bg-surface-700/30 transition-colors {% if u.auth_source == 'env' %}bg-surface-700/10{% endif %}">
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        {% if u.auth_source == 'env' %}
+                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-warning-500/20 flex items-center justify-center">
+                            {{ icon('key', 'w-4 h-4 text-warning-400') }}
+                        </div>
+                        {% else %}
+                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-primary-500/20 flex items-center justify-center">
+                            {{ icon('user', 'w-4 h-4 text-primary-400') }}
+                        </div>
+                        {% endif %}
+                        <span class="text-sm font-medium text-white">{{ u.username }}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    {% if u.auth_source == 'env' %}
+                    {{ chip('Environment', 'warning', size='sm') }}
+                    {% else %}
+                    {{ chip('Database', 'info', size='sm') }}
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    {% if u.is_admin %}
+                    {{ chip('Admin', 'primary', size='sm') }}
+                    {% else %}
+                    {{ chip('User', 'default', size='sm') }}
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-surface-200">
+                    {% if u.last_login_at %}
+                    {{ u.last_login_at|timeago }}
+                    {% else %}
+                    <span class="text-surface-400">Never</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-surface-200">
+                    {{ u.created_at|timeago }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                    {% if u.auth_source == 'env' %}
+                    <span class="text-xs text-surface-400 italic">Managed via compose</span>
+                    {% else %}
+                    <div class="flex items-center justify-end gap-2">
+                        <button type="button"
+                                hx-get="/system/partials/user-form?user_id={{ u.id }}"
+                                hx-target="#panel-container"
+                                hx-swap="innerHTML"
+                                class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-primary-400 hover:bg-primary-500/10 hover:text-primary-300 transition-colors">
+                            {{ icon('pencil', 'w-4 h-4') }}
+                            <span class="sr-only sm:not-sr-only">Edit</span>
+                        </button>
+                        <button type="button"
+                                hx-get="/system/partials/user-delete-confirm/{{ u.id }}"
+                                hx-target="#panel-container"
+                                hx-swap="innerHTML"
+                                class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-danger-400 hover:bg-danger-500/10 hover:text-danger-300 transition-colors">
+                            {{ icon('trash', 'w-4 h-4') }}
+                            <span class="sr-only sm:not-sr-only">Delete</span>
+                        </button>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+{{ empty_state('users', 'No users found', 'Create your first user to get started') }}
+{% endif %}

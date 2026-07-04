@@ -1,0 +1,185 @@
+{% from "macros/icons.html" import icon %}
+
+<!-- Time Navigation -->
+<div class="flex items-center justify-between mb-4 pb-4 border-b border-surface-400/30">
+    <div class="flex items-center gap-2">
+        <!-- Back Arrow -->
+        <button type="button"
+                class="p-2 rounded-lg border transition-colors
+                       {% if can_navigate_back %}border-surface-400 text-surface-200 hover:text-white hover:bg-surface-500 hover:border-surface-300{% else %}border-surface-500/50 text-surface-500 cursor-not-allowed{% endif %}"
+                {% if can_navigate_back %}
+                hx-get="/cameras/capture-stats/charts?period={{ period }}&offset={{ offset - 1 }}{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
+                hx-target="#capture-stats-content"
+                hx-swap="innerHTML"
+                {% else %}
+                disabled
+                {% endif %}
+                title="{% if can_navigate_back %}Previous {{ period }}{% else %}No more history{% endif %}">
+            {{ icon('chevron-left', 'w-5 h-5') }}
+        </button>
+
+        <!-- Time Range Display -->
+        <div class="px-3 py-1.5 rounded-lg bg-surface-600/50 text-sm font-medium text-surface-100 min-w-[180px] text-center">
+            {{ date_range(start_dt, end_dt, period) }}
+        </div>
+
+        <!-- Forward Arrow -->
+        <button type="button"
+                class="p-2 rounded-lg border transition-colors
+                       {% if can_navigate_forward %}border-surface-400 text-surface-200 hover:text-white hover:bg-surface-500 hover:border-surface-300{% else %}border-surface-500/50 text-surface-500 cursor-not-allowed{% endif %}"
+                {% if can_navigate_forward %}
+                hx-get="/cameras/capture-stats/charts?period={{ period }}&offset={{ offset + 1 }}{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
+                hx-target="#capture-stats-content"
+                hx-swap="innerHTML"
+                {% else %}
+                disabled
+                {% endif %}
+                title="{% if can_navigate_forward %}Next {{ period }}{% else %}Already at current{% endif %}">
+            {{ icon('chevron-right', 'w-5 h-5') }}
+        </button>
+    </div>
+
+    <!-- Current indicator (when viewing historical) -->
+    {% if offset < 0 %}
+    <button type="button"
+            class="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
+            hx-get="/cameras/capture-stats/charts?period={{ period }}&offset=0{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
+            hx-target="#capture-stats-content"
+            hx-swap="innerHTML">
+        {{ icon('arrow-uturn-right', 'w-3.5 h-3.5') }}
+        Jump to current
+    </button>
+    {% endif %}
+</div>
+
+<!-- Summary Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <p class="text-xs text-surface-200 uppercase tracking-wide font-medium">Total Captures</p>
+        <p class="text-2xl font-semibold text-white">{{ sf_stats.total }}</p>
+    </div>
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <p class="text-xs text-surface-200 uppercase tracking-wide font-medium">Success Rate</p>
+        <p class="text-2xl font-semibold text-success-400">
+            {% if sf_stats.total > 0 %}
+            {{ sf_stats.success_pct }}%
+            {% else %}
+            --
+            {% endif %}
+        </p>
+    </div>
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <p class="text-xs text-surface-200 uppercase tracking-wide font-medium">Avg Duration</p>
+        <p class="text-2xl font-semibold text-white">{{ avg_duration_ms }}ms</p>
+    </div>
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <p class="text-xs text-surface-200 uppercase tracking-wide font-medium">Avg Size</p>
+        <p class="text-2xl font-semibold text-white">{{ avg_file_size_kb }}KB</p>
+    </div>
+</div>
+
+<!-- Performance Charts -->
+<div class="space-y-6">
+    <!-- Success/Failure Chart -->
+    <div class="rounded-xl border border-surface-400/30 bg-surface-600/30 p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                {{ icon('chart-bar', 'w-4 h-4 text-info-400') }}
+                Capture Success Rate
+            </h3>
+            <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-3 h-1 bg-green-500 rounded"></span>
+                    <span class="text-surface-100">Success ({{ sf_stats.success_pct }}%)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-3 h-1 bg-red-500 rounded"></span>
+                    <span class="text-surface-100">Failed ({{ sf_stats.failed_pct }}%)</span>
+                </span>
+            </div>
+        </div>
+        {% if success_data and success_data|length > 1 %}
+        <div class="h-48"
+             data-capture-chart='{{ success_data | tojson }}'
+             data-chart-color="rgb(34, 197, 94)"
+             data-chart-label="Success"
+             data-chart-data2='{{ failure_data | tojson }}'
+             data-chart-color2="rgb(239, 68, 68)"
+             data-chart-label2="Failed"
+             data-chart-legend
+             data-chart-no-breakdown>
+        </div>
+        {% else %}
+        <div class="h-48 flex items-center justify-center text-surface-200">
+            No capture data available for this period
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Duration Chart -->
+    <div class="rounded-xl border border-surface-400/30 bg-surface-600/30 p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                {{ icon('clock', 'w-4 h-4 text-primary-400') }}
+                Capture Duration
+            </h3>
+            <span class="text-xs text-surface-200">milliseconds</span>
+        </div>
+        {% if duration_data and duration_data|length > 1 %}
+        <div class="h-48"
+             data-capture-chart='{{ duration_data | tojson }}'
+             data-chart-color="rgb(168, 85, 247)"
+             data-chart-label="Duration"
+             data-chart-unit="ms">
+        </div>
+        {% else %}
+        <div class="h-48 flex items-center justify-center text-surface-200">
+            No duration data available for this period
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- File Size Chart -->
+    <div class="rounded-xl border border-surface-400/30 bg-surface-600/30 p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                {{ icon('document', 'w-4 h-4 text-success-400') }}
+                File Size
+            </h3>
+            <span class="text-xs text-surface-200">kilobytes</span>
+        </div>
+        {% if size_data and size_data|length > 1 %}
+        <div class="h-48"
+             data-capture-chart='{{ size_data | tojson }}'
+             data-chart-color="rgb(34, 197, 94)"
+             data-chart-label="Size"
+             data-chart-unit="KB">
+        </div>
+        {% else %}
+        <div class="h-48 flex items-center justify-center text-surface-200">
+            No file size data available for this period
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Breakdown by Camera (if multiple cameras) -->
+    {% if camera_breakdown and camera_breakdown|length > 1 %}
+    <div class="rounded-xl border border-surface-400/30 bg-surface-600/30 p-4">
+        <h3 class="text-sm font-medium text-white mb-4 flex items-center gap-2">
+            {{ icon('camera', 'w-4 h-4 text-info-400') }}
+            Captures by Camera
+        </h3>
+        <div class="space-y-2">
+            {% for item in camera_breakdown %}
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-surface-100 w-48 truncate">{{ item.camera|replace('_', ' ') }}</span>
+                <div class="flex-1 h-4 bg-surface-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-primary-500 rounded-full" style="width: {{ item.percentage }}%"></div>
+                </div>
+                <span class="text-sm text-surface-100 w-16 text-right">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>

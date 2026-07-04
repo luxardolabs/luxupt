@@ -1,0 +1,188 @@
+{# =========================================================================
+   SURFACES & BACKGROUNDS - Layer hierarchy for dark UI
+   ========================================================================= #}
+<div id="surfaces" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Surfaces & Backgrounds</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        <span class="text-danger-400 font-semibold">MANDATORY</span> &mdash; Use these Tailwind classes. Never use inline rgba().
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== LAYER HIERARCHY ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-4">Layer Hierarchy (z-depth)</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="w-full h-24 rounded-xl bg-surface-900 flex items-center justify-center border border-surface-400/30">
+                        <span class="text-xs text-surface-200">Page</span>
+                    </div>
+                    <p class="text-xs text-white mt-2 font-medium">bg-surface-900</p>
+                    <p class="text-[10px] text-surface-200">Page background</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-24 rounded-xl bg-surface-500/50 flex items-center justify-center border border-surface-400/30">
+                        <span class="text-xs text-surface-200">Card</span>
+                    </div>
+                    <p class="text-xs text-white mt-2 font-medium">bg-surface-500/50</p>
+                    <p class="text-[10px] text-surface-200">Cards, containers</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-24 rounded-xl bg-surface-800/50 flex items-center justify-center border border-surface-400/20">
+                        <span class="text-xs text-surface-200">Nested</span>
+                    </div>
+                    <p class="text-xs text-white mt-2 font-medium">bg-surface-800/50</p>
+                    <p class="text-[10px] text-surface-200">Sections within cards</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-24 rounded-xl bg-surface-900/50 backdrop-blur-sm flex items-center justify-center border border-surface-400/30">
+                        <span class="text-xs text-surface-200">Overlay</span>
+                    </div>
+                    <p class="text-xs text-white mt-2 font-medium">bg-surface-900/50</p>
+                    <p class="text-[10px] text-surface-200">Modals, panels + backdrop-blur</p>
+                </div>
+            </div>
+        </div>
+
+        {# ===== WHEN TO USE EACH ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-warning-400 uppercase mb-4">When To Use Each Class</p>
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-surface-400/30">
+                        <th class="text-left py-2 text-surface-200 font-medium">Class</th>
+                        <th class="text-left py-2 text-surface-200 font-medium">Use For</th>
+                        <th class="text-left py-2 text-surface-200 font-medium">Examples</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-400/20">
+                    <tr>
+                        <td class="py-3 font-mono text-primary-300">bg-surface-900</td>
+                        <td class="py-3 text-surface-200">Page background, inputs</td>
+                        <td class="py-3 text-surface-200">Set in body, form inputs</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-mono text-primary-300">bg-surface-500/50</td>
+                        <td class="py-3 text-surface-200">Primary containers</td>
+                        <td class="py-3 text-surface-200">Cards, panels, stat boxes</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-mono text-primary-300">bg-surface-800/50</td>
+                        <td class="py-3 text-surface-200">Nested sections</td>
+                        <td class="py-3 text-surface-200">Section cards, info boxes</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-mono text-primary-300">bg-surface-700/50</td>
+                        <td class="py-3 text-surface-200">Interactive elements</td>
+                        <td class="py-3 text-surface-200">Tags, interval pills, hover states</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-mono text-primary-300">bg-surface-900/50 backdrop-blur</td>
+                        <td class="py-3 text-surface-200">Overlays with blur</td>
+                        <td class="py-3 text-surface-200">Modal backdrops, panel overlays</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {# ===== BORDER RADIUS STANDARD ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-danger-400 uppercase mb-4">Border Radius Standard</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="w-full h-16 rounded-xl bg-surface-700/50 border border-surface-400/30 flex items-center justify-center">
+                        <span class="text-xs text-surface-200">rounded-xl</span>
+                    </div>
+                    <p class="text-[10px] text-surface-200 mt-1">Cards, containers</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-16 rounded-lg bg-surface-700/50 border border-surface-400/30 flex items-center justify-center">
+                        <span class="text-xs text-surface-200">rounded-lg</span>
+                    </div>
+                    <p class="text-[10px] text-surface-200 mt-1">Buttons, inputs, nested</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-16 rounded-md bg-surface-700/50 border border-surface-400/30 flex items-center justify-center">
+                        <span class="text-xs text-surface-200">rounded-md</span>
+                    </div>
+                    <p class="text-[10px] text-surface-200 mt-1">Small elements</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-16 rounded-full bg-surface-700/50 border border-surface-400/30 flex items-center justify-center">
+                        <span class="text-xs text-surface-200">rounded-full</span>
+                    </div>
+                    <p class="text-[10px] text-surface-200 mt-1">Pills, avatars, dots</p>
+                </div>
+            </div>
+            <p class="text-sm text-surface-200">
+                <span class="text-danger-400 font-semibold">RULE:</span>
+                Use <code class="text-primary-300">rounded-xl</code> for card containers,
+                <code class="text-primary-300">rounded-lg</code> for buttons, inputs, and nested elements.
+            </p>
+        </div>
+
+        {# ===== BORDERS ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-info-400 uppercase mb-4">Border Classes</p>
+            <div class="space-y-3">
+                <div class="flex items-center gap-4 p-3 rounded-lg border border-surface-400/30 bg-surface-900/50">
+                    <code class="text-xs text-primary-300 font-mono flex-shrink-0">border-surface-400/30</code>
+                    <span class="text-sm text-surface-200">Standard card/container border</span>
+                </div>
+                <div class="flex items-center gap-4 p-3 rounded-lg border border-surface-400/20 bg-surface-900/50">
+                    <code class="text-xs text-primary-300 font-mono flex-shrink-0">border-surface-400/20</code>
+                    <span class="text-sm text-surface-200">Subtle nested element border</span>
+                </div>
+                <div class="flex items-center gap-4 p-3 rounded-lg border border-surface-400/50 bg-surface-900/50">
+                    <code class="text-xs text-primary-300 font-mono flex-shrink-0">border-surface-400/50</code>
+                    <span class="text-sm text-surface-200">Emphasized border (panels, sections)</span>
+                </div>
+            </div>
+        </div>
+
+        {# ===== LIVE EXAMPLE ===== #}
+        <div>
+            <p class="text-xs font-medium text-success-400 uppercase mb-4">Live Example: Nested Card Structure</p>
+            <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-4">
+                <h3 class="text-sm font-medium text-white mb-3">Card Title</h3>
+                <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+                    <p class="text-sm font-medium text-surface-200 mb-2">Nested Section</p>
+                    <p class="text-xs text-surface-200">This uses <code class="text-primary-300">bg-surface-800/50</code> inside a card.</p>
+                    <div class="mt-3 flex gap-2">
+                        <span class="px-2 py-1 rounded-lg bg-surface-700/50 text-xs text-surface-200">Tag 1</span>
+                        <span class="px-2 py-1 rounded-lg bg-surface-700/50 text-xs text-surface-200">Tag 2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== WHAT NOT TO DO ===== #}
+        <div class="rounded-lg border border-danger-500/30 bg-danger-500/10 p-4">
+            <p class="text-xs font-medium text-danger-400 uppercase mb-4">NEVER Do This</p>
+            <div class="space-y-3 text-xs">
+                <div class="flex items-start gap-3">
+                    <span class="text-danger-400">✗</span>
+                    <div>
+                        <code class="text-danger-300">style="background: rgba(40, 40, 40, 0.5)"</code>
+                        <p class="text-surface-200 mt-1">Use <code class="text-success-300">bg-surface-500/50</code> instead</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-danger-400">✗</span>
+                    <div>
+                        <code class="text-danger-300">bg-gray-800</code>
+                        <p class="text-surface-200 mt-1">Use <code class="text-success-300">bg-surface-800</code> - we use surface, not gray</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-danger-400">✗</span>
+                    <div>
+                        <code class="text-danger-300">rounded-lg</code> for cards
+                        <p class="text-surface-200 mt-1">Use <code class="text-success-300">rounded-xl</code> for cards/containers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

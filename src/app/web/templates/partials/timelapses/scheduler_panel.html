@@ -1,0 +1,209 @@
+{# Scheduler settings panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/cards.html" import section_card %}
+{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/forms.html" import select, filter_select %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-2xl') %}
+    {{ panel_header('Timelapse Scheduler', 'Configure automatic timelapse creation and encoding') }}
+
+        <!-- Content -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+            <form id="scheduler-form"
+                  hx-post="/timelapses/scheduler"
+                  hx-target="#scheduler-result"
+                  hx-swap="innerHTML"
+                  class="space-y-6">
+
+                <!-- ===== SCHEDULER SECTION ===== -->
+                {% call section_card('Schedule') %}
+                <div class="space-y-4">
+                    <!-- Enable Toggle -->
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div>
+                            <span class="text-sm font-medium text-white">Enable Scheduler</span>
+                            <p class="text-xs text-surface-200">Automatically create timelapses daily</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" name="enabled" value="true" class="peer sr-only"
+                                   {{ 'checked' if settings.enabled }}>
+                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                        </div>
+                    </label>
+
+                    <!-- Schedule Settings Row -->
+                    <div class="border-t border-surface-400/20 pt-4 grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Run Time</label>
+                            <input type="time" name="run_time" value="{{ settings.run_time | time('24h') }}"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Days Back</label>
+                            <input type="number" name="days_ago" value="{{ settings.days_ago }}" min="1" max="30"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Concurrent</label>
+                            <input type="number" name="concurrent_jobs" value="{{ settings.concurrent_jobs }}" min="1" max="8"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        </div>
+                    </div>
+
+                    <!-- Keep Images & Recreate Existing -->
+                    <div class="border-t border-surface-400/20 pt-4 grid grid-cols-2 gap-4">
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-white">Keep Source Images</span>
+                                <p class="text-xs text-surface-200">Retain images after creation</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" name="keep_images" value="true" class="peer sr-only"
+                                       {{ 'checked' if settings.keep_images }}>
+                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-white">Recreate Existing</span>
+                                <p class="text-xs text-surface-200">Replace if already exists</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" name="recreate_existing" value="true" class="peer sr-only"
+                                       {{ 'checked' if settings.recreate_existing }}>
+                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Last Run -->
+                    {% if settings.last_run_at %}
+                    <div class="border-t border-surface-400/20 pt-4 flex items-center gap-2 text-xs text-surface-200">
+                        {{ icon('clock', 'w-3.5 h-3.5') }}
+                        <span>Last run: {{ settings.last_run_at | format_datetime('log') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endcall %}
+
+                <!-- ===== CAMERAS & INTERVALS SECTION ===== -->
+                {% call section_card('Cameras & Intervals') %}
+                <div class="space-y-4">
+                    <!-- Cameras -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-white">Cameras</span>
+                            <button type="button" onclick="FormUtils.toggleAllCheckboxes('camera-checkboxes', true)"
+                                    class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                        </div>
+                        <div id="camera-checkboxes" class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border border-surface-500 bg-surface-700/50 p-3 max-h-36 overflow-y-auto">
+                            {% for camera in cameras %}
+                            <label class="inline-flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" name="enabled_cameras" value="{{ camera.safe_name }}"
+                                       class="h-3.5 w-3.5 rounded border-surface-400 bg-surface-600 text-primary-500 focus:ring-primary-500/20"
+                                       {{ 'checked' if not settings.enabled_cameras or camera.safe_name in settings.enabled_cameras }}>
+                                <span class="text-sm text-surface-200 group-hover:text-white truncate">{{ camera.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Intervals -->
+                    <div class="border-t border-surface-400/20 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-white">Intervals</span>
+                            <button type="button" onclick="FormUtils.toggleAllCheckboxes('interval-checkboxes', true)"
+                                    class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                        </div>
+                        <div id="interval-checkboxes" class="flex flex-wrap gap-3">
+                            {% for interval in intervals %}
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer bg-surface-700/50 rounded-lg px-3 py-1.5 border border-surface-500 hover:border-surface-400 transition-colors">
+                                <input type="checkbox" name="enabled_intervals" value="{{ interval }}"
+                                       class="h-3.5 w-3.5 rounded border-surface-400 bg-surface-600 text-primary-500 focus:ring-primary-500/20"
+                                       {{ 'checked' if not settings.enabled_intervals or interval in settings.enabled_intervals }}>
+                                <span class="text-sm text-surface-200">{{ interval }}s</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- ===== ENCODING SECTION ===== -->
+                {% call section_card('Video Encoding') %}
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Frame Rate</label>
+                            <div class="relative">
+                                <input type="number" name="frame_rate"
+                                       value="{{ settings.frame_rate }}"
+                                       min="1" max="120"
+                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">fps</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Quality (CRF)</label>
+                            <input type="number" name="crf"
+                                   value="{{ settings.crf }}"
+                                   min="0" max="51"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Timeout</label>
+                            <div class="relative">
+                                <input type="number" name="ffmpeg_timeout"
+                                       value="{{ settings.ffmpeg_timeout }}"
+                                       min="300" max="86400"
+                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-surface-200 mb-1">Pixel Format</label>
+                            <select name="pixel_format"
+                                    class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <option value="yuv420p" {{ 'selected' if settings.pixel_format == 'yuv420p' }}>yuv420p</option>
+                                <option value="yuv444p" {{ 'selected' if settings.pixel_format == 'yuv444p' }}>yuv444p</option>
+                                <option value="rgb24" {{ 'selected' if settings.pixel_format == 'rgb24' }}>rgb24</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-200 mb-1">Preset</label>
+                        <select name="preset"
+                                class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <option value="ultrafast" {{ 'selected' if settings.preset == 'ultrafast' }}>Ultrafast (largest file)</option>
+                            <option value="superfast" {{ 'selected' if settings.preset == 'superfast' }}>Superfast</option>
+                            <option value="veryfast" {{ 'selected' if settings.preset == 'veryfast' }}>Very Fast</option>
+                            <option value="faster" {{ 'selected' if settings.preset == 'faster' }}>Faster</option>
+                            <option value="fast" {{ 'selected' if settings.preset == 'fast' }}>Fast</option>
+                            <option value="medium" {{ 'selected' if settings.preset == 'medium' }}>Medium (balanced)</option>
+                            <option value="slow" {{ 'selected' if settings.preset == 'slow' }}>Slow</option>
+                            <option value="slower" {{ 'selected' if settings.preset == 'slower' }}>Slower</option>
+                            <option value="veryslow" {{ 'selected' if settings.preset == 'veryslow' }}>Very Slow (smallest file)</option>
+                        </select>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- Result Area -->
+                <div id="scheduler-result"></div>
+
+            </form>
+        </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary('Save Settings', type='submit', icon_name='check', hx_attrs={'form': 'scheduler-form'}) }}
+    {% endcall %}
+{% endcall %}
+

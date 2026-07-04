@@ -1,0 +1,98 @@
+{# Data display macros for system pages and info displays #}
+{% from "macros/icons.html" import icon %}
+
+{% macro data_row(label, value, mono=false, truncate=false) %}
+{# Simple key-value row #}
+<div class="flex items-center justify-between gap-4 py-2">
+    <span class="text-surface-200 flex-shrink-0">{{ label }}</span>
+    <span class="{% if mono %}font-mono text-xs {% endif %}{% if truncate %}truncate max-w-[180px]{% endif %} text-white text-right">{{ value }}</span>
+</div>
+{% endmacro %}
+
+{% macro data_row_stacked(label, value, mono=false) %}
+{# Stacked key-value row for long values #}
+<div class="py-2">
+    <span class="text-surface-200 text-sm">{{ label }}</span>
+    <p class="{% if mono %}font-mono text-xs{% else %}text-sm{% endif %} text-white mt-1 break-all">{{ value }}</p>
+</div>
+{% endmacro %}
+
+{% macro data_row_status(label, enabled) %}
+{# Key-value row with enabled/disabled status #}
+<div class="flex items-center justify-between py-2">
+    <span class="text-surface-200">{{ label }}</span>
+    {% if enabled %}
+    <span class="inline-flex items-center gap-1.5 text-success-400">
+        {{ icon('check-circle-solid', 'w-4 h-4') }}
+        <span class="text-sm">Enabled</span>
+    </span>
+    {% else %}
+    <span class="inline-flex items-center gap-1.5 text-surface-200">
+        {{ icon('x-circle-solid', 'w-4 h-4') }}
+        <span class="text-sm">Disabled</span>
+    </span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro progress_bar(percent, label=none, value_text=none, color='primary', size='md') %}
+{# Progress bar with optional label and value #}
+{% set colors = {
+    'primary': 'bg-primary-500',
+    'success': 'bg-success-500',
+    'warning': 'bg-warning-500',
+    'danger': 'bg-danger-500',
+    'info': 'bg-info-500',
+    'auto': 'bg-danger-500' if percent > 90 else ('bg-warning-500' if percent > 70 else 'bg-primary-500')
+} %}
+{% set sizes = {
+    'sm': 'h-1.5',
+    'md': 'h-2',
+    'lg': 'h-3'
+} %}
+<div>
+    {% if label or value_text %}
+    <div class="flex justify-between text-sm mb-1.5">
+        {% if label %}<span class="text-surface-200">{{ label }}</span>{% endif %}
+        {% if value_text %}<span class="text-white">{{ value_text }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <div class="rounded-full bg-surface-700 overflow-hidden {{ sizes.get(size, sizes.md) }}">
+        <div class="h-full rounded-full transition-all duration-500 {{ colors.get(color, colors.primary) }}"
+             style="width: {{ [percent, 100]|min }}%"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro section_title(title, icon_name=none, color='primary') %}
+{# Section title with optional icon #}
+{% set colors = {
+    'primary': 'text-primary-400',
+    'success': 'text-success-400',
+    'warning': 'text-warning-400',
+    'danger': 'text-danger-400',
+    'info': 'text-info-400'
+} %}
+<h4 class="flex items-center gap-2 font-medium text-white mb-3">
+    {% if icon_name %}
+    <span class="{{ colors.get(color, colors.primary) }}">{{ icon(icon_name, 'w-4 h-4') }}</span>
+    {% endif %}
+    {{ title }}
+</h4>
+{% endmacro %}
+
+{% macro info_grid(items) %}
+{# Grid of info items - pass list of dicts with label/value keys #}
+<div class="grid gap-4 sm:grid-cols-2">
+    {% for item in items %}
+    <div class="flex items-center justify-between py-2 border-b border-surface-400/20 last:border-0">
+        <span class="text-surface-200">{{ item.label }}</span>
+        <span class="text-white {% if item.mono %}font-mono text-sm{% endif %}">{{ item.value }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro divider() %}
+<div class="border-t border-surface-400/30 my-4"></div>
+{% endmacro %}

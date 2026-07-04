@@ -1,0 +1,42 @@
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_drawer %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/forms.html" import select %}
+
+{# Build camera options with camera_id as value #}
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-3xl') %}
+    {{ panel_header("Capture Statistics", "Performance metrics and trends") }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 pb-4 border-b border-surface-400/30">
+            {{ select("stats-camera-filter", camera_options, placeholder="All Cameras", hx_attrs={"onchange": "CaptureStats.updateFilters()"}) }}
+            {{ select("stats-interval-filter", intervals, placeholder="All Intervals", hx_attrs={"onchange": "CaptureStats.updateFilters()"}) }}
+            {{ select("stats-period-filter", [
+                {"value": "1h", "label": "Last Hour"},
+                {"value": "6h", "label": "Last 6 Hours"},
+                {"value": "24h", "label": "Last 24 Hours"},
+                {"value": "7d", "label": "Last 7 Days"}
+            ], placeholder="Select Period", selected="24h", hx_attrs={"onchange": "CaptureStats.updateFilters()"}) }}
+        </div>
+
+        <!-- Stats and Charts Container - refreshed together via HTMX -->
+        <div id="capture-stats-content"
+             hx-get="/cameras/capture-stats/charts"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="flex items-center justify-center h-64">
+                <div class="text-surface-200">Loading statistics...</div>
+            </div>
+        </div>
+
+    </div>
+{% endcall %}

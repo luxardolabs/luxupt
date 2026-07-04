@@ -1,0 +1,4 @@
+{# Date select dropdown - swapped via HTMX when camera changes #}
+{% from "macros/forms.html" import select %}
+
+{{ select("date", available_dates|map('string')|list, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera"}) }}

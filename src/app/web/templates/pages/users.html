@@ -1,0 +1,26 @@
+{% extends "layouts/base.html" %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/navigation.html" import page_header, tab_nav, section %}
+{% from "macros/buttons.html" import primary %}
+{% from "macros/cards.html" import empty_state %}
+
+{% set tabs = [
+    {"id": "status", "label": "Status", "href": "/system", "icon_name": "server"},
+    {"id": "users", "label": "Users", "href": "/system/users", "icon_name": "users"}
+] + ([{"id": "components", "label": "Components", "href": "/system/components", "icon_name": "swatch"}] if dev_mode else []) %}
+
+{% block title %}Users - LuxUPT{% endblock %}
+
+{% block content %}
+{% call page_header("System", "System status and user management") %}
+    {{ primary("Add User", icon_name="user-plus", hx_attrs={"hx-get": "/system/partials/user-form", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+{% endcall %}
+
+{{ tab_nav(tabs, "users") }}
+
+{% call section("User Management", "users") %}
+<div id="users-list">
+    {% include "partials/system/users_list.html" %}
+</div>
+{% endcall %}
+{% endblock %}

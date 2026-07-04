@@ -1,0 +1,68 @@
+{% from "macros/icons.html" import icon %}
+<!-- Image Viewer Modal -->
+<div id="image-modal" class="modal">
+    <div class="modal-backdrop" onclick="ImageViewer.close()"></div>
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="image-modal-title" class="modal-title">Image Viewer</h3>
+            <button onclick="ImageViewer.close()" class="modal-close">
+                {{ icon('x-mark', 'w-5 h-5') }}
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="image-viewer">
+                <button id="image-prev" class="image-nav image-nav-prev" onclick="ImageViewer.previous()">
+                    {{ icon('chevron-left', 'w-8 h-8') }}
+                </button>
+                <img id="image-display" class="image-display" alt="Full size image">
+                <button id="image-next" class="image-nav image-nav-next" onclick="ImageViewer.next()">
+                    {{ icon('chevron-right', 'w-8 h-8') }}
+                </button>
+            </div>
+            <div class="image-info">
+                <span id="image-timestamp" class="image-timestamp"></span>
+                <span id="image-size" class="image-size"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Player Modal -->
+<div id="video-modal" class="modal">
+    <div class="modal-backdrop" onclick="VideoPlayer.close()"></div>
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="video-modal-title" class="modal-title">Video Player</h3>
+            <button onclick="VideoPlayer.close()" class="modal-close">
+                {{ icon('x-mark', 'w-5 h-5') }}
+            </button>
+        </div>
+        <div class="modal-body">
+            <video id="video-player" class="video-player" controls>
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirm-modal" class="modal">
+    <div class="modal-backdrop" onclick="ConfirmModal.close()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="confirm-modal-title" class="modal-title">Confirm Action</h3>
+        </div>
+        <div class="modal-body">
+            <p id="confirm-modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button onclick="ConfirmModal.close()" class="btn btn-secondary">
+                Cancel
+            </button>
+            <button id="confirm-modal-action" class="btn btn-primary">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>

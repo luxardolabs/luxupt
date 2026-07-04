@@ -1,0 +1,36 @@
+{# Preview area - shows timelapse details before creation #}
+{% from "macros/icons.html" import icon %}
+{% if image_count > 0 %}
+<div class="space-y-3">
+    <div class="flex items-center gap-2 text-success-400">
+        {{ icon('check', 'h-5 w-5') }}
+        <span class="font-medium">Ready to create</span>
+    </div>
+    <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+            <p class="text-surface-200">Images</p>
+            <p class="text-lg font-semibold text-white">{{ image_count }}</p>
+        </div>
+        <div>
+            <p class="text-surface-200">Est. Duration</p>
+            <p class="text-lg font-semibold text-white">{{ "%.1f"|format(duration_estimate) }}s</p>
+        </div>
+        <div>
+            <p class="text-surface-200">Camera</p>
+            <p class="text-surface-100">{{ camera|replace('_', ' ') }}</p>
+        </div>
+        <div>
+            <p class="text-surface-200">Date</p>
+            <p class="text-surface-100">{{ date }}</p>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center text-surface-200">
+    {% if camera and date and interval %}
+    <p>No images found for this selection</p>
+    {% else %}
+    <p>Select camera, date, and interval to see preview</p>
+    {% endif %}
+</div>
+{% endif %}

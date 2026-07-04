@@ -1,0 +1,4 @@
+{# Interval select dropdown - swapped via HTMX when date changes #}
+{% from "macros/forms.html" import select %}
+
+{{ select("interval", available_intervals, label="Interval", placeholder="Select interval...", required=true, hx_attrs={"hx-get": "/timelapses/partials/preview", "hx-target": "#preview-area", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera, #date"}) }}

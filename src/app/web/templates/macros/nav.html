@@ -1,0 +1,62 @@
+{# Navigation macros #}
+{% from "macros/icons.html" import icon %}
+
+{% macro nav_link(href, label, is_active=false, icon_name=none) %}
+{# Navigation link with animated underline on hover #}
+<a href="{{ href }}"
+   class="relative py-5 text-sm font-medium transition-colors group flex items-center gap-2 {% if is_active %}text-white{% else %}text-surface-200 hover:text-white{% endif %}">
+    {% if icon_name %}{{ icon(icon_name, 'w-4 h-4') }}{% endif %}
+    {{ label }}
+    {% if is_active %}
+    <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500"></span>
+    {% else %}
+    <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 transition-transform origin-left scale-x-0 group-hover:scale-x-100"></span>
+    {% endif %}
+</a>
+{% endmacro %}
+
+{% macro nav_logo(href="/", text="LuxUPT") %}
+{# Logo with icon #}
+<div class="flex items-center gap-3">
+    <div class="rounded-lg bg-primary-500/15 p-1.5">
+        {{ icon('video-camera', 'w-6 h-6 text-primary-400') }}
+    </div>
+    <a href="{{ href }}" class="text-lg font-semibold text-white hover:text-primary-400 transition-colors">
+        {{ text }}
+    </a>
+</div>
+{% endmacro %}
+
+{% macro nav_status(label="Running", is_active=true) %}
+{# Status indicator with ping animation #}
+<div class="hidden sm:flex items-center gap-2 text-sm text-surface-200">
+    <span class="relative flex h-2 w-2">
+        {% if is_active %}
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-400 opacity-75"></span>
+        <span class="relative inline-flex h-2 w-2 rounded-full bg-success-500"></span>
+        {% else %}
+        <span class="relative inline-flex h-2 w-2 rounded-full bg-danger-500"></span>
+        {% endif %}
+    </span>
+    <span>{{ label }}</span>
+</div>
+{% endmacro %}
+
+{% macro nav_action(href, label, icon_name=none) %}
+{# Simple text action link (like Logout) - matches nav_status structure #}
+<div class="hidden sm:flex items-center">
+    <a href="{{ href }}"
+       class="flex items-center gap-2 text-sm text-surface-200 transition-colors hover:text-primary-400">
+        {% if icon_name %}{{ icon(icon_name, 'w-4 h-4') }}{% endif %}
+        {{ label }}
+    </a>
+</div>
+{% endmacro %}
+
+{% macro nav_user(username) %}
+{# Current user display - matches nav_status structure exactly #}
+<div class="hidden sm:flex items-center gap-2 text-sm text-surface-200">
+    {{ icon('user', 'w-4 h-4') }}
+    <span>{{ username }}</span>
+</div>
+{% endmacro %}

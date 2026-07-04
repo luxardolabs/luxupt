@@ -1,0 +1,219 @@
+{# =========================================================================
+   PANELS - Slide-out panels loaded via HTMX
+   ========================================================================= #}
+{% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import primary, secondary %}
+{% from "macros/cards.html" import section_card %}
+
+<div id="panels" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Panels</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Slide-out panels loaded via HTMX into <code class="bg-surface-700/50 px-1.5 py-0.5 rounded text-xs text-primary-300">#panel-container</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== PANEL STRUCTURE ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">Panel Structure</p>
+            <p class="text-sm text-surface-200 mb-4">
+                Panels consist of: backdrop, drawer container, header, content, and footer
+            </p>
+
+            <!-- Panel Preview - Side by Side -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Mock Panel Preview -->
+                <div class="relative rounded-xl border border-surface-400/30 bg-surface-900 overflow-hidden" style="min-height: 400px;">
+                    <!-- Mock backdrop -->
+                    <div class="absolute inset-0 bg-surface-900/50 backdrop-blur-sm"></div>
+
+                    <!-- Mock panel drawer - centered in this preview -->
+                    <div class="absolute inset-4 rounded-xl bg-surface-500 shadow-2xl flex flex-col overflow-hidden">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between border-b border-surface-400/50 px-6 py-4 bg-gradient-to-r from-primary-600/20 via-surface-500 to-surface-500">
+                            <div>
+                                <h2 class="text-lg font-semibold text-white">Panel Title</h2>
+                                <p class="text-sm text-surface-200">Optional subtitle</p>
+                            </div>
+                            <button type="button" class="rounded-lg p-2 text-surface-200 hover:bg-surface-400 hover:text-white transition-colors">
+                                {{ icon('x-mark', 'h-5 w-5') }}
+                            </button>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                            {% call section_card('Section 1') %}
+                            <p class="text-sm text-surface-200">Section content goes here.</p>
+                            {% endcall %}
+
+                            {% call section_card('Section 2', 'With subtitle') %}
+                            <p class="text-sm text-surface-200">More content in another section.</p>
+                            {% endcall %}
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="flex justify-end gap-3 border-t border-surface-400/50 px-6 py-4">
+                            {{ secondary('Cancel') }}
+                            {{ primary('Save', icon_name='check') }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Anatomy -->
+                <div class="space-y-4">
+                    <div class="rounded-lg border border-primary-500/30 bg-primary-500/10 p-4">
+                        <p class="text-xs font-medium text-primary-400 uppercase mb-2">Header</p>
+                        <p class="text-sm text-surface-200">Gradient background from primary, title + subtitle, close button</p>
+                        <code class="text-xs text-primary-300 mt-2 block">bg-gradient-to-r from-primary-600/20</code>
+                    </div>
+                    <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4">
+                        <p class="text-xs font-medium text-white uppercase mb-2">Content</p>
+                        <p class="text-sm text-surface-200">Scrollable area with section_card components</p>
+                        <code class="text-xs text-primary-300 mt-2 block">flex-1 overflow-y-auto p-6 space-y-6</code>
+                    </div>
+                    <div class="rounded-lg border border-surface-400/30 bg-surface-800/50 p-4">
+                        <p class="text-xs font-medium text-white uppercase mb-2">Footer</p>
+                        <p class="text-sm text-surface-200">Action buttons aligned right</p>
+                        <code class="text-xs text-primary-300 mt-2 block">flex justify-end gap-3 border-t px-6 py-4</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== PANEL COMPONENTS ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-warning-400 uppercase mb-4">Panel Component Classes</p>
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-surface-400/30">
+                        <th class="text-left py-2 text-surface-200 font-medium">Component</th>
+                        <th class="text-left py-2 text-surface-200 font-medium">Key Classes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-400/20">
+                    <tr>
+                        <td class="py-3 text-surface-200">Backdrop</td>
+                        <td class="py-3 font-mono text-primary-300">fixed inset-0 z-40 bg-surface-900/50 backdrop-blur-sm</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 text-surface-200">Drawer</td>
+                        <td class="py-3 font-mono text-primary-300">fixed top-0 right-0 bottom-0 z-50 bg-surface-500</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 text-surface-200">Header</td>
+                        <td class="py-3 font-mono text-primary-300">border-b border-surface-400/50 bg-gradient-to-r from-primary-600/20</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 text-surface-200">Content</td>
+                        <td class="py-3 font-mono text-primary-300">flex-1 overflow-y-auto p-6</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 text-surface-200">Footer</td>
+                        <td class="py-3 font-mono text-primary-300">border-t border-surface-400/50 px-6 py-4</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {# ===== PANEL TRIGGER ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">Panel Trigger Button</p>
+            <p class="text-sm text-surface-200 mb-4">
+                Use HTMX attributes to load panel content
+            </p>
+            <div class="flex gap-3">
+                <button type="button"
+                        hx-get="/cameras/fetch-settings"
+                        hx-target="#panel-container"
+                        hx-swap="innerHTML"
+                        class="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 transition-colors">
+                    {{ icon('cog-6-tooth', 'w-5 h-5') }}
+                    Open Capture Settings
+                </button>
+            </div>
+        </div>
+
+        {# ===== PANEL OPTIONS ===== #}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Panel Width Options</p>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="text-center p-4 rounded-lg border border-surface-400/20 bg-surface-800/50">
+                        <p class="text-sm font-medium text-white mb-1">Narrow</p>
+                        <code class="text-xs text-primary-300">32rem</code>
+                        <p class="text-[10px] text-surface-200 mt-1">Simple settings</p>
+                    </div>
+                    <div class="text-center p-4 rounded-lg border border-primary-500/30 bg-primary-500/10">
+                        <p class="text-sm font-medium text-white mb-1">Standard</p>
+                        <code class="text-xs text-primary-300">44rem</code>
+                        <p class="text-[10px] text-surface-200 mt-1">Default</p>
+                    </div>
+                    <div class="text-center p-4 rounded-lg border border-surface-400/20 bg-surface-800/50">
+                        <p class="text-sm font-medium text-white mb-1">Wide</p>
+                        <code class="text-xs text-primary-300">56rem</code>
+                        <p class="text-[10px] text-surface-200 mt-1">Detail views</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Panel Close Methods</p>
+                <div class="rounded-lg bg-surface-800/50 border border-surface-400/20 p-4">
+                    <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>// Panel close is handled by JavaScript
+Panel.close();
+
+// Close button in header
+&lt;button onclick="Panel.close()"&gt;...&lt;/button&gt;
+
+// Click backdrop to close
+&lt;div id="panel-backdrop" onclick="Panel.close()"&gt;&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Panel Template Structure:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{# Panel partial loaded via HTMX #}
+{% from "macros/icons.html" import icon %}
+{% from "macros/cards.html" import section_card %}
+
+{# Backdrop #}
+&lt;div id="panel-backdrop" onclick="Panel.close()"
+     class="fixed inset-0 z-40 bg-surface-900/50 backdrop-blur-sm"&gt;
+&lt;/div&gt;
+
+{# Drawer #}
+&lt;div id="panel-drawer"
+     style="position: fixed; top: 0; right: 0; bottom: 0; width: 44rem; z-index: 50;"&gt;
+    &lt;div class="h-full flex flex-col bg-surface-500"&gt;
+
+        {# Header #}
+        &lt;div class="flex items-center justify-between border-b border-surface-400/50 px-6 py-4
+                    bg-gradient-to-r from-primary-600/20 via-surface-500 to-surface-500"&gt;
+            &lt;div&gt;
+                &lt;h2 class="text-xl font-semibold text-white"&gt;Panel Title&lt;/h2&gt;
+                &lt;p class="text-sm text-surface-200"&gt;Subtitle&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;button onclick="Panel.close()"&gt;{{ icon('x-mark', 'h-5 w-5') }}&lt;/button&gt;
+        &lt;/div&gt;
+
+        {# Content #}
+        &lt;div class="flex-1 overflow-y-auto p-6 space-y-6"&gt;
+            {% call section_card('Section') %}
+                &lt;!-- Section content --&gt;
+            {% endcall %}
+        &lt;/div&gt;
+
+        {# Footer #}
+        &lt;div class="flex justify-end gap-3 border-t border-surface-400/50 px-6 py-4"&gt;
+            &lt;button onclick="Panel.close()"&gt;Cancel&lt;/button&gt;
+            &lt;button type="submit"&gt;Save&lt;/button&gt;
+        &lt;/div&gt;
+
+    &lt;/div&gt;
+&lt;/div&gt;{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>

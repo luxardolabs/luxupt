@@ -1,0 +1,191 @@
+{# =========================================================================
+   CARDS - stat_card(), card(), section_card(), empty_state()
+   ========================================================================= #}
+{% from "macros/cards.html" import stat_card, card, section_card, empty_state %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import primary %}
+
+<div id="cards" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Cards</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Card macros from <code class="bg-surface-700/50 px-1.5 py-0.5 rounded text-xs text-primary-300">macros/cards.html</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== STAT CARDS ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">stat_card</p>
+            <p class="text-sm text-surface-200 mb-4">
+                <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ stat_card('Label', 'Value', 'icon-name', trend=5, color='success') }}{% endraw %}</code>
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {{ stat_card('Total Cameras', '12', 'camera', color='primary') }}
+                {{ stat_card('Active Captures', '8', 'signal', trend=12, color='success') }}
+                {{ stat_card('Pending Jobs', '3', 'clock', color='warning') }}
+                {{ stat_card('Failed Today', '1', 'x-circle', trend=-5, color='danger') }}
+            </div>
+        </div>
+
+        {# ===== STAT CARD OPTIONS ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Stat Card Options</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {{ stat_card('With Subtitle', '42', 'chart-bar', subtitle='Last 24 hours', color='info') }}
+                {{ stat_card('With Prefix', '28', 'check-circle', value_prefix='12', color='success') }}
+                {{ stat_card('With Suffix', '150', 'photo', value_suffix='GB', color='primary') }}
+            </div>
+        </div>
+
+        {# ===== CARD ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">card</p>
+            <p class="text-sm text-surface-200 mb-4">
+                <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{% call card('Title', 'Subtitle', 'icon', 'color') %}...{% endcall %}{% endraw %}</code>
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% call card('Camera Settings', 'Configure capture method', 'camera', 'primary') %}
+                <p class="text-sm text-surface-200">Card content goes here. This is an example of a card with a gradient header.</p>
+                {% endcall %}
+
+                {% call card('System Status', 'Health overview', 'server', 'success') %}
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-success-500"></span>
+                    <span class="text-sm text-surface-200">All systems operational</span>
+                </div>
+                {% endcall %}
+
+                {% call card('Alerts', '3 pending', 'bell', 'warning') %}
+                <p class="text-sm text-surface-200">Warning notifications will appear here.</p>
+                {% endcall %}
+            </div>
+        </div>
+
+        {# ===== SECTION CARD ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">section_card</p>
+            <p class="text-sm text-surface-200 mb-4">
+                <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{% call section_card('Title', 'subtitle', badge, highlight=false) %}...{% endcall %}{% endraw %}</code>
+                - For use within panels, has gradient header
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {% call section_card('Basic Section') %}
+                <p class="text-sm text-surface-200">Section content without subtitle or badge.</p>
+                {% endcall %}
+
+                {% call section_card('With Subtitle', 'Additional context for this section') %}
+                <p class="text-sm text-surface-200">Section with subtitle explaining the purpose.</p>
+                {% endcall %}
+
+                {% set status_badge %}
+                <span class="inline-flex items-center gap-1.5 text-xs text-success-400 bg-success-500/10 px-2 py-1 rounded-lg">
+                    {{ icon('check-circle', 'w-4 h-4') }}
+                    Active
+                </span>
+                {% endset %}
+                {% call section_card('With Badge', 'Shows status indicator', status_badge) %}
+                <p class="text-sm text-surface-200">Section with a status badge in the header.</p>
+                {% endcall %}
+
+                {% call section_card('With Highlight', 'Draws attention to important sections', highlight=true) %}
+                <p class="text-sm text-surface-200">Use <code class="bg-surface-700/50 px-1 py-0.5 rounded text-xs text-primary-300">highlight=true</code> to add a purple glow effect. Useful for first-time setup or required actions.</p>
+                {% endcall %}
+            </div>
+        </div>
+
+        {# ===== EMPTY STATE ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">empty_state</p>
+            <p class="text-sm text-surface-200 mb-4">
+                <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ empty_state('icon-name', 'Title', 'Description', action_button) }}{% endraw %}</code>
+                - Standardized empty state display
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 overflow-hidden">
+                    <div class="px-4 py-2 border-b border-surface-400/20 bg-surface-800/50">
+                        <p class="text-xs text-surface-200">Basic empty state</p>
+                    </div>
+                    {{ empty_state('camera', 'No cameras found', 'Make sure your UniFi Protect API is configured correctly') }}
+                </div>
+                <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 overflow-hidden">
+                    <div class="px-4 py-2 border-b border-surface-400/20 bg-surface-800/50">
+                        <p class="text-xs text-surface-200">With action button</p>
+                    </div>
+                    {{ empty_state('film', 'No timelapses yet', 'Create your first timelapse to get started', primary('Create Timelapse', icon_name='plus')) }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== MANUAL CARD STRUCTURE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-warning-400 uppercase mb-4">Manual Card Structure (when not using macros)</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>&lt;!-- Standard Card --&gt;
+&lt;div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-4"&gt;
+    &lt;!-- Card content --&gt;
+&lt;/div&gt;
+
+&lt;!-- Card with Header --&gt;
+&lt;div class="rounded-xl border border-surface-400/30 bg-surface-500/50 overflow-hidden"&gt;
+    &lt;div class="px-4 py-3 border-b border-surface-400/20 bg-gradient-to-r from-primary-600/20 via-surface-700/30 to-surface-700/30"&gt;
+        &lt;h3 class="text-sm font-semibold text-white"&gt;Title&lt;/h3&gt;
+    &lt;/div&gt;
+    &lt;div class="p-4"&gt;
+        &lt;!-- Content --&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        {# ===== CARD COLOR THEMES ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Card Color Themes</p>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {% call card('Primary', icon_name='camera', color='primary') %}
+                <p class="text-xs text-surface-200">Magenta accent</p>
+                {% endcall %}
+                {% call card('Success', icon_name='check', color='success') %}
+                <p class="text-xs text-surface-200">Green accent</p>
+                {% endcall %}
+                {% call card('Warning', icon_name='exclamation-triangle', color='warning') %}
+                <p class="text-xs text-surface-200">Amber accent</p>
+                {% endcall %}
+                {% call card('Danger', icon_name='x-circle', color='danger') %}
+                <p class="text-xs text-surface-200">Red accent</p>
+                {% endcall %}
+                {% call card('Info', icon_name='information-circle', color='info') %}
+                <p class="text-xs text-surface-200">Blue accent</p>
+                {% endcall %}
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import & Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/cards.html" import stat_card, card, section_card, empty_state %}
+
+{# Stat card with trend #}
+{{ stat_card('Active', '12', 'signal', trend=5, color='success') }}
+
+{# Card with content #}
+{% call card('Title', 'Subtitle', 'icon', 'primary') %}
+    <p>Card content here</p>
+{% endcall %}
+
+{# Section card for panels #}
+{% call section_card('Section Title', 'Optional subtitle') %}
+    <p>Section content here</p>
+{% endcall %}
+
+{# Section card with highlight (purple glow) #}
+{% call section_card('API Connection', 'Required', highlight=true) %}
+    <p>Highlighted section draws attention</p>
+{% endcall %}
+
+{# Empty state #}
+{{ empty_state('camera', 'No cameras found', 'Check API configuration') }}
+
+{# Empty state with action button #}
+{{ empty_state('film', 'No timelapses', 'Create one to start', primary('Create', icon_name='plus')) }}{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>

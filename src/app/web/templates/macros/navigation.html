@@ -1,0 +1,203 @@
+{# Navigation macros #}
+{% from "macros/icons.html" import icon %}
+
+{% macro page_header(title, description=none, icon_name=none) %}
+{# Standardized page header with optional description and action buttons area #}
+<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-4">
+            {% if icon_name %}
+            <div class="w-10 h-10 rounded-lg border border-primary-500/30 bg-primary-500/10 flex items-center justify-center">
+                {{ icon(icon_name, 'w-5 h-5 text-primary-400') }}
+            </div>
+            {% endif %}
+            {{ title }}
+        </h1>
+        {% if description %}
+        <p class="text-surface-200 mt-1 {% if icon_name %}ml-14{% endif %}">{{ description }}</p>
+        {% endif %}
+    </div>
+    {% if caller is defined %}
+    <div class="flex items-center gap-3">
+        {{ caller() }}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro pagination(pagination, base_url, extra_params={}) %}
+{% set params_list = [] %}
+{% for k, v in extra_params.items() if v is not none %}
+{% set _ = params_list.append(k ~ '=' ~ (v|string)) %}
+{% endfor %}
+{% set params_str = params_list|join('&') %}
+<nav class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-surface-400/50 pt-4">
+    <div class="text-sm text-surface-200 text-center sm:text-left">
+        Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - {{ [pagination.page * pagination.per_page, pagination.total_count]|min }} of {{ pagination.total_count }}
+    </div>
+    <div class="flex items-center justify-center sm:justify-end gap-2">
+        {% if pagination.has_prev %}
+        <a href="{{ base_url }}?page={{ pagination.page - 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
+           class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
+            Previous
+        </a>
+        {% else %}
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
+            Previous
+        </span>
+        {% endif %}
+
+        <span class="text-sm text-surface-200">
+            Page {{ pagination.page }} of {{ pagination.total_pages }}
+        </span>
+
+        {% if pagination.has_next %}
+        <a href="{{ base_url }}?page={{ pagination.page + 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
+           class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
+            Next
+        </a>
+        {% else %}
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
+            Next
+        </span>
+        {% endif %}
+    </div>
+</nav>
+{% endmacro %}
+
+{% macro htmx_pagination(pagination, target_id, base_url, extra_params={}) %}
+{% set params_list = [] %}
+{% for k, v in extra_params.items() if v is not none %}
+{% set _ = params_list.append(k ~ '=' ~ (v|string)) %}
+{% endfor %}
+{% set params_str = params_list|join('&') %}
+<nav class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-surface-400/50 pt-4">
+    <div class="text-sm text-surface-200 text-center sm:text-left">
+        Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - {{ [pagination.page * pagination.per_page, pagination.total_count]|min }} of {{ pagination.total_count }}
+    </div>
+    <div class="flex items-center justify-center sm:justify-end gap-2">
+        {% if pagination.has_prev %}
+        <button hx-get="{{ base_url }}?page={{ pagination.page - 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
+                hx-target="#{{ target_id }}"
+                hx-swap="innerHTML"
+                class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
+            Previous
+        </button>
+        {% else %}
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
+            Previous
+        </span>
+        {% endif %}
+
+        <span class="text-sm text-surface-200">
+            Page {{ pagination.page }} of {{ pagination.total_pages }}
+        </span>
+
+        {% if pagination.has_next %}
+        <button hx-get="{{ base_url }}?page={{ pagination.page + 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
+                hx-target="#{{ target_id }}"
+                hx-swap="innerHTML"
+                class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
+            Next
+        </button>
+        {% else %}
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
+            Next
+        </span>
+        {% endif %}
+    </div>
+</nav>
+{% endmacro %}
+
+{% macro breadcrumb(items) %}
+<nav class="mb-4" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-2 text-sm">
+        {% for item in items %}
+        <li class="flex items-center">
+            {% if not loop.first %}
+{{ icon('chevron-right-solid', 'mr-2 h-4 w-4 text-surface-200') }}
+            {% endif %}
+            {% if item.href %}
+            <a href="{{ item.href }}" class="text-surface-200 hover:text-surface-100">{{ item.label }}</a>
+            {% else %}
+            <span class="text-surface-100">{{ item.label }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+{% endmacro %}
+
+{% macro tab_nav(tabs, current) %}
+{# Tab navigation for sub-pages. Each tab: {id, label, href, icon_name} #}
+<nav class="flex gap-1 border-b border-surface-400/30 mb-6">
+    {% for tab in tabs %}
+    <a href="{{ tab.href }}"
+       class="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
+              {% if tab.id == current %}
+              text-primary-400 border-primary-400
+              {% else %}
+              text-surface-200 border-transparent hover:text-surface-100 hover:border-surface-400
+              {% endif %}">
+        {% if tab.icon_name %}{{ icon(tab.icon_name, "w-4 h-4") }}{% endif %}
+        {{ tab.label }}
+    </a>
+    {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro section(title=none, icon_name=none) %}
+{# Reusable section container with optional header #}
+<section class="rounded-xl border border-surface-400/30 bg-surface-800/30 p-4 mb-6">
+    {% if title %}
+    <div class="flex items-center gap-3 mb-3">
+        {% if icon_name %}
+        <div class="w-8 h-8 rounded-lg border border-surface-400/50 flex items-center justify-center">
+            {{ icon(icon_name, "w-4 h-4 text-surface-200") }}
+        </div>
+        {% endif %}
+        <h2 class="text-sm font-medium text-surface-200">{{ title }}</h2>
+    </div>
+    {% endif %}
+    {{ caller() }}
+</section>
+{% endmacro %}
+
+{% macro collapsible_section(title, cookie_key, icon_name=none, default_open=true) %}
+{# Collapsible section with localStorage-persisted state #}
+<section class="rounded-xl border border-surface-400/30 bg-surface-800/30 mb-6 overflow-hidden"
+         x-data="{
+            open: localStorage.getItem('{{ cookie_key }}') !== null
+                  ? localStorage.getItem('{{ cookie_key }}') === 'true'
+                  : {{ 'true' if default_open else 'false' }},
+            toggle() {
+                this.open = !this.open;
+                localStorage.setItem('{{ cookie_key }}', this.open);
+            }
+         }">
+    <button @click="toggle()"
+            class="w-full flex items-center justify-between p-4 text-left hover:bg-surface-700/30 transition-colors">
+        <div class="flex items-center gap-3">
+            {% if icon_name %}
+            <div class="w-8 h-8 rounded-lg border border-surface-400/50 flex items-center justify-center">
+                {{ icon(icon_name, "w-4 h-4 text-surface-200") }}
+            </div>
+            {% endif %}
+            <h2 class="text-sm font-medium text-surface-200">{{ title }}</h2>
+        </div>
+        <span class="text-surface-200 transition-transform duration-200" :class="{ 'rotate-180': open }">
+            {{ icon("chevron-down", "w-4 h-4") }}
+        </span>
+    </button>
+    <div x-show="open"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="px-4 pb-4">
+        {{ caller() }}
+    </div>
+</section>
+{% endmacro %}

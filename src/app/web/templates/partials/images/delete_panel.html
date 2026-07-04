@@ -1,0 +1,41 @@
+{# Image deletion panel #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_drawer %}
+{% from "macros/cards.html" import section_card %}
+{% from "macros/forms.html" import select %}
+{% from "macros/icons.html" import icon %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-2xl') %}
+    {{ panel_header('Delete Images', 'Remove captured images from the system') }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+
+        <!-- Filter Form -->
+        {% call section_card('Select Images to Delete') %}
+        <form id="delete-filters-form"
+              hx-get="/images/delete/preview"
+              hx-target="#delete-preview"
+              hx-trigger="change">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    {{ select("camera", cameras, label="Camera", placeholder="All Cameras") }}
+                </div>
+                <div id="delete-date-field">
+                    {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates") }}
+                </div>
+                <div id="delete-interval-field">
+                    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals") }}
+                </div>
+            </div>
+        </form>
+        {% endcall %}
+
+        <!-- Preview Area -->
+        <div id="delete-preview">
+            {% include "partials/images/delete_preview.html" %}
+        </div>
+
+    </div>
+{% endcall %}

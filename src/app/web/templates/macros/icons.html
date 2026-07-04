@@ -1,0 +1,212 @@
+{#
+    Icon Macros - Heroicons for LuxUPT templates.
+
+    Usage:
+        {% from "macros/icons.html" import icon, icon_box, live_ping %}
+#}
+
+
+{# ============================================================================
+   ICON BOX WITH HOVER GLOW
+   Styled icon container with background and hover glow effect.
+
+   Parameters:
+     - icon_name: Name of the Heroicon to display
+     - color: Color theme (primary, success, warning, danger, info, surface)
+     - size: Size variant ('sm', 'md', 'lg') - default 'md'
+     - icon_size: Custom icon size class - overrides size default
+
+   Usage:
+     {{ icon_box('camera', 'success') }}
+     {{ icon_box('film', 'primary', 'lg') }}
+   ============================================================================ #}
+
+{% macro icon_box(icon_name, color='primary', size='md', icon_size=none) %}
+{% set colors = {
+    'success': {'rgb': '34, 197, 94', 'text': 'text-success-400'},
+    'primary': {'rgb': '255, 0, 234', 'text': 'text-primary-400'},
+    'warning': {'rgb': '245, 158, 11', 'text': 'text-warning-400'},
+    'danger': {'rgb': '239, 68, 68', 'text': 'text-danger-400'},
+    'info': {'rgb': '59, 130, 246', 'text': 'text-info-400'},
+    'surface': {'rgb': '148, 163, 184', 'text': 'text-surface-200'}
+} %}
+{% set sizes = {
+    'sm': {'container': 'w-10 h-10 rounded-lg', 'icon': 'w-5 h-5'},
+    'md': {'container': 'w-14 h-14 rounded-xl', 'icon': 'w-7 h-7'},
+    'lg': {'container': 'w-20 h-20 rounded-2xl', 'icon': 'w-10 h-10'}
+} %}
+{% set c = colors.get(color, colors.primary) %}
+{% set s = sizes.get(size, sizes.md) %}
+{% set final_icon_size = icon_size if icon_size else s.icon %}
+<div class="{{ s.container }} flex items-center justify-center transition-all duration-300"
+     style="background: rgba({{ c.rgb }}, 0.15);"
+     onmouseenter="this.style.boxShadow='0 0 30px rgba({{ c.rgb }}, 0.4)'"
+     onmouseleave="this.style.boxShadow='none'">
+    {{ icon(icon_name, final_icon_size ~ ' ' ~ c.text) }}
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   LIVE PING INDICATOR
+   Animated ping dot for live/active status indicators.
+
+   Parameters:
+     - size: 'sm' (2x2), 'md' (3x3), 'lg' (4x4) - default 'sm'
+     - color: 'success', 'primary', 'danger', 'warning', 'info' - default 'success'
+
+   Usage:
+     {{ live_ping() }}                - small success (default)
+     {{ live_ping('md', 'primary') }} - medium primary
+   ============================================================================ #}
+
+{% macro live_ping(size='sm', color='success') %}
+{% set sizes = {
+    'sm': 'h-2 w-2',
+    'md': 'h-3 w-3',
+    'lg': 'h-4 w-4'
+} %}
+{% set colors = {
+    'success': {'ping': 'bg-success-400', 'dot': 'bg-success-500'},
+    'primary': {'ping': 'bg-primary-400', 'dot': 'bg-primary-500'},
+    'danger': {'ping': 'bg-danger-400', 'dot': 'bg-danger-500'},
+    'warning': {'ping': 'bg-warning-400', 'dot': 'bg-warning-500'},
+    'info': {'ping': 'bg-info-400', 'dot': 'bg-info-500'}
+} %}
+{% set s = sizes.get(size, sizes.sm) %}
+{% set c = colors.get(color, colors.success) %}
+<span class="relative flex {{ s }}">
+    <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ c.ping }} opacity-75"></span>
+    <span class="relative inline-flex rounded-full {{ s }} {{ c.dot }}"></span>
+</span>
+{%- endmacro %}
+
+
+{# ============================================================================
+   HEROICONS - File-based Icon Router
+
+   Individual SVG files live in templates/icons/hero/{outline,solid}/
+   Each SVG is clean: viewBox="0 0 24 24", currentColor, no width/height.
+
+   Usage:
+     icon('plus', 'w-5 h-5 text-surface-200')              - outline icon
+     icon('check-circle-solid', 'w-6 h-6 text-success-500')  - solid icon
+
+   All 324 outline + 324 solid Heroicons v2 icons are available.
+   Use canonical v2 names (e.g., 'magnifying-glass' not 'search').
+
+   Browse icons: https://heroicons.com/
+   ============================================================================ #}
+
+{% macro icon(name, class="w-5 h-5") %}
+{%- set is_solid = name.endswith('-solid') -%}
+{%- set base_name = name.replace('-solid', '') if is_solid else name -%}
+{%- set icon_dir = 'solid' if is_solid else 'outline' -%}
+{%- set icon_path = 'icons/hero/' ~ icon_dir ~ '/' ~ base_name ~ '.svg' -%}
+<span class="inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full {{ class }}" aria-hidden="true">{%- include icon_path ignore missing -%}</span>
+{%- endmacro %}
+
+
+{# ============================================================================
+   ICON SQUARE BUTTONS
+   Square icon buttons for actions (view, download, delete, etc.)
+
+   Parameters:
+     - icon_name: Name of the Heroicon to display
+     - color: Color theme (primary, success, warning, danger, muted)
+     - href: Optional URL for link buttons
+     - title: Tooltip text
+     - hx_get, hx_post, hx_delete: HTMX attributes
+     - hx_target, hx_swap: HTMX target/swap
+     - download: For download links, the filename
+     - disabled: Disable the button
+
+   Usage:
+     {{ icon_btn('eye', 'primary', href='/view/1', title='View') }}
+     {{ icon_btn('arrow-down-tray', 'success', href='/download/1', title='Download', download='file.mp4') }}
+     {{ icon_btn('trash', 'danger', hx_delete='/delete/1', title='Delete') }}
+   ============================================================================ #}
+
+{% macro icon_btn(icon_name, color='primary', href=none, title='', hx_get=none, hx_post=none, hx_delete=none, hx_target=none, hx_swap=none, hx_confirm=none, download=none, disabled=false) %}
+{% set colors = {
+    'primary': 'bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 hover:text-primary-300 border-primary-500/30',
+    'success': 'bg-success-500/20 text-success-400 hover:bg-success-500/30 hover:text-success-300 border-success-500/30',
+    'warning': 'bg-warning-500/20 text-warning-400 hover:bg-warning-500/30 hover:text-warning-300 border-warning-500/30',
+    'danger': 'bg-danger-500/20 text-danger-400 hover:bg-danger-500/30 hover:text-danger-300 border-danger-500/30',
+    'muted': 'bg-surface-500/20 text-surface-200 border-surface-500/30'
+} %}
+{% set c = colors.get(color, colors.primary) %}
+{% set base_class = 'inline-flex items-center justify-center w-7 h-7 rounded border transition-colors ' ~ c %}
+{% set disabled_class = 'opacity-50 cursor-not-allowed' if disabled else '' %}
+{% if href %}
+<a href="{{ href }}"
+   class="{{ base_class }} {{ disabled_class }}"
+   title="{{ title }}"
+   {% if download %}download="{{ download }}"{% endif %}>
+    {{ icon(icon_name, 'w-4 h-4') }}
+</a>
+{% else %}
+<button type="button"
+        class="{{ base_class }} {{ disabled_class }}"
+        title="{{ title }}"
+        {% if disabled %}disabled{% endif %}
+        {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+        {% if hx_post %}hx-post="{{ hx_post }}"{% endif %}
+        {% if hx_delete %}hx-delete="{{ hx_delete }}"{% endif %}
+        {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+        {% if hx_swap %}hx-swap="{{ hx_swap }}"{% endif %}
+        {% if hx_confirm %}hx-confirm="{{ hx_confirm }}"{% endif %}>
+    {{ icon(icon_name, 'w-4 h-4') }}
+</button>
+{% endif %}
+{% endmacro %}
+
+
+{# Convenience macros for common actions #}
+{% macro icon_view(href=none, title='View', hx_get=none, hx_target=none, hx_swap=none) %}
+{{ icon_btn('eye', 'primary', href=href, title=title, hx_get=hx_get, hx_target=hx_target, hx_swap=hx_swap) }}
+{% endmacro %}
+
+{% macro icon_play(href=none, title='Play', hx_get=none, hx_target=none, hx_swap=none) %}
+{{ icon_btn('play', 'primary', href=href, title=title, hx_get=hx_get, hx_target=hx_target, hx_swap=hx_swap) }}
+{% endmacro %}
+
+{% macro icon_download(href=none, title='Download', download=none) %}
+{{ icon_btn('arrow-down-tray', 'success', href=href, title=title, download=download) }}
+{% endmacro %}
+
+{% macro icon_delete(title='Delete', hx_delete=none, hx_target=none, hx_swap=none, hx_confirm=none) %}
+{{ icon_btn('trash', 'danger', title=title, hx_delete=hx_delete, hx_target=hx_target, hx_swap=hx_swap, hx_confirm=hx_confirm) }}
+{% endmacro %}
+
+
+{# =============================================================================
+   DELETE ICON BUTTON - Double-click to confirm pattern
+
+   First click arms the button (glows red), second click executes.
+   NO browser confirmation dialogs - uses Alpine.js state management.
+
+   Parameters:
+     - hx_delete: URL for DELETE request
+     - hx_post: URL for POST request (alternative to delete)
+     - hx_target: HTMX target selector
+     - hx_swap: HTMX swap method (default: delete)
+     - timeout: Time in ms before confirm state resets (default: 3000)
+     - title: Tooltip text
+
+   Usage:
+     {{ delete_icon_button(hx_delete='/timelapses/123', hx_target='#timelapse-123', hx_swap='delete') }}
+============================================================================= #}
+
+{% macro delete_icon_button(hx_delete=none, hx_post=none, hx_target='body', hx_swap='delete', timeout=3000, title='Delete') %}
+{% set method = 'DELETE' if hx_delete else 'POST' %}
+{% set url = hx_delete if hx_delete else hx_post %}
+<button type="button"
+        x-data="{ confirm: false }"
+        @click="if(confirm) { htmx.ajax('{{ method }}', '{{ url }}', {target: '{{ hx_target }}', swap: '{{ hx_swap }}'}); } else { confirm = true; setTimeout(() => confirm = false, {{ timeout }}); }"
+        :class="confirm ? 'bg-danger-500 text-white border-danger-500 shadow-glow-danger' : 'border-danger-500/50 text-danger-400 hover:bg-danger-500 hover:text-white hover:border-danger-500 hover:shadow-glow-danger'"
+        :title="confirm ? 'Click again to confirm' : '{{ title }}'"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 text-danger-400 border-danger-500/50">
+    {{ icon('trash', 'w-4 h-4') }}
+</button>
+{% endmacro %}

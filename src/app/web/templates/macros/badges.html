@@ -1,0 +1,171 @@
+{# Badge/Chip macros for consistent styling #}
+{% from "macros/icons.html" import icon %}
+
+{# =============================================================================
+   CHIP - Primary badge component with semantic colors
+
+   Colors: default, primary, success, warning, danger, info, accent
+   Variants: soft (default), solid, outline
+   Sizes: sm, md (default)
+
+   Usage:
+     {{ chip("Active", "success") }}
+     {{ chip("Pending", "warning", size="sm") }}
+     {{ chip("Error", "danger", variant="outline") }}
+     {{ chip("HDR", "info", icon_name="sparkles") }}
+     {{ chip("Connected", "success", dot=true) }}
+============================================================================= #}
+
+{% macro chip(text, color="default", variant="soft", size="md", icon_name=none, dot=false) %}
+{% set colors = {
+    'default': {
+        'soft': 'bg-surface-400/50 text-surface-100 border-surface-400/30',
+        'solid': 'bg-surface-400 text-white border-surface-400',
+        'outline': 'bg-transparent text-surface-200 border-surface-400'
+    },
+    'primary': {
+        'soft': 'bg-primary-500/20 text-primary-300 border-primary-500/30',
+        'solid': 'bg-primary-500 text-white border-primary-500',
+        'outline': 'bg-transparent text-primary-400 border-primary-500/50'
+    },
+    'success': {
+        'soft': 'bg-success-500/20 text-success-300 border-success-500/30',
+        'solid': 'bg-success-500 text-white border-success-500',
+        'outline': 'bg-transparent text-success-400 border-success-500/50'
+    },
+    'warning': {
+        'soft': 'bg-warning-500/20 text-warning-300 border-warning-500/30',
+        'solid': 'bg-warning-500 text-surface-900 border-warning-500',
+        'outline': 'bg-transparent text-warning-400 border-warning-500/50'
+    },
+    'danger': {
+        'soft': 'bg-danger-500/20 text-danger-300 border-danger-500/30',
+        'solid': 'bg-danger-500 text-white border-danger-500',
+        'outline': 'bg-transparent text-danger-400 border-danger-500/50'
+    },
+    'info': {
+        'soft': 'bg-info-500/20 text-info-300 border-info-500/30',
+        'solid': 'bg-info-500 text-white border-info-500',
+        'outline': 'bg-transparent text-info-400 border-info-500/50'
+    },
+    'accent': {
+        'soft': 'bg-accent-500/20 text-accent-300 border-accent-500/30',
+        'solid': 'bg-accent-500 text-white border-accent-500',
+        'outline': 'bg-transparent text-accent-400 border-accent-500/50'
+    }
+} %}
+{% set dot_colors = {
+    'default': 'bg-surface-300',
+    'primary': 'bg-primary-400',
+    'success': 'bg-success-400',
+    'warning': 'bg-warning-400',
+    'danger': 'bg-danger-400',
+    'info': 'bg-info-400',
+    'accent': 'bg-accent-400'
+} %}
+{% set sizes = {
+    'sm': 'px-1.5 py-0.5 text-xs gap-1',
+    'md': 'px-2.5 py-1 text-xs gap-1.5'
+} %}
+{% set icon_sizes = {
+    'sm': 'w-3 h-3',
+    'md': 'w-3.5 h-3.5'
+} %}
+{% set c = colors.get(color, colors.default) %}
+{% set style = c.get(variant, c.soft) %}
+{% set sz = sizes.get(size, sizes.md) %}
+{% set icon_sz = icon_sizes.get(size, icon_sizes.md) %}
+<span class="inline-flex items-center rounded-full border font-medium {{ style }} {{ sz }}">
+    {% if dot %}
+    <span class="w-1.5 h-1.5 rounded-full {{ dot_colors.get(color, dot_colors.default) }}"></span>
+    {% endif %}
+    {% if icon_name %}
+    {{ icon(icon_name, icon_sz) }}
+    {% endif %}
+    {{ text }}
+</span>
+{% endmacro %}
+
+{# =============================================================================
+   STATUS CHIP - Auto-maps common status values to colors
+
+   Usage:
+     {{ status_chip("connected") }}
+     {{ status_chip("pending") }}
+     {{ status_chip("failed") }}
+============================================================================= #}
+
+{% macro status_chip(status, show_dot=true) %}
+{% set status_lower = status|lower %}
+{% set status_map = {
+    'connected': {'text': 'Connected', 'color': 'success'},
+    'disconnected': {'text': 'Disconnected', 'color': 'danger'},
+    'online': {'text': 'Online', 'color': 'success'},
+    'offline': {'text': 'Offline', 'color': 'danger'},
+    'active': {'text': 'Active', 'color': 'success'},
+    'inactive': {'text': 'Inactive', 'color': 'default'},
+    'enabled': {'text': 'Enabled', 'color': 'success'},
+    'disabled': {'text': 'Disabled', 'color': 'default'},
+    'running': {'text': 'Running', 'color': 'success'},
+    'stopped': {'text': 'Stopped', 'color': 'danger'},
+    'pending': {'text': 'Pending', 'color': 'warning'},
+    'processing': {'text': 'Processing', 'color': 'info'},
+    'completed': {'text': 'Completed', 'color': 'success'},
+    'failed': {'text': 'Failed', 'color': 'danger'},
+    'error': {'text': 'Error', 'color': 'danger'},
+    'success': {'text': 'Success', 'color': 'success'},
+    'warning': {'text': 'Warning', 'color': 'warning'}
+} %}
+{% set config = status_map.get(status_lower, {'text': status|title, 'color': 'default'}) %}
+{{ chip(config.text, config.color, dot=show_dot) }}
+{% endmacro %}
+
+{# =============================================================================
+   DOT INDICATOR - Animated connection dot
+============================================================================= #}
+
+{% macro dot_indicator(connected, size="md") %}
+{% set sizes = {'sm': 'h-2 w-2', 'md': 'h-3 w-3', 'lg': 'h-4 w-4'} %}
+{% set sz = sizes.get(size, sizes.md) %}
+<span class="relative flex {{ sz }}">
+    {% if connected %}
+    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75"></span>
+    {% endif %}
+    <span class="relative inline-flex {{ sz }} rounded-full {% if connected %}bg-success-500{% else %}bg-danger-500{% endif %}"></span>
+</span>
+{% endmacro %}
+
+{# =============================================================================
+   COUNT BADGE - Numeric count
+============================================================================= #}
+
+{% macro count_badge(value, max=none, color="default") %}
+{% set colors = {
+    'default': 'bg-surface-500 text-surface-100',
+    'primary': 'bg-primary-500 text-white',
+    'success': 'bg-success-500 text-white',
+    'warning': 'bg-warning-500 text-surface-900',
+    'danger': 'bg-danger-500 text-white'
+} %}
+<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium {{ colors.get(color, colors.default) }}">
+    {% if max and value > max %}{{ max }}+{% else %}{{ value }}{% endif %}
+</span>
+{% endmacro %}
+
+{# =============================================================================
+   INTERVAL BADGE - Display interval in seconds
+============================================================================= #}
+
+{% macro interval_badge(seconds) %}
+<span class="inline-flex items-center rounded bg-surface-500/50 px-1.5 py-0.5 text-xs font-mono text-surface-200 border border-surface-400/30">
+    {{ seconds }}s
+</span>
+{% endmacro %}
+
+{# =============================================================================
+   FILE SIZE - Format bytes to human readable
+============================================================================= #}
+
+{% macro file_size(bytes) %}
+{% if bytes >= 1073741824 %}{{ (bytes / 1073741824)|round(2) }} GB{% elif bytes >= 1048576 %}{{ (bytes / 1048576)|round(1) }} MB{% elif bytes >= 1024 %}{{ (bytes / 1024)|round(1) }} KB{% else %}{{ bytes }} B{% endif %}
+{% endmacro %}

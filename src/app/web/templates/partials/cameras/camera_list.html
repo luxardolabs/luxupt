@@ -1,0 +1,11 @@
+{% from "macros/cards.html" import camera_card, empty_state %}
+
+{% if camera_cards %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for card_data in camera_cards %}
+    {{ camera_card(card_data.camera, card_data.latest_capture, card_data.stats) }}
+    {% endfor %}
+</div>
+{% else %}
+{{ empty_state('camera', 'No cameras found', 'Make sure your UniFi Protect API is configured correctly') }}
+{% endif %}

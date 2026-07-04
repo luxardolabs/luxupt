@@ -1,0 +1,34 @@
+{# Camera settings save result - HTMX partial #}
+{% from "macros/alerts.html" import alert_block %}
+{% from "macros/icons.html" import icon %}
+
+{% if success %}
+{% call alert_block(type="success", title="Settings saved successfully") %}
+{% if message %}{{ message }}{% endif %}
+{% endcall %}
+<div data-init="PanelResult.closeAndReload(1500)" class="hidden"></div>
+{% elif detecting %}
+{# Custom detecting state with spinner - not using macro due to animated icon #}
+<div class="rounded-lg border border-info-500/30 bg-info-500/10 p-4">
+    <div class="flex items-center gap-3">
+        {{ icon('arrow-path', 'w-6 h-6 text-info-400 animate-spin') }}
+        <div>
+            <p class="font-medium text-info-300">Detecting capabilities...</p>
+            <p class="text-sm text-info-200 mt-1">Testing API and RTSP capture methods</p>
+        </div>
+    </div>
+</div>
+{% elif detected %}
+{% call alert_block(type="success", title="Detection complete") %}
+<div class="space-y-0.5">
+    <p>API: {{ api_resolution or 'Failed' }}</p>
+    <p>RTSP: {{ rtsp_resolution or 'Failed' }}</p>
+    <p>Recommended: {{ recommended or 'Unknown' }}</p>
+</div>
+{% endcall %}
+<div data-init="PanelResult.reloadAfterDelay(2000)" class="hidden"></div>
+{% else %}
+{% call alert_block(type="danger", title=error or "An error occurred") %}
+{% if details %}{{ details }}{% endif %}
+{% endcall %}
+{% endif %}

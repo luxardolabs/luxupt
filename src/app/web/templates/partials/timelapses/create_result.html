@@ -1,0 +1,13 @@
+{# Result of timelapse creation - swapped into panel #}
+{% from "macros/alerts.html" import alert_block %}
+
+{% if success %}
+{% call alert_block(type="success", title="Timelapse job created", icon_name="check-circle-solid") %}
+<p>{{ camera|replace('_', ' ') }} - {{ date }} @ {{ interval }}s</p>
+<p class="text-xs mt-1 opacity-75">Job ID: {{ job_id }}</p>
+{% endcall %}
+{% else %}
+{% call alert_block(type="danger", title="Failed to create timelapse", icon_name="x-circle-solid") %}
+{{ error }}
+{% endcall %}
+{% endif %}

@@ -1,0 +1,69 @@
+<!-- Modal container -->
+<div id="modal-container"
+     class="fixed inset-0 z-50 hidden"
+     aria-labelledby="modal-title"
+     role="dialog"
+     aria-modal="true">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-surface-900/75 backdrop-blur-sm transition-opacity" data-modal-backdrop></div>
+
+    <!-- Modal panel container -->
+    <div class="fixed inset-0 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <!-- Modal panel -->
+            <div class="relative w-full max-w-lg transform overflow-hidden rounded-xl border border-surface-400/50 bg-surface-500 shadow-xl transition-all"
+                 data-modal-panel>
+                <!-- Header -->
+                <div class="border-b border-surface-400/50 px-6 py-4">
+                    <h3 id="modal-title" class="text-lg font-semibold text-white" data-modal-title></h3>
+                </div>
+
+                <!-- Content -->
+                <div class="px-6 py-4" data-modal-content></div>
+
+                <!-- Footer -->
+                <div class="flex justify-end gap-3 border-t border-surface-400/50 px-6 py-4" data-modal-footer>
+                    <button type="button"
+                            class="rounded-lg border border-surface-300 bg-surface-400 px-4 py-2 text-sm font-medium text-surface-100 hover:bg-surface-300"
+                            data-modal-close>
+                        Cancel
+                    </button>
+                    <button type="button"
+                            class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+                            data-modal-confirm>
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#modal-container {
+    transition: opacity 0.2s ease-out;
+}
+#modal-container.showing {
+    display: block;
+    opacity: 0;
+}
+#modal-container.shown {
+    display: block;
+    opacity: 1;
+}
+#modal-container.hiding {
+    display: block;
+    opacity: 0;
+}
+[data-modal-panel] {
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+#modal-container.showing [data-modal-panel] {
+    transform: scale(0.95);
+    opacity: 0;
+}
+#modal-container.shown [data-modal-panel] {
+    transform: scale(1);
+    opacity: 1;
+}
+</style>

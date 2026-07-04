@@ -1,0 +1,13 @@
+{% from "macros/cards.html" import running_job_card, pending_job_card %}
+
+{# View service decides the action - template just renders #}
+{% if action == 'delete' %}
+<div id="job-{{ job.job_id }}" hx-swap-oob="delete"></div>
+{% elif job.status == 'running' %}
+{{ running_job_card(job) }}
+{% elif job.status == 'pending' %}
+{{ pending_job_card(job) }}
+{% elif job.status in ['completed', 'failed'] %}
+{# Job finished - server sends HX-Trigger to refresh parent, this just removes the card #}
+<div id="job-{{ job.job_id }}" hx-swap-oob="delete"></div>
+{% endif %}

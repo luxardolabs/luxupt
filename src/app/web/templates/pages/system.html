@@ -1,0 +1,132 @@
+{% extends "layouts/base.html" %}
+{% from "macros/cards.html" import card, stat_card %}
+{% from "macros/badges.html" import file_size %}
+{% from "macros/buttons.html" import secondary %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/data.html" import data_row, data_row_stacked, data_row_status, progress_bar, section_title, divider %}
+{% from "macros/navigation.html" import page_header, tab_nav, section %}
+
+{% set tabs = [
+    {"id": "status", "label": "Status", "href": "/system", "icon_name": "server"},
+    {"id": "users", "label": "Users", "href": "/system/users", "icon_name": "users"}
+] + ([{"id": "components", "label": "Components", "href": "/system/components", "icon_name": "swatch"}] if dev_mode else []) %}
+
+{% block title %}System - LuxUPT{% endblock %}
+
+{% block content %}
+{% call page_header("System", "System status and configuration") %}
+{% endcall %}
+
+{{ tab_nav(tabs, "status") }}
+
+{# Statistics Section #}
+{% call section("Statistics", "chart-bar") %}
+<div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {{ stat_card("Cameras", db_stats.camera_count|default(0)|string, icon_name="camera", color="primary") }}
+    {{ stat_card("Captures", db_stats.capture_count|default(0)|number_format, icon_name="photo", color="info") }}
+    {{ stat_card("Disk Used", storage_info.disk.percent ~ "%", icon_name="circle-stack", color="warning") }}
+    {{ stat_card("Database", db_stats.db_size_mb ~ " MB", icon_name="table-cells", color="success") }}
+</div>
+{% endcall %}
+
+{# System Status Section #}
+{% call section("System Status", "server") %}
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <!-- Service Status -->
+    {% call card("Service Status", icon_name="cog-6-tooth", color="primary") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row_status("Web Interface", service_status.web_enabled) }}
+        {{ data_row_status("Image Capture", service_status.fetch_enabled) }}
+        {{ data_row_status("Timelapse Creation", service_status.timelapse_enabled) }}
+        {{ data_row_status("Database Backup", service_status.backup_enabled) }}
+        {{ divider() }}
+        {{ data_row("Capture Method", service_status.capture_method|upper) }}
+        {{ data_row("Fetch Intervals", service_status.fetch_intervals|join(', ') ~ "s") }}
+        {{ data_row("Rate Limit", service_status.rate_limit ~ " req/s") }}
+    </div>
+    {% endcall %}
+
+    <!-- Storage -->
+    {% call card("Storage", icon_name="circle-stack", color="warning") %}
+    <div class="space-y-4">
+        {{ progress_bar(
+            storage_info.disk.percent,
+            label="Disk Space",
+            value_text=file_size(storage_info.disk.used) ~ " / " ~ file_size(storage_info.disk.total),
+            color="auto",
+            size="lg"
+        ) }}
+        {{ divider() }}
+        <div class="divide-y divide-surface-400/20">
+            {{ data_row("Images", file_size(storage_info.image_size)) }}
+            {{ data_row("Videos", file_size(storage_info.video_size)) }}
+        </div>
+        {{ divider() }}
+        <div class="text-sm">
+            <span class="text-surface-200">Output Path:</span>
+            <span class="ml-2 font-mono text-xs text-surface-200">{{ storage_info.output_path }}</span>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Database Stats -->
+    {% call card("Database", icon_name="table-cells", color="success") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Captures", db_stats.capture_count|default(0)|string) }}
+        {{ data_row("Timelapses", db_stats.timelapse_count|default(0)|string) }}
+        {{ data_row("Cameras", db_stats.camera_count|default(0)|string) }}
+        {{ data_row("Database Size", file_size(db_stats.db_size)) }}
+        {{ divider() }}
+        {{ data_row_status("Backup", service_status.backup_enabled) }}
+    </div>
+    <div class="mt-4 pt-4 border-t border-surface-400/20 flex justify-center">
+        {{ secondary("Backup Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": "/system/partials/backup-settings", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    </div>
+    {% endcall %}
+
+    <!-- Version Info -->
+    {% call card("Version", icon_name="tag", color="info") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Version", version_info.version) }}
+        {{ data_row("Build Date", version_info.build_date) }}
+        {{ data_row("Timezone", version_info.timezone) }}
+        {{ data_row("Platform", version_info.platform) }}
+        {{ data_row("Python", version_info.python_version) }}
+        {{ data_row("Architecture", version_info.architecture) }}
+    </div>
+    {% endcall %}
+</div>
+{% endcall %}
+
+{# Configuration Section #}
+{% call section("Configuration", "cog-6-tooth") %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% call card("API Settings", icon_name="globe-alt", color="info") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row_stacked("API URL", config_summary.api_url, mono=true) }}
+        {{ data_row("SSL Verify", "Yes" if config_summary.verify_ssl else "No") }}
+        {{ data_row("Capture Method", config_summary.capture_method|upper) }}
+        {{ data_row("High Quality", "Yes" if config_summary.snapshot_high_quality else "No") }}
+    </div>
+    {% endcall %}
+
+    {% call card("Rate Limiting", icon_name="shield-check", color="warning") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Rate Limit", config_summary.rate_limit ~ " req/s") }}
+        {{ data_row("Safety Buffer", config_summary.rate_limit_buffer_percent ~ "%") }}
+        {{ data_row("Concurrent Limit", config_summary.concurrent_limit|string) }}
+        {{ data_row("Max Retries", config_summary.fetch_max_retries|string) }}
+    </div>
+    {% endcall %}
+
+    {% call card("Timelapse Settings", icon_name="film", color="success") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Frame Rate", config_summary.timelapse_frame_rate ~ " fps") }}
+        {{ data_row("Quality (CRF)", config_summary.timelapse_crf|string) }}
+        {{ data_row("Preset", config_summary.timelapse_preset) }}
+        {{ data_row("Intervals", config_summary.fetch_intervals|join(', ') ~ "s") }}
+    </div>
+    {% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{# Preview of images to be deleted #}
+{% from "macros/icons.html" import icon %}
+{% from "macros/badges.html" import file_size %}
+{% from "macros/alerts.html" import alert_block %}
+{% from "macros/buttons.html" import danger_confirm %}
+{% from "macros/forms.html" import select %}
+
+{# OOB: Update date dropdown based on camera selection #}
+<div id="date-field" hx-swap-oob="innerHTML:#date-field">
+    {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates", selected=filters.date|string if filters.date else none) }}
+</div>
+
+{# OOB: Update interval dropdown based on camera+date selection #}
+<div id="interval-field" hx-swap-oob="innerHTML:#interval-field">
+    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals", selected=filters.interval|string if filters.interval else none) }}
+</div>
+
+{% if preview %}
+<div class="space-y-4">
+    <!-- Summary -->
+    {% call alert_block("warning", title=total_count ~ " images (" ~ file_size(total_size) ~ ") will be deleted") %}
+    This will remove image files, thumbnails, and database records.
+    {% endcall %}
+
+    <!-- Breakdown Table -->
+    <div class="rounded-lg border border-surface-400/30 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-surface-700/50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-surface-200 font-medium">Camera</th>
+                    <th class="px-4 py-2 text-left text-surface-200 font-medium">Date</th>
+                    <th class="px-4 py-2 text-left text-surface-200 font-medium">Interval</th>
+                    <th class="px-4 py-2 text-right text-surface-200 font-medium">Count</th>
+                    <th class="px-4 py-2 text-right text-surface-200 font-medium">Size</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-600/50">
+                {% for item in preview %}
+                <tr class="hover:bg-surface-700/30">
+                    <td class="px-4 py-2 text-surface-100">{{ item.camera | replace('_', ' ') }}</td>
+                    <td class="px-4 py-2 text-surface-200">{{ item.date }}</td>
+                    <td class="px-4 py-2 text-surface-200">{{ item.interval }}s</td>
+                    <td class="px-4 py-2 text-right text-surface-100">{{ item.count }}</td>
+                    <td class="px-4 py-2 text-right text-surface-200">{{ file_size(item.total_size) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Delete Button (double-tap to confirm) -->
+    <div class="flex justify-end pt-2">
+        {{ danger_confirm(
+            "Delete " ~ total_count ~ " Images",
+            icon_name="trash",
+            hx_delete="/images/delete?" ~ ("camera=" ~ filters.camera ~ "&" if filters.camera else "") ~ ("date=" ~ filters.date ~ "&" if filters.date else "") ~ ("interval=" ~ filters.interval if filters.interval else ""),
+            hx_target="#delete-preview"
+        ) }}
+    </div>
+</div>
+{% else %}
+<div class="rounded-lg border border-surface-400/30 bg-surface-700/30 p-6 text-center">
+    <div class="text-surface-200">
+        {{ icon('check-circle', 'w-12 h-12 mx-auto mb-3 text-success-400') }}
+        <p>No images match the selected filters</p>
+    </div>
+</div>
+{% endif %}

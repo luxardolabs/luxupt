@@ -1,0 +1,169 @@
+{# =========================================================================
+   BUTTONS - primary(), secondary(), success(), danger(), warning(), ghost()
+   ========================================================================= #}
+{% from "macros/buttons.html" import primary, secondary, success, danger, warning, ghost, icon_button %}
+{% from "macros/icons.html" import icon, delete_icon_button %}
+
+<div id="buttons" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Buttons</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ primary('Text', icon_name='check') }}{% endraw %}</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== BUTTON SHOWCASE ===== #}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Main Variants</p>
+                <div class="flex flex-wrap gap-3">
+                    {{ primary('Primary', icon_name='check') }}
+                    {{ secondary('Secondary') }}
+                    {{ success('Success', icon_name='check') }}
+                    {{ warning('Warning', icon_name='exclamation-triangle') }}
+                    {{ danger('Danger', icon_name='trash') }}
+                    {{ ghost('Ghost') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Sizes</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    {{ primary('Small', size='sm') }}
+                    {{ primary('Medium', size='md') }}
+                    {{ primary('Large', size='lg') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">States</p>
+                <div class="flex flex-wrap gap-3 items-center">
+                    {{ primary('Normal') }}
+                    {{ primary('Disabled', disabled=true) }}
+                    <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium px-4 py-2 text-sm bg-primary-500 text-white opacity-75 cursor-wait">
+                        {{ icon('arrow-path', 'w-5 h-5 animate-spin') }}
+                        Loading...
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {# ===== ICON OPTIONS ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">With Icons</p>
+                <div class="flex flex-wrap gap-3">
+                    {{ primary('Save Settings', icon_name='check') }}
+                    {{ secondary('Cancel', icon_name='x-mark') }}
+                    {{ success('Connect', icon_name='signal') }}
+                    {{ danger('Delete', icon_name='trash') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Icon-Only Buttons</p>
+                <p class="text-sm text-surface-200 mb-3">
+                    <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ icon_button('cog', 'Settings') }}{% endraw %}</code>
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    {{ icon_button('cog-6-tooth', 'Settings', size='sm') }}
+                    {{ icon_button('cog-6-tooth', 'Settings', size='md') }}
+                    {{ icon_button('cog-6-tooth', 'Settings', size='lg') }}
+                    <span class="text-surface-200 mx-2">|</span>
+                    {{ icon_button('pencil-square', 'Edit', variant='primary') }}
+                    {{ icon_button('trash', 'Delete', variant='danger') }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== DOUBLE-CLICK DELETE ===== #}
+        <div class="rounded-lg border border-danger-500/30 bg-danger-500/10 p-4">
+            <p class="text-xs font-medium text-danger-400 uppercase mb-2">Destructive Actions - Double-Click to Confirm</p>
+            <div class="bg-danger-500/10 border border-danger-500/30 rounded-lg p-3 mb-4">
+                <p class="text-xs font-bold text-danger-400">NO BROWSER POPUPS!</p>
+                <p class="text-xs text-surface-200">Never use hx-confirm, window.confirm(), or alert(). Use double-click pattern instead.</p>
+            </div>
+            <p class="text-sm text-surface-200 mb-4">First click arms (glows), second click executes. No ugly browser modals.</p>
+            <div class="flex flex-wrap gap-6 items-center">
+                <div class="text-center">
+                    {{ delete_icon_button(hx_delete='/example/delete/123', hx_target='body') }}
+                    <p class="text-xs text-surface-200 mt-2">delete_icon_button</p>
+                </div>
+                <span class="text-sm text-surface-200">← Click once to arm, click again to execute</span>
+            </div>
+            <div class="mt-4 rounded-lg bg-surface-900/50 p-3">
+                <p class="text-xs text-surface-200 mb-2">Usage:</p>
+                <code class="text-xs text-primary-300">{% raw %}{{ delete_icon_button(hx_delete='/item/123', hx_target='#item-123', hx_swap='delete') }}{% endraw %}</code>
+            </div>
+        </div>
+
+        {# ===== LINKS AS BUTTONS ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Links as Buttons</p>
+                <p class="text-sm text-surface-200 mb-4">Use <code class="text-primary-300">href</code> parameter to render as <code class="text-primary-300">&lt;a&gt;</code> tag</p>
+                <div class="flex flex-wrap gap-3">
+                    {{ primary('Go to Cameras', href='/cameras', icon_name='camera') }}
+                    {{ secondary('View Timelapses', href='/timelapses') }}
+                </div>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Form Buttons</p>
+                <p class="text-sm text-surface-200 mb-4">Use <code class="text-primary-300">type='submit'</code> for form submissions</p>
+                <div class="flex flex-wrap gap-3">
+                    {{ primary('Submit', type='submit', icon_name='check') }}
+                    {{ secondary('Reset', type='reset') }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== BUTTON USAGE RULES ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-success-400 uppercase mb-4">Button Usage Rules</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-lg bg-success-500/10 border border-success-500/30 p-4">
+                    <p class="text-xs font-medium text-success-400 mb-2">DO</p>
+                    <ul class="text-xs text-surface-200 space-y-1">
+                        <li>• <code class="text-primary-300">primary</code> for main action (Save, Submit, Create)</li>
+                        <li>• <code class="text-primary-300">secondary</code> for secondary actions (View, Settings, Edit)</li>
+                        <li>• <code class="text-primary-300">ghost</code> for Cancel, Close, Back (de-emphasized)</li>
+                        <li>• <code class="text-success-300">success</code> for Connect, Enable, Approve</li>
+                        <li>• <code class="text-danger-300">danger</code> for Delete, Remove, Disconnect</li>
+                    </ul>
+                </div>
+                <div class="rounded-lg bg-danger-500/10 border border-danger-500/30 p-4">
+                    <p class="text-xs font-medium text-danger-400 mb-2">DON'T</p>
+                    <ul class="text-xs text-surface-200 space-y-1">
+                        <li>• Multiple primary buttons in the same row</li>
+                        <li>• Danger button for Cancel (use ghost)</li>
+                        <li>• Gray buttons for clickable actions (gray = disabled)</li>
+                        <li>• Custom colors - use the semantic variants</li>
+                        <li>• Blue buttons - primary is magenta in this theme</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import & Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/buttons.html" import primary, secondary, ghost, danger %}
+
+{# Basic buttons #}
+{{ primary('Save') }}
+{{ secondary('View Details') }}
+{{ ghost('Cancel') }}
+{{ danger('Delete') }}
+
+{# With icons #}
+{{ primary('Save', icon_name='check') }}
+
+{# As links #}
+{{ primary('Go', href='/path') }}
+
+{# Icon-only #}
+{{ icon_button('cog-6-tooth', 'Settings') }}{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>

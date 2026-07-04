@@ -1,0 +1,56 @@
+{# Create timelapse panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/forms.html" import select %}
+
+{# Build camera options with camera_id as value #}
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-xl') %}
+    {{ panel_header('Create Timelapse', 'Generate a timelapse video from captured images') }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+        <form id="create-timelapse-form"
+              hx-post="/timelapses/create"
+              hx-target="#create-result"
+              hx-swap="innerHTML"
+              class="space-y-6">
+
+            <!-- Camera Selection (sends camera_id, display shows name) -->
+            {{ select("camera", camera_options, label="Camera", placeholder="Select a camera...", required=true, hx_attrs={"hx-get": "/timelapses/partials/dates", "hx-target": "#date-field", "hx-swap": "innerHTML", "hx-trigger": "change"}) }}
+
+            <!-- Date Selection -->
+            <div id="date-field">
+                {{ select("date", available_dates|map('string')|list, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera"}) }}
+            </div>
+
+            <!-- Interval Selection -->
+            <div id="interval-field">
+                {{ select("interval", available_intervals, label="Interval", placeholder="Select interval...", required=true, hx_attrs={"hx-get": "/timelapses/partials/preview", "hx-target": "#preview-area", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera, #date"}) }}
+            </div>
+
+            <!-- Preview Area -->
+            <div id="preview-area" class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                <div class="text-center text-surface-200">
+                    <p>Select camera, date, and interval to see preview</p>
+                </div>
+            </div>
+
+            <!-- Result Area (for responses) -->
+            <div id="create-result"></div>
+
+        </form>
+    </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary('Create Timelapse', type='submit', icon_name='play', hx_attrs={'form': 'create-timelapse-form'}) }}
+    {% endcall %}
+{% endcall %}

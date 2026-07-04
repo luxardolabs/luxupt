@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LuxUPT{% endblock %}</title>
+
+    <!-- Tailwind CSS (compiled) -->
+    <link href="/static/css/compiled.css" rel="stylesheet">
+
+    <!-- HTMX + Morph extension -->
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/idiomorph-ext.min.js"></script>
+
+    <!-- Alpine.js for client-side interactivity -->
+    <script defer src="/static/vendor/alpine/alpine.min.js"></script>
+
+    <!-- ECharts 5.5.0 for charts -->
+    <script src="/static/vendor/echarts/echarts.min.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full bg-surface-900 text-white">
+    {% include "components/nav.html" %}
+
+    <main class="min-h-screen pt-16">
+        <div class="mx-auto max-w-[1800px] px-4 lg:px-6 py-4 space-y-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% include "components/toast.html" %}
+    {% include "components/modal.html" %}
+
+    <!-- Lightbox container for HTMX -->
+    <div id="lightbox-container"></div>
+
+    <!-- Panel container for HTMX slide-out panels -->
+    <div id="panel-container"></div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/capture-stats.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

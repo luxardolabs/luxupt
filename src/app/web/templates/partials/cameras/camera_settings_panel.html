@@ -1,0 +1,259 @@
+{# Camera settings panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import primary, ghost, danger_confirm %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/badges.html" import chip %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-xl') %}
+    {{ panel_header(camera.name, 'Camera capture settings') }}
+
+        <!-- Content -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-6">
+            <form id="camera-settings-form"
+                  hx-post="/cameras/{{ camera.camera_id }}/settings"
+                  hx-target="#camera-settings-result"
+                  hx-swap="innerHTML"
+                  class="space-y-6">
+
+                <!-- Camera Info -->
+                <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <span class="text-surface-200">Status:</span>
+                            <span class="ml-2 {{ 'text-success-400' if camera.is_connected else 'text-error-400' }}">
+                                {{ 'Connected' if camera.is_connected else 'Disconnected' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-surface-200">Model:</span>
+                            <span class="text-white ml-2">{{ camera.model_key or 'camera' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-surface-200">MAC:</span>
+                            <span class="text-white ml-2 font-mono text-xs">{{ camera.mac or 'Unknown' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-surface-200">Video Mode:</span>
+                            <span class="text-white ml-2">{{ camera.video_mode or 'default' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-surface-200">HDR Type:</span>
+                            <span class="text-white ml-2">{{ camera.hdr_type or 'auto' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-surface-200">Full HD API:</span>
+                            <span class="ml-2 {{ 'text-success-400' if camera.supports_full_hd_snapshot else 'text-warning-400' }}">
+                                {{ 'Yes' if camera.supports_full_hd_snapshot else 'No' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Feature Flags -->
+                    <div class="mt-3 pt-3 border-t border-surface-400/30">
+                        <span class="text-surface-200 text-xs block mb-2">Features:</span>
+                        <div class="flex flex-wrap gap-2">
+                            {% if camera.has_hdr %}
+                            {{ chip('HDR', 'primary', size='sm') }}
+                            {% endif %}
+                            {% if camera.has_mic %}
+                            {{ chip('Mic', 'accent', size='sm') }}
+                            {% endif %}
+                            {% if camera.has_speaker %}
+                            {{ chip('Speaker', 'accent', size='sm') }}
+                            {% endif %}
+                            {% if camera.smart_detect_types %}
+                            {% for detect_type in camera.smart_detect_types %}
+                            {{ chip(detect_type, 'success', size='sm') }}
+                            {% endfor %}
+                            {% endif %}
+                            {% if not camera.has_hdr and not camera.has_mic and not camera.has_speaker and not camera.smart_detect_types %}
+                            <span class="text-xs text-surface-500">None detected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detected Capabilities -->
+                {% if camera.api_max_resolution or camera.rtsp_max_resolution %}
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-medium text-surface-200">Detected Capabilities</h3>
+                        <button type="button"
+                                hx-post="/cameras/{{ camera.camera_id }}/detect"
+                                hx-target="#camera-settings-result"
+                                hx-swap="innerHTML"
+                                class="text-xs text-primary-400 hover:text-primary-300 inline-flex items-center gap-1">
+                            {{ icon('arrow-path', 'w-3 h-3') }}
+                            Re-detect
+                        </button>
+                    </div>
+                    <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-surface-200 block mb-1">API Snapshot:</span>
+                                <span class="text-white font-mono">{{ camera.api_max_resolution or 'Not tested' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-surface-200 block mb-1">RTSP Stream:</span>
+                                <span class="text-white font-mono">{{ camera.rtsp_max_resolution or 'Not tested' }}</span>
+                            </div>
+                        </div>
+                        {% if camera.recommended_method %}
+                        <div class="mt-3 pt-3 border-t border-surface-400/30">
+                            <span class="text-surface-200 text-sm">Recommended:</span>
+                            <span class="ml-2">{{ chip(camera.recommended_method|upper, 'primary' if camera.recommended_method == 'api' else 'accent', size='sm') }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="rounded-xl border border-dashed border-surface-400/50 bg-surface-900/30 p-4">
+                    <div class="text-center">
+                        <p class="text-sm text-surface-200 mb-2">Capabilities not detected yet</p>
+                        <button type="button"
+                                hx-post="/cameras/{{ camera.camera_id }}/detect"
+                                hx-target="#camera-settings-result"
+                                hx-swap="innerHTML"
+                                class="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300">
+                            {{ icon('play', 'w-4 h-4') }}
+                            Run Detection
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Capture Method Selection -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-medium text-surface-200">Capture Method</h3>
+                    <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio"
+                                       name="capture_method"
+                                       value="auto"
+                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
+                                       {{ 'checked' if camera.capture_method == 'auto' or not camera.capture_method }}>
+                                <div>
+                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">Auto</span>
+                                    <span class="text-xs text-surface-200 block">Use recommended method based on detection</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio"
+                                       name="capture_method"
+                                       value="api"
+                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
+                                       {{ 'checked' if camera.capture_method == 'api' }}>
+                                <div>
+                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">API Snapshot</span>
+                                    <span class="text-xs text-surface-200 block">Fast, lower latency. Resolution depends on camera model.</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio"
+                                       name="capture_method"
+                                       value="rtsp"
+                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
+                                       {{ 'checked' if camera.capture_method == 'rtsp' }}>
+                                <div>
+                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">RTSP Stream</span>
+                                    <span class="text-xs text-surface-200 block">Full resolution. Slower, uses FFmpeg.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RTSP Quality -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-medium text-surface-200">RTSP Quality</h3>
+                    <p class="text-xs text-surface-200">Used when capture method is RTSP or Auto selects RTSP</p>
+                    <div class="flex gap-3">
+                        {% for quality in ['high', 'medium', 'low'] %}
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio"
+                                   name="rtsp_quality"
+                                   value="{{ quality }}"
+                                   class="peer sr-only"
+                                   {{ 'checked' if camera.rtsp_quality == quality or (not camera.rtsp_quality and quality == 'high') }}>
+                            <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 text-center
+                                        peer-checked:border-primary-500 peer-checked:bg-primary-500/10
+                                        hover:border-surface-300 transition-colors">
+                                <span class="text-sm font-medium text-white capitalize">{{ quality }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Interval Selection -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-medium text-surface-200">Enabled Intervals</h3>
+                        <button type="button"
+                                onclick="FormUtils.toggleAllIntervals(true)"
+                                class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                    </div>
+                    <p class="text-xs text-surface-200">Select which intervals to capture for this camera.</p>
+                    <div id="interval-checkboxes" class="flex flex-wrap gap-3 rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                        {% for interval in intervals %}
+                        <label class="inline-flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox"
+                                   name="enabled_intervals"
+                                   value="{{ interval }}"
+                                   class="h-4 w-4 rounded border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20 focus:ring-offset-0"
+                                   {{ 'checked' if camera.enabled_intervals and interval in camera.enabled_intervals }}>
+                            <span class="text-sm text-surface-200 group-hover:text-surface-200">{{ interval }}s</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Camera Active Toggle -->
+                <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div>
+                            <h3 class="text-sm font-medium text-white">Camera Active</h3>
+                            <p class="text-xs text-surface-200 mt-0.5">Disable to stop capturing from this camera</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox"
+                                   name="is_active"
+                                   value="true"
+                                   class="peer sr-only"
+                                   {{ 'checked' if camera.is_active }}>
+                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Result Area (for responses) -->
+                <div id="camera-settings-result"></div>
+
+            </form>
+
+            <!-- Danger Zone (outside form) -->
+            <div class="mt-6 pt-6 border-t border-danger-500/30">
+                <h3 class="text-sm font-medium text-danger-400 mb-3">Danger Zone</h3>
+                <div class="rounded-xl border border-danger-500/30 bg-danger-500/5 p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-sm font-medium text-white">Delete Camera</h4>
+                            <p class="text-xs text-surface-200 mt-0.5">Remove from database. Files on disk are kept.</p>
+                        </div>
+                        {{ danger_confirm('Delete', confirm_text='Click to confirm', size='sm', icon_name='trash', hx_delete='/cameras/' ~ camera.camera_id, hx_target='#camera-settings-result', hx_swap='innerHTML') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Footer -->
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary('Save Settings', type='submit', icon_name='check', hx_attrs={'form': 'camera-settings-form'}) }}
+    {% endcall %}
+{% endcall %}
+

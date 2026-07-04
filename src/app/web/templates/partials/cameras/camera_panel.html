@@ -1,0 +1,136 @@
+{# Camera detail panel - loaded via HTMX #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/cards.html" import section_card %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import primary, secondary %}
+{% from "macros/badges.html" import file_size, chip, dot_indicator %}
+{% from "macros/data.html" import data_row, data_row_status %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-lg') %}
+    {{ panel_header(camera.name, camera.type or 'Camera') }}
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+
+<!-- Camera preview with status -->
+<div class="relative rounded-xl overflow-hidden bg-surface-700/30">
+    <div class="aspect-video bg-surface-800">
+        {% if latest_capture and latest_capture.timestamp %}
+        <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+             alt="{{ camera.name }}"
+             class="w-full h-full object-cover">
+        {% else %}
+        <div class="flex h-full items-center justify-center">
+            {{ icon('camera', 'w-12 h-12 text-surface-200') }}
+        </div>
+        {% endif %}
+    </div>
+    <!-- Status indicator overlay -->
+    <div class="absolute top-3 right-3">
+        {{ chip('Connected' if camera.is_connected else 'Disconnected', 'success' if camera.is_connected else 'danger', dot=true) }}
+    </div>
+</div>
+
+<!-- Quick stats -->
+{% call section_card("Statistics") %}
+<div class="grid grid-cols-2 gap-3">
+    <div class="rounded-xl bg-surface-700/50 p-4 text-center">
+        <p class="text-2xl font-bold text-white">{{ stats.total_captures|default(0) }}</p>
+        <p class="text-xs text-surface-200 mt-1">Total Captures</p>
+    </div>
+    <div class="rounded-xl bg-surface-700/50 p-4 text-center">
+        <p class="text-2xl font-bold text-white">{{ stats.captures_today|default(0) }}</p>
+        <p class="text-xs text-surface-200 mt-1">Today</p>
+    </div>
+    <div class="rounded-xl bg-surface-700/50 p-4 text-center">
+        <p class="text-2xl font-bold text-white">{{ stats.timelapse_count|default(0) }}</p>
+        <p class="text-xs text-surface-200 mt-1">Timelapses</p>
+    </div>
+    <div class="rounded-xl bg-surface-700/50 p-4 text-center">
+        <p class="text-2xl font-bold text-white">{{ stats.capture_days|default(0) }}</p>
+        <p class="text-xs text-surface-200 mt-1">Days Active</p>
+    </div>
+</div>
+{% endcall %}
+
+<!-- Camera details -->
+{% call section_card("Details") %}
+<div class="rounded-xl bg-surface-700/30 divide-y divide-surface-600/50">
+    <div class="px-4">
+        {{ data_row("Camera ID", camera.safe_name, mono=true) }}
+    </div>
+    {% if camera.model %}
+    <div class="px-4">
+        {{ data_row("Model", camera.model) }}
+    </div>
+    {% endif %}
+    {% if camera.firmware_version %}
+    <div class="px-4">
+        {{ data_row("Firmware", camera.firmware_version) }}
+    </div>
+    {% endif %}
+    {% if camera.host %}
+    <div class="px-4">
+        {{ data_row("IP Address", camera.host, mono=true) }}
+    </div>
+    {% endif %}
+</div>
+{% endcall %}
+
+<!-- Latest capture info -->
+{% if latest_capture %}
+{% call section_card("Latest Capture") %}
+<div class="rounded-xl bg-surface-700/30 divide-y divide-surface-600/50">
+    <div class="px-4">
+        {{ data_row("Captured", latest_capture.capture_datetime | format_datetime('log')) }}
+    </div>
+    <div class="px-4">
+        {{ data_row("Interval", latest_capture.interval ~ "s") }}
+    </div>
+    {% if latest_capture.file_size %}
+    <div class="px-4">
+        {{ data_row("Size", file_size(latest_capture.file_size)) }}
+    </div>
+    {% endif %}
+</div>
+{% endcall %}
+{% endif %}
+
+<!-- Camera settings summary -->
+{% call section_card("Capture Settings") %}
+<div class="rounded-xl bg-surface-700/30 divide-y divide-surface-600/50">
+    <div class="px-4">
+        {{ data_row("Method", camera.capture_method|default('auto')|capitalize) }}
+    </div>
+    {% if camera.capture_method == 'rtsp' or camera.capture_method == 'auto' %}
+    <div class="px-4">
+        {{ data_row("RTSP Quality", camera.rtsp_quality|default('high')|capitalize) }}
+    </div>
+    {% endif %}
+    {% if camera.recommended_method %}
+    <div class="px-4">
+        {{ data_row("Recommended", camera.recommended_method|upper) }}
+    </div>
+    {% endif %}
+    {% if camera.api_max_resolution or camera.rtsp_max_resolution %}
+    <div class="px-4">
+        {{ data_row("API Res.", camera.api_max_resolution or 'N/A') }}
+    </div>
+    <div class="px-4">
+        {{ data_row("RTSP Res.", camera.rtsp_max_resolution or 'N/A') }}
+    </div>
+    {% endif %}
+</div>
+{% endcall %}
+
+<!-- Actions -->
+<div class="flex flex-wrap items-center gap-3 pt-4 border-t border-surface-600/50">
+    {{ primary("View Images", href="/images?camera=" ~ camera.safe_name, icon_name="photo") }}
+    {{ secondary("Timelapses", href="/timelapses?camera=" ~ camera.safe_name, icon_name="film") }}
+    {{ secondary("Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": "/cameras/" ~ camera.camera_id ~ "/settings", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+</div>
+
+    </div>
+{% endcall %}

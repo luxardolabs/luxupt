@@ -1,0 +1,210 @@
+{# =========================================================================
+   BADGES & CHIPS - chip(), status_chip(), dot_indicator(), count_badge()
+   ========================================================================= #}
+{% from "macros/badges.html" import chip, status_chip, dot_indicator, count_badge, interval_badge, file_size %}
+{% from "macros/icons.html" import icon, live_ping %}
+
+<div id="badges" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Badges & Chips</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ chip('Text', 'success') }}{% endraw %}</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== CHIP SHOWCASE ===== #}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Chip Colors (Soft)</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('Default', 'default') }}
+                    {{ chip('Primary', 'primary') }}
+                    {{ chip('Success', 'success') }}
+                    {{ chip('Warning', 'warning') }}
+                    {{ chip('Danger', 'danger') }}
+                    {{ chip('Info', 'info') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">With Icon</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('HDR', 'info', icon_name='sparkles') }}
+                    {{ chip('4K', 'primary', icon_name='film') }}
+                    {{ chip('Connected', 'success', icon_name='signal') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">With Dot</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('Active', 'success', dot=true) }}
+                    {{ chip('Pending', 'warning', dot=true) }}
+                    {{ chip('Offline', 'danger', dot=true) }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== CHIP VARIANTS ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-4 rounded-lg bg-surface-800/50">
+                <p class="text-xs text-surface-200 mb-3">Soft (default)</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('Success', 'success', 'soft') }}
+                    {{ chip('Danger', 'danger', 'soft') }}
+                </div>
+            </div>
+            <div class="p-4 rounded-lg bg-surface-800/50">
+                <p class="text-xs text-surface-200 mb-3">Solid</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('Success', 'success', 'solid') }}
+                    {{ chip('Danger', 'danger', 'solid') }}
+                </div>
+            </div>
+            <div class="p-4 rounded-lg bg-surface-800/50">
+                <p class="text-xs text-surface-200 mb-3">Outline</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ chip('Success', 'success', 'outline') }}
+                    {{ chip('Danger', 'danger', 'outline') }}
+                </div>
+            </div>
+            <div class="p-4 rounded-lg bg-surface-800/50">
+                <p class="text-xs text-surface-200 mb-3">Sizes</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    {{ chip('Small', 'primary', size='sm') }}
+                    {{ chip('Medium', 'primary', size='md') }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== STATUS CHIP ===== #}
+        <div>
+            <p class="text-xs font-medium text-success-400 uppercase mb-3">Status Chip (Auto-mapped)</p>
+            <p class="text-sm text-surface-200 mb-4">
+                <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ status_chip('connected') }}{% endraw %}</code>
+                - automatically maps status strings to colors
+            </p>
+            <div class="flex flex-wrap gap-2">
+                {{ status_chip('connected') }}
+                {{ status_chip('disconnected') }}
+                {{ status_chip('active') }}
+                {{ status_chip('pending') }}
+                {{ status_chip('processing') }}
+                {{ status_chip('completed') }}
+                {{ status_chip('failed') }}
+            </div>
+        </div>
+
+        {# ===== INDICATORS ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Dot Indicator</p>
+                <p class="text-sm text-surface-200 mb-4">
+                    <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ dot_indicator(true) }}{% endraw %}</code>
+                </p>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        {{ dot_indicator(true, 'sm') }}
+                        <span class="text-sm text-surface-200">Connected (sm)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ dot_indicator(true, 'md') }}
+                        <span class="text-sm text-surface-200">Connected (md)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ dot_indicator(false, 'md') }}
+                        <span class="text-sm text-surface-200">Disconnected</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Live Ping</p>
+                <p class="text-sm text-surface-200 mb-4">
+                    <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ live_ping('md', 'success') }}{% endraw %}</code>
+                </p>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        {{ live_ping('sm', 'success') }}
+                        <span class="text-sm text-surface-200">Success</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ live_ping('md', 'primary') }}
+                        <span class="text-sm text-surface-200">Primary</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ live_ping('lg', 'info') }}
+                        <span class="text-sm text-surface-200">Info</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== SPECIALIZED BADGES ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Count Badge</p>
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-surface-200">Cameras</span>
+                        {{ count_badge(12) }}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-surface-200">Alerts</span>
+                        {{ count_badge(5, color='danger') }}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-surface-200">Overflow</span>
+                        {{ count_badge(150, max=99, color='primary') }}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">Interval Badge</p>
+                <div class="flex flex-wrap gap-2">
+                    {{ interval_badge(15) }}
+                    {{ interval_badge(60) }}
+                    {{ interval_badge(180) }}
+                    {{ interval_badge(300) }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">File Size Formatter</p>
+                <p class="text-sm text-surface-200 mb-3">
+                    <code class="bg-surface-700/50 px-2 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ file_size(bytes) }}{% endraw %}</code>
+                </p>
+                <div class="flex flex-wrap gap-3 text-sm text-surface-200">
+                    <span>{{ file_size(512) }}</span>
+                    <span>{{ file_size(5120) }}</span>
+                    <span>{{ file_size(2621440) }}</span>
+                    <span>{{ file_size(1234567890) }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import & Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/badges.html" import chip, status_chip, dot_indicator %}
+
+{# Basic chip #}
+{{ chip('Active', 'success') }}
+
+{# With icon #}
+{{ chip('HDR', 'info', icon_name='sparkles') }}
+
+{# With dot #}
+{{ chip('Online', 'success', dot=true) }}
+
+{# Auto-mapped status #}
+{{ status_chip('connected') }}
+{{ status_chip('failed') }}
+
+{# Connection indicator #}
+{{ dot_indicator(true) }}{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>

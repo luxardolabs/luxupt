@@ -1,0 +1,99 @@
+{# Panel macros for slide-out panels (alternative to modals) #}
+{% from "macros/icons.html" import icon as icon_macro %}
+
+{% macro panel_trigger(target_url, target_id="panel-container", text=none, icon=none, class="") %}
+{# Button or link that triggers a panel to open via HTMX #}
+<button type="button"
+        hx-get="{{ target_url }}"
+        hx-target="#{{ target_id }}"
+        hx-swap="innerHTML"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-surface-900 {{ class }}">
+    {% if icon %}<span class="text-lg">{{ icon }}</span>{% endif %}
+    {% if text %}{{ text }}{% endif %}
+</button>
+{% endmacro %}
+
+{% macro panel_shell(title, subtitle=none, id="panel-content", width="max-w-2xl") %}
+{# Panel shell - loaded via HTMX into panel-container #}
+<div id="panel-backdrop"
+     class="fixed inset-0 z-40 bg-surface-900/50 backdrop-blur-sm transition-opacity"
+     onclick="Panel.close()">
+</div>
+<div id="panel-drawer"
+     class="fixed inset-y-0 right-0 z-50 flex w-full {{ width }} transform transition-transform duration-300">
+    <div class="flex h-full w-full flex-col overflow-hidden bg-surface-500 shadow-2xl">
+        <!-- Header -->
+        <div class="flex items-start justify-between border-b border-surface-400/50 px-6 py-4 bg-gradient-to-r from-primary-600/20 via-surface-500 to-surface-500">
+            <div>
+                <h2 class="text-xl font-semibold text-white">{{ title }}</h2>
+                {% if subtitle %}
+                <p class="text-sm text-surface-200">{{ subtitle }}</p>
+                {% endif %}
+            </div>
+            <button type="button"
+                    onclick="Panel.close()"
+                    class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-surface-200 hover:bg-surface-400 hover:text-surface-100 transition-colors">{{ icon_macro('x-mark', 'h-5 w-5') }}</button>
+        </div>
+        <!-- Content -->
+        <div id="{{ id }}" class="flex-1 overflow-y-auto p-6">
+            {{ caller() }}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro panel_section(title=none) %}
+{# Section within a panel #}
+<div class="mb-6">
+    {% if title %}
+    <h3 class="mb-3 text-sm font-medium uppercase tracking-wide text-surface-200">{{ title }}</h3>
+    {% endif %}
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{% macro panel_actions() %}
+{# Footer actions for a panel - inside scrollable content #}
+<div class="mt-6 flex justify-end gap-3 border-t border-surface-400/50 pt-6">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{% macro panel_backdrop() %}
+{# Backdrop overlay - closes panel on click #}
+<div id="panel-backdrop"
+     class="fixed inset-0 z-40 bg-surface-900/50 backdrop-blur-sm"
+     onclick="Panel.close()">
+</div>
+{% endmacro %}
+
+{% macro panel_drawer(width="max-w-xl") %}
+{# Panel drawer container - use with panel_backdrop(), panel_header(), panel_footer()
+   Width options: max-w-sm (24rem), max-w-md (28rem), max-w-lg (32rem), max-w-xl (36rem), max-w-2xl (42rem), max-w-3xl (48rem) #}
+<div id="panel-drawer"
+     class="fixed inset-y-0 right-0 z-50 w-full {{ width }} bg-surface-800 shadow-2xl flex flex-col overflow-hidden">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{% macro panel_header(title, subtitle=none) %}
+{# Panel header with purple gradient, title and close button #}
+<div class="flex items-start justify-between border-b border-surface-400/50 px-6 py-4 bg-gradient-to-r from-primary-600/20 via-surface-800 to-surface-800">
+    <div>
+        <h2 class="text-xl font-semibold text-white">{{ title }}</h2>
+        {% if subtitle %}
+        <p class="text-sm text-surface-200">{{ subtitle }}</p>
+        {% endif %}
+    </div>
+    <button type="button"
+            onclick="Panel.close()"
+            class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-surface-200 hover:bg-surface-400 hover:text-white transition-colors">{{ icon_macro('x-mark', 'h-5 w-5') }}</button>
+</div>
+{% endmacro %}
+
+{% macro panel_footer() %}
+{# Fixed footer for form panels with Cancel/Save buttons #}
+<div class="flex justify-end gap-3 border-t border-surface-400/50 px-6 py-4">
+    {{ caller() }}
+</div>
+{% endmacro %}

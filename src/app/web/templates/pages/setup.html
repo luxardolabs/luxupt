@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - LuxUPT</title>
+
+    <!-- Tailwind CSS (compiled) -->
+    <link href="/static/css/compiled.css" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+</head>
+<body class="h-full bg-surface-900">
+    {% from "macros/icons.html" import icon %}
+
+    <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+        <!-- Setup Card -->
+        <div class="sm:mx-auto sm:w-full sm:max-w-md">
+            <div class="group rounded-2xl border border-surface-400/30 bg-surface-500/50 px-8 py-10 shadow-xl transition-all duration-300 hover:border-primary-500/50 hover:shadow-glow">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-500/15 border border-primary-500/30 mb-4">
+                        {{ icon('video-camera', 'w-8 h-8 text-primary-400') }}
+                    </div>
+                    <h2 class="text-2xl font-bold tracking-tight text-white">
+                        Welcome to LuxUPT
+                    </h2>
+                    <p class="mt-2 text-sm text-surface-200">
+                        Create your admin account to get started
+                    </p>
+                </div>
+
+                {% if errors %}
+                <div class="mb-6 rounded-lg border border-danger-500/30 bg-danger-500/10 px-4 py-3 text-sm text-danger-400">
+                    <ul class="list-disc list-inside space-y-1">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form class="space-y-5" action="/setup" method="POST">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-white mb-2">
+                            Username
+                        </label>
+                        <input id="username"
+                               name="username"
+                               type="text"
+                               autocomplete="username"
+                               required
+                               value="{{ username | default('', true) }}"
+                               placeholder="Choose a username"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-white mb-2">
+                            Password
+                        </label>
+                        <input id="password"
+                               name="password"
+                               type="password"
+                               autocomplete="new-password"
+                               required
+                               placeholder="Choose a password"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    </div>
+
+                    <div>
+                        <label for="confirm_password" class="block text-sm font-medium text-white mb-2">
+                            Confirm Password
+                        </label>
+                        <input id="confirm_password"
+                               name="confirm_password"
+                               type="password"
+                               autocomplete="new-password"
+                               required
+                               placeholder="Confirm your password"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    </div>
+
+                    <button type="submit"
+                            class="flex w-full justify-center rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-surface-800 transition-all">
+                        Create Account
+                    </button>
+                </form>
+
+                <p class="mt-8 text-center text-xs text-surface-200">
+                    Powered by
+                    <a href="https://www.luxardolabs.com/"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-surface-200 hover:text-primary-400 transition-colors">
+                        Luxardo Labs
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

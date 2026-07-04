@@ -1,0 +1,41 @@
+{% extends "layouts/base.html" %}
+{% from "macros/cards.html" import stat_card, empty_state %}
+{% from "macros/buttons.html" import primary, secondary %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/navigation.html" import page_header, tab_nav, section %}
+
+{% set tabs = [
+    {"id": "browser", "label": "Browser", "href": "/timelapses", "icon_name": "film"},
+    {"id": "jobs", "label": "Jobs", "href": "/timelapses/jobs", "icon_name": "queue-list"}
+] %}
+
+{% block title %}Timelapse Jobs - LuxUPT{% endblock %}
+
+{% block content %}
+{% call page_header("Timelapses", "Manage timelapse creation jobs") %}
+    {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": "/timelapses/create", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": "/timelapses/scheduler", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+{% endcall %}
+
+{{ tab_nav(tabs, "jobs") }}
+
+{# Stats Section #}
+{% call section("Statistics", "chart-bar") %}
+<div hx-get="/timelapses/partials/stats"
+     hx-trigger="every 5s, job-finished from:body"
+     hx-swap="innerHTML">
+{% include "partials/timelapses/stats.html" %}
+</div>
+{% endcall %}
+
+{# Jobs Section #}
+{% call section("Job Queue", "queue-list") %}
+<div id="active-jobs"
+     hx-get="/timelapses/partials/jobs"
+     hx-trigger="every 5s"
+     hx-swap="innerHTML">
+    {% include "partials/timelapses/job_list.html" %}
+</div>
+{% endcall %}
+
+{% endblock %}
