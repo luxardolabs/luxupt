@@ -1,0 +1,18 @@
+{% from "macros/cards.html" import image_card, empty_state %}
+{% from "macros/navigation.html" import htmx_pagination %}
+
+{% if images %}
+<div class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    {% for capture in images %}
+    {{ image_card(capture, filters) }}
+    {% endfor %}
+</div>
+
+{% if pagination.total_pages > 1 %}
+<div class="mt-6">
+    {{ htmx_pagination(pagination, "image-grid", "/images/partials/grid", {"camera": filters.camera if filters else none, "date": filters.date|string if filters and filters.date else none, "interval": filters.interval if filters else none, "per_page": pagination.per_page}) }}
+</div>
+{% endif %}
+{% else %}
+{{ empty_state('photo', 'No images found', 'Try adjusting your filters') }}
+{% endif %}

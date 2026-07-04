@@ -1,0 +1,33 @@
+<!-- Toast container -->
+{% from "macros/icons.html" import icon %}
+<div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
+
+<!-- Toast template (hidden, used by JS) -->
+<template id="toast-template">
+    <div class="toast flex items-center gap-3 rounded-lg border border-surface-400/50 bg-surface-500 p-4 shadow-lg transition-all" role="alert">
+        <span class="toast-icon text-xl"></span>
+        <div class="flex-1">
+            <p class="toast-message text-sm text-surface-100"></p>
+        </div>
+        <button type="button" class="toast-close text-surface-200 hover:text-surface-100" aria-label="Close">
+            {{ icon('x-mark-solid', 'h-4 w-4') }}
+        </button>
+    </div>
+</template>
+
+<style>
+.toast {
+    animation: toast-in 0.3s ease-out;
+}
+.toast.removing {
+    animation: toast-out 0.3s ease-in forwards;
+}
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(100%); }
+}
+</style>

@@ -1,0 +1,41 @@
+{% from "macros/icons.html" import icon %}
+<div class="space-y-3">
+    {% for activity in activities %}
+    <div class="flex items-start gap-3 text-sm">
+        <span class="mt-0.5 flex-shrink-0">
+            {% if activity.activity_type == 'capture_success' %}{{ icon('photo', 'w-4 h-4 text-success-400') }}
+            {% elif activity.activity_type == 'capture_failed' %}{{ icon('x-circle-solid', 'w-4 h-4 text-danger-400') }}
+            {% elif activity.activity_type == 'timelapse_started' %}{{ icon('clock', 'w-4 h-4 text-primary-400') }}
+            {% elif activity.activity_type == 'timelapse_completed' %}{{ icon('film', 'w-4 h-4 text-primary-400') }}
+            {% elif activity.activity_type == 'timelapse_failed' %}{{ icon('exclamation-triangle-solid', 'w-4 h-4 text-warning-400') }}
+            {% elif activity.activity_type == 'camera_online' %}{{ icon('signal', 'w-4 h-4 text-success-400') }}
+            {% elif activity.activity_type == 'camera_offline' %}{{ icon('signal-slash', 'w-4 h-4 text-danger-400') }}
+            {% elif activity.activity_type == 'error' %}{{ icon('exclamation-circle-solid', 'w-4 h-4 text-danger-400') }}
+            {% else %}{{ icon('clipboard-document-list', 'w-4 h-4 text-surface-200') }}{% endif %}
+        </span>
+        <div class="flex-1 min-w-0">
+            <p class="text-surface-100 truncate">{{ activity.message }}</p>
+            <p class="text-surface-200 text-xs">{{ activity.timestamp | format_datetime('log') }}</p>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-surface-200 text-sm text-center py-4">No recent activity</p>
+    {% endfor %}
+</div>
+
+{% if summary %}
+<div class="mt-4 pt-4 border-t border-surface-400/50 grid grid-cols-3 gap-2 text-center text-xs">
+    <div>
+        <p class="text-success-400 font-medium">{{ summary.capture_success_count }}</p>
+        <p class="text-surface-200">Captures</p>
+    </div>
+    <div>
+        <p class="text-primary-400 font-medium">{{ summary.timelapse_completed_count }}</p>
+        <p class="text-surface-200">Timelapses</p>
+    </div>
+    <div>
+        <p class="text-danger-400 font-medium">{{ summary.error_count }}</p>
+        <p class="text-surface-200">Errors</p>
+    </div>
+</div>
+{% endif %}

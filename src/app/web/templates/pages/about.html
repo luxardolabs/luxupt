@@ -1,0 +1,97 @@
+{% extends "layouts/base.html" %}
+{% from "macros/icons.html" import icon %}
+{% from "macros/cards.html" import card, stat_card %}
+{% from "macros/data.html" import data_row, data_row_stacked, divider %}
+{% from "macros/navigation.html" import page_header %}
+
+{% block title %}About - LuxUPT{% endblock %}
+
+{% block content %}
+{{ page_header("About", "Version, configuration, and storage details", icon_name="information-circle") }}
+
+<!-- Quick Stats -->
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {{ stat_card("Version", version.version, icon_name="tag", color="primary") }}
+    {{ stat_card("Uptime", system.uptime_hours ~ " hrs", icon_name="clock", color="success") }}
+    {{ stat_card("Images", storage.images.size_formatted, icon_name="photo", color="info") }}
+    {{ stat_card("Videos", storage.videos.size_formatted, icon_name="film", color="warning") }}
+</div>
+
+<div class="grid gap-4 lg:grid-cols-2">
+    <!-- Version Info -->
+    {% call card("Version Information", icon_name="tag", color="primary") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Version", version.version) }}
+        {{ data_row("Build Date", version.build_date) }}
+        {{ data_row("Python Version", version.python_version) }}
+        {{ data_row("Platform", version.platform) }}
+        {{ data_row("Architecture", version.architecture) }}
+    </div>
+    {% endcall %}
+
+    <!-- API Configuration -->
+    {% call card("API Configuration", icon_name="link", color="info") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row_stacked("API URL", config.api_url, mono=true) }}
+        {{ data_row("Rate Limit", config.rate_limit ~ " req/sec (effective: " ~ config.effective_rate_limit ~ ")") }}
+        {{ data_row("Concurrent Limit", config.concurrent_limit|string) }}
+    </div>
+    {% endcall %}
+
+    <!-- Camera Configuration -->
+    {% call card("Camera Configuration", icon_name="camera", color="primary") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Selection Mode", config.camera_selection) }}
+        {{ data_row("Distribution", config.distribution_enabled) }}
+        {{ data_row("Fetch Intervals", config.fetch_intervals|join(', ') ~ "s") }}
+    </div>
+    {% endcall %}
+
+    <!-- Storage Configuration -->
+    {% call card("Storage Configuration", icon_name="circle-stack", color="warning") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row_stacked("Image Path", config.image_path, mono=true) }}
+        {{ data_row_stacked("Video Path", config.video_path, mono=true) }}
+    </div>
+    {% endcall %}
+
+    <!-- FFmpeg Configuration -->
+    {% call card("FFmpeg Configuration", icon_name="film", color="success") %}
+    <div class="divide-y divide-surface-400/20">
+        {{ data_row("Frame Rate", config.ffmpeg_settings.frame_rate ~ " fps") }}
+        {{ data_row("Quality (CRF)", config.ffmpeg_settings.crf|string) }}
+        {{ data_row("Preset", config.ffmpeg_settings.preset) }}
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Storage Usage -->
+{% call card("Storage Usage", icon_name="chart-bar", color="info") %}
+<div class="grid gap-4 sm:grid-cols-3">
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <div class="flex items-center gap-2 mb-2">
+            {{ icon('photo', 'w-5 h-5 text-primary-400') }}
+            <span class="text-sm font-medium text-surface-100">Images</span>
+        </div>
+        <p class="text-2xl font-bold text-white">{{ storage.images.size_formatted }}</p>
+        <p class="text-sm text-surface-200">{{ storage.images.files | number_format }} files</p>
+    </div>
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <div class="flex items-center gap-2 mb-2">
+            {{ icon('film', 'w-5 h-5 text-success-400') }}
+            <span class="text-sm font-medium text-surface-100">Videos</span>
+        </div>
+        <p class="text-2xl font-bold text-white">{{ storage.videos.size_formatted }}</p>
+        <p class="text-sm text-surface-200">{{ storage.videos.files | number_format }} files</p>
+    </div>
+    <div class="rounded-lg bg-surface-600/50 p-4">
+        <div class="flex items-center gap-2 mb-2">
+            {{ icon('circle-stack', 'w-5 h-5 text-warning-400') }}
+            <span class="text-sm font-medium text-surface-100">Total</span>
+        </div>
+        <p class="text-2xl font-bold text-white">{{ storage.total_size_gb }} GB</p>
+        <p class="text-sm text-surface-200">{{ storage.total_files | number_format }} files</p>
+    </div>
+</div>
+{% endcall %}
+{% endblock %}

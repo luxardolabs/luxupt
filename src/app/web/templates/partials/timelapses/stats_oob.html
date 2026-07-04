@@ -1,0 +1,8 @@
+{% from "macros/cards.html" import stat_card %}
+
+<div id="timelapse-stats" hx-swap-oob="true" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {{ stat_card("Completed", stats.completed_timelapses, icon_name="check-circle", color="success") }}
+    {{ stat_card("Pending", stats.pending_timelapses, icon_name="clock", color="warning") }}
+    {{ stat_card("Total Minutes", stats.total_minutes, icon_name="play-circle", color="primary") }}
+    {{ stat_card("Storage", stats.storage_gb ~ " GB", icon_name="circle-stack", color="info") }}
+</div>

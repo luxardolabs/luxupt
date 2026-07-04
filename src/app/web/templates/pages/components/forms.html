@@ -1,0 +1,232 @@
+{# =========================================================================
+   FORMS - text_input(), select(), checkbox(), toggle(), etc.
+   ========================================================================= #}
+{% from "macros/forms.html" import text_input, select, filter_select, checkbox, toggle, date_input, textarea, form_group %}
+{% from "macros/buttons.html" import primary, secondary %}
+
+<div id="forms" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Forms</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Form macros from <code class="bg-surface-700/50 px-1.5 py-0.5 rounded text-xs text-primary-300">macros/forms.html</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== TEXT INPUTS ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">text_input</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {{ text_input('name', label='Camera Name', placeholder='Enter camera name...') }}
+                {{ text_input('search', label='With Icon', placeholder='Search...', icon_name='magnifying-glass') }}
+                {{ text_input('api_key', label='API Key', type='password', placeholder='Enter API key...') }}
+                {{ text_input('disabled', label='Disabled', value='Cannot edit', disabled=true) }}
+            </div>
+        </div>
+
+        {# ===== SELECTS ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">select</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% set camera_options = [
+                    {'value': 'auto', 'label': 'Auto'},
+                    {'value': 'api', 'label': 'API Snapshot'},
+                    {'value': 'rtsp', 'label': 'RTSP Stream'}
+                ] %}
+                {{ select('capture_method', camera_options, label='Capture Method', selected='auto') }}
+
+                {% set quality_options = ['high', 'medium', 'low'] %}
+                {{ select('quality', quality_options, label='Quality', selected='high') }}
+
+                {% set interval_opts = [
+                    {'value': '15', 'label': '15 seconds'},
+                    {'value': '60', 'label': '1 minute'},
+                    {'value': '300', 'label': '5 minutes'}
+                ] %}
+                {{ select('interval', interval_opts, label='Capture Interval', selected='60') }}
+
+                {% set preset_options = ['ultrafast', 'fast', 'medium', 'slow'] %}
+                {{ select('preset', preset_options, label='FFmpeg Preset', selected='medium') }}
+            </div>
+        </div>
+
+        {# ===== FILTER SELECT ===== #}
+        <div>
+            <p class="text-xs font-medium text-primary-400 uppercase mb-3">filter_select</p>
+            <p class="text-sm text-surface-200 mb-4">Compact select for filter toolbars</p>
+            <div class="flex flex-wrap gap-3">
+                {% set interval_options = [15, 60, 180, 300] %}
+                {{ filter_select('interval', interval_options, placeholder='All Intervals') }}
+
+                {% set status_options = ['completed', 'pending', 'failed'] %}
+                {{ filter_select('status', status_options, placeholder='All Statuses', selected='completed') }}
+            </div>
+        </div>
+
+        {# ===== CHECKBOXES & TOGGLES ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">checkbox</p>
+                <div class="space-y-3">
+                    {{ checkbox('enable_hdr', 'Enable HDR capture') }}
+                    {{ checkbox('high_quality', 'Request high quality snapshots', checked=true) }}
+                    {{ checkbox('notifications', 'Send email notifications') }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">toggle</p>
+                <p class="text-sm text-surface-200 mb-4">Switch-style toggle for on/off settings</p>
+                <div class="space-y-4">
+                    {{ toggle('enabled', 'Capture Enabled', checked=true) }}
+                    {{ toggle('verify_ssl', 'Verify SSL Certificates') }}
+                    {{ toggle('debug', 'Debug Mode', checked=true) }}
+                </div>
+            </div>
+        </div>
+
+        {# ===== DATE, TEXTAREA, FORM GROUP ===== #}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">date_input</p>
+                {{ date_input('start_date', label='Start Date') }}
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">form_group</p>
+                <p class="text-sm text-surface-200 mb-4">Wrapper with help text</p>
+                {% call form_group('Rate Limit', 'Maximum requests per second') %}
+                <input type="number" value="10" min="1" max="100"
+                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                {% endcall %}
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">textarea</p>
+                {{ textarea('notes', label='Notes', placeholder='Enter any additional notes...', rows=3) }}
+            </div>
+        </div>
+
+        {# ===== FORM EXAMPLE ===== #}
+        <div>
+            <p class="text-xs font-medium text-success-400 uppercase mb-3">Complete Form Example</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="rounded-xl border border-surface-400/30 bg-surface-800/50 p-6">
+                    <p class="text-sm font-medium text-white mb-4">Camera Settings Form</p>
+                    <form class="space-y-4">
+                        {{ text_input('camera_name', label='Camera Name', placeholder='Front Door Cam') }}
+
+                        {% set method_options = [
+                            {'value': 'auto', 'label': 'Auto (Recommended)'},
+                            {'value': 'api', 'label': 'API Snapshot'},
+                            {'value': 'rtsp', 'label': 'RTSP Stream'}
+                        ] %}
+                        {{ select('method', method_options, label='Capture Method', selected='auto') }}
+
+                        <div class="border-t border-surface-400/20 pt-4 space-y-3">
+                            {{ toggle('active', 'Camera Active', checked=true) }}
+                            {{ checkbox('hdr', 'Enable HDR capture') }}
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4">
+                            {{ secondary('Cancel') }}
+                            {{ primary('Save Settings', type='submit', icon_name='check') }}
+                        </div>
+                    </form>
+                </div>
+
+                <div class="rounded-xl border border-surface-400/30 bg-surface-800/50 p-6">
+                    <p class="text-sm font-medium text-white mb-4">API Configuration Form</p>
+                    <form class="space-y-4">
+                        {{ text_input('api_url', label='API URL', placeholder='https://protect.local') }}
+                        {{ text_input('api_token', label='API Token', type='password', placeholder='Enter token...') }}
+
+                        <div class="grid grid-cols-2 gap-4">
+                            {% call form_group('Rate Limit', 'Requests per second') %}
+                            <input type="number" value="10" min="1" max="100"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            {% endcall %}
+                            {% call form_group('Timeout', 'Seconds') %}
+                            <input type="number" value="30" min="5" max="120"
+                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            {% endcall %}
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4">
+                            {{ secondary('Test Connection') }}
+                            {{ primary('Save', type='submit', icon_name='check') }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# ===== INPUT STYLING RULES ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
+            <p class="text-xs font-medium text-warning-400 uppercase mb-4">Input Styling Rules</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">bg-surface-700</code>
+                        <p class="text-surface-200 mt-1">Input backgrounds</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">border-surface-500</code>
+                        <p class="text-surface-200 mt-1">Input borders</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">rounded-lg</code>
+                        <p class="text-surface-200 mt-1">Input radius</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">focus:border-primary-500</code>
+                        <p class="text-surface-200 mt-1">Magenta focus</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">text-white</code>
+                        <p class="text-surface-200 mt-1">Form labels</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-900/50">
+                    <span class="text-success-400">✓</span>
+                    <div>
+                        <code class="text-primary-300">text-surface-200</code>
+                        <p class="text-surface-200 mt-1">Help text</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== CODE EXAMPLE ===== #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import & Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/forms.html" import text_input, select, toggle, checkbox %}
+
+{# Text input #}
+{{ text_input('name', label='Name', placeholder='Enter...') }}
+
+{# Select with options #}
+{% set options = [{'value': 'a', 'label': 'Option A'}, {'value': 'b', 'label': 'Option B'}] %}
+{{ select('choice', options, label='Choice', selected='a') }}
+
+{# Toggle switch #}
+{{ toggle('enabled', 'Enable feature', checked=true) }}
+
+{# Checkbox #}
+{{ checkbox('agree', 'I agree to terms') }}{% endraw %}</code></pre>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,16 @@
+{# Scheduler save result - shown after form submission #}
+{% from "macros/alerts.html" import alert_block %}
+
+{% if success %}
+{% call alert_block(type="success", title="Settings saved successfully") %}
+{% if enabled %}
+Scheduler is enabled and will run daily at {{ run_time | time }}.
+{% else %}
+Scheduler is currently disabled.
+{% endif %}
+{% endcall %}
+{% else %}
+{% call alert_block(type="danger", title="Failed to save settings") %}
+{{ error }}
+{% endcall %}
+{% endif %}

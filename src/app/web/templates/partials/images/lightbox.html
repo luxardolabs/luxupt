@@ -1,0 +1,11 @@
+{# Image lightbox shell - loaded once when opening #}
+{% from "macros/icons.html" import icon %}
+<div id="lightbox-backdrop"
+     class="fixed inset-0 z-50 bg-black/90"
+     onclick="if(event.target === this) Lightbox.close()">
+
+    <!-- Swappable content area - full size for positioning children -->
+    <div id="lightbox-content" class="absolute inset-0 flex items-center justify-center" hx-ext="morph">
+        {% include "partials/images/lightbox_content.html" %}
+    </div>
+</div>

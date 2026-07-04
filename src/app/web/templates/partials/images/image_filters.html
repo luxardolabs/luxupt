@@ -1,0 +1,11 @@
+{% from "macros/forms.html" import filter_select %}
+
+{# Camera dropdown uses camera_id as value for queries #}
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{{ filter_select("camera", camera_options, selected=filters.camera, placeholder="All Cameras") }}
+{{ filter_select("date", available_dates|map('string')|list, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
+{{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}

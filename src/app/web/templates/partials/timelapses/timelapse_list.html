@@ -1,0 +1,18 @@
+{% from "macros/cards.html" import timelapse_card, empty_state %}
+{% from "macros/navigation.html" import htmx_pagination %}
+
+{% if timelapses %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for timelapse in timelapses %}
+    {{ timelapse_card(timelapse) }}
+    {% endfor %}
+</div>
+
+{% if pagination.total_pages > 1 %}
+<div class="mt-4">
+    {{ htmx_pagination(pagination, "timelapse-grid", "/timelapses/partials/list", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}) }}
+</div>
+{% endif %}
+{% else %}
+{{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters') }}
+{% endif %}
