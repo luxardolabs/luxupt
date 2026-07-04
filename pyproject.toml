@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "luxupt"
-version = "1.1.2"
+version = "1.1.6"
 description = "LuxUPT - Time-lapse videos from UniFi Protect cameras"
 authors = ["Luxardo Labs <info@luxardolabs.com>"]
 license = "AGPL-3.0-only"
