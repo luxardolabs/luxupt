@@ -2,8 +2,11 @@
 
 """CLI commands for the application."""
 
+import sys
 from datetime import datetime
 
+from crud.fetch_settings_crud import CRUDFetchSettings
+from db.connection import async_session
 from fetch_service import FetchService
 from logging_config import get_logger
 from startup import print_banner, print_configuration
@@ -94,6 +97,44 @@ async def test_cameras() -> None:
         await fetch_service.stop()
 
 
+async def set_protect_creds(username: str, password: str) -> None:
+    """Store UniFi Protect username/password in fetch_settings.
+
+    Used to set the credentials required for private-API endpoints
+    (recording-snapshot, video/export). The Setup UI does the same thing.
+    """
+    crud = CRUDFetchSettings()
+    async with async_session() as db:
+        await crud.update_settings(db, obj_in={"username": username, "password": password})
+        await db.commit()
+    logger.info(
+        "Stored Protect credentials in fetch_settings",
+        extra={"username": username, "password_len": len(password)},
+    )
+
+
+def _parse_kv_args(argv: list[str]) -> dict[str, str]:
+    """Parse --key=value or --key value pairs from argv. Stops at first non-flag."""
+    out: dict[str, str] = {}
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if not arg.startswith("--"):
+            i += 1
+            continue
+        if "=" in arg:
+            key, value = arg[2:].split("=", 1)
+            out[key] = value
+            i += 1
+        else:
+            key = arg[2:]
+            if i + 1 >= len(argv):
+                raise ValueError(f"flag --{key} expects a value")
+            out[key] = argv[i + 1]
+            i += 2
+    return out
+
+
 def show_help() -> None:
     """Show CLI help message."""
     logger.info(
@@ -107,6 +148,7 @@ def show_help() -> None:
                 "fetch": "Run only the image fetch service",
                 "timelapse": "Run only the time-lapse creation service",
                 "web": "Run only the web interface (dev)",
+                "set-protect-creds": "Store Protect username/password (--username X --password Y)",
                 "help": "Show this help message",
             },
         },
@@ -151,6 +193,23 @@ async def handle_cli_command(command: str) -> bool:
         print_configuration()
         logger.info("Starting web interface only")
         await run_web_only()
+        return True
+
+    elif command == "set-protect-creds":
+        try:
+            kv = _parse_kv_args(sys.argv[2:])
+        except ValueError as e:
+            logger.error("Argument parse error", extra={"error": str(e)})
+            return True
+        username = kv.get("username")
+        password = kv.get("password")
+        if not username or not password:
+            logger.error(
+                "set-protect-creds requires --username and --password",
+                extra={"example": "python main.py set-protect-creds --username admin --password 'secret'"},
+            )
+            return True
+        await set_protect_creds(username, password)
         return True
 
     elif command in ["help", "-h", "--help"]:

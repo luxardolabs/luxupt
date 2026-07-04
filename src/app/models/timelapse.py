@@ -37,6 +37,8 @@ class Timelapse(Base, TimestampMixin):
 
     # Timelapse metadata
     timelapse_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    # For combined-range timelapses, the last day in the span. Null = single-day.
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     interval: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     frame_count: Mapped[int] = mapped_column(Integer, nullable=False)
     frame_rate: Mapped[int] = mapped_column(Integer, nullable=False)

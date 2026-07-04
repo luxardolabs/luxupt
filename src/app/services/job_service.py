@@ -5,7 +5,7 @@ import json as json_module
 import os
 import signal
 import subprocess
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 import config
 from camera_manager import CameraManager, CameraManagerSettings
@@ -56,8 +56,13 @@ class JobService:
         interval: int,
         camera_id: str | None = None,
         keep_images: bool = True,
+        job_type: str = "live_daily",
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+        daily_window_start: time | None = None,
+        daily_window_end: time | None = None,
     ) -> Job:
-        """Create a new timelapse job."""
+        """Create a new timelapse job (live_daily or historical)."""
         return await job_crud.create_job(
             self.db,
             title=title,
@@ -66,6 +71,11 @@ class JobService:
             interval=interval,
             camera_id=camera_id,
             keep_images=keep_images,
+            job_type=job_type,
+            start_at=start_at,
+            end_at=end_at,
+            daily_window_start=daily_window_start,
+            daily_window_end=daily_window_end,
         )
 
     async def get_active(self) -> list[Job]:
@@ -276,11 +286,22 @@ class JobProcessor:
     async def _process_job(
         self, job_id: str, date_str: str, camera: str, interval: int, keep_images: bool | None = None
     ) -> None:
-        """Process a timelapse job with progress tracking (waits for semaphore)."""
+        """Process a timelapse job with progress tracking (waits for semaphore).
+
+        Dispatches on Job.job_type:
+          - "live_daily" (default): assemble MP4 from existing JPEGs in the image tree
+          - "historical": fetch JPEGs from Protect via uiprotect-style recording-snapshot,
+            write them into the same image tree, then run the live_daily assembly step.
+        """
         # Get settings and ensure semaphore exists (thread-safe)
         async with async_session() as db:
             scheduler_settings = await scheduler_settings_crud.get_settings(db)
+            job_obj = await job_crud.get_by_job_id(db, job_id)
         semaphore = await self._ensure_semaphore(scheduler_settings.concurrent_jobs)
+
+        if job_obj is None:
+            logger.error("Job not found in DB", extra={"job_id": job_id})
+            return
 
         # Wait for semaphore - job stays pending until we acquire it
         async with semaphore:
@@ -289,6 +310,30 @@ class JobProcessor:
                 async with async_session() as db:
                     await job_crud.start_job(db, job_id)
                     await db.commit()
+
+                # HISTORICAL (single-day or combined-range): pull frames from Protect
+                # first, then fall through to assembly. The assembly branch picks the
+                # right method based on job_type further down.
+                if job_obj.job_type in ("historical", "historical_combined"):
+                    from services.historical_fetch_service import (
+                        HistoricalJobCanceled,
+                        run_historical_job,
+                    )
+
+                    try:
+                        result = await run_historical_job(job_obj)
+                    except HistoricalJobCanceled:
+                        logger.info("Historical job canceled", extra={"job_id": job_id})
+                        return
+                    if result.frames_succeeded == 0:
+                        async with async_session() as db:
+                            await job_crud.fail_job(
+                                db,
+                                job_id,
+                                error=f"Fetched 0/{result.frames_attempted} frames from Protect",
+                            )
+                            await db.commit()
+                        return
 
                 # Create timelapse service instance
                 timelapse_service = TimelapseService()
@@ -311,14 +356,26 @@ class JobProcessor:
                 try:
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
 
-                    success = await timelapse_service._create_timelapse_for_camera_interval(
-                        camera,
-                        interval,
-                        date_obj,
-                        keep_images=keep_images,
-                        encoding_settings=encoding_settings,
-                        recreate_existing=scheduler_settings.recreate_existing,
-                    )
+                    if job_obj.job_type == "historical_combined":
+                        # Multi-day combined assembly — globs across the date range
+                        success = await timelapse_service.create_combined_timelapse_for_range(
+                            camera,
+                            interval,
+                            start_date=job_obj.start_at.date() if job_obj.start_at else date_obj.date(),
+                            end_date=job_obj.end_at.date() if job_obj.end_at else date_obj.date(),
+                            keep_images=keep_images,
+                            encoding_settings=encoding_settings,
+                            job_id=job_id,
+                        )
+                    else:
+                        success = await timelapse_service._create_timelapse_for_camera_interval(
+                            camera,
+                            interval,
+                            date_obj,
+                            keep_images=keep_images,
+                            encoding_settings=encoding_settings,
+                            recreate_existing=scheduler_settings.recreate_existing,
+                        )
 
                     if success:
                         await self._finalize_successful_job(job_id, camera, date_obj, interval)
@@ -345,11 +402,30 @@ class JobProcessor:
                     )
 
     async def _finalize_successful_job(self, job_id: str, camera: str, date_obj: datetime, interval: int) -> None:
-        """Finalize a successful job - probe metadata, generate thumbnail, save to DB."""
-        year = date_obj.strftime("%Y")
-        month = date_obj.strftime("%m")
+        """Finalize a successful job - probe metadata, generate thumbnail, save to DB.
 
-        output_filename = f"{camera}_{year}{month}{date_obj.strftime('%d')}_{interval}s.mp4"
+        Filename layout depends on job_type:
+          live_daily / historical:   {camera}_{YYYYMMDD}_{interval}s.mp4
+          historical_combined:       {camera}_{YYYYMMDD}_to_{YYYYMMDD}_{interval}s.mp4
+        """
+        # Pull the job upfront so we can branch on job_type
+        async with async_session() as db:
+            job = await job_crud.get_by_job_id(db, job_id)
+
+        if job is not None and job.job_type == "historical_combined" and job.start_at and job.end_at:
+            start_d = job.start_at.date()
+            end_d = job.end_at.date()
+            year = start_d.strftime("%Y")
+            month = start_d.strftime("%m")
+            # Include job_id prefix so concurrent jobs with the same range produce different files
+            job_short = job.job_id[:8] if job.job_id else "x"
+            output_filename = (
+                f"{camera}_{start_d.strftime('%Y%m%d')}_to_{end_d.strftime('%Y%m%d')}_{interval}s_{job_short}.mp4"
+            )
+        else:
+            year = date_obj.strftime("%Y")
+            month = date_obj.strftime("%m")
+            output_filename = f"{camera}_{year}{month}{date_obj.strftime('%d')}_{interval}s.mp4"
         output_path = config.VIDEO_OUTPUT_PATH / year / month / camera / f"{interval}s" / output_filename
 
         # Single async check for existence + size (one thread dispatch instead of 5+ blocking calls)
@@ -374,6 +450,29 @@ class JobProcessor:
                 output_path, frame_rate, probe_timeout
             )
 
+            # Decode-validation: ffprobe only reads container headers. To catch corrupted
+            # encoded streams (e.g. from a concurrent write collision), actually decode
+            # the file to null and look for errors on stderr.
+            decode_ok = await self._validate_decodable(output_path, probe_timeout)
+            if not decode_ok:
+                logger.error(
+                    "Output file failed decode validation; failing job",
+                    extra={"job_id": job_id, "output": str(output_path)},
+                )
+                # Delete the corrupt file and any partial thumbnail
+                try:
+                    await async_fs.path_unlink(output_path, missing_ok=True)
+                except Exception:
+                    pass
+                async with async_session() as db:
+                    await job_crud.fail_job(
+                        db,
+                        job_id,
+                        error="Output file is corrupted (decode validation failed). The file has been deleted.",
+                    )
+                    await db.commit()
+                return
+
             # Generate thumbnail
             thumbnail_path = await self._generate_thumbnail(output_path, duration_seconds, probe_timeout)
 
@@ -394,6 +493,13 @@ class JobProcessor:
                 camera_id=camera_id or "",
                 camera_safe_name=camera,
                 timelapse_date=date_obj.date(),
+                # For combined-range jobs, record the last day too so the browser
+                # can render the date span instead of pinning it to start_date.
+                end_date=(
+                    job.end_at.date()
+                    if job is not None and job.job_type == "historical_combined" and job.end_at
+                    else None
+                ),
                 interval=interval,
                 frame_count=frame_count,
                 frame_rate=frame_rate,
@@ -413,6 +519,43 @@ class JobProcessor:
             "Created timelapse record",
             extra={"camera": camera, "date": date_obj.strftime("%Y-%m-%d"), "interval": interval},
         )
+
+    async def _validate_decodable(self, output_path: config.Path, timeout: int) -> bool:
+        """Decode the file to null and check that ffmpeg doesn't report decoding errors.
+
+        ffprobe only reads container headers, so it can report valid metadata
+        for files whose encoded streams are garbled (e.g. from a concurrent
+        write collision). This method actually decodes every packet and watches
+        stderr for the telltale signatures (`Invalid NAL unit size`,
+        `Error submitting packet to decoder`, etc.). Slow on long files but
+        cheap enough for our typical 10-100MB outputs.
+        """
+
+        def run() -> tuple[int, str]:
+            try:
+                proc = subprocess.run(
+                    [
+                        "ffmpeg", "-v", "error", "-i", str(output_path),
+                        "-f", "null", "-",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
+                return proc.returncode, (proc.stderr or "")
+            except subprocess.TimeoutExpired:
+                return 1, "decode validation timed out"
+            except Exception as e:
+                return 1, f"decode validation crashed: {e!r}"
+
+        rc, stderr = await asyncio.to_thread(run)
+        if rc != 0 or stderr.strip():
+            logger.warning(
+                "Decode validation failed",
+                extra={"output": str(output_path), "rc": rc, "stderr_head": stderr[:400]},
+            )
+            return False
+        return True
 
     async def _probe_video_metadata(
         self, output_path: config.Path, frame_rate: int, probe_timeout: int

@@ -1,6 +1,6 @@
 """CRUD operations for Job model."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 import config
 from models.job import Job, JobStatus
@@ -77,8 +77,17 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         interval: int,
         camera_id: str | None = None,
         keep_images: bool = True,
+        job_type: str = "live_daily",
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+        daily_window_start: time | None = None,
+        daily_window_end: time | None = None,
     ) -> Job:
-        """Create a new timelapse job."""
+        """Create a new timelapse job.
+
+        For historical jobs, pass job_type='historical' plus start_at/end_at
+        (required) and optional daily_window_start/end.
+        """
         job = Job(
             title=title,
             camera_safe_name=camera_safe_name,
@@ -86,6 +95,11 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             target_date=target_date,
             interval=interval,
             keep_images=keep_images,
+            job_type=job_type,
+            start_at=start_at,
+            end_at=end_at,
+            daily_window_start=daily_window_start,
+            daily_window_end=daily_window_end,
             status=JobStatus.PENDING,
             progress=0.0,
             created_at=datetime.now(),

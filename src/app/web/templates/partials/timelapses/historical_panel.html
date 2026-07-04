@@ -1,0 +1,219 @@
+{# Historical timelapse panel — pulls frames from Protect's recording stream #}
+{% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
+{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/forms.html" import select %}
+
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{% set interval_presets = [15, 60, 300, 600, 1800, 3600] %}
+
+{% set first_cam_id = cameras[0].camera_id if cameras else "" %}
+
+{{ panel_backdrop() }}
+
+{% call panel_drawer('max-w-xl') %}
+    {{ panel_header('Historical Timelapse', 'Pull frames from a past time range') }}
+
+    <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6"
+         x-data='{
+             ranges: {{ camera_ranges|tojson }},
+             selected: "{{ first_cam_id }}",
+             startDate: "",
+             endDate: "",
+             get range() { return this.ranges[this.selected] || null; },
+             get dayCount() {
+                 if (!this.startDate || !this.endDate) return 0;
+                 const s = new Date(this.startDate), e = new Date(this.endDate);
+                 if (e < s) return 0;
+                 return Math.floor((e - s) / 86400000) + 1;
+             }
+         }'
+         x-effect="if (range && (!startDate || startDate < range.oldest || startDate > range.newest)) { startDate = range.default; } if (range && (!endDate || endDate < range.oldest || endDate > range.newest)) { endDate = range.default; }">
+        <form id="historical-form"
+              hx-post="/timelapses/historical"
+              hx-target="#historical-result"
+              hx-swap="innerHTML"
+              class="space-y-6">
+
+            <div>
+                <label for="camera" class="block text-sm font-medium text-white mb-1.5">Camera</label>
+                <select id="camera" name="camera" required x-model="selected"
+                        class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white cursor-pointer focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    {% for opt in camera_options %}
+                    <option value="{{ opt.value }}">{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+                {% if range_error %}
+                    <p class="text-xs text-warning-400 mt-1">{{ range_error }}</p>
+                {% else %}
+                    <p class="text-xs text-surface-200 mt-1" x-show="range">
+                        Recordings:
+                        <span class="text-white" x-text="range?.oldest_full"></span>
+                        →
+                        <span class="text-white" x-text="range?.newest_full"></span>
+                        (<span x-text="range?.days"></span> days)
+                    </p>
+                    <p class="text-xs text-surface-200 mt-0.5" x-show="range">
+                        Gaps within this range are possible — frames at unrecorded times will fail with "no recording" and be skipped.
+                    </p>
+                    <p class="text-xs text-warning-400 mt-1" x-show="!range">No recording range data for this camera.</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-white mb-1.5">Quick Select</label>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="preset in [
+                        {label: 'Yesterday', days: 1},
+                        {label: 'Last 3 days', days: 3},
+                        {label: 'Last 7 days', days: 7},
+                        {label: 'Last 14 days', days: 14},
+                        {label: 'All available', days: null}
+                    ]" :key="preset.label">
+                        <button type="button"
+                                @click="
+                                    if (!range) return;
+                                    const end = new Date(range.newest);
+                                    let start;
+                                    if (preset.days === null) { start = new Date(range.oldest); }
+                                    else { start = new Date(end); start.setDate(end.getDate() - (preset.days - 1)); }
+                                    const minD = new Date(range.oldest);
+                                    if (start < minD) start = minD;
+                                    startDate = start.toISOString().slice(0,10);
+                                    endDate = end.toISOString().slice(0,10);
+                                "
+                                class="text-xs px-2.5 py-1 rounded-md border border-surface-500 bg-surface-700 hover:bg-surface-600 text-white transition-colors"
+                                x-text="preset.label"></button>
+                    </template>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-white mb-1.5">Start Date</label>
+                    <input type="date" name="start_date" required x-model="startDate"
+                           :min="range?.oldest" :max="range?.newest"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-white mb-1.5">End Date</label>
+                    <input type="date" name="end_date" required x-model="endDate"
+                           :min="startDate || range?.oldest" :max="range?.newest"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-white mb-1.5">Start Time</label>
+                    <input type="time" name="start_time" required value="00:00"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-white mb-1.5">End Time</label>
+                    <input type="time" name="end_time" required value="23:59"
+                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                </div>
+            </div>
+
+            <div class="border-t border-surface-400/20 pt-4" x-data="{ mode: 'per_day' }">
+                <label class="block text-sm font-medium text-white mb-2">Output</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3 cursor-pointer"
+                           :class="mode === 'per_day' ? 'border-primary-500 bg-primary-500/10' : ''">
+                        <input type="radio" name="output_mode" value="per_day" x-model="mode" class="mt-0.5 accent-primary-500">
+                        <div>
+                            <p class="text-sm font-medium text-white">One per day</p>
+                            <p class="text-xs text-surface-200">Each day in the range → its own daily MP4. Slots into the existing browser per day.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3 cursor-pointer"
+                           :class="mode === 'combined' ? 'border-primary-500 bg-primary-500/10' : ''">
+                        <input type="radio" name="output_mode" value="combined" x-model="mode" class="mt-0.5 accent-primary-500">
+                        <div>
+                            <p class="text-sm font-medium text-white">Single combined</p>
+                            <p class="text-xs text-surface-200">One MP4 covering the full range, all days back-to-back.</p>
+                        </div>
+                    </label>
+                </div>
+
+                <p class="text-xs text-surface-200 mt-3" x-show="dayCount > 0">
+                    <template x-if="mode === 'per_day'">
+                        <span>Will create <span class="text-white" x-text="dayCount"></span> daily timelapse<span x-show="dayCount > 1">s</span> (one per day).</span>
+                    </template>
+                    <template x-if="mode === 'combined'">
+                        <span>Will create 1 timelapse spanning <span class="text-white" x-text="dayCount"></span> day<span x-show="dayCount > 1">s</span>.</span>
+                    </template>
+                </p>
+            </div>
+
+            <div x-data='{
+                    interval: 300,
+                    label(n) {
+                        if (n < 60) return n + "s";
+                        if (n % 86400 === 0) return (n/86400) + "d";
+                        if (n % 3600 === 0) return (n/3600) + "h";
+                        if (n % 60 === 0) return (n/60) + "m";
+                        const m = Math.floor(n/60), s = n % 60;
+                        return m + "m" + (s ? " " + s + "s" : "");
+                    }
+                 }'>
+                <label class="block text-sm font-medium text-white mb-1.5">Interval</label>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% for v in interval_presets %}
+                    <button type="button"
+                            @click="interval = {{ v }}"
+                            :class="interval === {{ v }} ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'"
+                            class="text-xs px-2.5 py-1 rounded-md border hover:bg-surface-600 transition-colors"
+                            x-text="label({{ v }})"></button>
+                    {% endfor %}
+                    <input type="number" name="interval" required min="5" max="86400" step="1"
+                           x-model.number="interval"
+                           class="w-20 rounded-md border border-surface-500 bg-surface-700 px-2 py-1 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    <span class="text-xs text-surface-200 whitespace-nowrap">seconds (5–86400)</span>
+                </div>
+                <p class="text-xs text-surface-200 mt-1.5">Frames snap to ~5s keyframes.</p>
+            </div>
+
+            <label class="flex items-center justify-between cursor-pointer border-t border-surface-400/20 pt-4">
+                <div>
+                    <span class="text-sm font-medium text-white">Keep frames after assembly</span>
+                    <p class="text-xs text-surface-200">Saves frames in the image tree; appears in image browser.</p>
+                </div>
+                <div class="relative">
+                    <input type="checkbox" name="keep_images" value="true" class="peer sr-only" checked>
+                    <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                    <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                </div>
+            </label>
+
+            <div x-data='{ recreate: {{ "true" if global_recreate else "false" }}, globalRecreate: {{ "true" if global_recreate else "false" }} }'
+                 class="border-t border-surface-400/20 pt-4">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <span class="text-sm font-medium text-white">Recreate existing</span>
+                        <p class="text-xs text-surface-200">If a job for the same day/range exists, delete it and run fresh. Off = skip silently and continue with the rest.</p>
+                    </div>
+                    <div class="relative">
+                        <input type="checkbox" name="recreate_existing" value="true" x-model="recreate" class="peer sr-only">
+                        <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
+                        <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                </label>
+                <p class="text-xs text-warning-400 mt-2" x-show="recreate !== globalRecreate">
+                    Differs from the scheduler default (<span x-text="globalRecreate ? 'on' : 'off'"></span>). Just for this run.
+                </p>
+            </div>
+
+            <div id="historical-result"></div>
+        </form>
+    </div>
+
+    {% call panel_footer() %}
+        {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
+        {{ primary('Create Historical Timelapse', type='submit', icon_name='clock', hx_attrs={'form': 'historical-form'}) }}
+    {% endcall %}
+{% endcall %}

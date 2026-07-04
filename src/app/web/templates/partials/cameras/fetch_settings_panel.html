@@ -169,6 +169,65 @@
                         {% endif %}
                     </div>
 
+                    <!-- Username (required for historical features — private API auth) -->
+                    <div class="border-t border-surface-400/20 pt-4">
+                        <label for="username" class="block text-sm font-medium text-white mb-1.5">Username</label>
+                        <p class="text-xs text-surface-200 mb-2">Required for historical timelapse features. Use a local Protect user, not Ubiquiti SSO.</p>
+                        {% if api_config.username_from_env and not settings.username %}
+                        <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
+                            {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
+                            <span class="truncate">{{ api_config.username }}</span>
+                            <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
+                        </div>
+                        <input type="text" id="username" name="username" value=""
+                               placeholder="Enter to override..."
+                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% else %}
+                        <input type="text" id="username" name="username"
+                               value="{{ settings.username or '' }}"
+                               placeholder="Enter Protect username..."
+                               autocomplete="off"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-white mb-1.5">Password</label>
+                        {% if api_config.password_from_env and not settings.password %}
+                        <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
+                            {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
+                            <span>••••••••••••••••</span>
+                            <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
+                        </div>
+                        <input type="password" id="password" name="password" value=""
+                               placeholder="Enter to override..."
+                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% else %}
+                        <input type="password" id="password" name="password"
+                               value="{{ settings.password or '' }}"
+                               placeholder="Enter Protect password..."
+                               autocomplete="new-password"
+                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {% endif %}
+                    </div>
+
+                    <!-- Test Connection -->
+                    <div class="border-t border-surface-400/20 pt-4">
+                        <button type="button"
+                                hx-post="/cameras/fetch-settings/test-protect-connection"
+                                hx-target="#protect-test-result"
+                                hx-swap="innerHTML"
+                                hx-indicator="#protect-test-indicator"
+                                class="inline-flex items-center gap-2 rounded-lg bg-surface-600 hover:bg-surface-500 px-3 py-2 text-sm text-white transition-colors">
+                            {{ icon('arrow-path', 'w-4 h-4') }}
+                            Test Connection
+                        </button>
+                        <span id="protect-test-indicator" class="htmx-indicator ml-2 text-xs text-surface-200">Testing…</span>
+                        <div id="protect-test-result" class="mt-2"></div>
+                        <p class="text-xs text-surface-200 mt-2">Tests the stored creds by pulling one snapshot from your first camera.</p>
+                    </div>
+
                     <!-- SSL Verification -->
                     <label class="flex items-center justify-between cursor-pointer border-t border-surface-400/20 pt-4">
                         <div>

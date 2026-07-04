@@ -26,7 +26,10 @@
             <div class="mt-4 flex flex-col items-center gap-4">
                 <div class="text-center text-white">
                     <p class="text-lg font-medium">{{ timelapse.camera_safe_name|replace('_', ' ') }}</p>
-                    <p class="text-sm text-white/70">{{ timelapse.timelapse_date | date }} - {{ timelapse.interval }}s interval</p>
+                    <p class="text-sm text-white/70">
+                        {{ timelapse.timelapse_date | date }}{% if timelapse.end_date and timelapse.end_date != timelapse.timelapse_date %} → {{ timelapse.end_date | date }}{% endif %}
+                        - {{ timelapse.interval }}s interval
+                    </p>
                     <div class="flex items-center justify-center gap-4 mt-2 text-xs text-white/50">
                         {% if timelapse.frame_count %}
                         <span>{{ timelapse.frame_count }} frames</span>

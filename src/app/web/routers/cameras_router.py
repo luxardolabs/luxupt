@@ -38,6 +38,20 @@ async def _load_camera_manager_settings() -> "CameraManagerSettings":
         )
 
 
+async def _resolve_protect_creds() -> tuple[str, str, str, bool]:
+    """Return (base_url, username, password, verify_ssl) with env-var precedence over DB."""
+    from crud.fetch_settings_crud import fetch_settings_crud
+
+    async with async_session() as session:
+        s = await fetch_settings_crud.get_settings(session)
+
+    base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
+    username = config.UNIFI_PROTECT_USERNAME or s.username or ""
+    password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
+    verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else s.verify_ssl
+    return base_url, username, password, verify_ssl
+
+
 router = APIRouter(tags=["cameras"])
 
 
@@ -124,6 +138,8 @@ async def save_fetch_settings(
     # API connection settings
     api_key: Annotated[str | None, Form()] = None,
     base_url: Annotated[str | None, Form()] = None,
+    username: Annotated[str | None, Form()] = None,
+    password: Annotated[str | None, Form()] = None,
     verify_ssl: Annotated[str | None, Form()] = None,
     # Reliability settings
     max_retries: Annotated[int | None, Form()] = None,
@@ -165,6 +181,8 @@ async def save_fetch_settings(
         # API connection settings (empty string means clear)
         update_data["api_key"] = api_key if api_key else None
         update_data["base_url"] = base_url if base_url else None
+        update_data["username"] = username if username else None
+        update_data["password"] = password if password else None
         # Checkbox: "true" = checked (verify), absent/None = unchecked (don't verify)
         update_data["verify_ssl"] = verify_ssl == "true"
 
@@ -234,6 +252,78 @@ async def save_fetch_settings(
                 "success": False,
                 "error": "Failed to save fetch settings. Check server logs for details.",
             },
+        )
+
+
+@router.post("/fetch-settings/test-protect-connection", response_class=HTMLResponse)
+async def test_protect_connection(
+    request: Request,
+    user: str = Depends(get_current_user),
+) -> Response:
+    """Test the configured Protect username/password by logging in and pulling one snapshot.
+
+    Uses whatever creds are currently in the DB or env vars. Returns a small
+    HTML partial for HTMX to swap inline next to the Test Connection button.
+    """
+    from datetime import datetime, timedelta
+
+    from crud.camera_crud import camera_crud
+    from protect_client import ProtectAuthError, ProtectClient, ProtectRequestError
+
+    base_url, username, password, verify_ssl = await _resolve_protect_creds()
+
+    if not base_url:
+        return HTMLResponse(
+            '<div class="text-red-400 text-sm">Base URL is not set. Save the API connection first.</div>'
+        )
+    if not username or not password:
+        return HTMLResponse(
+            '<div class="text-red-400 text-sm">Username and password required.</div>'
+        )
+
+    # Find a camera to test against
+    async with async_session() as session:
+        cameras = await camera_crud.get_active(session)
+    if not cameras:
+        return HTMLResponse(
+            '<div class="text-red-400 text-sm">No cameras to test against. Discover cameras first.</div>'
+        )
+    test_camera = cameras[0]
+
+    # Try a historical snapshot a minute ago (recording-write lag means now() can 404)
+    ts = datetime.now() - timedelta(minutes=1)
+
+    try:
+        async with ProtectClient(
+            base_url=base_url,
+            username=username,
+            password=password,
+            verify_ssl=verify_ssl,
+        ) as pc:
+            jpg = await pc.historical_snapshot(test_camera.camera_id, ts)
+        logger.info(
+            "Protect connection test OK",
+            extra={"camera": test_camera.name, "bytes": len(jpg)},
+        )
+        return HTMLResponse(
+            f'<div class="text-green-400 text-sm">'
+            f'Connected. Pulled {len(jpg):,} bytes from {test_camera.name}.'
+            f'</div>'
+        )
+    except ProtectAuthError as e:
+        logger.warning("Protect connection test failed (auth)", extra={"error": str(e)})
+        return HTMLResponse(
+            f'<div class="text-red-400 text-sm">Auth failed: {str(e)[:200]}</div>'
+        )
+    except ProtectRequestError as e:
+        logger.warning("Protect connection test failed (request)", extra={"error": str(e)})
+        return HTMLResponse(
+            f'<div class="text-red-400 text-sm">Request failed: {str(e)[:200]}</div>'
+        )
+    except Exception as e:
+        logger.error("Protect connection test failed", extra={"error": str(e), "type": type(e).__name__})
+        return HTMLResponse(
+            f'<div class="text-red-400 text-sm">Error ({type(e).__name__}): {str(e)[:200]}</div>'
         )
 
 
