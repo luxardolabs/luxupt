@@ -14,6 +14,7 @@
 {% block content %}
 {% call page_header("Timelapses", "Manage timelapse creation jobs") %}
     {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": "/timelapses/create", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": "/timelapses/historical", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": "/timelapses/scheduler", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
 {% endcall %}
 

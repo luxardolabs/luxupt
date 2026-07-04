@@ -34,6 +34,12 @@ class FetchSettings(Base, TimestampMixin):
     # UniFi Protect API key (null = use env var)
     api_key: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
+    # UniFi Protect username (null = use env var) — required for private-API endpoints
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # UniFi Protect password (null = use env var) — required for private-API endpoints
+    password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # UniFi Protect base URL (null = use env var)
     base_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 

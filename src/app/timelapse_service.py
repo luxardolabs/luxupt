@@ -8,7 +8,7 @@ import signal
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
@@ -730,18 +730,33 @@ class TimelapseService:
         encoding_settings: EncodingSettings,
         image_format: str = "png",
         job_id: str | None = None,
+        frame_files: list[Path] | None = None,
     ) -> bool:
-        """Create a video using FFmpeg with progress tracking - uses database encoding settings."""
+        """Create a video using FFmpeg with progress tracking - uses database encoding settings.
+
+        Two input modes:
+          - default (frame_files=None): glob `{camera_name}_*.{image_format}` under `images_path`.
+            Used by live_daily and single-day historical jobs.
+          - explicit list (frame_files=[...]): writes an ffconcat file next to the output and
+            uses `-f concat -safe 0 -i`. Used for combined-range jobs whose frames live across
+            multiple day directories. Caller is responsible for sorting the list chronologically.
+        """
 
         start_time = time.time()
+        concat_file: Path | None = None
 
         # Generate job_key and register mapping if job_id provided
         job_key = f"{camera_name}_{interval}s_{int(time.time())}"
         if job_id:
             self._job_key_to_id[job_key] = job_id
 
-        # Count total images for progress calculation (sorted for thumbnail tracking)
-        image_files = await asyncio.to_thread(lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}")))
+        # Resolve image list
+        if frame_files is not None:
+            image_files = frame_files
+        else:
+            image_files = await asyncio.to_thread(
+                lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}"))
+            )
         total_frames = len(image_files)
 
         if total_frames == 0:
@@ -751,8 +766,35 @@ class TimelapseService:
         # Estimate video duration for better progress tracking
         estimated_video_seconds = total_frames / encoding_settings.frame_rate
 
-        # Build FFmpeg command with progress output - all settings from database
-        input_pattern = str(images_path / f"{camera_name}_*.{image_format}")
+        # Build FFmpeg input args — concat demuxer for explicit lists, glob otherwise
+        if frame_files is not None:
+            concat_file = output_path.with_suffix(".concat.txt")
+
+            # Write a plain concat list (no per-file `duration` lines). Instead we set
+            # the input framerate with `-r` so each image maps 1:1 to an output frame.
+            # Using per-file durations caused cumulative floating-point drift that
+            # dropped ~16% of frames on long sequences.
+            def _write_concat() -> None:
+                with concat_file.open("w", encoding="utf-8") as f:
+                    f.write("ffconcat version 1.0\n")
+                    for src in image_files:
+                        escaped = str(src.resolve()).replace("'", "'\\''")
+                        f.write(f"file '{escaped}'\n")
+
+            await asyncio.to_thread(_write_concat)
+            input_args: list[str] = [
+                "-r", str(encoding_settings.frame_rate),
+                "-f", "concat",
+                "-safe", "0",
+                "-i", str(concat_file),
+            ]
+        else:
+            input_pattern = str(images_path / f"{camera_name}_*.{image_format}")
+            input_args = [
+                "-r", str(encoding_settings.frame_rate),
+                "-pattern_type", "glob",
+                "-i", input_pattern,
+            ]
 
         ffmpeg_command = [
             "ffmpeg",
@@ -762,12 +804,7 @@ class TimelapseService:
             "-nostats",  # Disable stats on stderr (progress comes from -progress pipe:1)
             "-progress",
             "pipe:1",  # Progress to stdout
-            "-r",
-            str(encoding_settings.frame_rate),
-            "-pattern_type",
-            "glob",
-            "-i",
-            input_pattern,
+            *input_args,
             "-c:v",
             "libx265",
             "-x265-params",
@@ -926,6 +963,101 @@ class TimelapseService:
             await self._clear_process_pid(job_key)  # Clear PID on exception
             self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
             return False
+        finally:
+            # Concat file is a per-run side artifact; delete on any exit path.
+            if concat_file is not None:
+                try:
+                    await async_fs.path_unlink(concat_file, missing_ok=True)
+                except Exception:
+                    pass
+
+    async def create_combined_timelapse_for_range(
+        self,
+        camera_name: str,
+        interval: int,
+        start_date: date,
+        end_date: date,
+        keep_images: bool,
+        encoding_settings: EncodingSettings,
+        job_id: str | None = None,
+    ) -> bool | str | None:
+        """Assemble ONE timelapse MP4 spanning multiple day directories.
+
+        Symlinks all images from each day's directory into a staging directory
+        (filenames embed Unix timestamps so an alphabetical sort is chronological),
+        then reuses _create_video unchanged.
+
+        Output filename: {camera}_{YYYYMMDD}_to_{YYYYMMDD}_{interval}s.mp4
+        Output location: output/videos/{YYYY}/{MM}/{camera}/{interval}s/   (year/month from start_date)
+        """
+
+        # Collect frames from each day's directory
+        all_frames: list[Path] = []
+        image_format: str | None = None
+        cur = start_date
+        while cur <= end_date:
+            day_dir = (
+                config.IMAGE_OUTPUT_PATH
+                / camera_name
+                / f"{interval}s"
+                / cur.strftime("%Y")
+                / cur.strftime("%m")
+                / cur.strftime("%d")
+            )
+            if await async_fs.path_exists(day_dir):
+                files, fmt = await asyncio.to_thread(self._find_image_files, day_dir, camera_name)
+                if files:
+                    if image_format is None:
+                        image_format = fmt
+                    all_frames.extend(files)
+            cur += timedelta(days=1)
+
+        if not all_frames or image_format is None:
+            logger.info(
+                "Combined timelapse: no frames found in range",
+                extra={"camera": camera_name, "interval": interval, "start": start_date.isoformat(), "end": end_date.isoformat()},
+            )
+            return None
+
+        # Sort by filename (embeds unix timestamp → chronological)
+        all_frames.sort(key=lambda p: p.name)
+
+        year = start_date.strftime("%Y")
+        month = start_date.strftime("%m")
+        videos_path = config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+        await async_fs.path_mkdir(videos_path, parents=True, exist_ok=True)
+
+        range_label = f"{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
+        # Job-id suffix prevents concurrent ffmpeg processes from writing to the same file
+        # if a duplicate job slips through the upfront check.
+        job_short = (job_id[:8] if job_id else "x")
+        output_filename = f"{camera_name}_{range_label}_{interval}s_{job_short}.mp4"
+        output_path = videos_path / output_filename
+
+        logger.info(
+            "Encoding combined timelapse",
+            extra={
+                "camera": camera_name,
+                "interval": interval,
+                "frames": len(all_frames),
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat(),
+                "output": str(output_path),
+            },
+        )
+
+        # Pass the sorted file list directly — _create_video writes an ffconcat file
+        # and feeds it to ffmpeg via the concat demuxer. No staging dir, no symlinks.
+        return await self._create_video(
+            images_path=videos_path,  # unused when frame_files is provided, but type expects it
+            output_path=output_path,
+            camera_name=camera_name,
+            interval=interval,
+            encoding_settings=encoding_settings,
+            image_format=image_format,
+            job_id=job_id,
+            frame_files=all_frames,
+        )
 
     async def _drain_stderr(self, stderr: asyncio.StreamReader) -> str:
         """Drain stderr to prevent pipe buffer deadlock.

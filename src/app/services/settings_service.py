@@ -41,15 +41,23 @@ class SettingsService:
         # Env vars take priority over database
         effective_base_url = config.UNIFI_PROTECT_BASE_URL or settings.base_url or ""
         effective_api_key = config.UNIFI_PROTECT_API_KEY or settings.api_key or ""
+        effective_username = config.UNIFI_PROTECT_USERNAME or settings.username or ""
+        effective_password = config.UNIFI_PROTECT_PASSWORD or settings.password or ""
         effective_verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else settings.verify_ssl
 
         return {
             "base_url": effective_base_url,
             "api_key": effective_api_key,
+            "username": effective_username,
+            "password": effective_password,
             "verify_ssl": effective_verify_ssl,
             "from_env": bool(config.UNIFI_PROTECT_BASE_URL),
             "has_api_key": bool(effective_api_key),
             "has_base_url": bool(effective_base_url),
+            "has_username": bool(effective_username),
+            "has_password": bool(effective_password),
+            "username_from_env": bool(config.UNIFI_PROTECT_USERNAME),
+            "password_from_env": bool(config.UNIFI_PROTECT_PASSWORD),
         }
 
     async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettings:

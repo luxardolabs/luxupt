@@ -1,10 +1,10 @@
 """Job SQLAlchemy model for tracking timelapse creation jobs."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from uuid import uuid4
 
 from db.base import Base
-from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text, Time
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +28,16 @@ class Job(Base):
     camera_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     target_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     interval: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Job type — "live_daily" (existing daily-rollup behavior, default) | "historical"
+    job_type: Mapped[str] = mapped_column(String(32), default="live_daily", nullable=False, index=True)
+
+    # Historical job range — null for live_daily jobs
+    start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Optional daily window filter (e.g., only 07:00 → 19:00 each day in the range)
+    daily_window_start: Mapped[time | None] = mapped_column(Time, nullable=True)
+    daily_window_end: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     # Job status
     status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False, index=True)
@@ -72,6 +82,11 @@ class Job(Base):
             "camera": self.camera_safe_name,
             "date": self.target_date.isoformat() if self.target_date else None,
             "interval": self.interval,
+            "job_type": self.job_type,
+            "start_at": self.start_at.isoformat() if self.start_at else None,
+            "end_at": self.end_at.isoformat() if self.end_at else None,
+            "daily_window_start": self.daily_window_start.isoformat() if self.daily_window_start else None,
+            "daily_window_end": self.daily_window_end.isoformat() if self.daily_window_end else None,
             "status": self.status,
             "progress": self.progress,
             "message": self.message,

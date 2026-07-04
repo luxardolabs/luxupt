@@ -21,6 +21,8 @@ logger = get_logger(__name__)
 
 UNIFI_PROTECT_BASE_URL = os.getenv("UNIFI_PROTECT_BASE_URL", "")
 UNIFI_PROTECT_API_KEY = os.getenv("UNIFI_PROTECT_API_KEY", "")
+UNIFI_PROTECT_USERNAME = os.getenv("UNIFI_PROTECT_USERNAME", "")
+UNIFI_PROTECT_PASSWORD = os.getenv("UNIFI_PROTECT_PASSWORD", "")
 UNIFI_PROTECT_VERIFY_SSL = os.getenv("UNIFI_PROTECT_VERIFY_SSL", "false").lower() in ["true", "1", "yes"]
 
 # =============================================================================
