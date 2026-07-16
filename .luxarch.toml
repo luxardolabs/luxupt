@@ -1,0 +1,3 @@
+[[target]]
+kind = "fastapi-web"
+app = "src/app"
