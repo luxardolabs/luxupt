@@ -3,7 +3,7 @@
 from datetime import date
 from pathlib import Path
 
-from models.job import Job
+from models.job_model import Job
 
 from services.camera_service import CameraService
 from services.capture_service import CaptureService

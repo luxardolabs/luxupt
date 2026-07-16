@@ -3,13 +3,13 @@
 from datetime import date
 
 import config
-from models.capture import Capture
+from models.capture_model import Capture
 from pydantic import BaseModel
-from schemas.capture import CaptureCreate, CaptureStats
+from schemas.capture_schema import CaptureCreate, CaptureStats
 from sqlalchemy import Integer, and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 
 class CaptureUpdate(BaseModel):

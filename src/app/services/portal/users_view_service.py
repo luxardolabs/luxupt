@@ -1,7 +1,7 @@
 """Users view service for preparing user management template data."""
 
 from logging_config import get_logger
-from models.user import User
+from models.user_model import User
 
 from services.user_service import UserService
 

@@ -9,8 +9,8 @@ from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from models.capture import Capture
-    from models.timelapse import Timelapse
+    from models.capture_model import Capture
+    from models.timelapse_model import Timelapse
 
 
 class Camera(Base, TimestampMixin):

@@ -3,13 +3,13 @@
 from datetime import datetime
 from typing import cast
 
-from models.user import User
+from models.user_model import User
 from passlib.context import CryptContext
-from schemas.user import UserCreate
+from schemas.user_schema import UserCreate
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 # Use argon2 for new passwords, but support legacy bcrypt hashes for existing users
 pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated=["bcrypt"])

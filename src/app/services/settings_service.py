@@ -6,9 +6,9 @@ import config
 from crud.backup_settings_crud import backup_settings_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from crud.scheduler_settings_crud import scheduler_settings_crud
-from models.backup_settings import BackupSettings
-from models.fetch_settings import FetchSettings
-from models.scheduler_settings import SchedulerSettings
+from models.backup_settings_model import BackupSettings
+from models.fetch_settings_model import FetchSettings
+from models.scheduler_settings_model import SchedulerSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

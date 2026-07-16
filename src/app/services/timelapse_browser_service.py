@@ -6,8 +6,8 @@ from pathlib import Path
 
 import config
 from crud import timelapse_crud
-from models.timelapse import Timelapse
-from schemas.timelapse import TimelapseStats
+from models.timelapse_model import Timelapse
+from schemas.timelapse_schema import TimelapseStats
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils import async_fs
 

@@ -3,12 +3,12 @@
 from datetime import date
 
 import config
-from models.timelapse import Timelapse
-from schemas.timelapse import TimelapseCreate, TimelapseStats, TimelapseUpdate
+from models.timelapse_model import Timelapse
+from schemas.timelapse_schema import TimelapseCreate, TimelapseStats, TimelapseUpdate
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 
 class CRUDTimelapse(CRUDBase[Timelapse, TimelapseCreate, TimelapseUpdate]):

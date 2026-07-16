@@ -3,8 +3,8 @@
 from datetime import datetime
 from typing import cast
 
-from models.scheduler_settings import SchedulerSettings
-from schemas.scheduler_settings import SchedulerSettingsUpdate
+from models.scheduler_settings_model import SchedulerSettings
+from schemas.scheduler_settings_schema import SchedulerSettingsUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

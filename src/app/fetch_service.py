@@ -19,8 +19,8 @@ from camera_manager import (
 from crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
 from db.connection import async_session, init_db
 from logging_config import get_logger
-from models.activity import ActivityType
-from schemas.capture import CaptureCreate
+from models.activity_model import ActivityType
+from schemas.capture_schema import CaptureCreate
 from services.image_service import image_service
 
 # Module logger

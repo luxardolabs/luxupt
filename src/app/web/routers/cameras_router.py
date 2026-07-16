@@ -277,9 +277,7 @@ async def test_protect_connection(
             '<div class="text-red-400 text-sm">Base URL is not set. Save the API connection first.</div>'
         )
     if not username or not password:
-        return HTMLResponse(
-            '<div class="text-red-400 text-sm">Username and password required.</div>'
-        )
+        return HTMLResponse('<div class="text-red-400 text-sm">Username and password required.</div>')
 
     # Find a camera to test against
     async with async_session() as session:
@@ -307,24 +305,18 @@ async def test_protect_connection(
         )
         return HTMLResponse(
             f'<div class="text-green-400 text-sm">'
-            f'Connected. Pulled {len(jpg):,} bytes from {test_camera.name}.'
-            f'</div>'
+            f"Connected. Pulled {len(jpg):,} bytes from {test_camera.name}."
+            f"</div>"
         )
     except ProtectAuthError as e:
         logger.warning("Protect connection test failed (auth)", extra={"error": str(e)})
-        return HTMLResponse(
-            f'<div class="text-red-400 text-sm">Auth failed: {str(e)[:200]}</div>'
-        )
+        return HTMLResponse(f'<div class="text-red-400 text-sm">Auth failed: {str(e)[:200]}</div>')
     except ProtectRequestError as e:
         logger.warning("Protect connection test failed (request)", extra={"error": str(e)})
-        return HTMLResponse(
-            f'<div class="text-red-400 text-sm">Request failed: {str(e)[:200]}</div>'
-        )
+        return HTMLResponse(f'<div class="text-red-400 text-sm">Request failed: {str(e)[:200]}</div>')
     except Exception as e:
         logger.error("Protect connection test failed", extra={"error": str(e), "type": type(e).__name__})
-        return HTMLResponse(
-            f'<div class="text-red-400 text-sm">Error ({type(e).__name__}): {str(e)[:200]}</div>'
-        )
+        return HTMLResponse(f'<div class="text-red-400 text-sm">Error ({type(e).__name__}): {str(e)[:200]}</div>')
 
 
 @router.get("/capture-stats", response_class=HTMLResponse)

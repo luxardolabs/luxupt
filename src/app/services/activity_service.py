@@ -2,8 +2,8 @@
 
 import config
 from crud import activity_crud
-from models.activity import Activity
-from schemas.activity import ActivitySummary
+from models.activity_model import Activity
+from schemas.activity_schema import ActivitySummary
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

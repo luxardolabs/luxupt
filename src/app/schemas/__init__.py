@@ -1,16 +1,21 @@
 """Pydantic schemas for request/response validation."""
 
-from schemas.activity import ActivityCreate, ActivityRead, ActivitySummary
-from schemas.camera import CameraCreate, CameraRead, CameraUpdate
-from schemas.capture import CaptureCreate, CaptureFilters, CaptureRead, CaptureStats
-from schemas.fetch_settings import FetchSettingsRead, FetchSettingsUpdate
-from schemas.job import JobCreate, JobRead, JobUpdate
-from schemas.scheduler_settings import (
+from schemas.activity_schema import ActivityCreate, ActivityRead, ActivitySummary
+from schemas.camera_schema import CameraCreate, CameraRead, CameraUpdate
+from schemas.capture_schema import (
+    CaptureCreate,
+    CaptureFilters,
+    CaptureRead,
+    CaptureStats,
+)
+from schemas.fetch_settings_schema import FetchSettingsRead, FetchSettingsUpdate
+from schemas.job_schema import JobCreate, JobRead, JobUpdate
+from schemas.scheduler_settings_schema import (
     SchedulerSettingsCreate,
     SchedulerSettingsRead,
     SchedulerSettingsUpdate,
 )
-from schemas.timelapse import TimelapseCreate, TimelapseFilters, TimelapseRead
+from schemas.timelapse_schema import TimelapseCreate, TimelapseFilters, TimelapseRead
 
 __all__ = [
     "ActivityCreate",

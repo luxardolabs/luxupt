@@ -13,8 +13,8 @@ from crud import job_crud, scheduler_settings_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from db.connection import async_session
 from logging_config import get_logger
-from models.job import Job
-from models.timelapse import Timelapse
+from models.job_model import Job
+from models.timelapse_model import Timelapse
 from sqlalchemy.ext.asyncio import AsyncSession
 from timelapse_service import EncodingSettings, TimelapseService
 from utils import async_fs
@@ -535,8 +535,14 @@ class JobProcessor:
             try:
                 proc = subprocess.run(
                     [
-                        "ffmpeg", "-v", "error", "-i", str(output_path),
-                        "-f", "null", "-",
+                        "ffmpeg",
+                        "-v",
+                        "error",
+                        "-i",
+                        str(output_path),
+                        "-f",
+                        "null",
+                        "-",
                     ],
                     capture_output=True,
                     text=True,

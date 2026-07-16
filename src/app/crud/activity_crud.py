@@ -3,13 +3,13 @@
 from datetime import datetime, timedelta
 
 import config
-from models.activity import Activity, ActivityType
+from models.activity_model import Activity, ActivityType
 from pydantic import BaseModel
-from schemas.activity import ActivityCreate, ActivitySummary
+from schemas.activity_schema import ActivityCreate, ActivitySummary
 from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 
 class ActivityUpdate(BaseModel):

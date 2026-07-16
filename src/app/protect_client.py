@@ -76,7 +76,7 @@ class ProtectClient:
         self._logged_in = False
         self._login_lock = asyncio.Lock()
 
-    async def __aenter__(self) -> "ProtectClient":
+    async def __aenter__(self) -> ProtectClient:
         await self.start()
         return self
 
@@ -150,9 +150,7 @@ class ProtectClient:
         """
         resp = await self._request("GET", "/proxy/protect/api/bootstrap", headers={"Accept": "application/json"})
         if resp.status_code >= 400:
-            raise ProtectRequestError(
-                f"bootstrap fetch failed: HTTP {resp.status_code} - {resp.text[:200]}"
-            )
+            raise ProtectRequestError(f"bootstrap fetch failed: HTTP {resp.status_code} - {resp.text[:200]}")
         data = resp.json()
         ranges: dict[str, tuple[datetime, datetime]] = {}
         for cam in data.get("cameras", []):

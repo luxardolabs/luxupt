@@ -3,14 +3,14 @@
 from datetime import date, datetime
 from typing import Any
 
-from models.camera import Camera
-from models.capture import Capture
-from models.timelapse import Timelapse
-from schemas.camera import CameraCreate, CameraUpdate
+from models.camera_model import Camera
+from models.capture_model import Capture
+from models.timelapse_model import Timelapse
+from schemas.camera_schema import CameraCreate, CameraUpdate
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 
 class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):

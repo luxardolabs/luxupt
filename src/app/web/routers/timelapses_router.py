@@ -96,8 +96,9 @@ async def historical_timelapse_panel(
     the operator can see what dates are available for each camera before
     submitting a job.
     """
-    from web.routers.cameras_router import _resolve_protect_creds
     from protect_client import ProtectClient
+
+    from web.routers.cameras_router import _resolve_protect_creds
 
     cameras = await view_service.camera_service.get_active()
     yesterday = date.today() - timedelta(days=1)
@@ -229,6 +230,7 @@ async def create_historical_timelapse(
                 {"request": request, "success": False, "error": "End date cannot be in the future."},
             )
         min_lag_threshold = now_local - timedelta(seconds=60)
+
         # Build a per-day end_at_for helper: returns the effective end datetime for a given day
         def _end_at_for(day: date) -> datetime:
             candidate = datetime.combine(day, end_t).astimezone()
@@ -253,16 +255,17 @@ async def create_historical_timelapse(
                 {"request": request, "success": False, "error": "Camera not found."},
             )
         camera_safe_name = camera_info["safe_name"]
-        keep = (keep_images == "true")
-        force_recreate = (recreate_existing == "true")
+        keep = keep_images == "true"
+        force_recreate = recreate_existing == "true"
 
         created_jobs: list[str] = []
         skipped_days: list[str] = []  # for reporting
         recreated_jobs: list[str] = []  # job_ids we cancelled+deleted to re-run
 
         if output_mode == "combined":
+            from models.job_model import Job, JobStatus
             from sqlalchemy import select
-            from models.job import Job, JobStatus
+
             stmt = select(Job).where(
                 Job.camera_safe_name == camera_safe_name,
                 Job.interval == interval_int,

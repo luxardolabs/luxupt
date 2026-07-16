@@ -17,7 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from models.camera import Camera
+    from models.camera_model import Camera
 
 
 class Capture(Base, TimestampMixin):

@@ -1,7 +1,7 @@
 """Capture statistics service for analytics and statistics."""
 
 from crud import capture_crud
-from schemas.capture import CaptureStats
+from schemas.capture_schema import CaptureStats
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

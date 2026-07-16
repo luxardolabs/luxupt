@@ -27,9 +27,9 @@ from crud.fetch_settings_crud import fetch_settings_crud
 from crud.job_crud import job_crud
 from db.connection import async_session
 from logging_config import get_logger
-from models.job import Job, JobStatus
+from models.job_model import Job, JobStatus
 from protect_client import ProtectClient, ProtectRequestError
-from schemas.capture import CaptureCreate
+from schemas.capture_schema import CaptureCreate
 
 logger = get_logger(__name__)
 
@@ -178,8 +178,8 @@ async def run_historical_job(
     semaphore = asyncio.Semaphore(concurrency)
     completed = 0
     succeeded = 0
-    no_recording = 0   # HTTP 404 "Recording not found" — gap in Protect's storage
-    errors = 0         # everything else (auth, network, malformed response)
+    no_recording = 0  # HTTP 404 "Recording not found" — gap in Protect's storage
+    errors = 0  # everything else (auth, network, malformed response)
     completed_lock = asyncio.Lock()
     started = time_module.time()
 

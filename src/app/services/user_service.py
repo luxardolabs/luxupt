@@ -4,7 +4,7 @@ from typing import cast
 
 import config
 from crud.user_crud import user_crud
-from models.user import User
+from models.user_model import User
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 

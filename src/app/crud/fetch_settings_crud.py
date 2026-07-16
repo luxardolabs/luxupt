@@ -1,7 +1,7 @@
 """CRUD operations for FetchSettings model."""
 
-from models.fetch_settings import FetchSettings
-from schemas.fetch_settings import FetchSettingsUpdate
+from models.fetch_settings_model import FetchSettings
+from schemas.fetch_settings_schema import FetchSettingsUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

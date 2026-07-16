@@ -4,7 +4,7 @@ from typing import Any
 
 import config
 from crud import camera_crud
-from models.camera import Camera
+from models.camera_model import Camera
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

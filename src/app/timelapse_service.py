@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from models.scheduler_settings import SchedulerSettings
+    from models.scheduler_settings_model import SchedulerSettings
     from sqlalchemy.ext.asyncio import AsyncSession
 
 import config
@@ -23,7 +23,7 @@ from crud.fetch_settings_crud import fetch_settings_crud
 from crud.scheduler_settings_crud import scheduler_settings_crud
 from db.connection import async_session
 from logging_config import get_logger
-from models.timelapse import Timelapse
+from models.timelapse_model import Timelapse
 from services.capture_cleanup_service import CaptureCleanupService
 from sqlalchemy import text
 from utils import async_fs
@@ -754,9 +754,7 @@ class TimelapseService:
         if frame_files is not None:
             image_files = frame_files
         else:
-            image_files = await asyncio.to_thread(
-                lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}"))
-            )
+            image_files = await asyncio.to_thread(lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}")))
         total_frames = len(image_files)
 
         if total_frames == 0:
@@ -783,17 +781,24 @@ class TimelapseService:
 
             await asyncio.to_thread(_write_concat)
             input_args: list[str] = [
-                "-r", str(encoding_settings.frame_rate),
-                "-f", "concat",
-                "-safe", "0",
-                "-i", str(concat_file),
+                "-r",
+                str(encoding_settings.frame_rate),
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_file),
             ]
         else:
             input_pattern = str(images_path / f"{camera_name}_*.{image_format}")
             input_args = [
-                "-r", str(encoding_settings.frame_rate),
-                "-pattern_type", "glob",
-                "-i", input_pattern,
+                "-r",
+                str(encoding_settings.frame_rate),
+                "-pattern_type",
+                "glob",
+                "-i",
+                input_pattern,
             ]
 
         ffmpeg_command = [
@@ -1015,7 +1020,12 @@ class TimelapseService:
         if not all_frames or image_format is None:
             logger.info(
                 "Combined timelapse: no frames found in range",
-                extra={"camera": camera_name, "interval": interval, "start": start_date.isoformat(), "end": end_date.isoformat()},
+                extra={
+                    "camera": camera_name,
+                    "interval": interval,
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat(),
+                },
             )
             return None
 
@@ -1030,7 +1040,7 @@ class TimelapseService:
         range_label = f"{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
         # Job-id suffix prevents concurrent ffmpeg processes from writing to the same file
         # if a duplicate job slips through the upfront check.
-        job_short = (job_id[:8] if job_id else "x")
+        job_short = job_id[:8] if job_id else "x"
         output_filename = f"{camera_name}_{range_label}_{interval}s_{job_short}.mp4"
         output_path = videos_path / output_filename
 

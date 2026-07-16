@@ -1,14 +1,14 @@
 """SQLAlchemy models for the application."""
 
-from models.activity import Activity
-from models.backup_settings import BackupSettings
-from models.camera import Camera
-from models.capture import Capture
-from models.fetch_settings import FetchSettings
-from models.job import Job
-from models.scheduler_settings import SchedulerSettings
-from models.timelapse import Timelapse
-from models.user import User
+from models.activity_model import Activity
+from models.backup_settings_model import BackupSettings
+from models.camera_model import Camera
+from models.capture_model import Capture
+from models.fetch_settings_model import FetchSettings
+from models.job_model import Job
+from models.scheduler_settings_model import SchedulerSettings
+from models.timelapse_model import Timelapse
+from models.user_model import User
 
 __all__ = [
     "Activity",

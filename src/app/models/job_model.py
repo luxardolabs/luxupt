@@ -4,7 +4,17 @@ from datetime import date, datetime, time
 from uuid import uuid4
 
 from db.base import Base
-from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text, Time
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
+    Time,
+)
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 

@@ -1,6 +1,6 @@
 """CRUD operations for BackupSettings model."""
 
-from models.backup_settings import BackupSettings
+from models.backup_settings_model import BackupSettings
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

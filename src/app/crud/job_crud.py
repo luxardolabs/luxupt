@@ -3,12 +3,12 @@
 from datetime import date, datetime, time
 
 import config
-from models.job import Job, JobStatus
-from schemas.job import JobCreate, JobUpdate
+from models.job_model import Job, JobStatus
+from schemas.job_schema import JobCreate, JobUpdate
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from crud.base_crud import CRUDBase
 
 
 class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):

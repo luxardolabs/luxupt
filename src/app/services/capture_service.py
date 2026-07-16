@@ -5,8 +5,8 @@ from pathlib import Path
 
 import config
 from crud import activity_crud, camera_crud, capture_crud
-from models.capture import Capture
-from schemas.capture import CaptureCreate, CaptureStats
+from models.capture_model import Capture
+from schemas.capture_schema import CaptureCreate, CaptureStats
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils import async_fs
 
