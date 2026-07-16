@@ -21,7 +21,7 @@ from db.connection import async_session, init_db
 from logging_config import get_logger
 from models.activity_model import ActivityType
 from schemas.capture_schema import CaptureCreate
-from services.image_service import image_service
+from services.core.image_core_service import image_service
 
 # Module logger
 logger = get_logger(__name__)

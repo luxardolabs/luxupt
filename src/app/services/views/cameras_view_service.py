@@ -7,10 +7,10 @@ from camera_manager import CameraManager
 from logging_config import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from services.camera_service import CameraService
-from services.capture_service import CaptureService
-from services.capture_stats_service import CaptureStatsService
-from services.settings_service import SettingsService
+from services.core.camera_core_service import CameraCoreService
+from services.core.capture_core_service import CaptureCoreService
+from services.core.capture_stats_core_service import CaptureStatsCoreService
+from services.core.settings_core_service import SettingsCoreService
 
 logger = get_logger(__name__)
 
@@ -31,10 +31,10 @@ class CamerasViewService:
     def __init__(
         self,
         db: AsyncSession,
-        camera_service: CameraService,
-        capture_service: CaptureService,
-        capture_stats_service: CaptureStatsService,
-        settings_service: SettingsService,
+        camera_service: CameraCoreService,
+        capture_service: CaptureCoreService,
+        capture_stats_service: CaptureStatsCoreService,
+        settings_service: SettingsCoreService,
     ):
         """Initialize with services."""
         self.db = db

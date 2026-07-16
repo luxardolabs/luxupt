@@ -6,7 +6,7 @@ from datetime import date
 import config
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
-from services.image_service import image_service
+from services.core.image_core_service import image_service
 from utils import async_fs
 
 from web.auth import get_current_user

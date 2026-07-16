@@ -2,9 +2,9 @@
 
 from datetime import date
 
-from services.camera_service import CameraService
-from services.capture_cleanup_service import CaptureCleanupService
-from services.capture_service import CaptureService
+from services.core.camera_core_service import CameraCoreService
+from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
+from services.core.capture_core_service import CaptureCoreService
 
 
 class ImagesViewService:
@@ -12,9 +12,9 @@ class ImagesViewService:
 
     def __init__(
         self,
-        camera_service: CameraService,
-        capture_service: CaptureService,
-        cleanup_service: CaptureCleanupService,
+        camera_service: CameraCoreService,
+        capture_service: CaptureCoreService,
+        cleanup_service: CaptureCleanupCoreService,
     ):
         """Initialize with core services."""
         self.camera_service = camera_service

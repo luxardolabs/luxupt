@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class UserService:
+class UserCoreService:
     """Service for user management operations."""
 
     def __init__(self, db: AsyncSession):

@@ -3,7 +3,7 @@
 from logging_config import get_logger
 from models.user_model import User
 
-from services.user_service import UserService
+from services.core.user_core_service import UserCoreService
 
 logger = get_logger(__name__)
 
@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 class UsersViewService:
     """Prepares data and handles logic for user management pages."""
 
-    def __init__(self, user_service: UserService):
+    def __init__(self, user_service: UserCoreService):
         """Initialize with core user service."""
         self.user_service = user_service
 

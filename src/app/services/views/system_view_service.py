@@ -10,11 +10,11 @@ from datetime import datetime
 import config
 from db.connection import DATABASE_PATH
 
-from services.activity_service import ActivityService
-from services.camera_service import CameraService
-from services.capture_stats_service import CaptureStatsService
-from services.settings_service import SettingsService
-from services.timelapse_browser_service import TimelapseBrowserService
+from services.core.activity_core_service import ActivityCoreService
+from services.core.camera_core_service import CameraCoreService
+from services.core.capture_stats_core_service import CaptureStatsCoreService
+from services.core.settings_core_service import SettingsCoreService
+from services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
 
 
 class SystemViewService:
@@ -22,11 +22,11 @@ class SystemViewService:
 
     def __init__(
         self,
-        camera_service: CameraService,
-        capture_stats_service: CaptureStatsService,
-        timelapse_service: TimelapseBrowserService,
-        activity_service: ActivityService,
-        settings_service: SettingsService,
+        camera_service: CameraCoreService,
+        capture_stats_service: CaptureStatsCoreService,
+        timelapse_service: TimelapseBrowserCoreService,
+        activity_service: ActivityCoreService,
+        settings_service: SettingsCoreService,
     ):
         """Initialize with core services."""
         self.camera_service = camera_service

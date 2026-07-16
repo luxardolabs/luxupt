@@ -7,7 +7,7 @@ from schemas.activity_schema import ActivitySummary
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class ActivityService:
+class ActivityCoreService:
     """Service for activity log operations."""
 
     def __init__(self, db: AsyncSession):
@@ -102,6 +102,6 @@ class ActivityService:
         )
 
 
-async def get_activity_service(db: AsyncSession) -> ActivityService:
-    """Factory function to create ActivityService instance."""
-    return ActivityService(db)
+async def get_activity_service(db: AsyncSession) -> ActivityCoreService:
+    """Factory function to create ActivityCoreService instance."""
+    return ActivityCoreService(db)

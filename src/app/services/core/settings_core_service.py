@@ -12,7 +12,7 @@ from models.scheduler_settings_model import SchedulerSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class SettingsService:
+class SettingsCoreService:
     """Service for managing application settings."""
 
     def __init__(self, db: AsyncSession):
@@ -113,6 +113,6 @@ class SettingsService:
         return await backup_settings_crud.is_enabled(self.db)
 
 
-async def get_settings_service(db: AsyncSession) -> SettingsService:
-    """Factory function to create SettingsService instance."""
-    return SettingsService(db)
+async def get_settings_service(db: AsyncSession) -> SettingsCoreService:
+    """Factory function to create SettingsCoreService instance."""
+    return SettingsCoreService(db)

@@ -20,7 +20,7 @@ from PIL import Image
 logger = get_logger(__name__)
 
 
-class ImageService:
+class ImageCoreService:
     """Manages images and thumbnails asynchronously."""
 
     def __init__(self) -> None:
@@ -173,4 +173,4 @@ class ImageService:
 
 
 # Global instance
-image_service = ImageService()
+image_service = ImageCoreService()

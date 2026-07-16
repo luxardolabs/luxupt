@@ -5,7 +5,7 @@ from schemas.capture_schema import CaptureStats
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class CaptureStatsService:
+class CaptureStatsCoreService:
     """Service for capture statistics and analytics."""
 
     def __init__(self, db: AsyncSession):
@@ -106,6 +106,6 @@ class CaptureStatsService:
         return await capture_crud.get_stats(self.db)
 
 
-async def get_capture_stats_service(db: AsyncSession) -> CaptureStatsService:
-    """Factory function to create CaptureStatsService instance."""
-    return CaptureStatsService(db)
+async def get_capture_stats_service(db: AsyncSession) -> CaptureStatsCoreService:
+    """Factory function to create CaptureStatsCoreService instance."""
+    return CaptureStatsCoreService(db)

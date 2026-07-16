@@ -24,7 +24,7 @@ from crud.scheduler_settings_crud import scheduler_settings_crud
 from db.connection import async_session
 from logging_config import get_logger
 from models.timelapse_model import Timelapse
-from services.capture_cleanup_service import CaptureCleanupService
+from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from sqlalchemy import text
 from utils import async_fs
 
@@ -530,7 +530,7 @@ class TimelapseService:
         Uses the shared JobProcessor to ensure consistent behavior between
         scheduled and manual timelapse creation.
         """
-        from services.job_service import get_job_processor
+        from services.core.job_core_service import get_job_processor
 
         date_str = target_date.strftime("%Y-%m-%d")
         title = f"{camera_name}_{date_str}_{interval}s"
@@ -694,7 +694,7 @@ class TimelapseService:
                     # Resolve safe_name → camera_id (UUID) for DB queries
                     camera_obj = await camera_crud.get_by_safe_name(db, camera_name)
                     camera_id = camera_obj.camera_id if camera_obj else None
-                    cleanup_service = CaptureCleanupService(db)
+                    cleanup_service = CaptureCleanupCoreService(db)
                     result = await cleanup_service.delete_by_filters(
                         camera=camera_id,
                         capture_date=target_date.date(),

@@ -5,11 +5,11 @@ from pathlib import Path
 
 from models.job_model import Job
 
-from services.camera_service import CameraService
-from services.capture_service import CaptureService
-from services.job_service import JobService
-from services.settings_service import SettingsService
-from services.timelapse_browser_service import TimelapseBrowserService
+from services.core.camera_core_service import CameraCoreService
+from services.core.capture_core_service import CaptureCoreService
+from services.core.job_core_service import JobCoreService
+from services.core.settings_core_service import SettingsCoreService
+from services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
 
 
 class TimelapsesViewService:
@@ -17,11 +17,11 @@ class TimelapsesViewService:
 
     def __init__(
         self,
-        camera_service: CameraService,
-        capture_service: CaptureService,
-        timelapse_service: TimelapseBrowserService,
-        job_service: JobService,
-        settings_service: SettingsService,
+        camera_service: CameraCoreService,
+        capture_service: CaptureCoreService,
+        timelapse_service: TimelapseBrowserCoreService,
+        job_service: JobCoreService,
+        settings_service: SettingsCoreService,
     ):
         """Initialize with core services."""
         self.camera_service = camera_service

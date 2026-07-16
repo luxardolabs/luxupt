@@ -17,7 +17,7 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class MetricsService:
+class MetricsCoreService:
     """Service for generating Prometheus-format metrics."""
 
     def __init__(self, start_time: datetime | None = None):

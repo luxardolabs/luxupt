@@ -10,10 +10,10 @@ from schemas.capture_schema import CaptureCreate, CaptureStats
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils import async_fs
 
-from services.path_security import validate_image_path
+from services.core._path_security import validate_image_path
 
 
-class CaptureService:
+class CaptureCoreService:
     """Service for managing captures with database integration."""
 
     def __init__(self, db: AsyncSession):
@@ -321,6 +321,6 @@ class CaptureService:
         return await capture_crud.get_available_cameras(self.db)
 
 
-async def get_capture_service(db: AsyncSession) -> CaptureService:
-    """Factory function to create CaptureService instance."""
-    return CaptureService(db)
+async def get_capture_service(db: AsyncSession) -> CaptureCoreService:
+    """Factory function to create CaptureCoreService instance."""
+    return CaptureCoreService(db)

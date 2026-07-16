@@ -7,7 +7,7 @@ from db.connection import DbSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from logging_config import get_logger
-from services.job_service import get_job_processor
+from services.core.job_core_service import get_job_processor
 
 from web.auth import get_current_user
 from web.deps import TemplatesDep, TimelapsesViewDep

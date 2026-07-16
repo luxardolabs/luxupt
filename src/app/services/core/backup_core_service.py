@@ -13,18 +13,18 @@ from utils import async_fs
 logger = get_logger(__name__)
 
 
-class BackupService:
+class BackupCoreService:
     """Service for periodic database backups with retention management."""
 
     def __init__(self) -> None:
         self.running = False
         self._task: asyncio.Task | None = None
-        logger.info("BackupService initialized")
+        logger.info("BackupCoreService initialized")
 
     async def start(self) -> None:
         """Start the backup service loop."""
         self.running = True
-        logger.info("BackupService started")
+        logger.info("BackupCoreService started")
 
         while self.running:
             try:
@@ -48,10 +48,10 @@ class BackupService:
                 await asyncio.sleep(settings.interval)
 
             except asyncio.CancelledError:
-                logger.info("BackupService cancelled")
+                logger.info("BackupCoreService cancelled")
                 break
             except Exception as e:
-                logger.error("BackupService error", extra={"error": str(e)})
+                logger.error("BackupCoreService error", extra={"error": str(e)})
                 # Wait before retrying on error
                 await asyncio.sleep(60)
 
@@ -60,7 +60,7 @@ class BackupService:
         self.running = False
         if self._task and not self._task.done():
             self._task.cancel()
-        logger.info("BackupService stopped")
+        logger.info("BackupCoreService stopped")
 
     async def _create_backup(self, backup_dir: str) -> Path | None:
         """Create a database backup using SQLite's backup API.

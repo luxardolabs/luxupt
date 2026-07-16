@@ -8,7 +8,7 @@ from models.camera_model import Camera
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class CameraService:
+class CameraCoreService:
     """Service for camera management operations."""
 
     def __init__(self, db: AsyncSession):
@@ -115,6 +115,6 @@ class CameraService:
         return await camera_crud.delete_by_camera_id(self.db, camera_id)
 
 
-async def get_camera_service(db: AsyncSession) -> CameraService:
-    """Factory function to create CameraService instance."""
-    return CameraService(db)
+async def get_camera_service(db: AsyncSession) -> CameraCoreService:
+    """Factory function to create CameraCoreService instance."""
+    return CameraCoreService(db)

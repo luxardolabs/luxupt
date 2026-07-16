@@ -23,7 +23,7 @@ class HealthStatus:
     UNHEALTHY = "unhealthy"
 
 
-class HealthService:
+class HealthCoreService:
     """Service for performing health checks."""
 
     def __init__(self, camera_manager: Any = None):

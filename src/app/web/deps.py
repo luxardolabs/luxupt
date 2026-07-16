@@ -5,13 +5,16 @@ from typing import Annotated
 from db.connection import DbSession
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
-from services.activity_service import ActivityService
-from services.camera_service import CameraService
-from services.capture_cleanup_service import CaptureCleanupService
-from services.capture_service import CaptureService
-from services.capture_stats_service import CaptureStatsService
-from services.job_service import JobService
-from services.portal import (
+from services.core.activity_core_service import ActivityCoreService
+from services.core.camera_core_service import CameraCoreService
+from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
+from services.core.capture_core_service import CaptureCoreService
+from services.core.capture_stats_core_service import CaptureStatsCoreService
+from services.core.job_core_service import JobCoreService
+from services.core.settings_core_service import SettingsCoreService
+from services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
+from services.core.user_core_service import UserCoreService
+from services.views import (
     CamerasViewService,
     DashboardViewService,
     ImagesViewService,
@@ -19,67 +22,64 @@ from services.portal import (
     TimelapsesViewService,
     UsersViewService,
 )
-from services.settings_service import SettingsService
-from services.timelapse_browser_service import TimelapseBrowserService
-from services.user_service import UserService
 
 
 # Core service dependencies
-async def get_activity_service(db: DbSession) -> ActivityService:
+async def get_activity_service(db: DbSession) -> ActivityCoreService:
     """Get activity service instance."""
-    return ActivityService(db)
+    return ActivityCoreService(db)
 
 
-async def get_camera_service(db: DbSession) -> CameraService:
+async def get_camera_service(db: DbSession) -> CameraCoreService:
     """Get camera service instance."""
-    return CameraService(db)
+    return CameraCoreService(db)
 
 
-async def get_capture_service(db: DbSession) -> CaptureService:
+async def get_capture_service(db: DbSession) -> CaptureCoreService:
     """Get capture service instance."""
-    return CaptureService(db)
+    return CaptureCoreService(db)
 
 
-async def get_capture_stats_service(db: DbSession) -> CaptureStatsService:
+async def get_capture_stats_service(db: DbSession) -> CaptureStatsCoreService:
     """Get capture stats service instance."""
-    return CaptureStatsService(db)
+    return CaptureStatsCoreService(db)
 
 
-async def get_job_service(db: DbSession) -> JobService:
+async def get_job_service(db: DbSession) -> JobCoreService:
     """Get job service instance."""
-    return JobService(db)
+    return JobCoreService(db)
 
 
-async def get_settings_service(db: DbSession) -> SettingsService:
+async def get_settings_service(db: DbSession) -> SettingsCoreService:
     """Get settings service instance."""
-    return SettingsService(db)
+    return SettingsCoreService(db)
 
 
-async def get_timelapse_browser_service(db: DbSession) -> TimelapseBrowserService:
+async def get_timelapse_browser_service(db: DbSession) -> TimelapseBrowserCoreService:
     """Get timelapse browser service instance."""
-    return TimelapseBrowserService(db)
+    return TimelapseBrowserCoreService(db)
 
 
-async def get_capture_cleanup_service(db: DbSession) -> CaptureCleanupService:
+async def get_capture_cleanup_service(db: DbSession) -> CaptureCleanupCoreService:
     """Get capture cleanup service instance."""
-    return CaptureCleanupService(db)
+    return CaptureCleanupCoreService(db)
 
 
-async def get_user_service(db: DbSession) -> UserService:
+async def get_user_service(db: DbSession) -> UserCoreService:
     """Get user service instance."""
-    return UserService(db)
+    return UserCoreService(db)
 
 
 # Type aliases for dependency injection - Core services
-ActivityServiceDep = Annotated[ActivityService, Depends(get_activity_service)]
-CameraServiceDep = Annotated[CameraService, Depends(get_camera_service)]
-CaptureCleanupServiceDep = Annotated[CaptureCleanupService, Depends(get_capture_cleanup_service)]
-CaptureServiceDep = Annotated[CaptureService, Depends(get_capture_service)]
-CaptureStatsServiceDep = Annotated[CaptureStatsService, Depends(get_capture_stats_service)]
-JobServiceDep = Annotated[JobService, Depends(get_job_service)]
-SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
-TimelapseBrowserServiceDep = Annotated[TimelapseBrowserService, Depends(get_timelapse_browser_service)]
-UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+ActivityServiceDep = Annotated[ActivityCoreService, Depends(get_activity_service)]
+CameraServiceDep = Annotated[CameraCoreService, Depends(get_camera_service)]
+CaptureCleanupServiceDep = Annotated[CaptureCleanupCoreService, Depends(get_capture_cleanup_service)]
+CaptureServiceDep = Annotated[CaptureCoreService, Depends(get_capture_service)]
+CaptureStatsServiceDep = Annotated[CaptureStatsCoreService, Depends(get_capture_stats_service)]
+JobServiceDep = Annotated[JobCoreService, Depends(get_job_service)]
+SettingsServiceDep = Annotated[SettingsCoreService, Depends(get_settings_service)]
+TimelapseBrowserServiceDep = Annotated[TimelapseBrowserCoreService, Depends(get_timelapse_browser_service)]
+UserServiceDep = Annotated[UserCoreService, Depends(get_user_service)]
 
 
 # View service dependencies - each receives core services as dependencies

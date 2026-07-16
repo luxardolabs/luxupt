@@ -31,8 +31,8 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from logging_config import get_logger, setup_logging
-from services.health_service import HealthService, HealthStatus
-from services.metrics_service import MetricsService
+from services.core.health_core_service import HealthCoreService, HealthStatus
+from services.core.metrics_core_service import MetricsCoreService
 
 from .auth import get_current_user
 from .middleware import (
@@ -203,7 +203,7 @@ setup_logging()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifespan."""
     from fetch_service import FetchService
-    from services.backup_service import BackupService
+    from services.core.backup_core_service import BackupCoreService
     from timelapse_service import TimelapseService
 
     # Startup
@@ -254,7 +254,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     tasks.append(_create_monitored_task(timelapse_service.start(), "timelapse_service"))
 
     logger.info("Starting backup service")
-    backup_service = BackupService()
+    backup_service = BackupCoreService()
     tasks.append(_create_monitored_task(backup_service.start(), "backup_service"))
 
     yield
@@ -440,7 +440,7 @@ app = create_app()
 async def health_check(request: Request) -> JSONResponse:
     """Comprehensive health check endpoint."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
-    health_service = HealthService(camera_manager=camera_manager)
+    health_service = HealthCoreService(camera_manager=camera_manager)
 
     async for db in get_db():
         health_status = await health_service.get_health_status(db)
@@ -458,7 +458,7 @@ async def health_check(request: Request) -> JSONResponse:
 @app.get("/health/live")
 async def liveness_check() -> dict[str, str]:
     """Kubernetes liveness probe endpoint."""
-    health_service = HealthService()
+    health_service = HealthCoreService()
     return await health_service.get_liveness()
 
 
@@ -466,7 +466,7 @@ async def liveness_check() -> dict[str, str]:
 async def readiness_check(request: Request) -> JSONResponse:
     """Kubernetes readiness probe endpoint."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
-    health_service = HealthService(camera_manager=camera_manager)
+    health_service = HealthCoreService(camera_manager=camera_manager)
 
     async for db in get_db():
         readiness = await health_service.get_readiness(db)
@@ -481,7 +481,7 @@ async def readiness_check(request: Request) -> JSONResponse:
 async def prometheus_metrics(request: Request) -> PlainTextResponse:
     """Prometheus metrics endpoint."""
     start_time = getattr(request.app.state, "start_time", datetime.now())
-    metrics_service = MetricsService(start_time=start_time)
+    metrics_service = MetricsCoreService(start_time=start_time)
 
     async for db in get_db():
         metrics = await metrics_service.get_all_metrics(db)

@@ -22,7 +22,7 @@ from utils import async_fs
 logger = get_logger(__name__)
 
 
-class JobService:
+class JobCoreService:
     """Service for timelapse job management."""
 
     def __init__(self, db: AsyncSession):
@@ -184,9 +184,9 @@ class JobService:
         return await job_crud.get_summary(self.db)
 
 
-async def get_job_service(db: AsyncSession) -> JobService:
-    """Factory function to create JobService instance."""
-    return JobService(db)
+async def get_job_service(db: AsyncSession) -> JobCoreService:
+    """Factory function to create JobCoreService instance."""
+    return JobCoreService(db)
 
 
 # =============================================================================
@@ -315,7 +315,7 @@ class JobProcessor:
                 # first, then fall through to assembly. The assembly branch picks the
                 # right method based on job_type further down.
                 if job_obj.job_type in ("historical", "historical_combined"):
-                    from services.historical_fetch_service import (
+                    from services.core.historical_fetch_core_service import (
                         HistoricalJobCanceled,
                         run_historical_job,
                     )

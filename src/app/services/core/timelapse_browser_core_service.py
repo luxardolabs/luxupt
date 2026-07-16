@@ -11,10 +11,10 @@ from schemas.timelapse_schema import TimelapseStats
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils import async_fs
 
-from services.path_security import validate_video_path
+from services.core._path_security import validate_video_path
 
 
-class TimelapseBrowserService:
+class TimelapseBrowserCoreService:
     """Service for browsing and accessing timelapse videos."""
 
     def __init__(self, db: AsyncSession):
@@ -219,6 +219,6 @@ class TimelapseBrowserService:
         return True
 
 
-async def get_timelapse_browser_service(db: AsyncSession) -> TimelapseBrowserService:
-    """Factory function to create TimelapseBrowserService instance."""
-    return TimelapseBrowserService(db)
+async def get_timelapse_browser_service(db: AsyncSession) -> TimelapseBrowserCoreService:
+    """Factory function to create TimelapseBrowserCoreService instance."""
+    return TimelapseBrowserCoreService(db)

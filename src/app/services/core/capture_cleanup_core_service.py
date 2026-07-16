@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = get_logger(__name__)
 
 
-class CaptureCleanupService:
+class CaptureCleanupCoreService:
     """Handles cleanup of captures including files, thumbnails, and DB records."""
 
     def __init__(self, db: AsyncSession):
@@ -201,6 +201,6 @@ class CaptureCleanupService:
         }
 
 
-async def get_capture_cleanup_service(db: AsyncSession) -> CaptureCleanupService:
-    """Factory function to create CaptureCleanupService instance."""
-    return CaptureCleanupService(db)
+async def get_capture_cleanup_service(db: AsyncSession) -> CaptureCleanupCoreService:
+    """Factory function to create CaptureCleanupCoreService instance."""
+    return CaptureCleanupCoreService(db)
