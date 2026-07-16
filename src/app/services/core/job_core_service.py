@@ -316,12 +316,12 @@ class JobProcessor:
                 # right method based on job_type further down.
                 if job_obj.job_type in ("historical", "historical_combined"):
                     from services.core.historical_fetch_core_service import (
+                        HistoricalFetchCoreService,
                         HistoricalJobCanceled,
-                        run_historical_job,
                     )
 
                     try:
-                        result = await run_historical_job(job_obj)
+                        result = await HistoricalFetchCoreService().run_historical_job(job_obj)
                     except HistoricalJobCanceled:
                         logger.info("Historical job canceled", extra={"job_id": job_id})
                         return

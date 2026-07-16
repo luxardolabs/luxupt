@@ -120,192 +120,196 @@ class HistoricalJobCanceled(RuntimeError):
     pass
 
 
-async def run_historical_job(
-    job: Job,
-    *,
-    concurrency: int = DEFAULT_CONCURRENCY,
-) -> HistoricalFetchResult:
-    """Fetch all historical frames for a Job and write them to the image tree.
+class HistoricalFetchCoreService:
+    """Drives Job(job_type='historical'): fetches all frames for a job into the image tree."""
 
-    Does NOT render video — the caller (JobProcessor) invokes
-    TimelapseService._create_video() afterwards.
-    """
-    if job.job_type not in ("historical", "historical_combined"):
-        raise ValueError(f"run_historical_job called on job_type={job.job_type!r}")
-    if job.start_at is None or job.end_at is None:
-        raise ValueError(f"historical job {job.job_id} missing start_at/end_at")
-    if job.end_at <= job.start_at:
-        raise ValueError(f"historical job {job.job_id} has end_at <= start_at")
+    async def run_historical_job(
+        self,
+        job: Job,
+        *,
+        concurrency: int = DEFAULT_CONCURRENCY,
+    ) -> HistoricalFetchResult:
+        """Fetch all historical frames for a Job and write them to the image tree.
 
-    # Reject ranges that overlap the recording-write-lag window
-    cutoff = datetime.now(tz=job.end_at.tzinfo) - timedelta(seconds=MIN_RECORDING_LAG_SECONDS)
-    if job.end_at > cutoff:
-        raise ValueError(
-            f"historical job end_at must be at least {MIN_RECORDING_LAG_SECONDS}s in the past "
-            f"(recording-snapshot can 404 on too-recent timestamps)"
+        Does NOT render video — the caller (JobProcessor) invokes
+        TimelapseService._create_video() afterwards.
+        """
+        if job.job_type not in ("historical", "historical_combined"):
+            raise ValueError(f"run_historical_job called on job_type={job.job_type!r}")
+        if job.start_at is None or job.end_at is None:
+            raise ValueError(f"historical job {job.job_id} missing start_at/end_at")
+        if job.end_at <= job.start_at:
+            raise ValueError(f"historical job {job.job_id} has end_at <= start_at")
+
+        # Reject ranges that overlap the recording-write-lag window
+        cutoff = datetime.now(tz=job.end_at.tzinfo) - timedelta(seconds=MIN_RECORDING_LAG_SECONDS)
+        if job.end_at > cutoff:
+            raise ValueError(
+                f"historical job end_at must be at least {MIN_RECORDING_LAG_SECONDS}s in the past "
+                f"(recording-snapshot can 404 on too-recent timestamps)"
+            )
+
+        # Look up the camera (need camera_id for Protect, camera.id for capture row)
+        async with async_session() as session:
+            camera = await camera_crud.get_by_safe_name(session, job.camera_safe_name)
+        if camera is None:
+            raise ValueError(f"camera {job.camera_safe_name!r} not found")
+
+        timestamps = _expand_timestamps(
+            start_at=job.start_at,
+            end_at=job.end_at,
+            interval_seconds=job.interval,
+            daily_start=job.daily_window_start,
+            daily_end=job.daily_window_end,
         )
+        if not timestamps:
+            raise ValueError(f"historical job {job.job_id} produced 0 timestamps")
 
-    # Look up the camera (need camera_id for Protect, camera.id for capture row)
-    async with async_session() as session:
-        camera = await camera_crud.get_by_safe_name(session, job.camera_safe_name)
-    if camera is None:
-        raise ValueError(f"camera {job.camera_safe_name!r} not found")
+        # Update the job's frame counts so the UI shows expected total
+        async with async_session() as session:
+            await job_crud.update_progress(
+                session,
+                job.job_id,
+                progress=0.0,
+                message=f"Fetching {len(timestamps)} frames from Protect…",
+            )
+            await session.commit()
 
-    timestamps = _expand_timestamps(
-        start_at=job.start_at,
-        end_at=job.end_at,
-        interval_seconds=job.interval,
-        daily_start=job.daily_window_start,
-        daily_end=job.daily_window_end,
-    )
-    if not timestamps:
-        raise ValueError(f"historical job {job.job_id} produced 0 timestamps")
+        base_url, username, password, verify_ssl = await _resolve_protect_creds()
+        if not (base_url and username and password):
+            raise RuntimeError("Protect credentials (base_url + username + password) are not configured")
 
-    # Update the job's frame counts so the UI shows expected total
-    async with async_session() as session:
-        await job_crud.update_progress(
-            session,
-            job.job_id,
-            progress=0.0,
-            message=f"Fetching {len(timestamps)} frames from Protect…",
-        )
-        await session.commit()
+        semaphore = asyncio.Semaphore(concurrency)
+        completed = 0
+        succeeded = 0
+        no_recording = 0  # HTTP 404 "Recording not found" — gap in Protect's storage
+        errors = 0  # everything else (auth, network, malformed response)
+        completed_lock = asyncio.Lock()
+        started = time_module.time()
 
-    base_url, username, password, verify_ssl = await _resolve_protect_creds()
-    if not (base_url and username and password):
-        raise RuntimeError("Protect credentials (base_url + username + password) are not configured")
+        async with ProtectClient(
+            base_url=base_url,
+            username=username,
+            password=password,
+            verify_ssl=verify_ssl,
+        ) as pc:
 
-    semaphore = asyncio.Semaphore(concurrency)
-    completed = 0
-    succeeded = 0
-    no_recording = 0  # HTTP 404 "Recording not found" — gap in Protect's storage
-    errors = 0  # everything else (auth, network, malformed response)
-    completed_lock = asyncio.Lock()
-    started = time_module.time()
+            async def fetch_one(ts: datetime) -> None:
+                nonlocal completed, succeeded, no_recording, errors
+                async with semaphore:
+                    if await _is_canceled(job.job_id):
+                        raise HistoricalJobCanceled()
 
-    async with ProtectClient(
-        base_url=base_url,
-        username=username,
-        password=password,
-        verify_ssl=verify_ssl,
-    ) as pc:
+                    path = _frame_path(job.camera_safe_name, job.interval, ts)
+                    path.parent.mkdir(parents=True, exist_ok=True)
 
-        async def fetch_one(ts: datetime) -> None:
-            nonlocal completed, succeeded, no_recording, errors
-            async with semaphore:
-                if await _is_canceled(job.job_id):
-                    raise HistoricalJobCanceled()
-
-                path = _frame_path(job.camera_safe_name, job.interval, ts)
-                path.parent.mkdir(parents=True, exist_ok=True)
-
-                fetch_start = time_module.time()
-                status = "success"
-                failure_kind: str | None = None  # "no_recording" | "error"
-                error_msg: str | None = None
-                file_size: int | None = None
-                try:
-                    jpg = await pc.historical_snapshot(camera.camera_id, ts)
-                    path.write_bytes(jpg)
-                    file_size = len(jpg)
-                except ProtectRequestError as e:
-                    status = "failed"
-                    err_str = str(e)
-                    # Protect returns HTTP 404 "Recording not found" for timestamps that
-                    # fall in a gap (camera offline, not recording, etc). That's not an
-                    # error per se — track separately so the UI can be honest about it.
-                    if "404" in err_str and "Recording not found" in err_str:
-                        failure_kind = "no_recording"
-                    else:
+                    fetch_start = time_module.time()
+                    status = "success"
+                    failure_kind: str | None = None  # "no_recording" | "error"
+                    error_msg: str | None = None
+                    file_size: int | None = None
+                    try:
+                        jpg = await pc.historical_snapshot(camera.camera_id, ts)
+                        path.write_bytes(jpg)
+                        file_size = len(jpg)
+                    except ProtectRequestError as e:
+                        status = "failed"
+                        err_str = str(e)
+                        # Protect returns HTTP 404 "Recording not found" for timestamps that
+                        # fall in a gap (camera offline, not recording, etc). That's not an
+                        # error per se — track separately so the UI can be honest about it.
+                        if "404" in err_str and "Recording not found" in err_str:
+                            failure_kind = "no_recording"
+                        else:
+                            failure_kind = "error"
+                        error_msg = err_str[:500]
+                    except Exception as e:
+                        status = "failed"
                         failure_kind = "error"
-                    error_msg = err_str[:500]
-                except Exception as e:
-                    status = "failed"
-                    failure_kind = "error"
-                    error_msg = f"{type(e).__name__}: {str(e)[:500]}"
+                        error_msg = f"{type(e).__name__}: {str(e)[:500]}"
 
-                # Record capture row
-                try:
-                    async with async_session() as session:
-                        await capture_crud.create(
-                            session,
-                            obj_in=CaptureCreate(
-                                camera_db_id=camera.id,
-                                camera_id=camera.camera_id,
-                                camera_safe_name=job.camera_safe_name,
-                                timestamp=int(ts.timestamp()),
-                                capture_datetime=ts,
-                                capture_date=ts.date(),
-                                interval=job.interval,
-                                status=status,
-                                capture_method="protect_historical",
-                                file_path=str(path) if status == "success" else None,
-                                file_name=path.name if status == "success" else None,
-                                file_size=file_size,
-                                error_message=error_msg,
-                                capture_duration_ms=int((time_module.time() - fetch_start) * 1000),
-                            ),
+                    # Record capture row
+                    try:
+                        async with async_session() as session:
+                            await capture_crud.create(
+                                session,
+                                obj_in=CaptureCreate(
+                                    camera_db_id=camera.id,
+                                    camera_id=camera.camera_id,
+                                    camera_safe_name=job.camera_safe_name,
+                                    timestamp=int(ts.timestamp()),
+                                    capture_datetime=ts,
+                                    capture_date=ts.date(),
+                                    interval=job.interval,
+                                    status=status,
+                                    capture_method="protect_historical",
+                                    file_path=str(path) if status == "success" else None,
+                                    file_name=path.name if status == "success" else None,
+                                    file_size=file_size,
+                                    error_message=error_msg,
+                                    capture_duration_ms=int((time_module.time() - fetch_start) * 1000),
+                                ),
+                            )
+                            await session.commit()
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to record capture row",
+                            extra={"job_id": job.job_id, "ts": ts.isoformat(), "error": str(e)},
                         )
-                        await session.commit()
-                except Exception as e:
-                    logger.warning(
-                        "Failed to record capture row",
-                        extra={"job_id": job.job_id, "ts": ts.isoformat(), "error": str(e)},
-                    )
 
-                async with completed_lock:
-                    completed += 1
-                    if status == "success":
-                        succeeded += 1
-                    elif failure_kind == "no_recording":
-                        no_recording += 1
-                    else:
-                        errors += 1
+                    async with completed_lock:
+                        completed += 1
+                        if status == "success":
+                            succeeded += 1
+                        elif failure_kind == "no_recording":
+                            no_recording += 1
+                        else:
+                            errors += 1
 
-                    # Throttled progress writes: every ~5 frames or every 10%
-                    if completed % max(1, len(timestamps) // 20) == 0 or completed == len(timestamps):
-                        parts = [f"{succeeded} ok"]
-                        if no_recording:
-                            parts.append(f"{no_recording} no-recording")
-                        if errors:
-                            parts.append(f"{errors} errors")
-                        try:
-                            async with async_session() as session:
-                                await job_crud.update_progress(
-                                    session,
-                                    job.job_id,
-                                    progress=(completed / len(timestamps)) * 100.0,
-                                    message=f"Fetched {completed}/{len(timestamps)} ({', '.join(parts)})",
-                                    current_image=str(path),
-                                )
-                                await session.commit()
-                        except Exception as e:
-                            logger.debug("Progress update failed", extra={"error": str(e)})
+                        # Throttled progress writes: every ~5 frames or every 10%
+                        if completed % max(1, len(timestamps) // 20) == 0 or completed == len(timestamps):
+                            parts = [f"{succeeded} ok"]
+                            if no_recording:
+                                parts.append(f"{no_recording} no-recording")
+                            if errors:
+                                parts.append(f"{errors} errors")
+                            try:
+                                async with async_session() as session:
+                                    await job_crud.update_progress(
+                                        session,
+                                        job.job_id,
+                                        progress=(completed / len(timestamps)) * 100.0,
+                                        message=f"Fetched {completed}/{len(timestamps)} ({', '.join(parts)})",
+                                        current_image=str(path),
+                                    )
+                                    await session.commit()
+                            except Exception as e:
+                                logger.debug("Progress update failed", extra={"error": str(e)})
 
-        try:
-            await asyncio.gather(*(fetch_one(ts) for ts in timestamps))
-        except HistoricalJobCanceled:
-            logger.info("Historical job canceled mid-flight", extra={"job_id": job.job_id})
-            raise
+            try:
+                await asyncio.gather(*(fetch_one(ts) for ts in timestamps))
+            except HistoricalJobCanceled:
+                logger.info("Historical job canceled mid-flight", extra={"job_id": job.job_id})
+                raise
 
-    elapsed = time_module.time() - started
-    logger.info(
-        "Historical fetch complete",
-        extra={
-            "job_id": job.job_id,
-            "camera": job.camera_safe_name,
-            "frames": len(timestamps),
-            "succeeded": succeeded,
-            "no_recording": no_recording,
-            "errors": errors,
-            "elapsed_seconds": round(elapsed, 1),
-        },
-    )
+        elapsed = time_module.time() - started
+        logger.info(
+            "Historical fetch complete",
+            extra={
+                "job_id": job.job_id,
+                "camera": job.camera_safe_name,
+                "frames": len(timestamps),
+                "succeeded": succeeded,
+                "no_recording": no_recording,
+                "errors": errors,
+                "elapsed_seconds": round(elapsed, 1),
+            },
+        )
 
-    return HistoricalFetchResult(
-        frames_attempted=len(timestamps),
-        frames_succeeded=succeeded,
-        no_recording=no_recording,
-        errors=errors,
-        elapsed_seconds=elapsed,
-    )
+        return HistoricalFetchResult(
+            frames_attempted=len(timestamps),
+            frames_succeeded=succeeded,
+            no_recording=no_recording,
+            errors=errors,
+            elapsed_seconds=elapsed,
+        )
