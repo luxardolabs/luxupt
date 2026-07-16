@@ -1,6 +1,6 @@
 """Timelapses view service for preparing timelapse template data."""
 
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from models.job_model import Job
@@ -29,6 +29,17 @@ class TimelapsesViewService:
         self.timelapse_service = timelapse_service
         self.job_service = job_service
         self.settings_service = settings_service
+
+    def end_at_for(self, day: date, end_t: time, now_local: datetime, lag_seconds: int = 60) -> datetime:
+        """Effective end datetime for a day: clamp to the recording-lag threshold when the day is today.
+
+        Protect's recording-snapshot endpoint 404s on too-recent timestamps, so an end time
+        that lands within `lag_seconds` of now is pulled back to now - lag_seconds.
+        """
+        candidate = datetime.combine(day, end_t).astimezone()
+        if day == now_local.date():
+            return min(candidate, now_local - timedelta(seconds=lag_seconds))
+        return candidate
 
     async def get_camera_info(self, camera_id: str) -> dict | None:
         """Look up camera by ID to get safe_name and other info.

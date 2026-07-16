@@ -1,3 +1,17 @@
 [[target]]
 kind = "fastapi-web"
 app = "src/app"
+
+[allowlist]
+# Transaction owners (fw.no_redundant_commit) — owner-declared 2026-07-16, LUXUPT-30.
+# luxupt is a hybrid: alongside the FastAPI monitor it runs long-lived worker loops
+# (camera fetch + timelapse render) with no request scope; each owns its sessions.
+non_request_files = [
+  "app/db/connection.py",                                # get_db() itself — the request-scope owner
+  "app/cli.py",                                          # CLI entry: one-shot commands own their session
+  "app/fetch_service.py",                                # worker loop: periodic snapshot capture
+  "app/timelapse_service.py",                            # worker loop: ffmpeg render pipeline
+  "app/services/core/job_core_service.py",               # JobProcessor: background job state machine
+  "app/services/core/historical_fetch_core_service.py",  # background job: historical frame fetch
+  "app/web/main.py",                                     # lifespan startup/shutdown, pre-request
+]

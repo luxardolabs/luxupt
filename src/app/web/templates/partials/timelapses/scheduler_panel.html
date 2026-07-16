@@ -167,8 +167,8 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Pixel Format</label>
-                            <select name="pixel_format"
+                            <label for="scheduler-pixel-format" class="block text-xs font-medium text-surface-200 mb-1">Pixel Format</label>
+                            <select id="scheduler-pixel-format" name="pixel_format"
                                     class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                                 <option value="yuv420p" {{ 'selected' if settings.pixel_format == 'yuv420p' }}>yuv420p</option>
                                 <option value="yuv444p" {{ 'selected' if settings.pixel_format == 'yuv444p' }}>yuv444p</option>
@@ -177,8 +177,8 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Preset</label>
-                        <select name="preset"
+                        <label for="scheduler-preset" class="block text-xs font-medium text-surface-200 mb-1">Preset</label>
+                        <select id="scheduler-preset" name="preset"
                                 class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                             <option value="ultrafast" {{ 'selected' if settings.preset == 'ultrafast' }}>Ultrafast (largest file)</option>
                             <option value="superfast" {{ 'selected' if settings.preset == 'superfast' }}>Superfast</option>

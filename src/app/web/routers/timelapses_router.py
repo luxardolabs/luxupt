@@ -229,16 +229,9 @@ async def create_historical_timelapse(
                 "partials/timelapses/create_result.html",
                 {"request": request, "success": False, "error": "End date cannot be in the future."},
             )
-        min_lag_threshold = now_local - timedelta(seconds=60)
-
-        # Build a per-day end_at_for helper: returns the effective end datetime for a given day
-        def _end_at_for(day: date) -> datetime:
-            candidate = datetime.combine(day, end_t).astimezone()
-            return min(candidate, min_lag_threshold) if day == now_local.date() else candidate
-
         # If end_t for the actual end_d already lands in the past, fine. If end_d is today
-        # and end_t pushes into the future, _end_at_for will clamp to min_lag_threshold.
-        if _end_at_for(end_d) <= datetime.combine(start_d, start_t).astimezone():
+        # and end_t pushes into the future, end_at_for will clamp to the recording-lag threshold.
+        if view_service.end_at_for(end_d, end_t, now_local) <= datetime.combine(start_d, start_t).astimezone():
             return templates.TemplateResponse(
                 "partials/timelapses/create_result.html",
                 {
@@ -271,8 +264,8 @@ async def create_historical_timelapse(
                 Job.interval == interval_int,
                 Job.job_type == "historical_combined",
                 Job.start_at == datetime.combine(start_d, start_t).astimezone(),
-                Job.end_at >= _end_at_for(end_d) - timedelta(seconds=120),
-                Job.end_at <= _end_at_for(end_d) + timedelta(seconds=120),
+                Job.end_at >= view_service.end_at_for(end_d, end_t, now_local) - timedelta(seconds=120),
+                Job.end_at <= view_service.end_at_for(end_d, end_t, now_local) + timedelta(seconds=120),
                 Job.status.in_([JobStatus.PENDING, JobStatus.RUNNING]),
             )
             result = await db.execute(stmt)
@@ -295,7 +288,7 @@ async def create_historical_timelapse(
 
             # One job spanning the full range
             start_at = datetime.combine(start_d, start_t).astimezone()
-            end_at = _end_at_for(end_d)
+            end_at = view_service.end_at_for(end_d, end_t, now_local)
             range_label = f"{start_d.isoformat()}_to_{end_d.isoformat()}"
             title = f"{camera_safe_name}_{range_label}_{interval_int}s_historical_combined"
             job = await view_service.job_service.create(
@@ -334,7 +327,7 @@ async def create_historical_timelapse(
                         await db.commit()
                         recreated_jobs.append(existing_job.job_id)
                 start_at = datetime.combine(day, start_t).astimezone()
-                end_at = _end_at_for(day)
+                end_at = view_service.end_at_for(day, end_t, now_local)
                 # Skip days whose end clamps to before/equal-to start (e.g., today before 00:01)
                 if end_at <= start_at:
                     day += timedelta(days=1)
