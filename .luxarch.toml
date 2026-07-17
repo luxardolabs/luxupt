@@ -2,7 +2,27 @@
 kind = "fastapi-web"
 app = "src/app"
 
+[enums]
+declared = [
+  "ActivityType", "CaptureMethod", "CaptureStatus",
+  "JobStatus", "JobType", "TimelapseStatus",
+]
+
 [allowlist]
+# Vendor pass-through fields (ADR-001 "external identifier" case): these values come
+# verbatim from the UniFi Protect API (camera_data["state"|"videoMode"|"hdrType"]) —
+# Ubiquiti controls the set and can extend it in any firmware release; the app only
+# stores and displays them, never branches on members beyond state == "CONNECTED".
+enum_freetext_columns = [
+  { path = "app/models/camera_model.py", column = "state", evidence = "Protect API camera state, vendor-defined set (only CONNECTED is tested; unknown states must not be rejected)" },
+  { path = "app/models/camera_model.py", column = "video_mode", evidence = "Protect API videoMode, vendor-defined set, stored/displayed only" },
+  { path = "app/models/camera_model.py", column = "hdr_type", evidence = "Protect API hdrType, vendor-defined set, stored/displayed only" },
+]
+enum_dto_freetext = [
+  { path = "app/schemas/camera_schema.py", field = "state", evidence = "mirrors Camera.state vendor pass-through (see enum_freetext_columns)" },
+  { path = "app/schemas/camera_schema.py", field = "video_mode", evidence = "mirrors Camera.video_mode vendor pass-through" },
+  { path = "app/schemas/camera_schema.py", field = "hdr_type", evidence = "mirrors Camera.hdr_type vendor pass-through" },
+]
 # Transaction owners (fw.no_redundant_commit) — owner-declared 2026-07-16, LUXUPT-30.
 # luxupt is a hybrid: alongside the FastAPI monitor it runs long-lived worker loops
 # (camera fetch + timelapse render) with no request scope; each owns its sessions.

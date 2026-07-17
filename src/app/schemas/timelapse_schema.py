@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 
+from models.enum_model import TimelapseStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,13 +26,13 @@ class TimelapseCreate(TimelapseBase):
     file_name: str | None = Field(default=None, max_length=255)
     file_size: int | None = None
     resolution: str | None = Field(default=None, max_length=32)
-    status: str = Field(default="pending", max_length=32)
+    status: TimelapseStatus = TimelapseStatus.PENDING
 
 
 class TimelapseUpdate(BaseModel):
     """Schema for updating a Timelapse."""
 
-    status: str | None = Field(default=None, max_length=32)
+    status: TimelapseStatus | None = None
     error_message: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
@@ -53,7 +54,7 @@ class TimelapseRead(TimelapseBase):
     file_name: str | None = None
     file_size: int | None = None
     resolution: str | None = None
-    status: str
+    status: TimelapseStatus
     error_message: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
@@ -68,7 +69,7 @@ class TimelapseFilters(BaseModel):
     camera: str | None = Field(default=None, max_length=255)
     filter_date: date | None = None
     interval: int | None = None
-    status: str | None = Field(default=None, max_length=32)
+    status: TimelapseStatus | None = None
     page: int = 1
     per_page: int = 50
 

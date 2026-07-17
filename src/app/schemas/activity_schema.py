@@ -3,13 +3,14 @@
 from datetime import datetime
 
 import config
+from models.enum_model import ActivityType
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class ActivityBase(BaseModel):
     """Base schema for Activity data."""
 
-    activity_type: str = Field(..., max_length=64)
+    activity_type: ActivityType
     message: str
     camera_id: str | None = Field(default=None, max_length=64)
     camera_safe_name: str | None = Field(default=None, max_length=255)
@@ -35,7 +36,7 @@ class ActivityRead(ActivityBase):
 class ActivityFilters(BaseModel):
     """Schema for activity filtering parameters."""
 
-    activity_type: str | None = Field(default=None, max_length=64)
+    activity_type: ActivityType | None = None
     camera_id: str | None = Field(default=None, max_length=64)
     since: datetime | None = None
     limit: int = config.DEFAULT_PAGE_SIZE

@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 
+from models.enum_model import CaptureMethod, CaptureStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -14,8 +15,8 @@ class CaptureBase(BaseModel):
     capture_datetime: datetime
     capture_date: date
     interval: int
-    status: str = Field(default="success", max_length=32)
-    capture_method: str | None = Field(default=None, max_length=32)
+    status: CaptureStatus = CaptureStatus.SUCCESS
+    capture_method: CaptureMethod | None = None
 
 
 class CaptureCreate(CaptureBase):
@@ -51,7 +52,7 @@ class CaptureFilters(BaseModel):
     camera: str | None = Field(default=None, max_length=255)
     filter_date: date | None = None
     interval: int | None = None
-    status: str | None = Field(default=None, max_length=32)
+    status: CaptureStatus | None = None
     page: int = 1
     per_page: int = 100
 

@@ -17,6 +17,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from models.enum_model import TimelapseStatus, str_enum
+
 if TYPE_CHECKING:
     from models.camera_model import Camera
 
@@ -52,7 +54,9 @@ class Timelapse(Base, TimestampMixin):
     thumbnail_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Status tracking
-    status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False, index=True)
+    status: Mapped[TimelapseStatus] = mapped_column(
+        str_enum(TimelapseStatus), default=TimelapseStatus.PENDING, nullable=False, index=True
+    )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Processing metadata

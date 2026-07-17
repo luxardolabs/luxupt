@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta
 
 import config
-from models.activity_model import Activity, ActivityType
+from models.activity_model import Activity
+from models.enum_model import ActivityType
 from pydantic import BaseModel
 from schemas.activity_schema import ActivityCreate, ActivitySummary
 from sqlalchemy import case, delete, func, select

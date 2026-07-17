@@ -5,6 +5,8 @@ from sqlalchemy import Boolean, Float, Integer, String
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
+from models.enum_model import CaptureMethod, str_enum
+
 
 class FetchSettings(Base, TimestampMixin):
     """Singleton model for global fetch/capture settings."""
@@ -22,7 +24,9 @@ class FetchSettings(Base, TimestampMixin):
     intervals: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     # Default capture method for new cameras ("auto", "api", "rtsp")
-    default_capture_method: Mapped[str] = mapped_column(String(16), default="auto", nullable=False)
+    default_capture_method: Mapped[CaptureMethod] = mapped_column(
+        str_enum(CaptureMethod), default=CaptureMethod.AUTO, nullable=False
+    )
 
     # Default RTSP quality for new cameras ("high", "medium", "low")
     default_rtsp_quality: Mapped[str] = mapped_column(String(16), default="high", nullable=False)

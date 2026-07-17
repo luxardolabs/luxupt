@@ -7,6 +7,8 @@ import config
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse
 from logging_config import get_logger
+from models.enum_model import ActivityType
+from schemas.base_schema import EmptyStrToNone
 
 from web.auth import get_current_user
 from web.deps import SystemViewDep, TemplatesDep, UsersViewDep
@@ -54,7 +56,7 @@ async def activity_log_page(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    activity_type: str | None = Query(None),
+    activity_type: Annotated[ActivityType | None, EmptyStrToNone] = Query(None),
     camera_id: str | None = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     user: str = Depends(get_current_user),
@@ -93,7 +95,7 @@ async def activity_feed_partial(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    activity_type: str | None = Query(None),
+    activity_type: Annotated[ActivityType | None, EmptyStrToNone] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     user: str = Depends(get_current_user),
 ) -> Response:

@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from models.enum_model import CaptureMethod
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -10,7 +11,7 @@ class FetchSettingsBase(BaseModel):
 
     enabled: bool = True
     intervals: list[int] | None = None
-    default_capture_method: str = Field(default="auto", max_length=16)
+    default_capture_method: CaptureMethod = CaptureMethod.AUTO
     default_rtsp_quality: str = Field(default="high", max_length=16)
 
     # API Connection (null = use env var)
@@ -45,7 +46,7 @@ class FetchSettingsUpdate(BaseModel):
 
     enabled: bool | None = None
     intervals: list[int] | None = None
-    default_capture_method: str | None = Field(default=None, max_length=16)
+    default_capture_method: CaptureMethod | None = None
     default_rtsp_quality: str | None = Field(default=None, max_length=16)
 
     # API Connection

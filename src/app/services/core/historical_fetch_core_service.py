@@ -26,7 +26,8 @@ from crud.capture_crud import capture_crud
 from crud.job_crud import job_crud
 from db.connection import async_session
 from logging_config import get_logger
-from models.job_model import Job, JobStatus
+from models.enum_model import CaptureMethod, CaptureStatus, JobStatus
+from models.job_model import Job
 from protect_client import ProtectClient, ProtectRequestError
 from schemas.capture_schema import CaptureCreate
 
@@ -200,7 +201,7 @@ class HistoricalFetchCoreService:
                     path.parent.mkdir(parents=True, exist_ok=True)
 
                     fetch_start = time_module.time()
-                    status = "success"
+                    status = CaptureStatus.SUCCESS
                     failure_kind: str | None = None  # "no_recording" | "error"
                     error_msg: str | None = None
                     file_size: int | None = None
@@ -209,7 +210,7 @@ class HistoricalFetchCoreService:
                         path.write_bytes(jpg)
                         file_size = len(jpg)
                     except ProtectRequestError as e:
-                        status = "failed"
+                        status = CaptureStatus.FAILED
                         err_str = str(e)
                         # Protect returns HTTP 404 "Recording not found" for timestamps that
                         # fall in a gap (camera offline, not recording, etc). That's not an
@@ -220,7 +221,7 @@ class HistoricalFetchCoreService:
                             failure_kind = "error"
                         error_msg = err_str[:500]
                     except Exception as e:
-                        status = "failed"
+                        status = CaptureStatus.FAILED
                         failure_kind = "error"
                         error_msg = f"{type(e).__name__}: {str(e)[:500]}"
 
@@ -238,7 +239,7 @@ class HistoricalFetchCoreService:
                                     capture_date=ts.date(),
                                     interval=job.interval,
                                     status=status,
-                                    capture_method="protect_historical",
+                                    capture_method=CaptureMethod.PROTECT_HISTORICAL,
                                     file_path=str(path) if status == "success" else None,
                                     file_name=path.name if status == "success" else None,
                                     file_size=file_size,

@@ -18,6 +18,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
+from models.enum_model import JobStatus, JobType, str_enum
+
 
 def generate_uuid() -> str:
     """Generate a UUID string."""
@@ -40,7 +42,9 @@ class Job(Base):
     interval: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Job type — "live_daily" (existing daily-rollup behavior, default) | "historical"
-    job_type: Mapped[str] = mapped_column(String(32), default="live_daily", nullable=False, index=True)
+    job_type: Mapped[JobType] = mapped_column(
+        str_enum(JobType), default=JobType.LIVE_DAILY, nullable=False, index=True
+    )
 
     # Historical job range — null for live_daily jobs
     start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -50,7 +54,9 @@ class Job(Base):
     daily_window_end: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     # Job status
-    status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False, index=True)
+    status: Mapped[JobStatus] = mapped_column(
+        str_enum(JobStatus), default=JobStatus.PENDING, nullable=False, index=True
+    )
     progress: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -109,11 +115,3 @@ class Job(Base):
         }
 
 
-class JobStatus:
-    """Job status constants."""
-
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"

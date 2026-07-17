@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from models.enum_model import CaptureMethod
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -26,14 +27,14 @@ class CameraBase(BaseModel):
     state: str = Field(default="DISCONNECTED", max_length=32)
 
     # Per-camera capture settings
-    capture_method: str = Field(default="auto", max_length=16)
+    capture_method: CaptureMethod = CaptureMethod.AUTO
     rtsp_quality: str = Field(default="high", max_length=16)
     enabled_intervals: list[int] | None = None
 
     # Capability detection results
     api_max_resolution: str | None = Field(default=None, max_length=32)
     rtsp_max_resolution: str | None = Field(default=None, max_length=32)
-    recommended_method: str | None = Field(default=None, max_length=16)
+    recommended_method: CaptureMethod | None = None
 
 
 class CameraCreate(CameraBase):
@@ -56,14 +57,14 @@ class CameraUpdate(BaseModel):
     failed_captures: int | None = None
 
     # Per-camera capture settings (user-editable)
-    capture_method: str | None = Field(default=None, max_length=16)
+    capture_method: CaptureMethod | None = None
     rtsp_quality: str | None = Field(default=None, max_length=16)
     enabled_intervals: list[int] | None = None
 
     # Capability detection (updated by system)
     api_max_resolution: str | None = Field(default=None, max_length=32)
     rtsp_max_resolution: str | None = Field(default=None, max_length=32)
-    recommended_method: str | None = Field(default=None, max_length=16)
+    recommended_method: CaptureMethod | None = None
 
 
 class CameraRead(CameraBase):

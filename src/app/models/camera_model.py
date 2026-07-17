@@ -8,6 +8,8 @@ from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from models.enum_model import CaptureMethod, str_enum
+
 if TYPE_CHECKING:
     from models.capture_model import Capture
     from models.timelapse_model import Timelapse
@@ -44,7 +46,9 @@ class Camera(Base, TimestampMixin):
     failed_captures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Per-camera capture settings
-    capture_method: Mapped[str] = mapped_column(String(16), default="auto", nullable=False)
+    capture_method: Mapped[CaptureMethod] = mapped_column(
+        str_enum(CaptureMethod), default=CaptureMethod.AUTO, nullable=False
+    )
     rtsp_quality: Mapped[str] = mapped_column(String(16), default="high", nullable=False)
 
     # Intervals enabled for this camera (JSON list, null = use global settings)
@@ -53,7 +57,7 @@ class Camera(Base, TimestampMixin):
     # Capability detection results (set during sync/test)
     api_max_resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)
     rtsp_max_resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    recommended_method: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    recommended_method: Mapped[CaptureMethod | None] = mapped_column(str_enum(CaptureMethod), nullable=True)
 
     # Discovery tracking
     first_discovered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

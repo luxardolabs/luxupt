@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 
+from models.enum_model import JobStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -24,7 +25,7 @@ class JobCreate(JobBase):
 class JobUpdate(BaseModel):
     """Schema for updating a Job."""
 
-    status: str | None = Field(default=None, max_length=32)
+    status: JobStatus | None = None
     progress: float | None = None
     message: str | None = None
     started_at: datetime | None = None
@@ -42,7 +43,7 @@ class JobRead(JobBase):
     id: int
     job_id: str = Field(..., max_length=36)
     camera_id: str | None = Field(default=None, max_length=64)
-    status: str = Field(..., max_length=32)
+    status: JobStatus
     progress: float
     message: str | None = None
     current_frame: int = 0

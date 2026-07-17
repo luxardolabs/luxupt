@@ -6,6 +6,7 @@ from pathlib import Path
 import config
 from crud import activity_crud, camera_crud, capture_crud
 from models.capture_model import Capture
+from models.enum_model import CaptureMethod, CaptureStatus
 from schemas.capture_schema import CaptureCreate, CaptureStats
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils import async_fs
@@ -47,8 +48,8 @@ class CaptureCoreService:
             capture_datetime=capture_datetime,
             capture_date=capture_datetime.date(),
             interval=interval,
-            status="success",
-            capture_method=capture_method,
+            status=CaptureStatus.SUCCESS,
+            capture_method=CaptureMethod(capture_method),
             camera_db_id=camera_db_id,
             file_path=file_path,
             file_name=Path(file_path).name,
@@ -96,8 +97,8 @@ class CaptureCoreService:
             capture_datetime=capture_datetime,
             capture_date=capture_datetime.date(),
             interval=interval,
-            status="failed",
-            capture_method=capture_method,
+            status=CaptureStatus.FAILED,
+            capture_method=CaptureMethod(capture_method),
             camera_db_id=camera_db_id,
             error_message=error_message,
         )

@@ -16,6 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from models.enum_model import CaptureMethod, CaptureStatus, str_enum
+
 if TYPE_CHECKING:
     from models.camera_model import Camera
 
@@ -46,9 +48,11 @@ class Capture(Base, TimestampMixin):
     file_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     # Status and error tracking
-    status: Mapped[str] = mapped_column(String(32), default="success", nullable=False, index=True)
+    status: Mapped[CaptureStatus] = mapped_column(
+        str_enum(CaptureStatus), default=CaptureStatus.SUCCESS, nullable=False, index=True
+    )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    capture_method: Mapped[str | None] = mapped_column(String(32), nullable=True)  # api, rtsp, auto
+    capture_method: Mapped[CaptureMethod | None] = mapped_column(str_enum(CaptureMethod), nullable=True)
     capture_duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationship

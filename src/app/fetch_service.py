@@ -19,7 +19,7 @@ from camera_manager import (
 from crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
 from db.connection import async_session, init_db
 from logging_config import get_logger
-from models.activity_model import ActivityType
+from models.enum_model import ActivityType, CaptureMethod, CaptureStatus
 from schemas.capture_schema import CaptureCreate
 from services.core.image_core_service import image_service
 
@@ -1039,8 +1039,8 @@ class FetchService:
                         capture_datetime=capture_datetime,
                         capture_date=capture_datetime.date(),
                         interval=result.interval,
-                        status="success" if result.success else "failed",
-                        capture_method=result.capture_method,
+                        status=CaptureStatus.SUCCESS if result.success else CaptureStatus.FAILED,
+                        capture_method=CaptureMethod(result.capture_method) if result.capture_method else None,
                         file_path=result.file_path,
                         file_name=file_name,
                         file_size=result.file_size,

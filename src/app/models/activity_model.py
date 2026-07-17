@@ -7,6 +7,8 @@ from sqlalchemy import DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
+from models.enum_model import ActivityType, str_enum
+
 
 class Activity(Base):
     """Represents an activity event in the system."""
@@ -17,7 +19,7 @@ class Activity(Base):
 
     # Event metadata
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    activity_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    activity_type: Mapped[ActivityType] = mapped_column(str_enum(ActivityType, length=64), nullable=False, index=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Optional context
@@ -50,18 +52,5 @@ class Activity(Base):
         }
 
 
-class ActivityType:
-    """Activity type constants."""
-
-    CAPTURE_SUCCESS = "capture_success"
-    CAPTURE_FAILED = "capture_failed"
-    CAMERA_ONLINE = "camera_online"
-    CAMERA_OFFLINE = "camera_offline"
-    TIMELAPSE_STARTED = "timelapse_started"
-    TIMELAPSE_COMPLETED = "timelapse_completed"
-    TIMELAPSE_FAILED = "timelapse_failed"
-    SERVICE_STARTED = "service_started"
-    SERVICE_STOPPED = "service_stopped"
-    WEB_REQUEST = "web_request"
     ERROR = "error"
     INFO = "info"
