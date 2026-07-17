@@ -2,14 +2,13 @@
 
 from typing import Annotated, cast
 
-from crud.user_crud import user_crud
 from db.connection import DbSession
 from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from logging_config import get_logger
 
 from web.auth import needs_setup
-from web.deps import TemplatesDep
+from web.deps import TemplatesDep, UsersViewDep
 
 logger = get_logger(__name__)
 
@@ -42,6 +41,7 @@ async def setup_page(
 async def create_first_user(
     request: Request,
     templates: TemplatesDep,
+    view_service: UsersViewDep,
     db: DbSession,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
@@ -55,43 +55,19 @@ async def create_first_user(
     if not await needs_setup(db):
         return RedirectResponse(url="/login", status_code=302)
 
-    # Validate form input
-    errors = []
-
-    # Username validation
-    username = username.strip()
-    if not username:
-        errors.append("Username is required")
-    elif len(username) > 64:
-        errors.append("Username must be 64 characters or less")
-
-    # Password validation
-    if not password:
-        errors.append("Password is required")
-    elif password != confirm_password:
-        errors.append("Passwords do not match")
-
+    errors = await view_service.validate_user_create(username, password, confirm_password)
     if errors:
         return cast(
             Response,
             templates.TemplateResponse(
                 "pages/setup.html",
-                {"request": request, "errors": errors, "username": username},
+                {"request": request, "errors": errors, "username": username.strip()},
                 status_code=400,
             ),
         )
 
-    # Create the first admin user
-    try:
-        user = await user_crud.create_user(db, username=username, password=password, is_admin=True)
-        await db.commit()
-        logger.info("First admin user created", extra={"username": user.username})
-
-        # Redirect to login with success message
-        return RedirectResponse(url="/login?setup_complete=1", status_code=302)
-
-    except Exception as e:
-        logger.error("Failed to create first user", extra={"error": str(e)})
+    success, _message, user = await view_service.create_user(username, password, is_admin=True)
+    if not success or user is None:
         return cast(
             Response,
             templates.TemplateResponse(
@@ -100,3 +76,8 @@ async def create_first_user(
                 status_code=500,
             ),
         )
+
+    logger.info("First admin user created", extra={"username": user.username})
+
+    # Redirect to login with success message
+    return RedirectResponse(url="/login?setup_complete=1", status_code=302)

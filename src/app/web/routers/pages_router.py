@@ -2,6 +2,7 @@
 
 from typing import cast
 
+from db.connection import DbSession
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -29,12 +30,12 @@ async def login_page(request: Request) -> Response:
 
 
 @router.post("/login")
-async def login_submit(request: Request) -> Response:
+async def login_submit(request: Request, db: DbSession) -> Response:
     """Process login."""
     form = await request.form()
     username = cast(str, form.get("username", ""))
     password = cast(str, form.get("password", ""))
-    return await login(request, username, password)
+    return await login(request, db, username, password)
 
 
 @router.get("/logout")

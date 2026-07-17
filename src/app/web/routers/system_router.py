@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Annotated
 
 import config
-from db.connection import DbSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse
 from logging_config import get_logger
@@ -209,7 +208,6 @@ async def create_user(
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
-    db: DbSession,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     confirm_password: Annotated[str, Form()],
@@ -233,7 +231,6 @@ async def create_user(
 
     # Create via view service
     success, message, new_user = await view_service.create_user(username, password, is_admin)
-    await db.commit()
 
     if success and new_user:
         logger.info("User created", extra={"username": new_user.username, "created_by": user})
@@ -256,7 +253,6 @@ async def update_user(
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
-    db: DbSession,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()] = "",
     confirm_password: Annotated[str, Form()] = "",
@@ -276,7 +272,6 @@ async def update_user(
 
     # Update via view service
     success, message = await view_service.update_user(user_id, username, password if password else None, is_admin)
-    await db.commit()
 
     if success:
         logger.info("User updated", extra={"user_id": user_id, "username": username, "updated_by": user})
@@ -316,13 +311,11 @@ async def delete_user(
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Delete a user."""
     # Delete via view service (handles last-user check)
     success, message = await view_service.delete_user(user_id)
-    await db.commit()
 
     if success:
         logger.info("User deleted", extra={"user_id": user_id, "deleted_by": user})
@@ -365,7 +358,6 @@ async def update_backup_settings(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    db: DbSession,
     enabled: Annotated[bool, Form()] = False,
     retention: Annotated[int, Form()] = 5,
     interval_hours: Annotated[int, Form()] = 1,
@@ -404,7 +396,6 @@ async def update_backup_settings(
                 "backup_dir": backup_dir.strip() or "backups",
             }
         )
-        await db.commit()
 
         logger.info(
             "Backup settings updated",

@@ -277,8 +277,11 @@ async def login_form(request: Request) -> Response:
     return cast(Response, templates.TemplateResponse("pages/login.html", context))
 
 
-async def login(request: Request, username: str = Form(...), password: str = Form(...)) -> Response:
-    """Process login form with rate limiting and adaptive cookie security."""
+async def login(request: Request, db: AsyncSession, username: str = Form(...), password: str = Form(...)) -> Response:
+    """Process login form with rate limiting and adaptive cookie security.
+
+    Uses the caller's request-scoped session; get_db() owns the commit.
+    """
     templates = request.app.state.templates
     client_ip = _get_client_ip(request)
 
@@ -299,31 +302,28 @@ async def login(request: Request, username: str = Form(...), password: str = For
         )
 
     # Authenticate (supports both env and database auth)
-    async with async_session() as db:
-        success, user_id = await AuthService.authenticate_user(db, username, password)
+    success, user_id = await AuthService.authenticate_user(db, username, password)
 
-        if not success:
-            _record_login_attempt(client_ip)
-            logger.warning("Failed login attempt", extra={"username": username, "client_ip": client_ip})
-            return cast(
-                Response,
-                templates.TemplateResponse(
-                    "pages/login.html",
-                    {"request": request, "error": "Invalid username or password"},
-                    status_code=400,
-                ),
-            )
+    if not success:
+        _record_login_attempt(client_ip)
+        logger.warning("Failed login attempt", extra={"username": username, "client_ip": client_ip})
+        return cast(
+            Response,
+            templates.TemplateResponse(
+                "pages/login.html",
+                {"request": request, "error": "Invalid username or password"},
+                status_code=400,
+            ),
+        )
 
-        # Update last login time
-        if user_id is not None:
-            # Database user - update last login
-            await user_crud.update_last_login(db, user_id)
-        else:
-            # Env user - sync to database and update last login
-            env_user = await user_crud.sync_env_user(db, username)
-            await user_crud.update_last_login(db, env_user.id)
-
-        await db.commit()
+    # Update last login time
+    if user_id is not None:
+        # Database user - update last login
+        await user_crud.update_last_login(db, user_id)
+    else:
+        # Env user - sync to database and update last login
+        env_user = await user_crud.sync_env_user(db, username)
+        await user_crud.update_last_login(db, env_user.id)
 
     # Success - clear rate limit tracking
     _clear_login_attempts(client_ip)
