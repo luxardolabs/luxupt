@@ -19,6 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from timelapse_service import EncodingSettings, TimelapseService
 from utils import async_fs
 
+from services.core.historical_fetch_core_service import (
+    HistoricalFetchCoreService,
+    HistoricalJobCanceled,
+)
+
 logger = get_logger(__name__)
 
 
@@ -334,11 +339,6 @@ class JobProcessor:
                 # first, then fall through to assembly. The assembly branch picks the
                 # right method based on job_type further down.
                 if job_obj.job_type in ("historical", "historical_combined"):
-                    from services.core.historical_fetch_core_service import (
-                        HistoricalFetchCoreService,
-                        HistoricalJobCanceled,
-                    )
-
                     try:
                         result = await HistoricalFetchCoreService().run_historical_job(job_obj)
                     except HistoricalJobCanceled:
