@@ -4,7 +4,6 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from logging_config import get_logger
-from models.job_model import Job
 from protect_client import ProtectClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -270,25 +269,6 @@ class TimelapsesViewService:
         )
         return existing_job is not None
 
-    async def create_job(
-        self,
-        *,
-        title: str,
-        camera_safe_name: str,
-        camera_id: str,
-        date_str: str,
-        interval: int,
-    ) -> Job:
-        """Create a new timelapse job."""
-        target_date = date.fromisoformat(date_str)
-        return await self.job_service.create(
-            title=title,
-            camera_safe_name=camera_safe_name,
-            camera_id=camera_id,
-            target_date=target_date,
-            interval=interval,
-        )
-
     async def create_and_start_job(self, *, camera_id: str, date_str: str, interval: int) -> dict:
         """Create a single timelapse job and kick off processing.
 
@@ -307,11 +287,11 @@ class TimelapsesViewService:
             }
 
         title = f"{camera_safe_name}_{date_str}_{interval}s"
-        job = await self.create_job(
+        job = await self.job_service.create(
             title=title,
             camera_safe_name=camera_safe_name,
             camera_id=camera_info["camera_id"],
-            date_str=date_str,
+            target_date=date.fromisoformat(date_str),
             interval=interval,
         )
         # Commit before kickoff: the JobProcessor task reads the job row from its own session

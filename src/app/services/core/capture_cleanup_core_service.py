@@ -7,8 +7,8 @@ from pathlib import Path
 
 import config
 from crud import capture_crud
+from db import maintenance as db_maintenance
 from logging_config import get_logger
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
@@ -59,7 +59,7 @@ class CaptureCleanupCoreService:
 
         # Phase 2.5: Reclaim freed pages immediately after bulk delete
         if count > 0:
-            await self.db.execute(text("PRAGMA incremental_vacuum(1000)"))
+            await db_maintenance.incremental_vacuum(self.db)
 
         # Phase 3: Background file + thumbnail cleanup
         if file_info:

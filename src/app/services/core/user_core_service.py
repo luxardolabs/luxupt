@@ -1,11 +1,9 @@
 """User service for user management operations."""
 
-from typing import cast
 
 import config
 from crud.user_crud import user_crud
 from models.user_model import User
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -50,18 +48,13 @@ class UserCoreService:
         if not user:
             return None
 
-        if username is not None:
-            user.username = username
-        if password is not None:
-            pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-            user.password_hash = cast(str, pwd_context.hash(password))
-        if is_admin is not None:
-            user.is_admin = is_admin
-
-        self.db.add(user)
-        await self.db.flush()
-        await self.db.refresh(user)
-        return user
+        return await user_crud.update_user(
+            self.db,
+            user,
+            username=username,
+            password=password,
+            is_admin=is_admin,
+        )
 
     async def delete(self, user_id: int) -> bool:
         """Delete a user by ID. Returns True if deleted, False if not found."""

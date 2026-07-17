@@ -9,8 +9,8 @@ from datetime import datetime
 from typing import Any
 
 import config
+from db import maintenance as db_maintenance
 from logging_config import get_logger
-from sqlalchemy import text
 
 logger = get_logger(__name__)
 
@@ -34,8 +34,7 @@ class HealthCoreService:
         """Check database connectivity."""
         try:
             # Simple query to verify database is accessible
-            result = await db.execute(text("SELECT 1"))
-            result.fetchone()
+            await db_maintenance.ping(db)
 
             return {
                 "status": HealthStatus.HEALTHY,

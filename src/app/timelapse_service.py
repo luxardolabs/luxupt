@@ -21,11 +21,11 @@ from camera_manager import CameraManager, CameraManagerSettings
 from crud import camera_crud, job_crud, timelapse_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from crud.scheduler_settings_crud import scheduler_settings_crud
+from db import maintenance as db_maintenance
 from db.connection import async_session
 from logging_config import get_logger
 from models.timelapse_model import Timelapse
 from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
-from sqlalchemy import text
 from utils import async_fs
 
 # Module logger
@@ -703,7 +703,7 @@ class TimelapseService:
                     await db.commit()
                     # Reclaim freed pages after bulk capture deletion
                     if result["db_records_deleted"] > 0:
-                        await db.execute(text("PRAGMA incremental_vacuum(1000)"))
+                        await db_maintenance.incremental_vacuum(db)
                     logger.info(
                         "Cleanup after successful video creation",
                         extra={

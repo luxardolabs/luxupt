@@ -41,6 +41,27 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         await db.refresh(user)
         return user
 
+    async def update_user(
+        self,
+        db: AsyncSession,
+        user: User,
+        *,
+        username: str | None = None,
+        password: str | None = None,
+        is_admin: bool | None = None,
+    ) -> User:
+        """Apply field updates to a user (hashing the password if given) and flush."""
+        if username is not None:
+            user.username = username
+        if password is not None:
+            user.password_hash = cast(str, pwd_context.hash(password))
+        if is_admin is not None:
+            user.is_admin = is_admin
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+        return user
+
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
         return cast(bool, pwd_context.verify(plain_password, hashed_password))

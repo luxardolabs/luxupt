@@ -1,7 +1,6 @@
 """Users view service for preparing user management template data."""
 
 from logging_config import get_logger
-from models.user_model import User
 
 from services.core.user_core_service import UserCoreService
 
@@ -100,8 +99,8 @@ class UsersViewService:
         username: str,
         password: str,
         is_admin: bool,
-    ) -> tuple[bool, str, User | None]:
-        """Create a new user. Returns (success, message, user)."""
+    ) -> tuple[bool, str, str | None]:
+        """Create a new user. Returns (success, message, created username)."""
         username = username.strip()
         try:
             user = await self.user_service.create(
@@ -109,7 +108,7 @@ class UsersViewService:
                 password=password,
                 is_admin=is_admin,
             )
-            return True, f"User '{username}' created successfully", user
+            return True, f"User '{username}' created successfully", user.username
         except Exception as e:
             logger.exception("Failed to create user", extra={"username": username})
             return False, f"Failed to create user: {e}", None

@@ -9,12 +9,11 @@ from datetime import date, datetime, time
 
 import config
 from camera_manager import CameraManager, CameraManagerSettings
-from crud import job_crud, scheduler_settings_crud
+from crud import job_crud, scheduler_settings_crud, timelapse_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from db.connection import async_session
 from logging_config import get_logger
 from models.job_model import Job
-from models.timelapse_model import Timelapse
 from sqlalchemy.ext.asyncio import AsyncSession
 from timelapse_service import EncodingSettings, TimelapseService
 from utils import async_fs
@@ -508,30 +507,32 @@ class JobProcessor:
                 total_frames=frame_count if frame_count > 0 else None,
             )
 
-            timelapse = Timelapse(
-                camera_id=camera_id or "",
-                camera_safe_name=camera,
-                timelapse_date=date_obj.date(),
-                # For combined-range jobs, record the last day too so the browser
-                # can render the date span instead of pinning it to start_date.
-                end_date=(
-                    job.end_at.date()
-                    if job is not None and job.job_type == "historical_combined" and job.end_at
-                    else None
-                ),
-                interval=interval,
-                frame_count=frame_count,
-                frame_rate=frame_rate,
-                duration_seconds=duration_seconds,
-                file_path=str(output_path) if output_exists else None,
-                file_name=output_filename,
-                file_size=file_size,
-                resolution=resolution,
-                thumbnail_path=thumbnail_path,
-                status="completed",
-                completed_at=datetime.now(),
+            await timelapse_crud.create_from_dict(
+                db,
+                data={
+                    "camera_id": camera_id or "",
+                    "camera_safe_name": camera,
+                    "timelapse_date": date_obj.date(),
+                    # For combined-range jobs, record the last day too so the browser
+                    # can render the date span instead of pinning it to start_date.
+                    "end_date": (
+                        job.end_at.date()
+                        if job is not None and job.job_type == "historical_combined" and job.end_at
+                        else None
+                    ),
+                    "interval": interval,
+                    "frame_count": frame_count,
+                    "frame_rate": frame_rate,
+                    "duration_seconds": duration_seconds,
+                    "file_path": str(output_path) if output_exists else None,
+                    "file_name": output_filename,
+                    "file_size": file_size,
+                    "resolution": resolution,
+                    "thumbnail_path": thumbnail_path,
+                    "status": "completed",
+                    "completed_at": datetime.now(),
+                },
             )
-            db.add(timelapse)
             await db.commit()
 
         logger.info(

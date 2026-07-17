@@ -66,8 +66,8 @@ async def create_first_user(
             ),
         )
 
-    success, _message, user = await view_service.create_user(username, password, is_admin=True)
-    if not success or user is None:
+    success, _message, created_username = await view_service.create_user(username, password, is_admin=True)
+    if not success or created_username is None:
         return cast(
             Response,
             templates.TemplateResponse(
@@ -77,7 +77,7 @@ async def create_first_user(
             ),
         )
 
-    logger.info("First admin user created", extra={"username": user.username})
+    logger.info("First admin user created", extra={"username": created_username})
 
     # Redirect to login with success message
     return RedirectResponse(url="/login?setup_complete=1", status_code=302)

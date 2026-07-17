@@ -230,10 +230,10 @@ async def create_user(
         )
 
     # Create via view service
-    success, message, new_user = await view_service.create_user(username, password, is_admin)
+    success, message, new_username = await view_service.create_user(username, password, is_admin)
 
-    if success and new_user:
-        logger.info("User created", extra={"username": new_user.username, "created_by": user})
+    if success and new_username:
+        logger.info("User created", extra={"username": new_username, "created_by": user})
 
     return templates.TemplateResponse(
         "partials/system/user_form_result.html",
