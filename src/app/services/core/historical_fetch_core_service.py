@@ -23,13 +23,14 @@ from pathlib import Path
 import config
 from crud.camera_crud import camera_crud
 from crud.capture_crud import capture_crud
-from crud.fetch_settings_crud import fetch_settings_crud
 from crud.job_crud import job_crud
 from db.connection import async_session
 from logging_config import get_logger
 from models.job_model import Job, JobStatus
 from protect_client import ProtectClient, ProtectRequestError
 from schemas.capture_schema import CaptureCreate
+
+from services.core.settings_core_service import SettingsCoreService
 
 logger = get_logger(__name__)
 
@@ -102,12 +103,7 @@ def _frame_path(safe_name: str, interval: int, ts: datetime) -> Path:
 async def _resolve_protect_creds() -> tuple[str, str, str, bool]:
     """(base_url, username, password, verify_ssl) with env-var precedence over DB."""
     async with async_session() as session:
-        s = await fetch_settings_crud.get_settings(session)
-    base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
-    username = config.UNIFI_PROTECT_USERNAME or s.username or ""
-    password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
-    verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else bool(s.verify_ssl)
-    return base_url, username, password, verify_ssl
+        return await SettingsCoreService(session).get_protect_credentials()
 
 
 async def _is_canceled(job_id: str) -> bool:

@@ -1,9 +1,7 @@
 """Camera routes for camera management and HTMX partials."""
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
-import config
-from db.connection import DbSession, async_session
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 from logging_config import get_logger
@@ -11,46 +9,7 @@ from logging_config import get_logger
 from web.auth import get_current_user
 from web.deps import CamerasViewDep, DashboardViewDep, TemplatesDep
 
-if TYPE_CHECKING:
-    from camera_manager import CameraManagerSettings
-
 logger = get_logger(__name__)
-
-
-async def _load_camera_manager_settings() -> "CameraManagerSettings":
-    """Load settings for CameraManager from database."""
-    from camera_manager import CameraManagerSettings
-    from crud.fetch_settings_crud import fetch_settings_crud
-
-    async with async_session() as session:
-        fetch_settings = await fetch_settings_crud.get_settings(session)
-
-        return CameraManagerSettings(
-            base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
-            api_key=config.UNIFI_PROTECT_API_KEY or fetch_settings.api_key or "",
-            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else fetch_settings.verify_ssl,
-            request_timeout=fetch_settings.request_timeout,
-            rate_limit=fetch_settings.rate_limit,
-            rate_limit_buffer=fetch_settings.rate_limit_buffer,
-            min_offset_seconds=fetch_settings.min_offset_seconds,
-            max_offset_seconds=fetch_settings.max_offset_seconds,
-            camera_refresh_interval=fetch_settings.camera_refresh_interval,
-        )
-
-
-async def _resolve_protect_creds() -> tuple[str, str, str, bool]:
-    """Return (base_url, username, password, verify_ssl) with env-var precedence over DB."""
-    from crud.fetch_settings_crud import fetch_settings_crud
-
-    async with async_session() as session:
-        s = await fetch_settings_crud.get_settings(session)
-
-    base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
-    username = config.UNIFI_PROTECT_USERNAME or s.username or ""
-    password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
-    verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else s.verify_ssl
-    return base_url, username, password, verify_ssl
-
 
 router = APIRouter(tags=["cameras"])
 
@@ -68,12 +27,10 @@ async def cameras_page(
 
     # Check if API setup is needed (no env vars and no database settings)
     fetch_context = await cameras_view_service.get_fetch_settings_context()
-    api_config = fetch_context.get("api_config", {})
-    needs_api_setup = not api_config.get("has_api_key") and not api_config.get("has_base_url")
 
     return templates.TemplateResponse(
         "pages/cameras.html",
-        {"request": request, "user": user, "needs_api_setup": needs_api_setup, **context},
+        {"request": request, "user": user, "needs_api_setup": fetch_context["needs_api"], **context},
     )
 
 
@@ -130,7 +87,6 @@ async def save_fetch_settings(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    db: DbSession,
     enabled: Annotated[str | None, Form()] = None,
     intervals: Annotated[list[int] | None, Form()] = None,
     default_capture_method: Annotated[str, Form()] = "auto",
@@ -164,60 +120,30 @@ async def save_fetch_settings(
 ) -> Response:
     """Save global fetch settings."""
     try:
-        # Build update data
-        update_data = {
-            "enabled": enabled == "true",
-            "default_capture_method": default_capture_method,
-            "default_rtsp_quality": default_rtsp_quality,
-        }
-
-        # Handle intervals - filter out invalid values and sort
-        if intervals:
-            valid_intervals = sorted([i for i in intervals if i >= 5])
-            update_data["intervals"] = valid_intervals if valid_intervals else [60]
-        else:
-            update_data["intervals"] = [60]
-
-        # API connection settings (empty string means clear)
-        update_data["api_key"] = api_key if api_key else None
-        update_data["base_url"] = base_url if base_url else None
-        update_data["username"] = username if username else None
-        update_data["password"] = password if password else None
-        # Checkbox: "true" = checked (verify), absent/None = unchecked (don't verify)
-        update_data["verify_ssl"] = verify_ssl == "true"
-
-        # Reliability settings (None means use env var defaults)
-        update_data["max_retries"] = max_retries if max_retries else None
-        update_data["retry_delay"] = retry_delay if retry_delay else None
-        update_data["request_timeout"] = request_timeout if request_timeout else None
-
-        # Rate limiting
-        update_data["rate_limit"] = rate_limit if rate_limit else None
-        update_data["rate_limit_buffer"] = rate_limit_buffer if rate_limit_buffer else None
-
-        # Camera distribution
-        update_data["min_offset_seconds"] = min_offset_seconds if min_offset_seconds else None
-        update_data["max_offset_seconds"] = max_offset_seconds if max_offset_seconds else None
-
-        # Other settings
-        update_data["camera_refresh_interval"] = camera_refresh_interval if camera_refresh_interval else None
-        update_data["high_quality_snapshots"] = high_quality_snapshots == "true" if high_quality_snapshots else None
-
-        # RTSP settings
-        update_data["rtsp_output_format"] = rtsp_output_format if rtsp_output_format else None
-        update_data["png_compression_level"] = png_compression_level if png_compression_level is not None else None
-        update_data["rtsp_capture_timeout"] = rtsp_capture_timeout if rtsp_capture_timeout else None
-
-        success, message, cameras_synced = await view_service.update_fetch_settings(update_data)
-
-        # Re-enable any toggled-on disabled cameras
-        if reactivate_cameras:
-            for cam_id in reactivate_cameras:
-                await view_service.update_camera_settings(cam_id, {"is_active": True})
-
-        await db.commit()
-
-        logger.info("Updated fetch settings", extra={"update_data": update_data, "cameras_synced": cameras_synced})
+        success, message, cameras_synced, reactivated = await view_service.save_fetch_settings(
+            enabled=enabled,
+            intervals=intervals,
+            default_capture_method=default_capture_method,
+            default_rtsp_quality=default_rtsp_quality,
+            api_key=api_key,
+            base_url=base_url,
+            username=username,
+            password=password,
+            verify_ssl=verify_ssl,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            request_timeout=request_timeout,
+            rate_limit=rate_limit,
+            rate_limit_buffer=rate_limit_buffer,
+            min_offset_seconds=min_offset_seconds,
+            max_offset_seconds=max_offset_seconds,
+            camera_refresh_interval=camera_refresh_interval,
+            high_quality_snapshots=high_quality_snapshots,
+            rtsp_output_format=rtsp_output_format,
+            png_compression_level=png_compression_level,
+            rtsp_capture_timeout=rtsp_capture_timeout,
+            reactivate_cameras=reactivate_cameras,
+        )
 
         if cameras_synced is not None and cameras_synced < 0:
             # Connection failed
@@ -239,7 +165,7 @@ async def save_fetch_settings(
                 "message": message,
             },
         )
-        if reactivate_cameras:
+        if reactivated:
             response.headers["HX-Trigger"] = "camera-list-refresh"
         return response
 
@@ -258,6 +184,8 @@ async def save_fetch_settings(
 @router.post("/fetch-settings/test-protect-connection", response_class=HTMLResponse)
 async def test_protect_connection(
     request: Request,
+    templates: TemplatesDep,
+    view_service: CamerasViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Test the configured Protect username/password by logging in and pulling one snapshot.
@@ -265,58 +193,12 @@ async def test_protect_connection(
     Uses whatever creds are currently in the DB or env vars. Returns a small
     HTML partial for HTMX to swap inline next to the Test Connection button.
     """
-    from datetime import datetime, timedelta
+    context = await view_service.test_protect_connection()
 
-    from crud.camera_crud import camera_crud
-    from protect_client import ProtectAuthError, ProtectClient, ProtectRequestError
-
-    base_url, username, password, verify_ssl = await _resolve_protect_creds()
-
-    if not base_url:
-        return HTMLResponse(
-            '<div class="text-red-400 text-sm">Base URL is not set. Save the API connection first.</div>'
-        )
-    if not username or not password:
-        return HTMLResponse('<div class="text-red-400 text-sm">Username and password required.</div>')
-
-    # Find a camera to test against
-    async with async_session() as session:
-        cameras = await camera_crud.get_active(session)
-    if not cameras:
-        return HTMLResponse(
-            '<div class="text-red-400 text-sm">No cameras to test against. Discover cameras first.</div>'
-        )
-    test_camera = cameras[0]
-
-    # Try a historical snapshot a minute ago (recording-write lag means now() can 404)
-    ts = datetime.now() - timedelta(minutes=1)
-
-    try:
-        async with ProtectClient(
-            base_url=base_url,
-            username=username,
-            password=password,
-            verify_ssl=verify_ssl,
-        ) as pc:
-            jpg = await pc.historical_snapshot(test_camera.camera_id, ts)
-        logger.info(
-            "Protect connection test OK",
-            extra={"camera": test_camera.name, "bytes": len(jpg)},
-        )
-        return HTMLResponse(
-            f'<div class="text-green-400 text-sm">'
-            f"Connected. Pulled {len(jpg):,} bytes from {test_camera.name}."
-            f"</div>"
-        )
-    except ProtectAuthError as e:
-        logger.warning("Protect connection test failed (auth)", extra={"error": str(e)})
-        return HTMLResponse(f'<div class="text-red-400 text-sm">Auth failed: {str(e)[:200]}</div>')
-    except ProtectRequestError as e:
-        logger.warning("Protect connection test failed (request)", extra={"error": str(e)})
-        return HTMLResponse(f'<div class="text-red-400 text-sm">Request failed: {str(e)[:200]}</div>')
-    except Exception as e:
-        logger.error("Protect connection test failed", extra={"error": str(e), "type": type(e).__name__})
-        return HTMLResponse(f'<div class="text-red-400 text-sm">Error ({type(e).__name__}): {str(e)[:200]}</div>')
+    return templates.TemplateResponse(
+        "partials/cameras/protect_test_result.html",
+        {"request": request, **context},
+    )
 
 
 @router.get("/capture-stats", response_class=HTMLResponse)
@@ -371,7 +253,11 @@ async def camera_settings_panel(
     """Render camera settings panel (slide-out)."""
     context = await view_service.get_camera_settings_context(camera_id)
     if not context["camera"]:
-        return HTMLResponse("<div>Camera not found</div>", status_code=404)
+        return templates.TemplateResponse(
+            "partials/cameras/camera_not_found.html",
+            {"request": request},
+            status_code=404,
+        )
 
     return templates.TemplateResponse(
         "partials/cameras/camera_settings_panel.html",
@@ -385,7 +271,6 @@ async def save_camera_settings(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    db: DbSession,
     capture_method: Annotated[str, Form()] = "auto",
     rtsp_quality: Annotated[str, Form()] = "high",
     enabled_intervals: Annotated[list[int] | None, Form()] = None,
@@ -394,29 +279,19 @@ async def save_camera_settings(
 ) -> Response:
     """Save camera capture settings."""
     try:
-        # Build update data
-        update_data = {
-            "capture_method": capture_method,
-            "rtsp_quality": rtsp_quality,
-            "is_active": is_active == "true",
-        }
-
-        # Handle enabled_intervals - empty list means use all (null)
-        if enabled_intervals:
-            update_data["enabled_intervals"] = enabled_intervals
-        else:
-            update_data["enabled_intervals"] = None
-
-        success, message = await view_service.update_camera_settings(camera_id, update_data)
-        await db.commit()
+        success, message = await view_service.save_camera_settings(
+            camera_id,
+            capture_method=capture_method,
+            rtsp_quality=rtsp_quality,
+            enabled_intervals=enabled_intervals,
+            is_active=is_active,
+        )
 
         if not success:
             return templates.TemplateResponse(
                 "partials/cameras/camera_settings_result.html",
                 {"request": request, "success": False, "error": message},
             )
-
-        logger.info("Updated camera settings", extra={"camera_id": camera_id, "update_data": update_data})
 
         return templates.TemplateResponse(
             "partials/cameras/camera_settings_result.html",
@@ -445,26 +320,17 @@ async def detect_camera_capabilities(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Run capability detection for a camera."""
-    from camera_manager import CameraManager
-
     try:
-        cm_settings = await _load_camera_manager_settings()
-        async with CameraManager(cm_settings) as manager:
-            capabilities = await view_service.detect_camera_capabilities(camera_id, manager)
+        capabilities = await view_service.run_capability_detection(camera_id)
 
         if capabilities is None:
             return templates.TemplateResponse(
                 "partials/cameras/camera_settings_result.html",
                 {"request": request, "success": False, "error": "Camera not found or not connected"},
             )
-
-        await db.commit()
-
-        logger.info("Capability detection complete", extra={"camera_id": camera_id, "capabilities": capabilities})
 
         return templates.TemplateResponse(
             "partials/cameras/camera_settings_result.html",
@@ -495,7 +361,6 @@ async def delete_camera(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Delete a camera from the database.
@@ -504,7 +369,6 @@ async def delete_camera(
     camera reference set to NULL.
     """
     success, message = await view_service.delete_camera(camera_id)
-    await db.commit()
 
     return templates.TemplateResponse(
         "partials/cameras/camera_settings_result.html",
@@ -528,7 +392,11 @@ async def camera_panel(
     """Render camera detail panel (slide-out)."""
     context = await view_service.get_camera_panel_context(camera_safe_name)
     if not context["camera"]:
-        return HTMLResponse("<div>Camera not found</div>", status_code=404)
+        return templates.TemplateResponse(
+            "partials/cameras/camera_not_found.html",
+            {"request": request},
+            status_code=404,
+        )
 
     return templates.TemplateResponse(
         "partials/cameras/camera_panel.html",

@@ -98,8 +98,6 @@ async def historical_timelapse_panel(
     """
     from protect_client import ProtectClient
 
-    from web.routers.cameras_router import _resolve_protect_creds
-
     cameras = await view_service.camera_service.get_active()
     yesterday = date.today() - timedelta(days=1)
     scheduler_settings = await view_service.settings_service.get_scheduler_settings()
@@ -108,7 +106,7 @@ async def historical_timelapse_panel(
     camera_ranges: dict[str, dict[str, str | int]] = {}
     range_error: str | None = None
     if cameras:
-        base_url, username, password, verify_ssl = await _resolve_protect_creds()
+        base_url, username, password, verify_ssl = await view_service.settings_service.get_protect_credentials()
         if not (base_url and username and password):
             range_error = "Protect credentials are not configured."
         else:

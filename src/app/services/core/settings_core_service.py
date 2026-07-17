@@ -3,6 +3,7 @@
 from typing import Any
 
 import config
+from camera_manager import CameraManagerSettings
 from crud.backup_settings_crud import backup_settings_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from crud.scheduler_settings_crud import scheduler_settings_crud
@@ -59,6 +60,30 @@ class SettingsCoreService:
             "username_from_env": bool(config.UNIFI_PROTECT_USERNAME),
             "password_from_env": bool(config.UNIFI_PROTECT_PASSWORD),
         }
+
+    async def get_camera_manager_settings(self) -> CameraManagerSettings:
+        """CameraManager settings with env-var precedence over the database."""
+        s = await fetch_settings_crud.get_settings(self.db)
+        return CameraManagerSettings(
+            base_url=config.UNIFI_PROTECT_BASE_URL or s.base_url or "",
+            api_key=config.UNIFI_PROTECT_API_KEY or s.api_key or "",
+            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else s.verify_ssl,
+            request_timeout=s.request_timeout,
+            rate_limit=s.rate_limit,
+            rate_limit_buffer=s.rate_limit_buffer,
+            min_offset_seconds=s.min_offset_seconds,
+            max_offset_seconds=s.max_offset_seconds,
+            camera_refresh_interval=s.camera_refresh_interval,
+        )
+
+    async def get_protect_credentials(self) -> tuple[str, str, str, bool]:
+        """(base_url, username, password, verify_ssl) with env-var precedence over the database."""
+        s = await fetch_settings_crud.get_settings(self.db)
+        base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
+        username = config.UNIFI_PROTECT_USERNAME or s.username or ""
+        password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
+        verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else bool(s.verify_ssl)
+        return base_url, username, password, verify_ssl
 
     async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettings:
         """Update fetch settings."""

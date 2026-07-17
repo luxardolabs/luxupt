@@ -1,10 +1,14 @@
 """Cameras view service for preparing camera template data."""
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
+from camera_manager import Camera as ApiCamera
 from camera_manager import CameraManager
+from fetch_service import FetchService
 from logging_config import get_logger
+from protect_client import ProtectAuthError, ProtectClient, ProtectRequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.core.camera_core_service import CameraCoreService
@@ -83,8 +87,6 @@ class CamerasViewService:
     def _mask_url(self, url: str) -> str:
         """Extract domain from URL for safe display."""
         try:
-            from urllib.parse import urlparse
-
             parsed = urlparse(url)
             return f"{parsed.scheme}://{parsed.netloc}/..."
         except Exception:
@@ -282,14 +284,160 @@ class CamerasViewService:
             "stats": stats,
         }
 
+    async def save_fetch_settings(
+        self,
+        *,
+        enabled: str | None,
+        intervals: list[int] | None,
+        default_capture_method: str,
+        default_rtsp_quality: str,
+        api_key: str | None,
+        base_url: str | None,
+        username: str | None,
+        password: str | None,
+        verify_ssl: str | None,
+        max_retries: int | None,
+        retry_delay: int | None,
+        request_timeout: int | None,
+        rate_limit: int | None,
+        rate_limit_buffer: float | None,
+        min_offset_seconds: int | None,
+        max_offset_seconds: int | None,
+        camera_refresh_interval: int | None,
+        high_quality_snapshots: str | None,
+        rtsp_output_format: str | None,
+        png_compression_level: int | None,
+        rtsp_capture_timeout: int | None,
+        reactivate_cameras: list[str] | None,
+    ) -> tuple[bool, str, int | None, bool]:
+        """Build the settings payload from raw form values, save, and re-enable toggled cameras.
+
+        Returns (success, message, cameras_synced, reactivated).
+        """
+        update_data: dict = {
+            "enabled": enabled == "true",
+            "default_capture_method": default_capture_method,
+            "default_rtsp_quality": default_rtsp_quality,
+        }
+
+        # Handle intervals - filter out invalid values and sort
+        if intervals:
+            valid_intervals = sorted([i for i in intervals if i >= 5])
+            update_data["intervals"] = valid_intervals if valid_intervals else [60]
+        else:
+            update_data["intervals"] = [60]
+
+        # API connection settings (empty string means clear)
+        update_data["api_key"] = api_key if api_key else None
+        update_data["base_url"] = base_url if base_url else None
+        update_data["username"] = username if username else None
+        update_data["password"] = password if password else None
+        # Checkbox: "true" = checked (verify), absent/None = unchecked (don't verify)
+        update_data["verify_ssl"] = verify_ssl == "true"
+
+        # Reliability settings (None means use env var defaults)
+        update_data["max_retries"] = max_retries if max_retries else None
+        update_data["retry_delay"] = retry_delay if retry_delay else None
+        update_data["request_timeout"] = request_timeout if request_timeout else None
+
+        # Rate limiting
+        update_data["rate_limit"] = rate_limit if rate_limit else None
+        update_data["rate_limit_buffer"] = rate_limit_buffer if rate_limit_buffer else None
+
+        # Camera distribution
+        update_data["min_offset_seconds"] = min_offset_seconds if min_offset_seconds else None
+        update_data["max_offset_seconds"] = max_offset_seconds if max_offset_seconds else None
+
+        # Other settings
+        update_data["camera_refresh_interval"] = camera_refresh_interval if camera_refresh_interval else None
+        update_data["high_quality_snapshots"] = high_quality_snapshots == "true" if high_quality_snapshots else None
+
+        # RTSP settings
+        update_data["rtsp_output_format"] = rtsp_output_format if rtsp_output_format else None
+        update_data["png_compression_level"] = png_compression_level if png_compression_level is not None else None
+        update_data["rtsp_capture_timeout"] = rtsp_capture_timeout if rtsp_capture_timeout else None
+
+        success, message, cameras_synced = await self.update_fetch_settings(update_data)
+
+        # Re-enable any toggled-on disabled cameras
+        if reactivate_cameras:
+            for cam_id in reactivate_cameras:
+                await self.update_camera_settings(cam_id, {"is_active": True})
+
+        logger.info("Updated fetch settings", extra={"update_data": update_data, "cameras_synced": cameras_synced})
+        return success, message, cameras_synced, bool(reactivate_cameras)
+
+    async def save_camera_settings(
+        self,
+        camera_id: str,
+        *,
+        capture_method: str,
+        rtsp_quality: str,
+        enabled_intervals: list[int] | None,
+        is_active: str | None,
+    ) -> tuple[bool, str]:
+        """Build the per-camera settings payload from raw form values and save."""
+        update_data: dict = {
+            "capture_method": capture_method,
+            "rtsp_quality": rtsp_quality,
+            "is_active": is_active == "true",
+            # Empty list means use all (null)
+            "enabled_intervals": enabled_intervals if enabled_intervals else None,
+        }
+        success, message = await self.update_camera_settings(camera_id, update_data)
+        if success:
+            logger.info("Updated camera settings", extra={"camera_id": camera_id, "update_data": update_data})
+        return success, message
+
+    async def test_protect_connection(self) -> dict:
+        """Verify the configured Protect username/password by pulling one recent snapshot.
+
+        Returns template context: {"ok": bool, "message"/"error": str}.
+        """
+        base_url, username, password, verify_ssl = await self.settings_service.get_protect_credentials()
+
+        if not base_url:
+            return {"ok": False, "error": "Base URL is not set. Save the API connection first."}
+        if not username or not password:
+            return {"ok": False, "error": "Username and password required."}
+
+        cameras = await self.camera_service.get_active()
+        if not cameras:
+            return {"ok": False, "error": "No cameras to test against. Discover cameras first."}
+        test_camera = cameras[0]
+
+        # Try a historical snapshot a minute ago (recording-write lag means now() can 404)
+        ts = datetime.now() - timedelta(minutes=1)
+
+        try:
+            async with ProtectClient(
+                base_url=base_url,
+                username=username,
+                password=password,
+                verify_ssl=verify_ssl,
+            ) as pc:
+                jpg = await pc.historical_snapshot(test_camera.camera_id, ts)
+            logger.info(
+                "Protect connection test OK",
+                extra={"camera": test_camera.name, "bytes": len(jpg)},
+            )
+            return {"ok": True, "message": f"Connected. Pulled {len(jpg):,} bytes from {test_camera.name}."}
+        except ProtectAuthError as e:
+            logger.warning("Protect connection test failed (auth)", extra={"error": str(e)})
+            return {"ok": False, "error": f"Auth failed: {str(e)[:200]}"}
+        except ProtectRequestError as e:
+            logger.warning("Protect connection test failed (request)", extra={"error": str(e)})
+            return {"ok": False, "error": f"Request failed: {str(e)[:200]}"}
+        except Exception as e:
+            logger.error("Protect connection test failed", extra={"error": str(e), "type": type(e).__name__})
+            return {"ok": False, "error": f"Error ({type(e).__name__}): {str(e)[:200]}"}
+
     async def update_fetch_settings(self, update_data: dict) -> tuple[bool, str, int | None]:
         """Update fetch settings and sync cameras if API configured.
 
         Returns (success, message, cameras_synced).
         cameras_synced is None if no API settings, -1 on connection error, or count on success.
         """
-        from fetch_service import FetchService
-
         try:
             # Save settings and commit so FetchService can read them
             await self.settings_service.update_fetch_settings(update_data)
@@ -326,10 +474,19 @@ class CamerasViewService:
             logger.error("Error updating camera settings", extra={"camera_id": camera_id, "error": str(e)})
             return False, str(e)
 
+    async def run_capability_detection(self, camera_id: str) -> dict | None:
+        """Load CameraManager settings and run capability detection for a camera."""
+        cm_settings = await self.settings_service.get_camera_manager_settings()
+        async with CameraManager(cm_settings) as manager:
+            capabilities = await self.detect_camera_capabilities(camera_id, manager)
+        if capabilities is not None:
+            logger.info(
+                "Capability detection complete", extra={"camera_id": camera_id, "capabilities": capabilities}
+            )
+        return capabilities
+
     async def detect_camera_capabilities(self, camera_id: str, camera_manager: CameraManager) -> dict | None:
         """Run capability detection for a camera."""
-        from camera_manager import Camera as ApiCamera
-
         camera = await self.camera_service.get_by_id(camera_id)
         if not camera:
             return None
