@@ -21,7 +21,7 @@ class FetchSettings(Base, TimestampMixin):
 
     # Available intervals (JSON list of seconds, e.g., [15, 60, 180])
     # These are the intervals the system will capture at
-    intervals: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    intervals: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
 
     # Default capture method for new cameras ("auto", "api", "rtsp")
     default_capture_method: Mapped[CaptureMethod] = mapped_column(

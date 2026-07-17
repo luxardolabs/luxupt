@@ -1,6 +1,7 @@
 """Activity SQLAlchemy model."""
 
 from datetime import datetime
+from typing import Any
 
 from db.base import Base
 from sqlalchemy import DateTime, Index, Integer, String, Text
@@ -28,7 +29,7 @@ class Activity(Base):
     interval: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Additional details stored as JSON
-    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         Index("ix_activities_type_timestamp", "activity_type", "timestamp"),

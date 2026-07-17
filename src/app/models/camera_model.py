@@ -36,7 +36,7 @@ class Camera(Base, TimestampMixin):
     has_hdr: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     has_mic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     has_speaker: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    smart_detect_types: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    smart_detect_types: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     state: Mapped[str] = mapped_column(String(32), default="DISCONNECTED", nullable=False)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -52,7 +52,7 @@ class Camera(Base, TimestampMixin):
     rtsp_quality: Mapped[str] = mapped_column(String(16), default="high", nullable=False)
 
     # Intervals enabled for this camera (JSON list, null = use global settings)
-    enabled_intervals: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    enabled_intervals: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
 
     # Capability detection results (set during sync/test)
     api_max_resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)

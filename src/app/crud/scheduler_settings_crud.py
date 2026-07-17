@@ -1,7 +1,6 @@
 """CRUD operations for SchedulerSettings model."""
 
 from datetime import datetime
-from typing import cast
 
 from models.scheduler_settings_model import SchedulerSettings
 from schemas.scheduler_settings_schema import SchedulerSettingsUpdate
@@ -61,12 +60,12 @@ class CRUDSchedulerSettings:
     async def get_enabled_cameras(self, db: AsyncSession) -> list[str] | None:
         """Get list of enabled cameras, or None for all."""
         settings = await self.get_settings(db)
-        return cast(list[str] | None, settings.enabled_cameras)
+        return settings.enabled_cameras
 
     async def get_enabled_intervals(self, db: AsyncSession) -> list[int] | None:
         """Get list of enabled intervals, or None for all."""
         settings = await self.get_settings(db)
-        return cast(list[int] | None, settings.enabled_intervals)
+        return settings.enabled_intervals
 
     async def is_enabled(self, db: AsyncSession) -> bool:
         """Check if scheduler is enabled."""

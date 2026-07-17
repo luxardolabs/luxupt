@@ -1,6 +1,7 @@
 """Job SQLAlchemy model for tracking timelapse creation jobs."""
 
 from datetime import date, datetime, time
+from typing import Any
 from uuid import uuid4
 
 from db.base import Base
@@ -79,7 +80,7 @@ class Job(Base):
     # Result
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     output_file: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    result_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    result_details: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         Index("ix_jobs_status_created", "status", "created_at"),

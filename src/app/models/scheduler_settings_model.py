@@ -26,10 +26,10 @@ class SchedulerSettings(Base, TimestampMixin):
     days_ago: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     # List of camera_safe_names to process (null = all cameras)
-    enabled_cameras: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    enabled_cameras: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     # List of intervals to process (default [60] = 60s only)
-    enabled_intervals: Mapped[list | None] = mapped_column(JSON, default=[60], nullable=True)
+    enabled_intervals: Mapped[list[int] | None] = mapped_column(JSON, default=[60], nullable=True)
 
     # Number of concurrent timelapse encodings (default 2)
     concurrent_jobs: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
