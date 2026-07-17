@@ -1,10 +1,12 @@
 """Images view service for preparing image browser template data."""
 
 from datetime import date
+from pathlib import Path
 
 from services.core.camera_core_service import CameraCoreService
 from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from services.core.capture_core_service import CaptureCoreService
+from services.core.image_core_service import image_service
 
 
 class ImagesViewService:
@@ -20,6 +22,12 @@ class ImagesViewService:
         self.camera_service = camera_service
         self.capture_service = capture_service
         self.cleanup_service = cleanup_service
+
+    def build_thumbnail_path(
+        self, camera: str, interval: int, capture_date: date, timestamp: int, size: int
+    ) -> Path:
+        """Build the on-disk path for a capture's thumbnail (created at fetch time)."""
+        return image_service.build_thumbnail_path(camera, interval, capture_date, timestamp, size)
 
     async def get_capture_path(
         self, camera_safe_name: str, timestamp: int, interval: int | None = None

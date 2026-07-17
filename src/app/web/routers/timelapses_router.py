@@ -1,13 +1,10 @@
 """Timelapse routes."""
 
-from datetime import date, datetime, time, timedelta
 from typing import Annotated
 
-from db.connection import DbSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from logging_config import get_logger
-from services.core.job_core_service import get_job_processor
 
 from web.auth import get_current_user
 from web.deps import TemplatesDep, TimelapsesViewDep
@@ -96,77 +93,11 @@ async def historical_timelapse_panel(
     the operator can see what dates are available for each camera before
     submitting a job.
     """
-    from protect_client import ProtectClient
-
-    cameras = await view_service.camera_service.get_active()
-    yesterday = date.today() - timedelta(days=1)
-    scheduler_settings = await view_service.settings_service.get_scheduler_settings()
-    global_recreate = bool(scheduler_settings.recreate_existing)
-
-    camera_ranges: dict[str, dict[str, str | int]] = {}
-    range_error: str | None = None
-    if cameras:
-        base_url, username, password, verify_ssl = await view_service.settings_service.get_protect_credentials()
-        if not (base_url and username and password):
-            range_error = "Protect credentials are not configured."
-        else:
-            try:
-                async with ProtectClient(
-                    base_url=base_url, username=username, password=password, verify_ssl=verify_ssl
-                ) as pc:
-                    raw_ranges = await pc.get_all_camera_recording_ranges()
-                for cam in cameras:
-                    if cam.camera_id in raw_ranges:
-                        oldest, newest = raw_ranges[cam.camera_id]
-                        oldest_d = oldest.date()
-                        newest_d = newest.date()
-                        # Default to yesterday if it's in the range, else clamp to range
-                        default_d = min(newest_d, date.today() - timedelta(days=1))
-                        if default_d < oldest_d:
-                            default_d = oldest_d
-                        camera_ranges[cam.camera_id] = {
-                            "name": cam.name,
-                            "oldest": oldest_d.isoformat(),
-                            "newest": newest_d.isoformat(),
-                            # Full datetime so the form can show users the actual hour/minute
-                            # bounds — Protect's recordingStart isn't midnight; pretending it
-                            # was the whole day let users pick ranges that hit 404 storms.
-                            "oldest_full": oldest.strftime("%Y-%m-%d %H:%M"),
-                            "newest_full": newest.strftime("%Y-%m-%d %H:%M"),
-                            "default": default_d.isoformat(),
-                            "days": (newest_d - oldest_d).days,
-                        }
-            except Exception as e:
-                logger.warning("Bootstrap fetch for recording ranges failed", extra={"error": str(e)})
-                range_error = f"Could not read recording ranges: {str(e)[:200]}"
-
-    # Union range for the date input bounds (oldest of all, newest of all)
-    union_oldest: str | None = None
-    union_newest: str | None = None
-    default_date: str | None = None
-    if camera_ranges:
-        union_oldest = min(r["oldest"] for r in camera_ranges.values())  # type: ignore[type-var]
-        union_newest = max(r["newest"] for r in camera_ranges.values())  # type: ignore[type-var]
-        # Default to yesterday if it's within union, else the newest
-        default_d = min(date.fromisoformat(union_newest), date.today() - timedelta(days=1))  # type: ignore[arg-type]
-        if default_d < date.fromisoformat(union_oldest):  # type: ignore[arg-type]
-            default_d = date.fromisoformat(union_oldest)  # type: ignore[arg-type]
-        default_date = default_d.isoformat()
+    context = await view_service.get_historical_panel_context()
 
     return templates.TemplateResponse(
         "partials/timelapses/historical_panel.html",
-        {
-            "request": request,
-            "user": user,
-            "cameras": cameras,
-            "camera_ranges": camera_ranges,
-            "range_error": range_error,
-            "union_oldest": union_oldest,
-            "union_newest": union_newest,
-            "default_date": default_date,
-            "yesterday_iso": yesterday.isoformat(),
-            "global_recreate": global_recreate,
-        },
+        {"request": request, "user": user, **context},
     )
 
 
@@ -175,7 +106,6 @@ async def create_historical_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     camera: str = Form(...),  # camera_id
     start_date: str = Form(...),
     end_date: str = Form(...),
@@ -196,197 +126,21 @@ async def create_historical_timelapse(
     JobProcessor will route it to the combined-assembly path which globs frames
     across all day directories.
     """
-    try:
-        interval_int = int(interval)
-        if interval_int < 5 or interval_int > 86400:
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": "Interval must be between 5 and 86400 seconds."},
-            )
-        start_d = date.fromisoformat(start_date)
-        end_d = date.fromisoformat(end_date)
-        start_t = time.fromisoformat(start_time)
-        end_t = time.fromisoformat(end_time)
-
-        if end_t <= start_t:
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": "End time must be after start time."},
-            )
-        if end_d < start_d:
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": "End date must be on or after start date."},
-            )
-        # Recording-write lag: Protect needs ~60s before a frame is in the recording stream.
-        # If the end date is in the future entirely, reject. If it's today (or past)
-        # with a time that crosses the lag boundary, clamp silently.
-        now_local = datetime.now().astimezone()
-        if end_d > now_local.date():
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": "End date cannot be in the future."},
-            )
-        # If end_t for the actual end_d already lands in the past, fine. If end_d is today
-        # and end_t pushes into the future, end_at_for will clamp to the recording-lag threshold.
-        if view_service.end_at_for(end_d, end_t, now_local) <= datetime.combine(start_d, start_t).astimezone():
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "error": "End is at or before start after applying recording-lag clamp. Wait a minute or pick an earlier end time.",
-                },
-            )
-
-        camera_info = await view_service.get_camera_info(camera)
-        if not camera_info:
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": "Camera not found."},
-            )
-        camera_safe_name = camera_info["safe_name"]
-        keep = keep_images == "true"
-        force_recreate = recreate_existing == "true"
-
-        created_jobs: list[str] = []
-        skipped_days: list[str] = []  # for reporting
-        recreated_jobs: list[str] = []  # job_ids we cancelled+deleted to re-run
-
-        if output_mode == "combined":
-            from models.job_model import Job, JobStatus
-            from sqlalchemy import select
-
-            stmt = select(Job).where(
-                Job.camera_safe_name == camera_safe_name,
-                Job.interval == interval_int,
-                Job.job_type == "historical_combined",
-                Job.start_at == datetime.combine(start_d, start_t).astimezone(),
-                Job.end_at >= view_service.end_at_for(end_d, end_t, now_local) - timedelta(seconds=120),
-                Job.end_at <= view_service.end_at_for(end_d, end_t, now_local) + timedelta(seconds=120),
-                Job.status.in_([JobStatus.PENDING, JobStatus.RUNNING]),
-            )
-            result = await db.execute(stmt)
-            existing = result.scalar_one_or_none()
-            if existing is not None:
-                if not force_recreate:
-                    return templates.TemplateResponse(
-                        "partials/timelapses/create_result.html",
-                        {
-                            "request": request,
-                            "success": False,
-                            "error": f"A combined job for {camera_safe_name} over this range is already running (id {existing.job_id[:8]}). Toggle 'Recreate existing' to replace it.",
-                        },
-                    )
-                # Recreate: cancel + delete the existing job before creating the new one
-                await view_service.job_service.cancel_job(existing.job_id)
-                await view_service.job_service.delete_job(existing.job_id)
-                await db.commit()
-                recreated_jobs.append(existing.job_id)
-
-            # One job spanning the full range
-            start_at = datetime.combine(start_d, start_t).astimezone()
-            end_at = view_service.end_at_for(end_d, end_t, now_local)
-            range_label = f"{start_d.isoformat()}_to_{end_d.isoformat()}"
-            title = f"{camera_safe_name}_{range_label}_{interval_int}s_historical_combined"
-            job = await view_service.job_service.create(
-                title=title,
-                camera_safe_name=camera_safe_name,
-                camera_id=camera_info["camera_id"],
-                target_date=start_d,  # earliest date for the existing target_date column
-                interval=interval_int,
-                keep_images=keep,
-                job_type="historical_combined",
-                start_at=start_at,
-                end_at=end_at,
-                daily_window_start=start_t,
-                daily_window_end=end_t,
-            )
-            await db.commit()
-            created_jobs.append(job.job_id)
-            get_job_processor().start_job(job.job_id, start_d.isoformat(), camera_safe_name, interval_int)
-        else:
-            # Fan out one job per day in the range
-            day = start_d
-            while day <= end_d:
-                date_str = day.isoformat()
-                if await view_service.check_job_exists(camera_safe_name, date_str, interval_int):
-                    if not force_recreate:
-                        skipped_days.append(date_str)
-                        day += timedelta(days=1)
-                        continue
-                    # Find the existing job for this camera/date/interval and remove it
-                    existing_job = await view_service.job_service.exists_for_camera_date(
-                        camera_safe_name, day, interval_int
-                    )
-                    if existing_job is not None:
-                        await view_service.job_service.cancel_job(existing_job.job_id)
-                        await view_service.job_service.delete_job(existing_job.job_id)
-                        await db.commit()
-                        recreated_jobs.append(existing_job.job_id)
-                start_at = datetime.combine(day, start_t).astimezone()
-                end_at = view_service.end_at_for(day, end_t, now_local)
-                # Skip days whose end clamps to before/equal-to start (e.g., today before 00:01)
-                if end_at <= start_at:
-                    day += timedelta(days=1)
-                    continue
-                title = f"{camera_safe_name}_{date_str}_{interval_int}s_historical"
-                job = await view_service.job_service.create(
-                    title=title,
-                    camera_safe_name=camera_safe_name,
-                    camera_id=camera_info["camera_id"],
-                    target_date=day,
-                    interval=interval_int,
-                    keep_images=keep,
-                    job_type="historical",
-                    start_at=start_at,
-                    end_at=end_at,
-                    daily_window_start=start_t,
-                    daily_window_end=end_t,
-                )
-                await db.commit()
-                created_jobs.append(job.job_id)
-                get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval_int)
-                day += timedelta(days=1)
-
-        if not created_jobs:
-            err = f"All matching jobs for {camera_safe_name} in this range already exist."
-            if skipped_days:
-                err += f" Skipped: {', '.join(skipped_days)}. Toggle 'Recreate existing' to replace them."
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {"request": request, "success": False, "error": err},
-            )
-
-        # Build a human-readable summary
-        if output_mode == "combined":
-            date_summary = f"{start_date} → {end_date}"
-        else:
-            date_summary = f"{start_date} → {end_date} ({len(created_jobs)} jobs)"
-            if skipped_days:
-                date_summary += f", skipped {len(skipped_days)} existing"
-            if recreated_jobs:
-                date_summary += f", replaced {len(recreated_jobs)}"
-
-        return templates.TemplateResponse(
-            "partials/timelapses/create_result.html",
-            {
-                "request": request,
-                "success": True,
-                "job_id": created_jobs[0] if len(created_jobs) == 1 else None,
-                "camera": camera_safe_name,
-                "date": date_summary,
-                "interval": interval_int,
-                "skipped_days": skipped_days,
-                "recreated_jobs": recreated_jobs,
-            },
-        )
-    except Exception as e:
-        logger.error("Error creating historical timelapse", extra={"error": str(e), "type": type(e).__name__})
-        return templates.TemplateResponse(
-            "partials/timelapses/create_result.html",
-            {"request": request, "success": False, "error": f"{type(e).__name__}: {str(e)[:200]}"},
-        )
+    context = await view_service.create_historical_jobs(
+        camera_id=camera,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        interval=interval,
+        output_mode=output_mode,
+        keep_images=keep_images,
+        recreate_existing=recreate_existing,
+    )
+    return templates.TemplateResponse(
+        "partials/timelapses/create_result.html",
+        {"request": request, **context},
+    )
 
 
 @router.post("/create", response_class=HTMLResponse)
@@ -394,7 +148,6 @@ async def create_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     camera: str = Form(...),  # This is now camera_id from the dropdown
     date_str: str = Form(..., alias="date"),
     interval: str = Form(...),
@@ -406,57 +159,14 @@ async def create_timelapse(
     We look up the camera to get safe_name for file paths.
     """
     try:
-        interval_int = int(interval)
-
-        # Look up camera to get safe_name (camera param is now camera_id)
-        camera_info = await view_service.get_camera_info(camera)
-        if not camera_info:
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "error": "Camera not found",
-                },
-            )
-
-        camera_safe_name = camera_info["safe_name"]
-
-        # Check if job already exists (use safe_name for job lookup since jobs use file paths)
-        if await view_service.check_job_exists(camera_safe_name, date_str, interval_int):
-            return templates.TemplateResponse(
-                "partials/timelapses/create_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "error": f"Job already exists for {camera_safe_name} on {date_str} at {interval_int}s interval",
-                },
-            )
-
-        # Create job in database (use safe_name for file paths, camera_id for DB references)
-        title = f"{camera_safe_name}_{date_str}_{interval_int}s"
-        job = await view_service.create_job(
-            title=title,
-            camera_safe_name=camera_safe_name,
-            camera_id=camera_info["camera_id"],
+        context = await view_service.create_and_start_job(
+            camera_id=camera,
             date_str=date_str,
-            interval=interval_int,
+            interval=int(interval),
         )
-        await db.commit()
-
-        # Start processing the job in background (use safe_name for file paths)
-        get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval_int)
-
         return templates.TemplateResponse(
             "partials/timelapses/create_result.html",
-            {
-                "request": request,
-                "success": True,
-                "job_id": job.job_id,
-                "camera": camera_safe_name,
-                "date": date_str,
-                "interval": interval_int,
-            },
+            {"request": request, **context},
         )
     except Exception as e:
         logger.error("Error creating timelapse", extra={"error": str(e)})
@@ -644,7 +354,6 @@ async def delete_job(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Delete/cancel a job."""
@@ -652,7 +361,6 @@ async def delete_job(
     if not success:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    await db.commit()
     logger.info("Job action completed", extra={"job_id": job_id, "action": action})
 
     # Return refreshed job list via OOB swap to update counts and bring in next items
@@ -673,12 +381,10 @@ async def cleanup_stale_jobs(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Mark all stale running/pending jobs as failed."""
     count = await view_service.cleanup_stale_jobs()
-    await db.commit()
 
     logger.info("Cleaned up stale jobs", extra={"count": count})
 
@@ -711,7 +417,6 @@ async def save_scheduler_settings(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     enabled: Annotated[str | None, Form()] = None,
     run_time: str = Form("01:00"),
     days_ago: int = Form(1),
@@ -730,48 +435,25 @@ async def save_scheduler_settings(
 ) -> Response:
     """Save scheduler settings (HTMX)."""
     try:
-        # Convert checkbox "on" value to bool (checkbox is present = enabled)
-        is_enabled = enabled is not None
-        should_keep_images = keep_images is not None
-        should_recreate_existing = recreate_existing is not None
-
-        # Convert interval strings to integers
-        intervals_list = None
-        if enabled_intervals:
-            intervals_list = [int(i) for i in enabled_intervals]
-
-        # Convert run_time string from form to time object
-        run_time_obj = datetime.strptime(run_time, "%H:%M").time()
-
-        # Update settings
-        update_data = {
-            "enabled": is_enabled,
-            "run_time": run_time_obj,
-            "days_ago": days_ago,
-            "concurrent_jobs": concurrent_jobs,
-            "keep_images": should_keep_images,
-            "recreate_existing": should_recreate_existing,
-            "enabled_cameras": enabled_cameras if enabled_cameras else None,
-            "enabled_intervals": intervals_list,
-            # FFmpeg settings (None means use env var defaults)
-            "frame_rate": frame_rate if frame_rate else None,
-            "crf": crf if crf is not None else None,  # crf=0 is valid
-            "preset": preset if preset else None,
-            "pixel_format": pixel_format if pixel_format else None,
-            "ffmpeg_timeout": ffmpeg_timeout if ffmpeg_timeout else None,
-        }
-
-        await view_service.update_scheduler_settings(update_data)
-        await db.commit()
+        context = await view_service.save_scheduler_settings(
+            enabled=enabled,
+            run_time=run_time,
+            days_ago=days_ago,
+            concurrent_jobs=concurrent_jobs,
+            keep_images=keep_images,
+            recreate_existing=recreate_existing,
+            enabled_cameras=enabled_cameras,
+            enabled_intervals=enabled_intervals,
+            frame_rate=frame_rate,
+            crf=crf,
+            preset=preset,
+            pixel_format=pixel_format,
+            ffmpeg_timeout=ffmpeg_timeout,
+        )
 
         return templates.TemplateResponse(
             "partials/timelapses/scheduler_result.html",
-            {
-                "request": request,
-                "success": True,
-                "enabled": is_enabled,
-                "run_time": run_time_obj,
-            },
+            {"request": request, **context},
         )
     except Exception as e:
         logger.error("Error saving scheduler settings", extra={"error": str(e)})
@@ -873,7 +555,6 @@ async def delete_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    db: DbSession,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Delete a timelapse (database record and files)."""
@@ -882,7 +563,6 @@ async def delete_timelapse(
     if not success:
         raise HTTPException(status_code=404, detail="Timelapse not found")
 
-    await db.commit()
 
     # Return OOB update to refresh the stats cards
     context = await view_service.get_stats_context()

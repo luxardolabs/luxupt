@@ -3,13 +3,18 @@
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
+from logging_config import get_logger
 from models.job_model import Job
+from protect_client import ProtectClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.core.camera_core_service import CameraCoreService
 from services.core.capture_core_service import CaptureCoreService
-from services.core.job_core_service import JobCoreService
+from services.core.job_core_service import JobCoreService, get_job_processor
 from services.core.settings_core_service import SettingsCoreService
 from services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
+
+logger = get_logger(__name__)
 
 
 class TimelapsesViewService:
@@ -17,6 +22,7 @@ class TimelapsesViewService:
 
     def __init__(
         self,
+        db: AsyncSession,
         camera_service: CameraCoreService,
         capture_service: CaptureCoreService,
         timelapse_service: TimelapseBrowserCoreService,
@@ -24,6 +30,7 @@ class TimelapsesViewService:
         settings_service: SettingsCoreService,
     ):
         """Initialize with core services."""
+        self.db = db
         self.camera_service = camera_service
         self.capture_service = capture_service
         self.timelapse_service = timelapse_service
@@ -179,6 +186,51 @@ class TimelapsesViewService:
         """Update scheduler settings."""
         await self.settings_service.update_scheduler_settings(update_data)
 
+    async def save_scheduler_settings(
+        self,
+        *,
+        enabled: str | None,
+        run_time: str,
+        days_ago: int,
+        concurrent_jobs: int,
+        keep_images: str | None,
+        recreate_existing: str | None,
+        enabled_cameras: list[str] | None,
+        enabled_intervals: list[str] | None,
+        frame_rate: int | None,
+        crf: int | None,
+        preset: str | None,
+        pixel_format: str | None,
+        ffmpeg_timeout: int | None,
+    ) -> dict:
+        """Build the scheduler payload from raw form values and save.
+
+        Returns context for scheduler_result.html.
+        """
+        # Convert checkbox "on" value to bool (checkbox is present = enabled)
+        is_enabled = enabled is not None
+
+        update_data = {
+            "enabled": is_enabled,
+            # Convert run_time string from form to time object
+            "run_time": datetime.strptime(run_time, "%H:%M").time(),
+            "days_ago": days_ago,
+            "concurrent_jobs": concurrent_jobs,
+            "keep_images": keep_images is not None,
+            "recreate_existing": recreate_existing is not None,
+            "enabled_cameras": enabled_cameras if enabled_cameras else None,
+            # Convert interval strings to integers
+            "enabled_intervals": [int(i) for i in enabled_intervals] if enabled_intervals else None,
+            # FFmpeg settings (None means use env var defaults)
+            "frame_rate": frame_rate if frame_rate else None,
+            "crf": crf if crf is not None else None,  # crf=0 is valid
+            "preset": preset if preset else None,
+            "pixel_format": pixel_format if pixel_format else None,
+            "ffmpeg_timeout": ffmpeg_timeout if ffmpeg_timeout else None,
+        }
+        await self.update_scheduler_settings(update_data)
+        return {"success": True, "enabled": is_enabled, "run_time": update_data["run_time"]}
+
     async def get_lightbox_context(self, timelapse_id: int) -> dict:
         """Get lightbox context for video viewing."""
         timelapse = await self.timelapse_service.get_by_id(timelapse_id)
@@ -236,6 +288,295 @@ class TimelapsesViewService:
             target_date=target_date,
             interval=interval,
         )
+
+    async def create_and_start_job(self, *, camera_id: str, date_str: str, interval: int) -> dict:
+        """Create a single timelapse job and kick off processing.
+
+        Returns context for create_result.html.
+        """
+        camera_info = await self.get_camera_info(camera_id)
+        if not camera_info:
+            return {"success": False, "error": "Camera not found"}
+        camera_safe_name = camera_info["safe_name"]
+
+        # Check if job already exists (use safe_name for job lookup since jobs use file paths)
+        if await self.check_job_exists(camera_safe_name, date_str, interval):
+            return {
+                "success": False,
+                "error": f"Job already exists for {camera_safe_name} on {date_str} at {interval}s interval",
+            }
+
+        title = f"{camera_safe_name}_{date_str}_{interval}s"
+        job = await self.create_job(
+            title=title,
+            camera_safe_name=camera_safe_name,
+            camera_id=camera_info["camera_id"],
+            date_str=date_str,
+            interval=interval,
+        )
+        # Commit before kickoff: the JobProcessor task reads the job row from its own session
+        await self.db.commit()
+        get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval)
+
+        return {
+            "success": True,
+            "job_id": job.job_id,
+            "camera": camera_safe_name,
+            "date": date_str,
+            "interval": interval,
+        }
+
+    async def get_historical_panel_context(self) -> dict:
+        """Context for the historical-timelapse creation panel.
+
+        One bootstrap call to Protect populates the recording ranges for ALL
+        cameras at render time, so the operator can see what dates are
+        available per camera before submitting a job.
+        """
+        cameras = await self.camera_service.get_active()
+        yesterday = date.today() - timedelta(days=1)
+        scheduler_settings = await self.settings_service.get_scheduler_settings()
+        global_recreate = bool(scheduler_settings.recreate_existing)
+
+        camera_ranges: dict[str, dict[str, str | int]] = {}
+        range_error: str | None = None
+        if cameras:
+            base_url, username, password, verify_ssl = await self.settings_service.get_protect_credentials()
+            if not (base_url and username and password):
+                range_error = "Protect credentials are not configured."
+            else:
+                try:
+                    async with ProtectClient(
+                        base_url=base_url, username=username, password=password, verify_ssl=verify_ssl
+                    ) as pc:
+                        raw_ranges = await pc.get_all_camera_recording_ranges()
+                    for cam in cameras:
+                        if cam.camera_id in raw_ranges:
+                            oldest, newest = raw_ranges[cam.camera_id]
+                            oldest_d = oldest.date()
+                            newest_d = newest.date()
+                            # Default to yesterday if it's in the range, else clamp to range
+                            default_d = min(newest_d, date.today() - timedelta(days=1))
+                            if default_d < oldest_d:
+                                default_d = oldest_d
+                            camera_ranges[cam.camera_id] = {
+                                "name": cam.name,
+                                "oldest": oldest_d.isoformat(),
+                                "newest": newest_d.isoformat(),
+                                # Full datetime so the form can show users the actual hour/minute
+                                # bounds — Protect's recordingStart isn't midnight; pretending it
+                                # was the whole day let users pick ranges that hit 404 storms.
+                                "oldest_full": oldest.strftime("%Y-%m-%d %H:%M"),
+                                "newest_full": newest.strftime("%Y-%m-%d %H:%M"),
+                                "default": default_d.isoformat(),
+                                "days": (newest_d - oldest_d).days,
+                            }
+                except Exception as e:
+                    logger.warning("Bootstrap fetch for recording ranges failed", extra={"error": str(e)})
+                    range_error = f"Could not read recording ranges: {str(e)[:200]}"
+
+        # Union range for the date input bounds (oldest of all, newest of all)
+        union_oldest: str | None = None
+        union_newest: str | None = None
+        default_date: str | None = None
+        if camera_ranges:
+            union_oldest = min(str(r["oldest"]) for r in camera_ranges.values())
+            union_newest = max(str(r["newest"]) for r in camera_ranges.values())
+            # Default to yesterday if it's within union, else the newest
+            default_d = min(date.fromisoformat(union_newest), date.today() - timedelta(days=1))
+            if default_d < date.fromisoformat(union_oldest):
+                default_d = date.fromisoformat(union_oldest)
+            default_date = default_d.isoformat()
+
+        return {
+            "cameras": cameras,
+            "camera_ranges": camera_ranges,
+            "range_error": range_error,
+            "union_oldest": union_oldest,
+            "union_newest": union_newest,
+            "default_date": default_date,
+            "yesterday_iso": yesterday.isoformat(),
+            "global_recreate": global_recreate,
+        }
+
+    async def create_historical_jobs(
+        self,
+        *,
+        camera_id: str,
+        start_date: str,
+        end_date: str,
+        start_time: str,
+        end_time: str,
+        interval: str,
+        output_mode: str,
+        keep_images: str | None,
+        recreate_existing: str | None,
+    ) -> dict:
+        """Validate raw form input and create historical timelapse job(s).
+
+        output_mode='per_day' fans out one job per day in the range; 'combined'
+        creates one job spanning the full range (combined-assembly path).
+        Returns context for create_result.html.
+        """
+        try:
+            interval_int = int(interval)
+            if interval_int < 5 or interval_int > 86400:
+                return {"success": False, "error": "Interval must be between 5 and 86400 seconds."}
+            start_d = date.fromisoformat(start_date)
+            end_d = date.fromisoformat(end_date)
+            start_t = time.fromisoformat(start_time)
+            end_t = time.fromisoformat(end_time)
+
+            if end_t <= start_t:
+                return {"success": False, "error": "End time must be after start time."}
+            if end_d < start_d:
+                return {"success": False, "error": "End date must be on or after start date."}
+            # Recording-write lag: Protect needs ~60s before a frame is in the recording stream.
+            # If the end date is in the future entirely, reject. If it's today (or past)
+            # with a time that crosses the lag boundary, clamp silently.
+            now_local = datetime.now().astimezone()
+            if end_d > now_local.date():
+                return {"success": False, "error": "End date cannot be in the future."}
+            # If end_t for the actual end_d already lands in the past, fine. If end_d is today
+            # and end_t pushes into the future, end_at_for will clamp to the recording-lag threshold.
+            if self.end_at_for(end_d, end_t, now_local) <= datetime.combine(start_d, start_t).astimezone():
+                return {
+                    "success": False,
+                    "error": (
+                        "End is at or before start after applying recording-lag clamp. "
+                        "Wait a minute or pick an earlier end time."
+                    ),
+                }
+
+            camera_info = await self.get_camera_info(camera_id)
+            if not camera_info:
+                return {"success": False, "error": "Camera not found."}
+            camera_safe_name = camera_info["safe_name"]
+            keep = keep_images == "true"
+            force_recreate = recreate_existing == "true"
+
+            created_jobs: list[str] = []
+            skipped_days: list[str] = []  # for reporting
+            recreated_jobs: list[str] = []  # job_ids we cancelled+deleted to re-run
+
+            if output_mode == "combined":
+                start_at = datetime.combine(start_d, start_t).astimezone()
+                end_at = self.end_at_for(end_d, end_t, now_local)
+                existing = await self.job_service.get_active_combined_job(
+                    camera_safe_name=camera_safe_name,
+                    interval=interval_int,
+                    start_at=start_at,
+                    end_at_min=end_at - timedelta(seconds=120),
+                    end_at_max=end_at + timedelta(seconds=120),
+                )
+                if existing is not None:
+                    if not force_recreate:
+                        return {
+                            "success": False,
+                            "error": (
+                                f"A combined job for {camera_safe_name} over this range is already running "
+                                f"(id {existing.job_id[:8]}). Toggle 'Recreate existing' to replace it."
+                            ),
+                        }
+                    # Recreate: cancel + delete the existing job before creating the new one
+                    await self.job_service.cancel_job(existing.job_id)
+                    await self.job_service.delete_job(existing.job_id)
+                    await self.db.commit()
+                    recreated_jobs.append(existing.job_id)
+
+                # One job spanning the full range
+                range_label = f"{start_d.isoformat()}_to_{end_d.isoformat()}"
+                title = f"{camera_safe_name}_{range_label}_{interval_int}s_historical_combined"
+                job = await self.job_service.create(
+                    title=title,
+                    camera_safe_name=camera_safe_name,
+                    camera_id=camera_info["camera_id"],
+                    target_date=start_d,  # earliest date for the existing target_date column
+                    interval=interval_int,
+                    keep_images=keep,
+                    job_type="historical_combined",
+                    start_at=start_at,
+                    end_at=end_at,
+                    daily_window_start=start_t,
+                    daily_window_end=end_t,
+                )
+                # Commit before kickoff: the JobProcessor task reads the job row from its own session
+                await self.db.commit()
+                created_jobs.append(job.job_id)
+                get_job_processor().start_job(job.job_id, start_d.isoformat(), camera_safe_name, interval_int)
+            else:
+                # Fan out one job per day in the range
+                day = start_d
+                while day <= end_d:
+                    date_str = day.isoformat()
+                    if await self.check_job_exists(camera_safe_name, date_str, interval_int):
+                        if not force_recreate:
+                            skipped_days.append(date_str)
+                            day += timedelta(days=1)
+                            continue
+                        # Find the existing job for this camera/date/interval and remove it
+                        existing_job = await self.job_service.exists_for_camera_date(
+                            camera_safe_name, day, interval_int
+                        )
+                        if existing_job is not None:
+                            await self.job_service.cancel_job(existing_job.job_id)
+                            await self.job_service.delete_job(existing_job.job_id)
+                            await self.db.commit()
+                            recreated_jobs.append(existing_job.job_id)
+                    start_at = datetime.combine(day, start_t).astimezone()
+                    end_at = self.end_at_for(day, end_t, now_local)
+                    # Skip days whose end clamps to before/equal-to start (e.g., today before 00:01)
+                    if end_at <= start_at:
+                        day += timedelta(days=1)
+                        continue
+                    title = f"{camera_safe_name}_{date_str}_{interval_int}s_historical"
+                    job = await self.job_service.create(
+                        title=title,
+                        camera_safe_name=camera_safe_name,
+                        camera_id=camera_info["camera_id"],
+                        target_date=day,
+                        interval=interval_int,
+                        keep_images=keep,
+                        job_type="historical",
+                        start_at=start_at,
+                        end_at=end_at,
+                        daily_window_start=start_t,
+                        daily_window_end=end_t,
+                    )
+                    # Commit before kickoff: the JobProcessor task reads the job row from its own session
+                    await self.db.commit()
+                    created_jobs.append(job.job_id)
+                    get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval_int)
+                    day += timedelta(days=1)
+
+            if not created_jobs:
+                err = f"All matching jobs for {camera_safe_name} in this range already exist."
+                if skipped_days:
+                    err += f" Skipped: {', '.join(skipped_days)}. Toggle 'Recreate existing' to replace them."
+                return {"success": False, "error": err}
+
+            # Build a human-readable summary
+            if output_mode == "combined":
+                date_summary = f"{start_date} → {end_date}"
+            else:
+                date_summary = f"{start_date} → {end_date} ({len(created_jobs)} jobs)"
+                if skipped_days:
+                    date_summary += f", skipped {len(skipped_days)} existing"
+                if recreated_jobs:
+                    date_summary += f", replaced {len(recreated_jobs)}"
+
+            return {
+                "success": True,
+                "job_id": created_jobs[0] if len(created_jobs) == 1 else None,
+                "camera": camera_safe_name,
+                "date": date_summary,
+                "interval": interval_int,
+                "skipped_days": skipped_days,
+                "recreated_jobs": recreated_jobs,
+            }
+        except Exception as e:
+            logger.error("Error creating historical timelapse", extra={"error": str(e), "type": type(e).__name__})
+            return {"success": False, "error": f"{type(e).__name__}: {str(e)[:200]}"}
 
     async def get_browser_context(
         self,

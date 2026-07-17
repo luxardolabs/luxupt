@@ -6,7 +6,6 @@ from datetime import date
 import config
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
-from services.core.image_core_service import image_service
 from utils import async_fs
 
 from web.auth import get_current_user
@@ -285,6 +284,7 @@ async def get_image_thumbnail(
     interval: int,
     capture_date: date,
     timestamp: int,
+    view_service: ImagesViewDep,
     size: int | None = Query(None, ge=50, le=1024),
     _user: str = Depends(get_current_user),
 ) -> Response:
@@ -296,7 +296,7 @@ async def get_image_thumbnail(
     if size is None:
         size = config.THUMBNAIL_SIZE_DEFAULT
 
-    thumb_path = image_service.build_thumbnail_path(camera, interval, capture_date, timestamp, size)
+    thumb_path = view_service.build_thumbnail_path(camera, interval, capture_date, timestamp, size)
 
     if not await async_fs.path_exists(thumb_path):
         # Thumbnail may still be in the generation queue — wait briefly

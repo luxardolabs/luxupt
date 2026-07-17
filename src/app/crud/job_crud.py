@@ -273,6 +273,30 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         )
         return result.scalar_one_or_none()
 
+    async def get_active_combined_job(
+        self,
+        db: AsyncSession,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        start_at: datetime,
+        end_at_min: datetime,
+        end_at_max: datetime,
+    ) -> Job | None:
+        """Find a pending/running historical_combined job for camera/interval/range (fuzzy end bound)."""
+        result = await db.execute(
+            select(Job).where(
+                Job.camera_safe_name == camera_safe_name,
+                Job.interval == interval,
+                Job.job_type == "historical_combined",
+                Job.start_at == start_at,
+                Job.end_at >= end_at_min,
+                Job.end_at <= end_at_max,
+                Job.status.in_([JobStatus.PENDING, JobStatus.RUNNING]),
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_summary(self, db: AsyncSession) -> dict:
         """Get job summary statistics."""
         active = await self.get_active(db)

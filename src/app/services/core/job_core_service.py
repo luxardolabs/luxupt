@@ -47,6 +47,25 @@ class JobCoreService:
             interval=interval,
         )
 
+    async def get_active_combined_job(
+        self,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        start_at: datetime,
+        end_at_min: datetime,
+        end_at_max: datetime,
+    ) -> Job | None:
+        """Find a pending/running historical_combined job for camera/interval/range (fuzzy end bound)."""
+        return await job_crud.get_active_combined_job(
+            self.db,
+            camera_safe_name=camera_safe_name,
+            interval=interval,
+            start_at=start_at,
+            end_at_min=end_at_min,
+            end_at_max=end_at_max,
+        )
+
     async def create(
         self,
         *,

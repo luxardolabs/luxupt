@@ -135,6 +135,7 @@ async def get_images_view_service(
 
 
 async def get_timelapses_view_service(
+    db: DbSession,
     camera_service: CameraServiceDep,
     capture_service: CaptureServiceDep,
     timelapse_service: TimelapseBrowserServiceDep,
@@ -143,6 +144,7 @@ async def get_timelapses_view_service(
 ) -> TimelapsesViewService:
     """Get timelapses view service instance."""
     return TimelapsesViewService(
+        db,
         camera_service,
         capture_service,
         timelapse_service,
