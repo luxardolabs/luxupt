@@ -5,7 +5,7 @@ import os
 import platform
 import shutil
 import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import config
 from db.connection import DATABASE_PATH
@@ -209,25 +209,59 @@ class SystemViewService:
         *,
         activity_type: str | None = None,
         camera_id: str | None = None,
-        limit: int = config.DEFAULT_PAGE_SIZE,
+        page: int = 1,
+        per_page: int = 50,
     ) -> dict:
-        """Get activity log data."""
+        """Get activity log data — paginated and grouped by day for the feed."""
+        total = await self.activity_service.count(
+            activity_type=activity_type,
+            camera_id=camera_id,
+        )
         activities = await self.activity_service.get_recent(
-            limit=limit,
+            limit=per_page,
+            offset=(page - 1) * per_page,
             activity_type=activity_type,
             camera_id=camera_id,
         )
 
+        # Group this page's rows by calendar day (list preserves newest-first order)
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+
+        def _day_label(d: date) -> str:
+            if d == today:
+                return "Today"
+            if d == yesterday:
+                return "Yesterday"
+            return d.strftime("%A, %B ") + str(d.day)  # e.g. "Friday, July 18"
+
+        activity_groups: list[dict] = []
+        for a in activities:
+            day = a.timestamp.date()
+            if not activity_groups or activity_groups[-1]["date"] != day:
+                activity_groups.append({"date": day, "label": _day_label(day), "items": []})
+            activity_groups[-1]["items"].append(a)
+
         summary = await self.activity_service.get_summary(hours=24)
         cameras = await self.camera_service.get_active()
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
         return {
-            "activities": activities,
+            "activity_groups": activity_groups,
+            "activity_count": len(activities),
             "summary": summary,
             "cameras": cameras,
             "filters": {
                 "activity_type": activity_type,
                 "camera_id": camera_id,
+            },
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "total_count": total,
+                "has_prev": page > 1,
+                "has_next": page < total_pages,
             },
         }
 

@@ -27,10 +27,11 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         db: AsyncSession,
         *,
         limit: int = config.DEFAULT_PAGE_SIZE,
+        offset: int = 0,
         activity_type: str | None = None,
         camera_id: str | None = None,
     ) -> list[Activity]:
-        """Get recent activities with optional filters."""
+        """Get recent activities with optional filters (paginated by limit/offset)."""
         query = select(Activity)
 
         if activity_type:
@@ -38,9 +39,24 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         if camera_id:
             query = query.where(Activity.camera_id == camera_id)
 
-        query = query.order_by(Activity.timestamp.desc()).limit(limit)
+        query = query.order_by(Activity.timestamp.desc()).offset(offset).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
+
+    async def count_by_filters(
+        self,
+        db: AsyncSession,
+        *,
+        activity_type: str | None = None,
+        camera_id: str | None = None,
+    ) -> int:
+        """Total activities matching the filters (for pagination)."""
+        query = select(func.count()).select_from(Activity)
+        if activity_type:
+            query = query.where(Activity.activity_type == activity_type)
+        if camera_id:
+            query = query.where(Activity.camera_id == camera_id)
+        return (await db.execute(query)).scalar() or 0
 
     async def get_since(
         self,

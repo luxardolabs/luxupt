@@ -1,41 +1,58 @@
 {% from "macros/icons.html" import icon %}
-<div class="space-y-3">
-    {% for activity in activities %}
-    <div class="flex items-start gap-3 text-sm">
-        <span class="mt-0.5 flex-shrink-0">
-            {% if activity.activity_type == 'capture_success' %}{{ icon('photo', 'w-4 h-4 text-success-400') }}
-            {% elif activity.activity_type == 'capture_failed' %}{{ icon('x-circle-solid', 'w-4 h-4 text-danger-400') }}
-            {% elif activity.activity_type == 'timelapse_started' %}{{ icon('clock', 'w-4 h-4 text-primary-400') }}
-            {% elif activity.activity_type == 'timelapse_completed' %}{{ icon('film', 'w-4 h-4 text-primary-400') }}
-            {% elif activity.activity_type == 'timelapse_failed' %}{{ icon('exclamation-triangle-solid', 'w-4 h-4 text-warning-400') }}
-            {% elif activity.activity_type == 'camera_online' %}{{ icon('signal', 'w-4 h-4 text-success-400') }}
-            {% elif activity.activity_type == 'camera_offline' %}{{ icon('signal-slash', 'w-4 h-4 text-danger-400') }}
-            {% elif activity.activity_type == 'error' %}{{ icon('exclamation-circle-solid', 'w-4 h-4 text-danger-400') }}
-            {% else %}{{ icon('clipboard-document-list', 'w-4 h-4 text-surface-200') }}{% endif %}
-        </span>
-        <div class="flex-1 min-w-0">
-            <p class="text-surface-100 truncate">{{ activity.message }}</p>
-            <p class="text-surface-200 text-xs">{{ activity.timestamp | format_datetime('log') }}</p>
+{% from "macros/navigation.html" import htmx_pagination %}
+{% from "macros/cards.html" import empty_state %}
+
+{# Icon + accent colour per event kind #}
+{% set type_meta = {
+    'capture_success':     ('photo', 'success'),
+    'capture_failed':      ('x-circle-solid', 'danger'),
+    'camera_online':       ('signal', 'success'),
+    'camera_offline':      ('signal-slash', 'danger'),
+    'timelapse_started':   ('clock', 'primary'),
+    'timelapse_completed': ('film', 'primary'),
+    'timelapse_failed':    ('exclamation-triangle-solid', 'warning'),
+    'error':               ('exclamation-circle-solid', 'danger')
+} %}
+
+{% if activity_groups %}
+<div class="space-y-6">
+    {% for group in activity_groups %}
+    <div>
+        {# Day header #}
+        <div class="flex items-center gap-3 mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-surface-200">{{ group.label }}</h3>
+            <span class="text-xs text-surface-400">{{ group['items']|length }}</span>
+            <div class="flex-1 h-px bg-surface-400/20"></div>
+        </div>
+
+        {# Rows for the day #}
+        <div class="rounded-xl border border-surface-400/20 bg-surface-800/40 divide-y divide-surface-400/10">
+            {% for a in group['items'] %}
+            {% set meta = type_meta.get(a.activity_type|string, ('clipboard-document-list', 'muted')) %}
+            {% set c = meta[1] %}
+            <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-700/30 transition-colors">
+                <span class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-{{ c }}-500/15 text-{{ c }}-400">
+                    {{ icon(meta[0], 'w-4 h-4') }}
+                </span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm text-surface-100 truncate">{{ a.message }}</p>
+                    {% if a.camera_safe_name %}
+                    <p class="text-xs text-surface-300">{{ a.camera_safe_name|replace('_', ' ') }}</p>
+                    {% endif %}
+                </div>
+                <time class="flex-shrink-0 text-xs text-surface-300 tabular-nums" title="{{ a.timestamp | format_datetime('log') }}">
+                    {{ a.timestamp | time }}
+                </time>
+            </div>
+            {% endfor %}
         </div>
     </div>
-    {% else %}
-    <p class="text-surface-200 text-sm text-center py-4">No recent activity</p>
     {% endfor %}
 </div>
 
-{% if summary %}
-<div class="mt-4 pt-4 border-t border-surface-400/50 grid grid-cols-3 gap-2 text-center text-xs">
-    <div>
-        <p class="text-success-400 font-medium">{{ summary.capture_success_count }}</p>
-        <p class="text-surface-200">Captures</p>
-    </div>
-    <div>
-        <p class="text-primary-400 font-medium">{{ summary.timelapse_completed_count }}</p>
-        <p class="text-surface-200">Timelapses</p>
-    </div>
-    <div>
-        <p class="text-danger-400 font-medium">{{ summary.error_count }}</p>
-        <p class="text-surface-200">Errors</p>
-    </div>
+<div class="mt-6">
+    {{ htmx_pagination(pagination, "activity-feed", "/system/partials/activity", {"activity_type": filters.activity_type, "camera_id": filters.camera_id}) }}
 </div>
+{% else %}
+{{ empty_state('clipboard-document-list', 'No activity', 'No events match the current filters.') }}
 {% endif %}

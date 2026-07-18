@@ -1,7 +1,7 @@
 {% extends "layouts/base.html" %}
 {% from "macros/navigation.html" import page_header, section %}
 {% from "macros/forms.html" import filter_select %}
-{% from "macros/cards.html" import card %}
+{% from "macros/cards.html" import stat_card %}
 
 {% block title %}Activity Log - LuxUPT{% endblock %}
 
@@ -33,18 +33,28 @@
     "hx-include": "#activity-filters"
 } %}
 
-{% call page_header("Activity Log", "Recent system, camera, and timelapse events") %}
+{% call page_header("Activity Log", "System, camera, and timelapse events") %}
     <div id="activity-filters" class="flex flex-wrap items-center gap-3">
         {{ filter_select("activity_type", type_options, selected=filters.activity_type, placeholder="All Events", hx_attrs=filter_hx) }}
         {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
     </div>
 {% endcall %}
 
-{% call section("Recent Activity", "clipboard-document-list") %}
-{% call card() %}
+{# 24-hour summary #}
+{% call section("Last 24 Hours", "chart-bar") %}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    {{ stat_card("Total Events", summary.total_events, icon_name="clipboard-document-list", color="primary") }}
+    {{ stat_card("Captured", summary.capture_success_count, icon_name="photo", color="success") }}
+    {{ stat_card("Failed", summary.capture_failed_count, icon_name="x-circle-solid", color="danger") }}
+    {{ stat_card("Timelapses", summary.timelapse_completed_count, icon_name="film", color="primary") }}
+    {{ stat_card("Errors", summary.error_count, icon_name="exclamation-circle-solid", color="warning") }}
+</div>
+{% endcall %}
+
+{# Event log — grouped by day, paginated #}
+{% call section("Event Log", "list-bullet") %}
 <div id="activity-feed">
     {% include "partials/activity/activity_feed.html" %}
 </div>
-{% endcall %}
 {% endcall %}
 {% endblock %}

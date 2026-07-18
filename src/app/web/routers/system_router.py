@@ -57,14 +57,14 @@ async def activity_log_page(
     view_service: SystemViewDep,
     activity_type: ActivityTypeFilter = None,
     camera_id: str | None = Query(None),
-    limit: int = Query(100, ge=1, le=1000),
+    page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the activity log page."""
     context = await view_service.get_activity_log_context(
         activity_type=activity_type,
-        camera_id=camera_id,
-        limit=limit,
+        camera_id=camera_id if camera_id else None,
+        page=page,
     )
 
     return templates.TemplateResponse(
@@ -96,14 +96,14 @@ async def activity_feed_partial(
     view_service: SystemViewDep,
     activity_type: ActivityTypeFilter = None,
     camera_id: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=1000),
+    page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render activity feed partial for HTMX updates."""
     context = await view_service.get_activity_log_context(
         activity_type=activity_type,
         camera_id=camera_id if camera_id else None,
-        limit=limit,
+        page=page,
     )
 
     return templates.TemplateResponse(
