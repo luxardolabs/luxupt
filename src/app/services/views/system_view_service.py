@@ -284,11 +284,9 @@ class SystemViewService:
             for t in ActivityType
             if t is not ActivityType.WEB_REQUEST
         ]
-        # Exclude the default (7d) from the options — it's the dropdown placeholder,
-        # so it isn't listed twice.
-        period_options = [
-            {"value": key, "label": label} for key, (_, label) in self.PERIODS.items() if key != "7d"
-        ]
+        # All time ranges in natural order (the PERIODS dict is ordered 24h→7d→30d→all);
+        # the period select has no placeholder (it always has a value).
+        period_options = [{"value": key, "label": label} for key, (_, label) in self.PERIODS.items()]
 
         return {
             "activity_groups": activity_groups,

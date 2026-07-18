@@ -62,7 +62,8 @@
         name="{{ name }}"
         class="rounded-lg border border-surface-500 bg-surface-700 {{ size_class }} text-base sm:text-sm text-white transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
         {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
-    <option value="" {{ 'selected' if selected is none or selected == '' }}>{{ placeholder }}</option>
+    {# placeholder=none/'' omits the empty "All" option — for filters that always have a value #}
+    {% if placeholder %}<option value="" {{ 'selected' if selected is none or selected == '' }}>{{ placeholder }}</option>{% endif %}
     {% for opt in options %}
         {% if opt is mapping %}
         <option value="{{ opt.value }}" {{ 'selected' if selected == opt.value }}>{{ opt.label }}</option>

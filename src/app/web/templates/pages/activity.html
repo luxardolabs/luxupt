@@ -31,7 +31,7 @@
 {% call page_header("Activity Log", "System, camera, and timelapse events — problems shown first") %}
     <div id="activity-filters" class="flex flex-wrap items-center gap-3">
         {{ filter_select("show", show_options, selected=filters.show, placeholder="Problems", hx_attrs=filter_hx) }}
-        {{ filter_select("period", period_options, selected=filters.period, placeholder="Last 7 Days", hx_attrs=filter_hx) }}
+        {{ filter_select("period", period_options, selected=filters.period, placeholder="", hx_attrs=filter_hx) }}
         {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
     </div>
 {% endcall %}
