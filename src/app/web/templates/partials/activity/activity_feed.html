@@ -55,7 +55,7 @@
 </div>
 
 <div class="mt-6">
-    {{ htmx_pagination(pagination, "activity-feed", "/system/partials/activity", {"show": filters.show, "camera_id": filters.camera_id}) }}
+    {{ htmx_pagination(pagination, "activity-feed", "/system/partials/activity", {"show": filters.show, "period": filters.period, "camera_id": filters.camera_id}) }}
 </div>
 {% else %}
 {{ empty_state('clipboard-document-list', 'No activity', 'No events match the current filters.') }}

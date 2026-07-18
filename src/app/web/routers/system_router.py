@@ -55,6 +55,7 @@ async def activity_log_page(
     templates: TemplatesDep,
     view_service: SystemViewDep,
     show: str = Query("problems"),
+    period: str = Query("7d"),
     camera_id: str | None = Query(None),
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
@@ -62,6 +63,7 @@ async def activity_log_page(
     """Render the activity log page."""
     context = await view_service.get_activity_log_context(
         show=show,
+        period=period,
         camera_id=camera_id if camera_id else None,
         page=page,
     )
@@ -94,6 +96,7 @@ async def activity_feed_partial(
     templates: TemplatesDep,
     view_service: SystemViewDep,
     show: str = Query("problems"),
+    period: str = Query("7d"),
     camera_id: str | None = Query(None),
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
@@ -101,6 +104,7 @@ async def activity_feed_partial(
     """Render activity feed partial for HTMX updates."""
     context = await view_service.get_activity_log_context(
         show=show,
+        period=period,
         camera_id=camera_id if camera_id else None,
         page=page,
     )

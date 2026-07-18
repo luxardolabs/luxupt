@@ -31,12 +31,14 @@
 {% call page_header("Activity Log", "System, camera, and timelapse events — problems shown first") %}
     <div id="activity-filters" class="flex flex-wrap items-center gap-3">
         {{ filter_select("show", show_options, selected=filters.show, placeholder="Problems", hx_attrs=filter_hx) }}
+        {{ filter_select("period", period_options, selected=filters.period, placeholder="Last 7 Days", hx_attrs=filter_hx) }}
         {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
     </div>
 {% endcall %}
 
-{# 24-hour summary — counts of what actually gets logged (events, not per-capture success) #}
-{% call section("Last 24 Hours", "chart-bar") %}
+{# Summary — counts of what actually gets logged (events, not per-capture success),
+   over the selected time range #}
+{% call section(summary_label, "chart-bar") %}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
     {{ stat_card("Total Events", summary.total_events, icon_name="clipboard-document-list", color="primary") }}
     {{ stat_card("Capture Failures", summary.capture_failed_count, icon_name="x-circle-solid", color="danger") }}

@@ -1,5 +1,7 @@
 """Activity service for activity logging and retrieval."""
 
+from datetime import datetime
+
 import config
 from crud import activity_crud
 from models.activity_model import Activity
@@ -21,6 +23,7 @@ class ActivityCoreService:
         offset: int = 0,
         activity_types: list[str] | None = None,
         camera_id: str | None = None,
+        since: datetime | None = None,
     ) -> list[Activity]:
         """Get recent activities filtered by any of activity_types (paginated)."""
         return await activity_crud.get_recent(
@@ -29,6 +32,7 @@ class ActivityCoreService:
             offset=offset,
             activity_types=activity_types,
             camera_id=camera_id,
+            since=since,
         )
 
     async def count(
@@ -36,12 +40,14 @@ class ActivityCoreService:
         *,
         activity_types: list[str] | None = None,
         camera_id: str | None = None,
+        since: datetime | None = None,
     ) -> int:
         """Total activities matching the filters (for pagination)."""
         return await activity_crud.count_by_filters(
             self.db,
             activity_types=activity_types,
             camera_id=camera_id,
+            since=since,
         )
 
     async def get_summary(self, *, hours: int = 24) -> ActivitySummary:

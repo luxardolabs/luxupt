@@ -208,10 +208,19 @@ class SystemViewService:
     # "Problems" = failures + errors (the default view of the log)
     PROBLEM_TYPES = ["capture_failed", "timelapse_failed", "error"]
 
+    # Time-range options: value -> (hours or None for "all", label)
+    PERIODS: dict[str, tuple[int | None, str]] = {
+        "24h": (24, "Last 24 Hours"),
+        "7d": (24 * 7, "Last 7 Days"),
+        "30d": (24 * 30, "Last 30 Days"),
+        "all": (None, "All Time"),
+    }
+
     async def get_activity_log_context(
         self,
         *,
         show: str = "problems",
+        period: str = "7d",
         camera_id: str | None = None,
         page: int = 1,
         per_page: int = 50,
@@ -219,7 +228,8 @@ class SystemViewService:
         """Get activity log data — paginated and grouped by day for the feed.
 
         `show`: 'problems' (default: failures + errors), 'all', or a specific
-        activity_type value.
+        activity_type value. `period`: 24h / 7d / 30d / all — bounds the feed and
+        the summary to the same window.
         """
         if show == "all":
             activity_types: list[str] | None = None
@@ -228,15 +238,20 @@ class SystemViewService:
         else:
             activity_types = [show]
 
+        hours, period_label = self.PERIODS.get(period, self.PERIODS["7d"])
+        since = datetime.now() - timedelta(hours=hours) if hours is not None else None
+
         total = await self.activity_service.count(
             activity_types=activity_types,
             camera_id=camera_id,
+            since=since,
         )
         activities = await self.activity_service.get_recent(
             limit=per_page,
             offset=(page - 1) * per_page,
             activity_types=activity_types,
             camera_id=camera_id,
+            since=since,
         )
 
         # Group this page's rows by calendar day (list preserves newest-first order)
@@ -257,7 +272,8 @@ class SystemViewService:
                 activity_groups.append({"date": day, "label": _day_label(day), "items": []})
             activity_groups[-1]["items"].append(a)
 
-        summary = await self.activity_service.get_summary(hours=24)
+        # Summary counts the same window as the feed ("all" -> effectively unbounded)
+        summary = await self.activity_service.get_summary(hours=hours if hours is not None else 24 * 3660)
         cameras = await self.camera_service.get_active()
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
@@ -268,15 +284,23 @@ class SystemViewService:
             for t in ActivityType
             if t is not ActivityType.WEB_REQUEST
         ]
+        # Exclude the default (7d) from the options — it's the dropdown placeholder,
+        # so it isn't listed twice.
+        period_options = [
+            {"value": key, "label": label} for key, (_, label) in self.PERIODS.items() if key != "7d"
+        ]
 
         return {
             "activity_groups": activity_groups,
             "activity_count": len(activities),
             "summary": summary,
+            "summary_label": period_label,
             "cameras": cameras,
             "activity_type_options": activity_type_options,
+            "period_options": period_options,
             "filters": {
                 "show": show,
+                "period": period,
                 "camera_id": camera_id,
             },
             "pagination": {
