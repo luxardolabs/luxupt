@@ -723,25 +723,16 @@ class CameraManager:
                         "RTSP capture FFmpeg full stderr",
                         extra={"camera": camera.name, "interval": interval, "stderr": stderr_text},
                     )
-                    # Detect H.265/HEVC codec issues (camera set to Enhanced encoding)
+                    # Show the raw ffmpeg stderr verbatim, so the actual failure is visible in
+                    # the activity log without cracking open a file. Nothing stripped or capped.
+                    error_msg = f"FFmpeg error: {stderr_text}" if stderr_text else "FFmpeg failed"
+                    # If the stderr points at H.265, prepend a hint — but never hide the stderr.
                     stderr_lower = stderr_text.lower()
                     if "hevc" in stderr_lower or "h265" in stderr_lower or "hev1" in stderr_lower:
                         error_msg = (
-                            "Camera may be using Enhanced (H.265) encoding — "
-                            "switch to Standard (H.264) in UniFi Protect settings"
+                            "Camera may be using Enhanced (H.265) encoding — switch to "
+                            "Standard (H.264) in UniFi Protect settings.\n\n" + error_msg
                         )
-                    else:
-                        # ffmpeg prints its version/config banner to stderr FIRST, so the old
-                        # stderr_text[:500] captured only the banner, never the error. Drop the
-                        # version-banner noise (never useful) but keep the FULL real error —
-                        # every remaining line, uncapped.
-                        _noise = ("ffmpeg version", "built with", "configuration:", "lib")
-                        _lines = [
-                            ln.strip()
-                            for ln in stderr_text.splitlines()
-                            if ln.strip() and not ln.strip().lower().startswith(_noise)
-                        ]
-                        error_msg = f"FFmpeg error: {' '.join(_lines)}" if _lines else "FFmpeg failed"
                     logger.error(
                         "RTSP capture failed - FFmpeg error",
                         extra={"camera": camera.name, "interval": interval, "error": error_msg},
