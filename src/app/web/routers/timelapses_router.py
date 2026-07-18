@@ -5,11 +5,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from logging_config import get_logger
-from models.enum_model import TimelapseStatus
-from schemas.base_schema import EmptyStrToNone
 
 from web.auth import get_current_user
 from web.deps import TemplatesDep, TimelapsesViewDep
+from web.query_params import TimelapseStatusFilter
 
 logger = get_logger(__name__)
 
@@ -24,7 +23,7 @@ async def timelapses_page(
     camera: str | None = Query(None),
     date_str: str | None = Query(None, alias="date"),
     interval: str | None = Query(None),
-    status: Annotated[TimelapseStatus | None, EmptyStrToNone] = Query(None),
+    status: TimelapseStatusFilter = None,
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
@@ -250,7 +249,7 @@ async def timelapse_list_partial(
     camera: str | None = Query(None),
     date_str: str | None = Query(None, alias="date"),
     interval: str | None = Query(None),
-    status: Annotated[TimelapseStatus | None, EmptyStrToNone] = Query(None),
+    status: TimelapseStatusFilter = None,
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
