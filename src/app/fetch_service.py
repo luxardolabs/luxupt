@@ -218,6 +218,25 @@ class FetchService:
                         camera_data["enabled_intervals"] = [60]  # Default to 60s only
                         new_cameras.append(camera.name)
 
+                    # Log a connectivity transition (only on change) to the activity feed
+                    if existing is not None and existing.is_connected != camera.is_connected:
+                        if camera.is_connected:
+                            await activity_crud.log(
+                                db,
+                                activity_type=ActivityType.CAMERA_ONLINE,
+                                message=f"{camera.name} came online",
+                                camera_id=camera.id,
+                                camera_safe_name=camera.safe_name,
+                            )
+                        else:
+                            await activity_crud.log(
+                                db,
+                                activity_type=ActivityType.CAMERA_OFFLINE,
+                                message=f"{camera.name} went offline",
+                                camera_id=camera.id,
+                                camera_safe_name=camera.safe_name,
+                            )
+
                     await camera_crud.upsert_from_dict(db, data=camera_data)
 
                 await db.commit()

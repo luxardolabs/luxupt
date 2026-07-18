@@ -19,28 +19,28 @@ class ActivityCoreService:
         *,
         limit: int = config.DEFAULT_PAGE_SIZE,
         offset: int = 0,
-        activity_type: str | None = None,
+        activity_types: list[str] | None = None,
         camera_id: str | None = None,
     ) -> list[Activity]:
-        """Get recent activities with optional filtering (paginated by limit/offset)."""
+        """Get recent activities filtered by any of activity_types (paginated)."""
         return await activity_crud.get_recent(
             self.db,
             limit=limit,
             offset=offset,
-            activity_type=activity_type,
+            activity_types=activity_types,
             camera_id=camera_id,
         )
 
     async def count(
         self,
         *,
-        activity_type: str | None = None,
+        activity_types: list[str] | None = None,
         camera_id: str | None = None,
     ) -> int:
         """Total activities matching the filters (for pagination)."""
         return await activity_crud.count_by_filters(
             self.db,
-            activity_type=activity_type,
+            activity_types=activity_types,
             camera_id=camera_id,
         )
 

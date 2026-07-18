@@ -11,7 +11,6 @@ from logging_config import get_logger
 from web.auth import get_current_user
 from web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from web.main import get_start_time
-from web.query_params import ActivityTypeFilter
 
 logger = get_logger(__name__)
 
@@ -55,14 +54,14 @@ async def activity_log_page(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    activity_type: ActivityTypeFilter = None,
+    show: str = Query("problems"),
     camera_id: str | None = Query(None),
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the activity log page."""
     context = await view_service.get_activity_log_context(
-        activity_type=activity_type,
+        show=show,
         camera_id=camera_id if camera_id else None,
         page=page,
     )
@@ -94,14 +93,14 @@ async def activity_feed_partial(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    activity_type: ActivityTypeFilter = None,
+    show: str = Query("problems"),
     camera_id: str | None = Query(None),
     page: int = Query(1, ge=1),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render activity feed partial for HTMX updates."""
     context = await view_service.get_activity_log_context(
-        activity_type=activity_type,
+        show=show,
         camera_id=camera_id if camera_id else None,
         page=page,
     )

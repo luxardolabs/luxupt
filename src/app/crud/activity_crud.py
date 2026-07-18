@@ -28,17 +28,15 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         *,
         limit: int = config.DEFAULT_PAGE_SIZE,
         offset: int = 0,
-        activity_type: str | None = None,
+        activity_types: list[str] | None = None,
         camera_id: str | None = None,
     ) -> list[Activity]:
-        """Get recent activities with optional filters (paginated by limit/offset)."""
+        """Get recent activities filtered by any of activity_types (paginated)."""
         query = select(Activity)
-
-        if activity_type:
-            query = query.where(Activity.activity_type == activity_type)
+        if activity_types:
+            query = query.where(Activity.activity_type.in_(activity_types))
         if camera_id:
             query = query.where(Activity.camera_id == camera_id)
-
         query = query.order_by(Activity.timestamp.desc()).offset(offset).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
@@ -47,13 +45,13 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         self,
         db: AsyncSession,
         *,
-        activity_type: str | None = None,
+        activity_types: list[str] | None = None,
         camera_id: str | None = None,
     ) -> int:
         """Total activities matching the filters (for pagination)."""
         query = select(func.count()).select_from(Activity)
-        if activity_type:
-            query = query.where(Activity.activity_type == activity_type)
+        if activity_types:
+            query = query.where(Activity.activity_type.in_(activity_types))
         if camera_id:
             query = query.where(Activity.camera_id == camera_id)
         return (await db.execute(query)).scalar() or 0

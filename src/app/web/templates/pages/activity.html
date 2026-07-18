@@ -12,15 +12,16 @@
     {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
 {% endfor %}
 
-{# Curated activity-type filter options (the event kinds users care about) #}
-{% set type_options = [
-    {"value": "capture_success", "label": "Capture success"},
+{# Event view: defaults to "Problems" (failures + errors); "All Events" or a
+   specific type also selectable. The empty placeholder maps to Problems too. #}
+{% set show_options = [
+    {"value": "all", "label": "All Events"},
     {"value": "capture_failed", "label": "Capture failed"},
-    {"value": "camera_online", "label": "Camera online"},
+    {"value": "error", "label": "Errors"},
     {"value": "camera_offline", "label": "Camera offline"},
+    {"value": "camera_online", "label": "Camera online"},
     {"value": "timelapse_completed", "label": "Timelapse completed"},
-    {"value": "timelapse_failed", "label": "Timelapse failed"},
-    {"value": "error", "label": "Error"}
+    {"value": "timelapse_failed", "label": "Timelapse failed"}
 ] %}
 
 {# Both filters HTMX-swap the feed in place; hx_attrs keeps this macro-composed
@@ -33,21 +34,21 @@
     "hx-include": "#activity-filters"
 } %}
 
-{% call page_header("Activity Log", "System, camera, and timelapse events") %}
+{% call page_header("Activity Log", "System, camera, and timelapse events — problems shown first") %}
     <div id="activity-filters" class="flex flex-wrap items-center gap-3">
-        {{ filter_select("activity_type", type_options, selected=filters.activity_type, placeholder="All Events", hx_attrs=filter_hx) }}
+        {{ filter_select("show", show_options, selected=filters.show, placeholder="Problems", hx_attrs=filter_hx) }}
         {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
     </div>
 {% endcall %}
 
-{# 24-hour summary #}
+{# 24-hour summary — counts of what actually gets logged (events, not per-capture success) #}
 {% call section("Last 24 Hours", "chart-bar") %}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
     {{ stat_card("Total Events", summary.total_events, icon_name="clipboard-document-list", color="primary") }}
-    {{ stat_card("Captured", summary.capture_success_count, icon_name="photo", color="success") }}
-    {{ stat_card("Failed", summary.capture_failed_count, icon_name="x-circle-solid", color="danger") }}
-    {{ stat_card("Timelapses", summary.timelapse_completed_count, icon_name="film", color="primary") }}
+    {{ stat_card("Capture Failures", summary.capture_failed_count, icon_name="x-circle-solid", color="danger") }}
     {{ stat_card("Errors", summary.error_count, icon_name="exclamation-circle-solid", color="warning") }}
+    {{ stat_card("Timelapses", summary.timelapse_completed_count, icon_name="film", color="primary") }}
+    {{ stat_card("Cameras Offline", summary.cameras_offline, icon_name="signal-slash", color="warning") }}
 </div>
 {% endcall %}
 

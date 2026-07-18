@@ -16,7 +16,7 @@ from typing import Any
 import config
 import uvicorn
 from camera_manager import CameraManager, CameraManagerSettings
-from crud import camera_crud
+from crud import activity_crud, camera_crud
 from crud.fetch_settings_crud import fetch_settings_crud
 from db.connection import async_session, close_db, get_db, init_db
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -31,6 +31,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from logging_config import get_logger, setup_logging
+from models.enum_model import ActivityType
 from services.core.health_core_service import HealthCoreService, HealthStatus
 from services.core.metrics_core_service import MetricsCoreService
 
@@ -257,10 +258,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     backup_service = BackupCoreService()
     tasks.append(_create_monitored_task(backup_service.start(), "backup_service"))
 
+    # Record service start in the activity log
+    async with async_session() as session:
+        await activity_crud.log(
+            session, activity_type=ActivityType.SERVICE_STARTED, message="LuxUPT service started"
+        )
+        await session.commit()
+
     yield
 
     # Shutdown
     logger.info("Shutting down services")
+
+    # Record service stop in the activity log
+    try:
+        async with async_session() as session:
+            await activity_crud.log(
+                session, activity_type=ActivityType.SERVICE_STOPPED, message="LuxUPT service stopped"
+            )
+            await session.commit()
+    except Exception as e:
+        logger.warning("Failed to log service stop", extra={"error": str(e)})
 
     # Stop background services
     await fetch_service.stop()

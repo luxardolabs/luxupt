@@ -204,23 +204,37 @@ class SystemViewService:
             "timezone": f"{tz_name} ({utc_offset_formatted})" if utc_offset_formatted else tz_name,
         }
 
+    # "Problems" = failures + errors (the default view of the log)
+    PROBLEM_TYPES = ["capture_failed", "timelapse_failed", "error"]
+
     async def get_activity_log_context(
         self,
         *,
-        activity_type: str | None = None,
+        show: str = "problems",
         camera_id: str | None = None,
         page: int = 1,
         per_page: int = 50,
     ) -> dict:
-        """Get activity log data — paginated and grouped by day for the feed."""
+        """Get activity log data — paginated and grouped by day for the feed.
+
+        `show`: 'problems' (default: failures + errors), 'all', or a specific
+        activity_type value.
+        """
+        if show == "all":
+            activity_types: list[str] | None = None
+        elif show in ("", "problems"):
+            activity_types = self.PROBLEM_TYPES
+        else:
+            activity_types = [show]
+
         total = await self.activity_service.count(
-            activity_type=activity_type,
+            activity_types=activity_types,
             camera_id=camera_id,
         )
         activities = await self.activity_service.get_recent(
             limit=per_page,
             offset=(page - 1) * per_page,
-            activity_type=activity_type,
+            activity_types=activity_types,
             camera_id=camera_id,
         )
 
@@ -252,7 +266,7 @@ class SystemViewService:
             "summary": summary,
             "cameras": cameras,
             "filters": {
-                "activity_type": activity_type,
+                "show": show,
                 "camera_id": camera_id,
             },
             "pagination": {
