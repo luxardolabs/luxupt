@@ -13,7 +13,8 @@
                 {{ nav_link("/cameras", "Cameras", request.url.path.startswith('/cameras'), 'video-camera') }}
                 {{ nav_link("/images", "Images", request.url.path.startswith('/images'), 'photo') }}
                 {{ nav_link("/timelapses", "Timelapses", request.url.path.startswith('/timelapses'), 'film') }}
-                {{ nav_link("/system", "System", request.url.path.startswith('/system'), 'cog-6-tooth') }}
+                {{ nav_link("/system/activity", "Activity", request.url.path.startswith('/system/activity'), 'clipboard-document-list') }}
+                {{ nav_link("/system", "System", request.url.path.startswith('/system') and not request.url.path.startswith('/system/activity'), 'cog-6-tooth') }}
             </div>
 
             <!-- Right side -->

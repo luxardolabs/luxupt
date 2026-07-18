@@ -219,10 +219,12 @@ class SystemViewService:
         )
 
         summary = await self.activity_service.get_summary(hours=24)
+        cameras = await self.camera_service.get_active()
 
         return {
             "activities": activities,
             "summary": summary,
+            "cameras": cameras,
             "filters": {
                 "activity_type": activity_type,
                 "camera_id": camera_id,

@@ -1,0 +1,50 @@
+{% extends "layouts/base.html" %}
+{% from "macros/navigation.html" import page_header, section %}
+{% from "macros/forms.html" import filter_select %}
+{% from "macros/cards.html" import card %}
+
+{% block title %}Activity Log - LuxUPT{% endblock %}
+
+{% block content %}
+{# Camera options from active cameras (camera_id -> friendly name) #}
+{% set camera_options = [] %}
+{% for cam in cameras %}
+    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
+{% endfor %}
+
+{# Curated activity-type filter options (the event kinds users care about) #}
+{% set type_options = [
+    {"value": "capture_success", "label": "Capture success"},
+    {"value": "capture_failed", "label": "Capture failed"},
+    {"value": "camera_online", "label": "Camera online"},
+    {"value": "camera_offline", "label": "Camera offline"},
+    {"value": "timelapse_completed", "label": "Timelapse completed"},
+    {"value": "timelapse_failed", "label": "Timelapse failed"},
+    {"value": "error", "label": "Error"}
+] %}
+
+{# Both filters HTMX-swap the feed in place; hx_attrs keeps this macro-composed
+   (no hand-rolled <form>). hx-include pulls both selects on either change. #}
+{% set filter_hx = {
+    "hx-get": "/system/partials/activity",
+    "hx-target": "#activity-feed",
+    "hx-swap": "innerHTML",
+    "hx-trigger": "change",
+    "hx-include": "#activity-filters"
+} %}
+
+{% call page_header("Activity Log", "Recent system, camera, and timelapse events") %}
+    <div id="activity-filters" class="flex flex-wrap items-center gap-3">
+        {{ filter_select("activity_type", type_options, selected=filters.activity_type, placeholder="All Events", hx_attrs=filter_hx) }}
+        {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
+    </div>
+{% endcall %}
+
+{% call section("Recent Activity", "clipboard-document-list") %}
+{% call card() %}
+<div id="activity-feed">
+    {% include "partials/activity/activity_feed.html" %}
+</div>
+{% endcall %}
+{% endcall %}
+{% endblock %}
