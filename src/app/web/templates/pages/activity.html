@@ -13,16 +13,10 @@
 {% endfor %}
 
 {# Event view: defaults to "Problems" (failures + errors); "All Events" or a
-   specific type also selectable. The empty placeholder maps to Problems too. #}
-{% set show_options = [
-    {"value": "all", "label": "All Events"},
-    {"value": "capture_failed", "label": "Capture failed"},
-    {"value": "error", "label": "Errors"},
-    {"value": "camera_offline", "label": "Camera offline"},
-    {"value": "camera_online", "label": "Camera online"},
-    {"value": "timelapse_completed", "label": "Timelapse completed"},
-    {"value": "timelapse_failed", "label": "Timelapse failed"}
-] %}
+   specific type also selectable. The specific types come from activity_type_options,
+   which the view derives from the ActivityType enum (single source of truth — the
+   list can't drift). The empty placeholder maps to Problems too. #}
+{% set show_options = [{"value": "all", "label": "All Events"}] + activity_type_options %}
 
 {# Both filters HTMX-swap the feed in place; hx_attrs keeps this macro-composed
    (no hand-rolled <form>). hx-include pulls both selects on either change. #}

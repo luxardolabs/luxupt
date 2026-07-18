@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 
 import config
 from db.connection import DATABASE_PATH
+from models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
 
 from services.core.activity_core_service import ActivityCoreService
 from services.core.camera_core_service import CameraCoreService
@@ -260,11 +261,20 @@ class SystemViewService:
         cameras = await self.camera_service.get_active()
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
+        # Filter options derived from the enum (single source of truth — can't drift).
+        # web_request is an internal request log, not a user-facing event.
+        activity_type_options = [
+            {"value": t.value, "label": ACTIVITY_TYPE_LABELS[t]}
+            for t in ActivityType
+            if t is not ActivityType.WEB_REQUEST
+        ]
+
         return {
             "activity_groups": activity_groups,
             "activity_count": len(activities),
             "summary": summary,
             "cameras": cameras,
+            "activity_type_options": activity_type_options,
             "filters": {
                 "show": show,
                 "camera_id": camera_id,

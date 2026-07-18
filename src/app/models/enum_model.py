@@ -77,3 +77,20 @@ class ActivityType(StrEnum):
     # Referenced by the stats aggregate and fetch-cycle-skip logging; was missing
     # from the old constants class (latent AttributeError surfaced by enum typing).
     ERROR = "error"
+
+
+# Human-facing labels — the single source of truth for UI dropdowns/filters so the
+# activity-type list can never drift from the enum. Every member must have a label.
+ACTIVITY_TYPE_LABELS: dict[ActivityType, str] = {
+    ActivityType.CAPTURE_SUCCESS: "Capture success",
+    ActivityType.CAPTURE_FAILED: "Capture failed",
+    ActivityType.CAMERA_ONLINE: "Camera online",
+    ActivityType.CAMERA_OFFLINE: "Camera offline",
+    ActivityType.TIMELAPSE_STARTED: "Timelapse started",
+    ActivityType.TIMELAPSE_COMPLETED: "Timelapse completed",
+    ActivityType.TIMELAPSE_FAILED: "Timelapse failed",
+    ActivityType.SERVICE_STARTED: "Service started",
+    ActivityType.SERVICE_STOPPED: "Service stopped",
+    ActivityType.WEB_REQUEST: "Web request",
+    ActivityType.ERROR: "Error",
+}
