@@ -165,7 +165,9 @@ async def save_fetch_settings(
                 "message": message,
             },
         )
-        if reactivated:
+        # Refresh the camera list in place (covers reactivated cameras and any
+        # setting that changes a card) instead of a full page reload
+        if success:
             response.headers["HX-Trigger"] = "camera-list-refresh"
         return response
 
@@ -293,7 +295,7 @@ async def save_camera_settings(
                 {"request": request, "success": False, "error": message},
             )
 
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "partials/cameras/camera_settings_result.html",
             {
                 "request": request,
@@ -301,6 +303,9 @@ async def save_camera_settings(
                 "message": message,
             },
         )
+        # Refresh the camera list in place (morph swap) instead of a full page reload
+        response.headers["HX-Trigger"] = "camera-list-refresh"
+        return response
 
     except Exception as e:
         logger.error("Error saving camera settings", extra={"error": str(e)})
@@ -332,7 +337,7 @@ async def detect_camera_capabilities(
                 {"request": request, "success": False, "error": "Camera not found or not connected"},
             )
 
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "partials/cameras/camera_settings_result.html",
             {
                 "request": request,
@@ -342,6 +347,9 @@ async def detect_camera_capabilities(
                 "recommended": capabilities.get("recommended_method"),
             },
         )
+        # Detection updated the camera's stored capabilities — refresh its card in place
+        response.headers["HX-Trigger"] = "camera-list-refresh"
+        return response
 
     except Exception as e:
         logger.error("Error detecting camera capabilities", extra={"error": str(e)})
@@ -370,7 +378,7 @@ async def delete_camera(
     """
     success, message = await view_service.delete_camera(camera_id)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "partials/cameras/camera_settings_result.html",
         {
             "request": request,
@@ -379,6 +387,10 @@ async def delete_camera(
             "error": message if not success else None,
         },
     )
+    if success:
+        # Camera is gone — refresh the list in place instead of a full reload
+        response.headers["HX-Trigger"] = "camera-list-refresh"
+    return response
 
 
 @router.get("/{camera_safe_name}/panel", response_class=HTMLResponse)

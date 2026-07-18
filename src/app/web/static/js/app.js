@@ -577,26 +577,19 @@ class CaptureStats {
 }
 
 /**
- * Panel result utilities for close/reload behavior
+ * Panel result utilities for post-action behavior.
+ *
+ * The panel closes client-side after a short delay (long enough to read the
+ * result message); the underlying list refreshes in place via the
+ * `camera-list-refresh` HX-Trigger the server fires on success — see the
+ * #camera-list `... from:body` listener. No full-page reload needed.
  */
 class PanelResult {
 	/**
-	 * Close panel and reload page after delay
+	 * Close the panel after a delay.
 	 */
-	static closeAndReload(delay = 1500) {
-		setTimeout(() => {
-			Panel.close();
-			window.location.reload();
-		}, delay);
-	}
-
-	/**
-	 * Reload page after delay (for detection results)
-	 */
-	static reloadAfterDelay(delay = 2000) {
-		setTimeout(() => {
-			window.location.reload();
-		}, delay);
+	static closeAfterDelay(delay = 1500) {
+		setTimeout(() => Panel.close(), delay);
 	}
 }
 

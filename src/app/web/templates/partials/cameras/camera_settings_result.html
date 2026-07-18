@@ -6,7 +6,7 @@
 {% call alert_block(type="success", title="Settings saved successfully") %}
 {% if message %}{{ message }}{% endif %}
 {% endcall %}
-<div data-init="PanelResult.closeAndReload(1500)" class="hidden"></div>
+<div data-init="PanelResult.closeAfterDelay(1500)" class="hidden"></div>
 {% elif detecting %}
 {# Custom detecting state with spinner - not using macro due to animated icon #}
 <div class="rounded-lg border border-info-500/30 bg-info-500/10 p-4">
@@ -26,7 +26,7 @@
     <p>Recommended: {{ recommended or 'Unknown' }}</p>
 </div>
 {% endcall %}
-<div data-init="PanelResult.reloadAfterDelay(2000)" class="hidden"></div>
+<div data-init="PanelResult.closeAfterDelay(2000)" class="hidden"></div>
 {% else %}
 {% call alert_block(type="danger", title=error or "An error occurred") %}
 {% if details %}{{ details }}{% endif %}
