@@ -574,14 +574,9 @@ class TimelapsesViewService:
         available_dates = await self.timelapse_service.get_available_dates(camera=camera)
         available_intervals = await self.timelapse_service.get_available_intervals(camera=camera)
 
-        # Default to most recent date if no date filter provided
-        if date_str:
-            timelapse_date = date.fromisoformat(date_str)
-        elif available_dates:
-            # available_dates should be sorted descending (most recent first)
-            timelapse_date = available_dates[0]
-        else:
-            timelapse_date = None
+        # No date filter ("All Dates") means all dates — do NOT default to the most
+        # recent day (that made "All Dates" unreachable). A specific date still filters.
+        timelapse_date = date.fromisoformat(date_str) if date_str else None
 
         # Get total count for pagination
         total = await self.timelapse_service.count_by_filters(
