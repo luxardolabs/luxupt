@@ -1,6 +1,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/navigation.html" import htmx_pagination %}
 {% from "macros/cards.html" import empty_state %}
+{% from "macros/badges.html" import chip %}
 
 {# Icon + accent colour per event kind #}
 {% set type_meta = {
@@ -30,19 +31,22 @@
             {% for a in group['items'] %}
             {% set meta = type_meta.get(a.activity_type|string, ('clipboard-document-list', 'muted')) %}
             {% set c = meta[1] %}
-            <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-700/30 transition-colors">
-                <span class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-{{ c }}-500/15 text-{{ c }}-400">
-                    {{ icon(meta[0], 'w-4 h-4') }}
+            <div class="flex items-start gap-3 px-4 py-3 hover:bg-surface-700/30 transition-colors">
+                <span class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-{{ c }}-500/15 text-{{ c }}-400">
+                    {{ icon(meta[0], 'w-5 h-5') }}
                 </span>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm text-surface-100 truncate">{{ a.message }}</p>
-                    {% if a.camera_safe_name %}
-                    <p class="text-xs text-surface-300">{{ a.camera_safe_name|replace('_', ' ') }}</p>
-                    {% endif %}
+                    {# Message is truncated to one readable line (some errors dump a 500+ char
+                       ffmpeg banner); full text on hover. #}
+                    <p class="text-sm text-surface-50 truncate" title="{{ a.message }}">{{ a.message | replace('\n', ' ') | truncate(110, True) }}</p>
+                    <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                        {% if a.camera_safe_name %}
+                        {{ chip(a.camera_safe_name|replace('_', ' '), 'default', size='sm', icon_name='video-camera') }}
+                        {% endif %}
+                        {% if a.interval %}{{ chip(a.interval ~ 's', 'muted', size='sm') }}{% endif %}
+                        <span class="text-xs text-surface-300 tabular-nums" title="{{ a.timestamp | format_datetime('log') }}">{{ a.timestamp | time }}</span>
+                    </div>
                 </div>
-                <time class="flex-shrink-0 text-xs text-surface-300 tabular-nums" title="{{ a.timestamp | format_datetime('log') }}">
-                    {{ a.timestamp | time }}
-                </time>
             </div>
             {% endfor %}
         </div>

@@ -731,7 +731,16 @@ class CameraManager:
                             "switch to Standard (H.264) in UniFi Protect settings"
                         )
                     else:
-                        error_msg = f"FFmpeg error: {stderr_text[:500]}" if stderr_text else "FFmpeg failed"
+                        # ffmpeg prints its version/config banner to stderr first; the real
+                        # error is the LAST meaningful line, not the first 500 chars (which
+                        # were just the banner). Skip banner/config noise and take the tail.
+                        _noise = ("ffmpeg version", "built with", "configuration:", "lib")
+                        _lines = [
+                            ln.strip()
+                            for ln in stderr_text.splitlines()
+                            if ln.strip() and not ln.strip().lower().startswith(_noise)
+                        ]
+                        error_msg = f"FFmpeg error: {_lines[-1][:200]}" if _lines else "FFmpeg failed"
                     logger.error(
                         "RTSP capture failed - FFmpeg error",
                         extra={"camera": camera.name, "interval": interval, "error": error_msg},
