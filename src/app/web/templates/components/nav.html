@@ -66,8 +66,13 @@
                 {{ icon('film', 'w-5 h-5') }}
                 Timelapses
             </a>
+            <a href="/system/activity"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system/activity') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon('clipboard-document-list', 'w-5 h-5') }}
+                Activity
+            </a>
             <a href="/system"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system') and not request.url.path.startswith('/system/activity') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
                 {{ icon('cog-6-tooth', 'w-5 h-5') }}
                 System
             </a>
