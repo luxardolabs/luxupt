@@ -127,7 +127,7 @@
      {{ icon_btn('trash', 'danger', hx_delete='/delete/1', title='Delete') }}
    ============================================================================ #}
 
-{% macro icon_btn(icon_name, color='primary', href=none, title='', hx_get=none, hx_post=none, hx_delete=none, hx_target=none, hx_swap=none, hx_confirm=none, download=none, disabled=false) %}
+{% macro icon_btn(icon_name, color='primary', href=none, title='', hx_get=none, hx_post=none, hx_delete=none, hx_target=none, hx_swap=none, download=none, disabled=false) %}
 {% set colors = {
     'primary': 'bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 hover:text-primary-300 border-primary-500/30',
     'success': 'bg-success-500/20 text-success-400 hover:bg-success-500/30 hover:text-success-300 border-success-500/30',
@@ -154,8 +154,7 @@
         {% if hx_post %}hx-post="{{ hx_post }}"{% endif %}
         {% if hx_delete %}hx-delete="{{ hx_delete }}"{% endif %}
         {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
-        {% if hx_swap %}hx-swap="{{ hx_swap }}"{% endif %}
-        {% if hx_confirm %}hx-confirm="{{ hx_confirm }}"{% endif %}>
+        {% if hx_swap %}hx-swap="{{ hx_swap }}"{% endif %}>
     {{ icon(icon_name, 'w-4 h-4') }}
 </button>
 {% endif %}
@@ -175,8 +174,9 @@
 {{ icon_btn('arrow-down-tray', 'success', href=href, title=title, download=download) }}
 {% endmacro %}
 
-{% macro icon_delete(title='Delete', hx_delete=none, hx_target=none, hx_swap=none, hx_confirm=none) %}
-{{ icon_btn('trash', 'danger', title=title, hx_delete=hx_delete, hx_target=hx_target, hx_swap=hx_swap, hx_confirm=hx_confirm) }}
+{% macro icon_delete(title='Delete', hx_delete=none, hx_target=none, hx_swap=none) %}
+{# Destructive: prefer the arm-then-fire delete_icon_button; this plain variant does NOT confirm. #}
+{{ icon_btn('trash', 'danger', title=title, hx_delete=hx_delete, hx_target=hx_target, hx_swap=hx_swap) }}
 {% endmacro %}
 
 

@@ -83,14 +83,7 @@
         {# ===== PANEL COMPONENTS ===== #}
         <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
             <p class="text-xs font-medium text-warning-400 uppercase mb-4">Panel Component Classes</p>
-            <table class="w-full text-xs">
-                <thead>
-                    <tr class="border-b border-surface-400/30">
-                        <th class="text-left py-2 text-surface-200 font-medium">Component</th>
-                        <th class="text-left py-2 text-surface-200 font-medium">Key Classes</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-surface-400/20">
+            {% call data_table([{"label": "Component"}, {"label": "Key Classes"}], size='xs') %}
                     <tr>
                         <td class="py-3 text-surface-200">Backdrop</td>
                         <td class="py-3 font-mono text-primary-300">fixed inset-0 z-40 bg-surface-900/50 backdrop-blur-sm</td>
@@ -111,8 +104,7 @@
                         <td class="py-3 text-surface-200">Footer</td>
                         <td class="py-3 font-mono text-primary-300">border-t border-surface-400/50 px-6 py-4</td>
                     </tr>
-                </tbody>
-            </table>
+            {% endcall %}
         </div>
 
         {# ===== PANEL TRIGGER ===== #}

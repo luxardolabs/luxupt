@@ -2,33 +2,13 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/badges.html" import chip %}
 {% from "macros/cards.html" import empty_state %}
+{% from "macros/tables.html" import data_table %}
 
 {% if users %}
-<div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-surface-400/30">
-        <thead>
-            <tr>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Username
-                </th>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Source
-                </th>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Role
-                </th>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Last Login
-                </th>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Created
-                </th>
-                <th scope="col" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-200">
-                    Actions
-                </th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-surface-400/20">
+    {% call data_table([
+        {"label": "Username"}, {"label": "Source"}, {"label": "Role"},
+        {"label": "Last Login"}, {"label": "Created"}, {"label": "Actions", "align": "right"}
+    ]) %}
             {% for u in users %}
             <tr class="hover:bg-surface-700/30 transition-colors {% if u.auth_source == 'env' %}bg-surface-700/10{% endif %}">
                 <td class="px-4 py-3 whitespace-nowrap">
@@ -95,9 +75,7 @@
                 </td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
-</div>
+    {% endcall %}
 {% else %}
 {{ empty_state('users', 'No users found', 'Create your first user to get started') }}
 {% endif %}

@@ -1,0 +1,27 @@
+{# Table macros — pages/partials compose these, they don't hand-roll <table>.
+   ADR-002 / playbook: component-macros. Pattern ref: luxswirl tables.html. #}
+
+{% macro data_table(columns, size='sm', head_tone='text-surface-200', tbody_class='divide-y divide-surface-400/20') %}
+{# Accessible data table: scope="col" headers + horizontal scroll on narrow screens
+   (overflow-x-auto applies to every caller at once). The macro owns the <table> shell;
+   the caller supplies the <tr> body rows via {% call %}.
+
+   columns: list of {label, align?('left'|'right'|'center'), class?}
+   size: text size token (sm|xs). head_tone: header text colour class.
+   tbody_class: row-divider / body styling. #}
+<div class="overflow-x-auto">
+<table class="w-full text-{{ size }}">
+    <thead>
+        <tr class="border-b border-surface-400/30 text-xs font-medium uppercase tracking-wider {{ head_tone }}">
+            {%- for col in columns %}
+            {%- set align = 'text-right' if col.align == 'right' else ('text-center' if col.align == 'center' else 'text-left') -%}
+            <th scope="col" class="px-4 py-2 {{ align }}{% if col.class %} {{ col.class }}{% endif %}">{{ col.label }}</th>
+            {%- endfor %}
+        </tr>
+    </thead>
+    <tbody class="{{ tbody_class }}">
+        {{ caller() }}
+    </tbody>
+</table>
+</div>
+{% endmacro %}

@@ -47,15 +47,7 @@
         {# ===== WHEN TO USE EACH ===== #}
         <div class="rounded-lg border border-surface-400/20 bg-surface-800/50 p-4">
             <p class="text-xs font-medium text-warning-400 uppercase mb-4">When To Use Each Class</p>
-            <table class="w-full text-xs">
-                <thead>
-                    <tr class="border-b border-surface-400/30">
-                        <th class="text-left py-2 text-surface-200 font-medium">Class</th>
-                        <th class="text-left py-2 text-surface-200 font-medium">Use For</th>
-                        <th class="text-left py-2 text-surface-200 font-medium">Examples</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-surface-400/20">
+            {% call data_table([{"label": "Class"}, {"label": "Use For"}, {"label": "Examples"}], size='xs') %}
                     <tr>
                         <td class="py-3 font-mono text-primary-300">bg-surface-900</td>
                         <td class="py-3 text-surface-200">Page background, inputs</td>
@@ -81,8 +73,7 @@
                         <td class="py-3 text-surface-200">Overlays with blur</td>
                         <td class="py-3 text-surface-200">Modal backdrops, panel overlays</td>
                     </tr>
-                </tbody>
-            </table>
+            {% endcall %}
         </div>
 
         {# ===== BORDER RADIUS STANDARD ===== #}

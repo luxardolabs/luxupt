@@ -3,6 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/buttons.html" import secondary %}
 {% from "macros/navigation.html" import page_header, section, collapsible_section %}
+{% from "macros/tables.html" import data_table %}
 
 {% block title %}Cameras - LuxUPT{% endblock %}
 
@@ -69,16 +70,9 @@
          x-transition:leave-end="opacity-0 -translate-y-2"
          class="px-4 pb-4">
 <div class="rounded-xl border border-danger-500/30 bg-danger-500/5 overflow-hidden">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs text-danger-300/70 uppercase tracking-wide">
-                <th class="px-4 py-2 font-medium">Time</th>
-                <th class="px-4 py-2 font-medium">Camera</th>
-                <th class="px-4 py-2 font-medium text-right">Int</th>
-                <th class="px-4 py-2 font-medium">Error</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-danger-500/20">
+    {% call data_table([
+        {"label": "Time"}, {"label": "Camera"}, {"label": "Int", "align": "right"}, {"label": "Error"}
+    ], head_tone='text-danger-300/70', tbody_class='divide-y divide-danger-500/20') %}
             {% for failure in recent_failures %}
             <tr class="hover:bg-danger-500/10">
                 <td class="px-4 py-1.5 text-surface-100">
@@ -90,8 +84,7 @@
                 <td class="px-4 py-1.5 text-danger-300 truncate max-w-[200px]">{{ failure.error_message or 'Unknown' }}</td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
+    {% endcall %}
 </div>
     </div>
 </section>
