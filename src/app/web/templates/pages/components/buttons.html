@@ -1,7 +1,7 @@
 {# =========================================================================
    BUTTONS - primary(), secondary(), success(), danger(), warning(), ghost()
    ========================================================================= #}
-{% from "macros/buttons.html" import primary, secondary, success, danger, warning, ghost, icon_button %}
+{% from "macros/buttons.html" import primary, primary_loading, secondary, success, danger, warning, ghost, icon_button %}
 {% from "macros/icons.html" import icon, delete_icon_button %}
 
 <div id="buttons" class="scroll-mt-20">
@@ -40,10 +40,7 @@
                 <div class="flex flex-wrap gap-3 items-center">
                     {{ primary('Normal') }}
                     {{ primary('Disabled', disabled=true) }}
-                    <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium px-4 py-2 text-sm bg-primary-500 text-white opacity-75 cursor-wait">
-                        {{ icon('arrow-path', 'w-5 h-5 animate-spin') }}
-                        Loading...
-                    </button>
+                    {{ primary_loading('Loading', type='button') }}
                 </div>
             </div>
         </div>

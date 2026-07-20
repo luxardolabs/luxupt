@@ -9,18 +9,19 @@
     'lg': 'px-5 py-2.5 text-sm'
 } %}
 
-{% macro primary(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}) %}
+{% macro primary(text, type="button", size="md", disabled=false, href=none, icon_name=none, hx_attrs={}, full_width=false) %}
 {% set size_class = btn_sizes.get(size, btn_sizes.md) %}
+{% set width_class = 'w-full' if full_width else '' %}
 {% if href %}
 <a href="{{ href }}"
-   class="{{ btn_base }} {{ size_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500 {{ 'pointer-events-none opacity-50' if disabled }}"
+   class="{{ btn_base }} {{ size_class }} {{ width_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500 {{ 'pointer-events-none opacity-50' if disabled }}"
    {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
     {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
     {{ text }}
 </a>
 {% else %}
 <button type="{{ type }}"
-        class="{{ btn_base }} {{ size_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500"
+        class="{{ btn_base }} {{ size_class }} {{ width_class }} bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:ring-primary-500"
         {{ 'disabled' if disabled }}
         {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
     {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}

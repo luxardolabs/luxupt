@@ -5,10 +5,11 @@
 {% set input_base = "block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-base sm:text-sm text-white placeholder-surface-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed" %}
 {% set label_base = "block text-sm font-medium text-white mb-1.5" %}
 
-{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none) %}
+{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none, autocomplete=none, error=none, help=none, extra_attrs="") %}
+{# extra_attrs: raw passthrough for anything not a first-class param (autofocus, min/max, …). #}
 <div>
     {% if label %}
-    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    <label for="{{ name }}" class="{{ label_base }}">{{ label }}{% if required %}<span class="text-danger-400 ml-0.5">*</span>{% endif %}</label>
     {% endif %}
     <div class="relative">
         {% if icon_name %}
@@ -23,8 +24,11 @@
                placeholder="{{ placeholder }}"
                class="{{ input_base }} {% if icon_name %}pl-10{% endif %}"
                {{ 'required' if required }}
-               {{ 'disabled' if disabled }}>
+               {{ 'disabled' if disabled }}
+               {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+               {{ extra_attrs|safe }}>
     </div>
+    {% if error %}<p class="text-xs text-danger-400 mt-1">{{ error }}</p>{% elif help %}<p class="text-xs text-surface-300 mt-1">{{ help }}</p>{% endif %}
 </div>
 {% endmacro %}
 

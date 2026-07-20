@@ -95,8 +95,7 @@
                 <p class="text-xs font-medium text-primary-400 uppercase mb-3">form_group</p>
                 <p class="text-sm text-surface-200 mb-4">Wrapper with help text</p>
                 {% call form_group('Rate Limit', 'Maximum requests per second') %}
-                <input type="number" value="10" min="1" max="100"
-                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                {{ text_input('demo_rate', type='number', value='10', extra_attrs='min="1" max="100"') }}
                 {% endcall %}
             </div>
 
@@ -142,12 +141,10 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             {% call form_group('Rate Limit', 'Requests per second') %}
-                            <input type="number" value="10" min="1" max="100"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            {{ text_input('demo_rate2', type='number', value='10', extra_attrs='min="1" max="100"') }}
                             {% endcall %}
                             {% call form_group('Timeout', 'Seconds') %}
-                            <input type="number" value="30" min="5" max="120"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            {{ text_input('demo_timeout', type='number', value='30', extra_attrs='min="5" max="120"') }}
                             {% endcall %}
                         </div>
 

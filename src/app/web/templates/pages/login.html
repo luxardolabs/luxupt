@@ -1,3 +1,5 @@
+{% from "macros/forms.html" import text_input %}
+{% from "macros/buttons.html" import primary %}
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -44,36 +46,9 @@
                 {% endif %}
 
                 <form class="space-y-5" action="/login" method="POST">
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-white mb-2">
-                            Username
-                        </label>
-                        <input id="username"
-                               name="username"
-                               type="text"
-                               autocomplete="username"
-                               required
-                               placeholder="Enter your username"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
-                    </div>
-
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-white mb-2">
-                            Password
-                        </label>
-                        <input id="password"
-                               name="password"
-                               type="password"
-                               autocomplete="current-password"
-                               required
-                               placeholder="Enter your password"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
-                    </div>
-
-                    <button type="submit"
-                            class="flex w-full justify-center rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 hover:shadow-primary-500/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-surface-800 transition-all">
-                        Sign in
-                    </button>
+                    {{ text_input("username", label="Username", type="text", placeholder="Enter your username", required=true, autocomplete="username") }}
+                    {{ text_input("password", label="Password", type="password", placeholder="Enter your password", required=true, autocomplete="current-password") }}
+                    {{ primary("Sign in", type="submit", full_width=true) }}
                 </form>
 
                 <p class="mt-8 text-center text-xs text-surface-200">

@@ -2,7 +2,7 @@
    PANELS - Slide-out panels loaded via HTMX
    ========================================================================= #}
 {% from "macros/icons.html" import icon %}
-{% from "macros/buttons.html" import primary, secondary %}
+{% from "macros/buttons.html" import primary, secondary, icon_button %}
 {% from "macros/cards.html" import section_card %}
 
 <div id="panels" class="scroll-mt-20">
@@ -35,9 +35,7 @@
                                 <h2 class="text-lg font-semibold text-white">Panel Title</h2>
                                 <p class="text-sm text-surface-200">Optional subtitle</p>
                             </div>
-                            <button type="button" class="rounded-lg p-2 text-surface-200 hover:bg-surface-400 hover:text-white transition-colors">
-                                {{ icon('x-mark', 'h-5 w-5') }}
-                            </button>
+                            {{ icon_button('x-mark', 'Close') }}
                         </div>
 
                         <!-- Content -->
@@ -114,14 +112,7 @@
                 Use HTMX attributes to load panel content
             </p>
             <div class="flex gap-3">
-                <button type="button"
-                        hx-get="/cameras/fetch-settings"
-                        hx-target="#panel-container"
-                        hx-swap="innerHTML"
-                        class="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-primary-500/25 hover:bg-primary-400 transition-colors">
-                    {{ icon('cog-6-tooth', 'w-5 h-5') }}
-                    Open Capture Settings
-                </button>
+                {{ primary('Open Capture Settings', icon_name='cog-6-tooth', hx_attrs={'hx-get': '/cameras/fetch-settings', 'hx-target': '#panel-container', 'hx-swap': 'innerHTML'}) }}
             </div>
         </div>
 

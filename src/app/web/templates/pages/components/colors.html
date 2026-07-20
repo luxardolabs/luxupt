@@ -2,6 +2,7 @@
    COLOR SYSTEM - Simplified, focused color rules
    ========================================================================= #}
 {% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import ghost %}
 
 <div id="colors" class="scroll-mt-20">
     <h2 class="text-lg font-bold text-white mb-1">Color System</h2>
@@ -107,7 +108,7 @@
                     <code class="text-xs text-primary-300">text-primary-400 hover:text-primary-300</code>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="text-primary-400 hover:text-primary-300">Clickable text button</button>
+                    {{ ghost('Clickable text button', size='sm') }}
                     <code class="text-xs text-primary-300">text-primary-400 hover:text-primary-300</code>
                 </div>
             </div>
