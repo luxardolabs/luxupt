@@ -24,24 +24,36 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         """Get all active (pending or running) jobs."""
         result = await db.execute(
             select(Job)
-            .where(or_(Job.status == JobStatus.PENDING, Job.status == JobStatus.RUNNING))
+            .where(
+                or_(Job.status == JobStatus.PENDING, Job.status == JobStatus.RUNNING)
+            )
             .order_by(Job.created_at.asc())
         )
         return list(result.scalars().all())
 
     async def get_pending(self, db: AsyncSession) -> list[Job]:
         """Get all pending jobs."""
-        result = await db.execute(select(Job).where(Job.status == JobStatus.PENDING).order_by(Job.created_at.asc()))
+        result = await db.execute(
+            select(Job)
+            .where(Job.status == JobStatus.PENDING)
+            .order_by(Job.created_at.asc())
+        )
         return list(result.scalars().all())
 
     async def get_running(self, db: AsyncSession) -> list[Job]:
         """Get all running jobs."""
-        result = await db.execute(select(Job).where(Job.status == JobStatus.RUNNING).order_by(Job.started_at.asc()))
+        result = await db.execute(
+            select(Job)
+            .where(Job.status == JobStatus.RUNNING)
+            .order_by(Job.started_at.asc())
+        )
         return list(result.scalars().all())
 
     async def get_running_with_pids(self, db: AsyncSession) -> list[Job]:
         """Get all running jobs that have PIDs (for process cleanup)."""
-        result = await db.execute(select(Job).where(Job.status == JobStatus.RUNNING, Job.pid.isnot(None)))
+        result = await db.execute(
+            select(Job).where(Job.status == JobStatus.RUNNING, Job.pid.isnot(None))
+        )
         return list(result.scalars().all())
 
     async def mark_stale_failed(self, db: AsyncSession, error: str) -> int:
@@ -62,7 +74,9 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         """Get recently completed jobs."""
         result = await db.execute(
             select(Job)
-            .where(or_(Job.status == JobStatus.COMPLETED, Job.status == JobStatus.FAILED))
+            .where(
+                or_(Job.status == JobStatus.COMPLETED, Job.status == JobStatus.FAILED)
+            )
             .order_by(Job.completed_at.desc())
             .limit(limit)
         )
@@ -201,7 +215,11 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         job.completed_at = datetime.now()
         job.pid = None  # Clear PID on failure
         # Only set message to "Failed" if no error message was already set
-        if not job.message or job.message.startswith("Encoding:") or job.message == "Processing...":
+        if (
+            not job.message
+            or job.message.startswith("Encoding:")
+            or job.message == "Processing..."
+        ):
             job.message = error  # Use the error as the message
         job.error = error
 
@@ -305,11 +323,15 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         running = [j for j in active if j.status == JobStatus.RUNNING]
 
         completed_result = await db.execute(
-            select(func.count()).select_from(Job).where(Job.status == JobStatus.COMPLETED)
+            select(func.count())
+            .select_from(Job)
+            .where(Job.status == JobStatus.COMPLETED)
         )
         completed_count = completed_result.scalar() or 0
 
-        failed_result = await db.execute(select(func.count()).select_from(Job).where(Job.status == JobStatus.FAILED))
+        failed_result = await db.execute(
+            select(func.count()).select_from(Job).where(Job.status == JobStatus.FAILED)
+        )
         failed_count = failed_result.scalar() or 0
 
         return {

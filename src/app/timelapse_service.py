@@ -43,7 +43,9 @@ class EncodingSettings:
     ffmpeg_timeout: int
 
     @classmethod
-    def from_scheduler_settings(cls, settings: "SchedulerSettings") -> "EncodingSettings":
+    def from_scheduler_settings(
+        cls, settings: "SchedulerSettings"
+    ) -> "EncodingSettings":
         """Create from scheduler settings model."""
         return cls(
             frame_rate=settings.frame_rate,
@@ -97,14 +99,18 @@ class ProgressTracker:
         now = time.time()
 
         # Calculate percentage with one decimal
-        progress_percent = min(round((current_frame / self.total_frames) * 100, 1), 100.0)
+        progress_percent = min(
+            round((current_frame / self.total_frames) * 100, 1), 100.0
+        )
 
         # Calculate ETA
         elapsed = now - self.start_time
         if current_frame > 0:
             frames_per_second = current_frame / elapsed
             remaining_frames = self.total_frames - current_frame
-            eta_seconds = remaining_frames / frames_per_second if frames_per_second > 0 else 0
+            eta_seconds = (
+                remaining_frames / frames_per_second if frames_per_second > 0 else 0
+            )
             eta_str = self._format_eta(eta_seconds)
         else:
             eta_str = "calculating..."
@@ -113,15 +119,15 @@ class ProgressTracker:
         should_update = now - self.last_update > config.PROGRESS_UPDATE_INTERVAL
 
         if should_update:
-            message = (
-                f"Encoding: {progress_percent:.1f}% ({current_frame:,}/{self.total_frames:,} frames) • ETA: {eta_str}"
-            )
+            message = f"Encoding: {progress_percent:.1f}% ({current_frame:,}/{self.total_frames:,} frames) • ETA: {eta_str}"
 
             # Get current image timestamp for thumbnail display
             # Filename format: CameraName_1234567890.jpg -> extract timestamp
             current_image = None
             if self.image_files and 0 <= current_frame < len(self.image_files):
-                filename = self.image_files[current_frame].stem  # e.g., "Camera_Name_1234567890"
+                filename = self.image_files[
+                    current_frame
+                ].stem  # e.g., "Camera_Name_1234567890"
                 # Extract timestamp (last part after underscore)
                 parts = filename.rsplit("_", 1)
                 if len(parts) == 2 and parts[1].isdigit():
@@ -140,7 +146,11 @@ class ProgressTracker:
             # Debug log
             logger.debug(
                 "Encoding progress",
-                extra={"camera": self.camera_name, "interval": self.interval, "progress_msg": message},
+                extra={
+                    "camera": self.camera_name,
+                    "interval": self.interval,
+                    "progress_msg": message,
+                },
             )
 
             self.last_update = now
@@ -189,20 +199,32 @@ class TimelapseService:
         new jobs will use the updated semaphore.
         """
         # Fast path: semaphore exists and value unchanged
-        if self.creation_semaphore is not None and self._concurrent_jobs == concurrent_jobs:
+        if (
+            self.creation_semaphore is not None
+            and self._concurrent_jobs == concurrent_jobs
+        ):
             return self.creation_semaphore
 
         # Need to create or recreate semaphore
         async with self._semaphore_init_lock:
             # Double-check after acquiring lock
-            if self.creation_semaphore is None or self._concurrent_jobs != concurrent_jobs:
-                if self._concurrent_jobs is not None and self._concurrent_jobs != concurrent_jobs:
+            if (
+                self.creation_semaphore is None
+                or self._concurrent_jobs != concurrent_jobs
+            ):
+                if (
+                    self._concurrent_jobs is not None
+                    and self._concurrent_jobs != concurrent_jobs
+                ):
                     logger.info(
                         "Updating concurrent timelapse limit",
                         extra={"old": self._concurrent_jobs, "new": concurrent_jobs},
                     )
                 else:
-                    logger.info("Set concurrent timelapse limit", extra={"concurrent_jobs": concurrent_jobs})
+                    logger.info(
+                        "Set concurrent timelapse limit",
+                        extra={"concurrent_jobs": concurrent_jobs},
+                    )
                 self._concurrent_jobs = concurrent_jobs
                 self.creation_semaphore = asyncio.Semaphore(concurrent_jobs)
             return self.creation_semaphore
@@ -221,7 +243,9 @@ class TimelapseService:
                 base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
                 api_key=config.UNIFI_PROTECT_API_KEY or fetch_settings.api_key or "",
                 verify_ssl=(
-                    config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else fetch_settings.verify_ssl
+                    config.UNIFI_PROTECT_VERIFY_SSL
+                    if config.UNIFI_PROTECT_BASE_URL
+                    else fetch_settings.verify_ssl
                 ),
                 request_timeout=fetch_settings.request_timeout,
                 rate_limit=fetch_settings.rate_limit,
@@ -286,19 +310,25 @@ class TimelapseService:
                 try:
                     os.kill(job.pid, signal.SIGTERM)
                     logger.info(
-                        "Killed orphaned FFmpeg process on startup", extra={"job_id": job.job_id, "pid": job.pid}
+                        "Killed orphaned FFmpeg process on startup",
+                        extra={"job_id": job.job_id, "pid": job.pid},
                     )
                 except ProcessLookupError:
                     pass  # Process already finished
                 except Exception as e:
-                    logger.warning("Failed to kill orphaned FFmpeg", extra={"pid": job.pid, "error": str(e)})
+                    logger.warning(
+                        "Failed to kill orphaned FFmpeg",
+                        extra={"pid": job.pid, "error": str(e)},
+                    )
 
         # Mark all stale jobs as failed and clear PIDs
         count = await job_crud.mark_stale_failed(db, error="Killed on restart")
         await db.commit()
 
         if count > 0:
-            logger.info("Cleaned up stale jobs from previous run", extra={"count": count})
+            logger.info(
+                "Cleaned up stale jobs from previous run", extra={"count": count}
+            )
 
     async def _run_creation_loop(self) -> None:
         """Run the time-lapse creation loop.
@@ -315,7 +345,9 @@ class TimelapseService:
                 async with async_session() as db:
                     try:
                         settings = await scheduler_settings_crud.get_settings(db)
-                        await db.commit()  # Commit the auto-created settings row if needed
+                        await (
+                            db.commit()
+                        )  # Commit the auto-created settings row if needed
                         if not db_ready:
                             logger.info("Scheduler connected to database")
                             # Cleanup any stale jobs from previous runs
@@ -353,7 +385,10 @@ class TimelapseService:
                     )
 
                     if should_run:
-                        logger.info("Scheduler triggered", extra={"time": now.strftime("%Y-%m-%d %H:%M:%S")})
+                        logger.info(
+                            "Scheduler triggered",
+                            extra={"time": now.strftime("%Y-%m-%d %H:%M:%S")},
+                        )
                         last_run_key = run_key
 
                         # Time to create time-lapses
@@ -371,7 +406,9 @@ class TimelapseService:
                             keep_images = settings.keep_images
 
                             # Create encoding settings from database
-                            encoding_settings = EncodingSettings.from_scheduler_settings(settings)
+                            encoding_settings = (
+                                EncodingSettings.from_scheduler_settings(settings)
+                            )
 
                             await self._create_timelapses_for_date(
                                 datetime.now() - timedelta(days=days_ago),
@@ -386,7 +423,10 @@ class TimelapseService:
                             await db.commit()
 
                         except Exception as e:
-                            logger.error("Error during scheduled timelapse creation", extra={"error": str(e)})
+                            logger.error(
+                                "Error during scheduled timelapse creation",
+                                extra={"error": str(e)},
+                            )
 
                         end_time = datetime.now()
                         duration_seconds = (end_time - start_time).total_seconds()
@@ -508,7 +548,10 @@ class TimelapseService:
             # Log each exception so failures aren't silently swallowed
             for result in results:
                 if isinstance(result, Exception):
-                    logger.error("Timelapse task failed", extra={"error": str(result), "type": type(result).__name__})
+                    logger.error(
+                        "Timelapse task failed",
+                        extra={"error": str(result), "type": type(result).__name__},
+                    )
 
             logger.info(
                 "Timelapse creation summary",
@@ -538,7 +581,10 @@ class TimelapseService:
         # Check if job already exists
         async with async_session() as db:
             existing = await job_crud.get_job_for_camera_date(
-                db, camera=camera_name, target_date=target_date.date(), interval=interval
+                db,
+                camera=camera_name,
+                target_date=target_date.date(),
+                interval=interval,
             )
             if existing:
                 logger.debug("Job already exists, skipping", extra={"title": title})
@@ -573,7 +619,9 @@ class TimelapseService:
                 return False
             return None
 
-    def _find_image_files(self, images_path: Path, camera_name: str) -> tuple[list[Path], str]:
+    def _find_image_files(
+        self, images_path: Path, camera_name: str
+    ) -> tuple[list[Path], str]:
         """Find image files for a camera, checking PNG then JPG. Returns (files, format)."""
         files = list(images_path.glob(f"{camera_name}_*.png"))
         if files:
@@ -601,8 +649,12 @@ class TimelapseService:
         day = target_date.strftime("%d")
 
         # Define paths
-        images_path = config.IMAGE_OUTPUT_PATH / camera_name / f"{interval}s" / year / month / day
-        videos_path = config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+        images_path = (
+            config.IMAGE_OUTPUT_PATH / camera_name / f"{interval}s" / year / month / day
+        )
+        videos_path = (
+            config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+        )
 
         # Check if images directory exists and has images
         if not await async_fs.path_exists(images_path):
@@ -617,7 +669,9 @@ class TimelapseService:
             return None
 
         # Find image files - check both png (RTSP) and jpg (API) formats in one thread dispatch
-        image_files, image_format = await asyncio.to_thread(self._find_image_files, images_path, camera_name)
+        image_files, image_format = await asyncio.to_thread(
+            self._find_image_files, images_path, camera_name
+        )
         if not image_files:
             logger.debug(
                 "No images found",
@@ -631,7 +685,11 @@ class TimelapseService:
 
         logger.info(
             "Creating timelapse",
-            extra={"camera": camera_name, "interval": interval, "image_count": len(image_files)},
+            extra={
+                "camera": camera_name,
+                "interval": interval,
+                "image_count": len(image_files),
+            },
         )
 
         # Create output directory
@@ -654,7 +712,11 @@ class TimelapseService:
                     # Delete existing timelapse record and file
                     logger.debug(
                         "Recreating existing timelapse",
-                        extra={"camera": camera_name, "interval": interval, "timelapse_id": existing.id},
+                        extra={
+                            "camera": camera_name,
+                            "interval": interval,
+                            "timelapse_id": existing.id,
+                        },
                     )
                     await timelapse_crud.delete(db, id=existing.id)
                     await db.commit()
@@ -684,7 +746,13 @@ class TimelapseService:
 
         # Create time-lapse video using database encoding settings
         success = await self._create_video(
-            images_path, output_path, camera_name, interval, encoding_settings, image_format, job_id=job_id
+            images_path,
+            output_path,
+            camera_name,
+            interval,
+            encoding_settings,
+            image_format,
+            job_id=job_id,
         )
 
         if success and not keep_images:
@@ -716,7 +784,11 @@ class TimelapseService:
             except Exception as e:
                 logger.error(
                     "Failed to cleanup after video creation",
-                    extra={"camera": camera_name, "interval": interval, "error": str(e)},
+                    extra={
+                        "camera": camera_name,
+                        "interval": interval,
+                        "error": str(e),
+                    },
                 )
 
         return success
@@ -754,11 +826,15 @@ class TimelapseService:
         if frame_files is not None:
             image_files = frame_files
         else:
-            image_files = await asyncio.to_thread(lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}")))
+            image_files = await asyncio.to_thread(
+                lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}"))
+            )
         total_frames = len(image_files)
 
         if total_frames == 0:
-            logger.error("No images found", extra={"camera": camera_name, "interval": interval})
+            logger.error(
+                "No images found", extra={"camera": camera_name, "interval": interval}
+            )
             return False
 
         # Estimate video duration for better progress tracking
@@ -842,7 +918,9 @@ class TimelapseService:
         )
 
         # Initial status
-        await self._update_progress(job_key, 0, f"Starting encoding of {total_frames} frames...")
+        await self._update_progress(
+            job_key, 0, f"Starting encoding of {total_frames} frames..."
+        )
 
         try:
             # Start FFmpeg process
@@ -857,7 +935,13 @@ class TimelapseService:
 
             # Track progress in background (pass sorted image files for thumbnail display)
             progress_tracker = ProgressTracker(
-                total_frames, start_time, job_key, camera_name, interval, self, image_files=image_files
+                total_frames,
+                start_time,
+                job_key,
+                camera_name,
+                interval,
+                self,
+                image_files=image_files,
             )
 
             # Start progress tracker (reads stdout) and stderr drain concurrently
@@ -865,14 +949,18 @@ class TimelapseService:
             progress_task: asyncio.Task[None] | None = None
             stderr_task: asyncio.Task[str] | None = None
             if process.stdout is not None:
-                progress_task = asyncio.create_task(self._track_progress(process.stdout, progress_tracker))
+                progress_task = asyncio.create_task(
+                    self._track_progress(process.stdout, progress_tracker)
+                )
             if process.stderr is not None:
                 stderr_task = asyncio.create_task(self._drain_stderr(process.stderr))
 
             # Wait for process completion with timeout
             try:
-                returncode = await asyncio.wait_for(process.wait(), timeout=encoding_settings.ffmpeg_timeout)
-            except asyncio.TimeoutError:
+                returncode = await asyncio.wait_for(
+                    process.wait(), timeout=encoding_settings.ffmpeg_timeout
+                )
+            except TimeoutError:
                 # FFmpeg hung - kill the process
                 logger.error(
                     "FFmpeg timeout - killing process",
@@ -889,8 +977,12 @@ class TimelapseService:
                 if stderr_task is not None:
                     stderr_task.cancel()
                 await self._clear_process_pid(job_key)  # Clear PID on timeout
-                error_msg = f"FFmpeg timed out after {encoding_settings.ffmpeg_timeout}s"
-                await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
+                error_msg = (
+                    f"FFmpeg timed out after {encoding_settings.ffmpeg_timeout}s"
+                )
+                await self._update_progress(
+                    job_key, -1, error_msg
+                )  # -1 indicates failure
                 return False
 
             # Stop progress tracking and collect stderr
@@ -905,12 +997,16 @@ class TimelapseService:
 
             if returncode == 0:
                 # Verify output file
-                exists, file_size = await async_fs.file_exists_and_size(str(output_path))
+                exists, file_size = await async_fs.file_exists_and_size(
+                    str(output_path)
+                )
                 if exists:
                     formatted_size = self._format_file_size(file_size)
 
                     # Success!
-                    await self._update_progress(job_key, 100, f"Video completed ({formatted_size})")
+                    await self._update_progress(
+                        job_key, 100, f"Video completed ({formatted_size})"
+                    )
 
                     logger.info(
                         "Timelapse completed",
@@ -926,15 +1022,23 @@ class TimelapseService:
                     return True
                 else:
                     error_msg = "Output file not created or empty"
-                    await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
-                    await async_fs.path_unlink(output_path, missing_ok=True)  # Remove partial file
+                    await self._update_progress(
+                        job_key, -1, error_msg
+                    )  # -1 indicates failure
+                    await async_fs.path_unlink(
+                        output_path, missing_ok=True
+                    )  # Remove partial file
                     await self._clear_process_pid(job_key)  # Clear PID on failure
                     self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
                     return False
             else:
                 logger.debug(
                     "FFmpeg timelapse full stderr",
-                    extra={"camera": camera_name, "interval": interval, "stderr": stderr or ""},
+                    extra={
+                        "camera": camera_name,
+                        "interval": interval,
+                        "stderr": stderr or "",
+                    },
                 )
                 if not stderr or not stderr.strip():
                     error_msg = (
@@ -943,7 +1047,9 @@ class TimelapseService:
                     )
                 else:
                     error_msg = stderr[:500]
-                await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
+                await self._update_progress(
+                    job_key, -1, error_msg
+                )  # -1 indicates failure
                 logger.error(
                     "FFmpeg failed",
                     extra={
@@ -952,7 +1058,9 @@ class TimelapseService:
                         "error": error_msg,
                     },
                 )
-                await async_fs.path_unlink(output_path, missing_ok=True)  # Remove partial file
+                await async_fs.path_unlink(
+                    output_path, missing_ok=True
+                )  # Remove partial file
                 await self._clear_process_pid(job_key)  # Clear PID on FFmpeg error
                 self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
                 return False
@@ -964,7 +1072,9 @@ class TimelapseService:
                 "Error creating video",
                 extra={"camera": camera_name, "interval": interval, "error": str(e)},
             )
-            await async_fs.path_unlink(output_path, missing_ok=True)  # Remove partial file
+            await async_fs.path_unlink(
+                output_path, missing_ok=True
+            )  # Remove partial file
             await self._clear_process_pid(job_key)  # Clear PID on exception
             self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
             return False
@@ -1010,7 +1120,9 @@ class TimelapseService:
                 / cur.strftime("%d")
             )
             if await async_fs.path_exists(day_dir):
-                files, fmt = await asyncio.to_thread(self._find_image_files, day_dir, camera_name)
+                files, fmt = await asyncio.to_thread(
+                    self._find_image_files, day_dir, camera_name
+                )
                 if files:
                     if image_format is None:
                         image_format = fmt
@@ -1034,10 +1146,14 @@ class TimelapseService:
 
         year = start_date.strftime("%Y")
         month = start_date.strftime("%m")
-        videos_path = config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+        videos_path = (
+            config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+        )
         await async_fs.path_mkdir(videos_path, parents=True, exist_ok=True)
 
-        range_label = f"{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
+        range_label = (
+            f"{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
+        )
         # Job-id suffix prevents concurrent ffmpeg processes from writing to the same file
         # if a duplicate job slips through the upfront check.
         job_short = job_id[:8] if job_id else "x"
@@ -1089,7 +1205,9 @@ class TimelapseService:
             pass
         return "".join(chunks)
 
-    async def _track_progress(self, stdout: asyncio.StreamReader, progress_tracker: ProgressTracker) -> None:
+    async def _track_progress(
+        self, stdout: asyncio.StreamReader, progress_tracker: ProgressTracker
+    ) -> None:
         """Parse FFmpeg progress output and update status."""
         frame_pattern = re.compile(r"frame=\s*(\d+)")
 
@@ -1141,7 +1259,13 @@ class TimelapseService:
             and self._current_job_id
         ):
             try:
-                status = "completed" if progress == 100 else "failed" if progress < 0 else "running"
+                status = (
+                    "completed"
+                    if progress == 100
+                    else "failed"
+                    if progress < 0
+                    else "running"
+                )
                 await self._progress_callback.update_job_progress(
                     self._current_job_id, progress, status, message, current_image
                 )
@@ -1164,7 +1288,9 @@ class TimelapseService:
                 await db.commit()
             logger.debug("Stored FFmpeg PID", extra={"job_id": job_id, "pid": pid})
         except Exception as e:
-            logger.warning("Failed to store FFmpeg PID", extra={"job_id": job_id, "error": str(e)})
+            logger.warning(
+                "Failed to store FFmpeg PID", extra={"job_id": job_id, "error": str(e)}
+            )
 
     async def _clear_process_pid(self, job_key: str) -> None:
         """Clear the FFmpeg process PID from the database after completion."""
@@ -1177,7 +1303,9 @@ class TimelapseService:
                 await job_crud.clear_pid(db, job_id)
                 await db.commit()
         except Exception as e:
-            logger.warning("Failed to clear FFmpeg PID", extra={"job_id": job_id, "error": str(e)})
+            logger.warning(
+                "Failed to clear FFmpeg PID", extra={"job_id": job_id, "error": str(e)}
+            )
 
     def _format_file_size(self, size_bytes: int) -> str:
         """Format file size in human-readable format."""
@@ -1211,7 +1339,10 @@ class TimelapseService:
     ) -> None:
         """Create a timelapse record in the database after successful video creation."""
         if not await async_fs.path_exists(output_path):
-            logger.warning("Cannot create timelapse record - file not found", extra={"path": str(output_path)})
+            logger.warning(
+                "Cannot create timelapse record - file not found",
+                extra={"path": str(output_path)},
+            )
             return
 
         stat_result = await async_fs.path_stat(output_path)
@@ -1224,7 +1355,9 @@ class TimelapseService:
         )
 
         # Generate thumbnail
-        thumbnail_path = await self._generate_thumbnail(output_path, duration_seconds, encoding_settings.ffmpeg_timeout)
+        thumbnail_path = await self._generate_thumbnail(
+            output_path, duration_seconds, encoding_settings.ffmpeg_timeout
+        )
 
         # Create timelapse record
         timelapse = Timelapse(
@@ -1247,7 +1380,11 @@ class TimelapseService:
 
         logger.info(
             "Created timelapse record",
-            extra={"camera": camera_name, "date": target_date.strftime("%Y-%m-%d"), "interval": interval},
+            extra={
+                "camera": camera_name,
+                "date": target_date.strftime("%Y-%m-%d"),
+                "interval": interval,
+            },
         )
 
     async def _probe_video_metadata(
@@ -1300,7 +1437,9 @@ class TimelapseService:
 
         return duration_seconds, resolution, frame_count
 
-    async def _generate_thumbnail(self, output_path: Path, duration_seconds: float, probe_timeout: int) -> str | None:
+    async def _generate_thumbnail(
+        self, output_path: Path, duration_seconds: float, probe_timeout: int
+    ) -> str | None:
         """Generate thumbnail from video. Returns thumbnail path or None."""
         thumb_filename = output_path.stem + "_thumb.jpg"
         thumb_path = output_path.parent / thumb_filename
@@ -1336,7 +1475,9 @@ class TimelapseService:
                 logger.info("Generated thumbnail", extra={"path": str(thumb_path)})
                 return str(thumb_path)
             else:
-                logger.warning("Thumbnail generation failed", extra={"stderr": result.stderr})
+                logger.warning(
+                    "Thumbnail generation failed", extra={"stderr": result.stderr}
+                )
         except Exception as e:
             logger.warning("Could not generate thumbnail", extra={"error": str(e)})
 

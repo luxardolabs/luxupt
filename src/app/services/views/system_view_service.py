@@ -62,7 +62,9 @@ class SystemViewService:
         }
 
         # Build db stats from gathered data
-        db_size = await asyncio.to_thread(lambda: DATABASE_PATH.stat().st_size if DATABASE_PATH.exists() else 0)
+        db_size = await asyncio.to_thread(
+            lambda: DATABASE_PATH.stat().st_size if DATABASE_PATH.exists() else 0
+        )
         db_stats = {
             "capture_count": capture_stats.total_captures,
             "timelapse_count": timelapse_count,
@@ -113,7 +115,11 @@ class SystemViewService:
             """Read disk usage stats for the output volume."""
             if output_path.exists():
                 disk_usage = shutil.disk_usage(output_path)
-                percent = (disk_usage.used / disk_usage.total * 100) if disk_usage.total > 0 else 0
+                percent = (
+                    (disk_usage.used / disk_usage.total * 100)
+                    if disk_usage.total > 0
+                    else 0
+                )
                 return {
                     "total": disk_usage.total,
                     "used": disk_usage.used,
@@ -158,7 +164,9 @@ class SystemViewService:
         scheduler_settings = await self.settings_service.get_scheduler_settings()
 
         # Calculate effective rate limit from database settings
-        effective_rate = int(fetch_settings.rate_limit * fetch_settings.rate_limit_buffer)
+        effective_rate = int(
+            fetch_settings.rate_limit * fetch_settings.rate_limit_buffer
+        )
 
         return {
             # API Settings (from database)
@@ -194,7 +202,9 @@ class SystemViewService:
         tz_name = os.getenv("TZ") or time.tzname[0]
         # Get UTC offset
         utc_offset = datetime.now().astimezone().strftime("%z")
-        utc_offset_formatted = f"UTC{utc_offset[:3]}:{utc_offset[3:]}" if utc_offset else ""
+        utc_offset_formatted = (
+            f"UTC{utc_offset[:3]}:{utc_offset[3:]}" if utc_offset else ""
+        )
 
         return {
             "version": os.getenv("LUXUPT_VERSION", "dev"),
@@ -202,7 +212,9 @@ class SystemViewService:
             "python_version": platform.python_version(),
             "platform": f"{platform.system()} {platform.release()}",
             "architecture": platform.machine(),
-            "timezone": f"{tz_name} ({utc_offset_formatted})" if utc_offset_formatted else tz_name,
+            "timezone": f"{tz_name} ({utc_offset_formatted})"
+            if utc_offset_formatted
+            else tz_name,
         }
 
     # "Problems" = failures + errors (the default view of the log)
@@ -269,11 +281,15 @@ class SystemViewService:
         for a in activities:
             day = a.timestamp.date()
             if not activity_groups or activity_groups[-1]["date"] != day:
-                activity_groups.append({"date": day, "label": _day_label(day), "items": []})
+                activity_groups.append(
+                    {"date": day, "label": _day_label(day), "items": []}
+                )
             activity_groups[-1]["items"].append(a)
 
         # Summary counts the same window as the feed ("all" -> effectively unbounded)
-        summary = await self.activity_service.get_summary(hours=hours if hours is not None else 24 * 3660)
+        summary = await self.activity_service.get_summary(
+            hours=hours if hours is not None else 24 * 3660
+        )
         cameras = await self.camera_service.get_active()
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
@@ -286,7 +302,9 @@ class SystemViewService:
         ]
         # All time ranges in natural order (the PERIODS dict is ordered 24h→7d→30d→all);
         # the period select has no placeholder (it always has a value).
-        period_options = [{"value": key, "label": label} for key, (_, label) in self.PERIODS.items()]
+        period_options = [
+            {"value": key, "label": label} for key, (_, label) in self.PERIODS.items()
+        ]
 
         return {
             "activity_groups": activity_groups,
@@ -331,15 +349,20 @@ class SystemViewService:
                 "images": {
                     "size": capture_stats.total_file_size,
                     "files": capture_stats.total_captures,
-                    "size_formatted": self._format_file_size(capture_stats.total_file_size),
+                    "size_formatted": self._format_file_size(
+                        capture_stats.total_file_size
+                    ),
                 },
                 "videos": {
                     "size": timelapse_stats.total_file_size,
                     "files": timelapse_stats.completed_timelapses,
-                    "size_formatted": self._format_file_size(timelapse_stats.total_file_size),
+                    "size_formatted": self._format_file_size(
+                        timelapse_stats.total_file_size
+                    ),
                 },
                 "total_size_gb": round(total_size / 1024 / 1024 / 1024, 1),
-                "total_files": capture_stats.total_captures + timelapse_stats.completed_timelapses,
+                "total_files": capture_stats.total_captures
+                + timelapse_stats.completed_timelapses,
             },
         }
 

@@ -81,7 +81,9 @@ class DashboardViewService:
         camera_cards = []
         for camera in cameras:
             latest = latest_captures.get(camera.camera_id)
-            stats = await self.camera_service.get_stats(camera.camera_id, global_intervals=global_intervals)
+            stats = await self.camera_service.get_stats(
+                camera.camera_id, global_intervals=global_intervals
+            )
             camera_cards.append(
                 {
                     "camera": camera,

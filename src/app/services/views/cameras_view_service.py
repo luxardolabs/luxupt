@@ -53,7 +53,9 @@ class CamerasViewService:
         if not camera:
             return {"camera": None, "latest_capture": None, "has_thumbnail": False}
 
-        latest_capture = await self.capture_service.get_latest_by_camera(camera.camera_id)
+        latest_capture = await self.capture_service.get_latest_by_camera(
+            camera.camera_id
+        )
 
         return {
             "camera": camera,
@@ -69,7 +71,9 @@ class CamerasViewService:
         api_config = await self.settings_service.get_effective_api_config()
 
         # Add display-only fields for template
-        api_config["base_url_display"] = self._mask_url(api_config["base_url"]) if api_config["base_url"] else None
+        api_config["base_url_display"] = (
+            self._mask_url(api_config["base_url"]) if api_config["base_url"] else None
+        )
 
         # Highlight API section if not configured
         needs_api = not api_config["has_api_key"] and not api_config["has_base_url"]
@@ -158,7 +162,9 @@ class CamerasViewService:
         end_dt = datetime.fromtimestamp(end_timestamp)
 
         # Get bucket size for time series
-        bucket_seconds = CAPTURE_STATS_BUCKET_SIZES.get(period, CAPTURE_STATS_DEFAULT_BUCKET)
+        bucket_seconds = CAPTURE_STATS_BUCKET_SIZES.get(
+            period, CAPTURE_STATS_DEFAULT_BUCKET
+        )
 
         # Get time series data
         time_series = await self.capture_stats_service.get_time_series(
@@ -178,7 +184,9 @@ class CamerasViewService:
                     "timestamp": item["timestamp"],
                     "value": item["avg_duration_ms"],
                     "count": item["total_count"],
-                    "cameras": {k: v["duration_ms"] for k, v in item["cameras"].items()},
+                    "cameras": {
+                        k: v["duration_ms"] for k, v in item["cameras"].items()
+                    },
                 }
             )
             size_data.append(
@@ -229,7 +237,9 @@ class CamerasViewService:
         # Pre-calculate percentage for camera breakdown bars
         max_count = camera_breakdown[0]["count"] if camera_breakdown else 1
         for item in camera_breakdown:
-            item["percentage"] = round(item["count"] / max_count * 100) if max_count > 0 else 0
+            item["percentage"] = (
+                round(item["count"] / max_count * 100) if max_count > 0 else 0
+            )
 
         return {
             "duration_data": duration_data,
@@ -256,10 +266,14 @@ class CamerasViewService:
         if not camera:
             return {"camera": None, "latest_capture": None, "stats": {}}
 
-        latest_capture = await self.capture_service.get_latest_by_camera(camera.camera_id)
+        latest_capture = await self.capture_service.get_latest_by_camera(
+            camera.camera_id
+        )
         fetch_settings = await self.settings_service.get_fetch_settings()
         global_intervals = fetch_settings.get_intervals()
-        stats = await self.camera_service.get_stats(camera.camera_id, global_intervals=global_intervals)
+        stats = await self.camera_service.get_stats(
+            camera.camera_id, global_intervals=global_intervals
+        )
 
         return {
             "camera": camera,
@@ -273,10 +287,14 @@ class CamerasViewService:
         if not camera:
             return {"camera": None, "latest_capture": None, "stats": {}}
 
-        latest_capture = await self.capture_service.get_latest_by_camera(camera.camera_id)
+        latest_capture = await self.capture_service.get_latest_by_camera(
+            camera.camera_id
+        )
         fetch_settings = await self.settings_service.get_fetch_settings()
         global_intervals = fetch_settings.get_intervals()
-        stats = await self.camera_service.get_stats(camera.camera_id, global_intervals=global_intervals)
+        stats = await self.camera_service.get_stats(
+            camera.camera_id, global_intervals=global_intervals
+        )
 
         return {
             "camera": camera,
@@ -342,20 +360,36 @@ class CamerasViewService:
 
         # Rate limiting
         update_data["rate_limit"] = rate_limit if rate_limit else None
-        update_data["rate_limit_buffer"] = rate_limit_buffer if rate_limit_buffer else None
+        update_data["rate_limit_buffer"] = (
+            rate_limit_buffer if rate_limit_buffer else None
+        )
 
         # Camera distribution
-        update_data["min_offset_seconds"] = min_offset_seconds if min_offset_seconds else None
-        update_data["max_offset_seconds"] = max_offset_seconds if max_offset_seconds else None
+        update_data["min_offset_seconds"] = (
+            min_offset_seconds if min_offset_seconds else None
+        )
+        update_data["max_offset_seconds"] = (
+            max_offset_seconds if max_offset_seconds else None
+        )
 
         # Other settings
-        update_data["camera_refresh_interval"] = camera_refresh_interval if camera_refresh_interval else None
-        update_data["high_quality_snapshots"] = high_quality_snapshots == "true" if high_quality_snapshots else None
+        update_data["camera_refresh_interval"] = (
+            camera_refresh_interval if camera_refresh_interval else None
+        )
+        update_data["high_quality_snapshots"] = (
+            high_quality_snapshots == "true" if high_quality_snapshots else None
+        )
 
         # RTSP settings
-        update_data["rtsp_output_format"] = rtsp_output_format if rtsp_output_format else None
-        update_data["png_compression_level"] = png_compression_level if png_compression_level is not None else None
-        update_data["rtsp_capture_timeout"] = rtsp_capture_timeout if rtsp_capture_timeout else None
+        update_data["rtsp_output_format"] = (
+            rtsp_output_format if rtsp_output_format else None
+        )
+        update_data["png_compression_level"] = (
+            png_compression_level if png_compression_level is not None else None
+        )
+        update_data["rtsp_capture_timeout"] = (
+            rtsp_capture_timeout if rtsp_capture_timeout else None
+        )
 
         success, message, cameras_synced = await self.update_fetch_settings(update_data)
 
@@ -364,7 +398,10 @@ class CamerasViewService:
             for cam_id in reactivate_cameras:
                 await self.update_camera_settings(cam_id, {"is_active": True})
 
-        logger.info("Updated fetch settings", extra={"update_data": update_data, "cameras_synced": cameras_synced})
+        logger.info(
+            "Updated fetch settings",
+            extra={"update_data": update_data, "cameras_synced": cameras_synced},
+        )
         return success, message, cameras_synced, bool(reactivate_cameras)
 
     async def save_camera_settings(
@@ -386,7 +423,10 @@ class CamerasViewService:
         }
         success, message = await self.update_camera_settings(camera_id, update_data)
         if success:
-            logger.info("Updated camera settings", extra={"camera_id": camera_id, "update_data": update_data})
+            logger.info(
+                "Updated camera settings",
+                extra={"camera_id": camera_id, "update_data": update_data},
+            )
         return success, message
 
     async def test_protect_connection(self) -> dict:
@@ -394,16 +434,27 @@ class CamerasViewService:
 
         Returns template context: {"ok": bool, "message"/"error": str}.
         """
-        base_url, username, password, verify_ssl = await self.settings_service.get_protect_credentials()
+        (
+            base_url,
+            username,
+            password,
+            verify_ssl,
+        ) = await self.settings_service.get_protect_credentials()
 
         if not base_url:
-            return {"ok": False, "error": "Base URL is not set. Save the API connection first."}
+            return {
+                "ok": False,
+                "error": "Base URL is not set. Save the API connection first.",
+            }
         if not username or not password:
             return {"ok": False, "error": "Username and password required."}
 
         cameras = await self.camera_service.get_active()
         if not cameras:
-            return {"ok": False, "error": "No cameras to test against. Discover cameras first."}
+            return {
+                "ok": False,
+                "error": "No cameras to test against. Discover cameras first.",
+            }
         test_camera = cameras[0]
 
         # Try a historical snapshot a minute ago (recording-write lag means now() can 404)
@@ -421,18 +472,30 @@ class CamerasViewService:
                 "Protect connection test OK",
                 extra={"camera": test_camera.name, "bytes": len(jpg)},
             )
-            return {"ok": True, "message": f"Connected. Pulled {len(jpg):,} bytes from {test_camera.name}."}
+            return {
+                "ok": True,
+                "message": f"Connected. Pulled {len(jpg):,} bytes from {test_camera.name}.",
+            }
         except ProtectAuthError as e:
-            logger.warning("Protect connection test failed (auth)", extra={"error": str(e)})
+            logger.warning(
+                "Protect connection test failed (auth)", extra={"error": str(e)}
+            )
             return {"ok": False, "error": f"Auth failed: {str(e)[:200]}"}
         except ProtectRequestError as e:
-            logger.warning("Protect connection test failed (request)", extra={"error": str(e)})
+            logger.warning(
+                "Protect connection test failed (request)", extra={"error": str(e)}
+            )
             return {"ok": False, "error": f"Request failed: {str(e)[:200]}"}
         except Exception as e:
-            logger.error("Protect connection test failed", extra={"error": str(e), "type": type(e).__name__})
+            logger.error(
+                "Protect connection test failed",
+                extra={"error": str(e), "type": type(e).__name__},
+            )
             return {"ok": False, "error": f"Error ({type(e).__name__}): {str(e)[:200]}"}
 
-    async def update_fetch_settings(self, update_data: dict) -> tuple[bool, str, int | None]:
+    async def update_fetch_settings(
+        self, update_data: dict
+    ) -> tuple[bool, str, int | None]:
         """Update fetch settings and sync cameras if API configured.
 
         Returns (success, message, cameras_synced).
@@ -453,7 +516,11 @@ class CamerasViewService:
             synced = await fetch_service.sync_cameras()
 
             if synced >= 0:
-                return True, f"Settings saved. Connected! Found {synced} camera(s).", synced
+                return (
+                    True,
+                    f"Settings saved. Connected! Found {synced} camera(s).",
+                    synced,
+                )
             else:
                 return True, "Settings saved, but connection failed.", synced
 
@@ -461,7 +528,9 @@ class CamerasViewService:
             logger.error("Error updating fetch settings", extra={"error": str(e)})
             return False, str(e), None
 
-    async def update_camera_settings(self, camera_id: str, update_data: dict) -> tuple[bool, str]:
+    async def update_camera_settings(
+        self, camera_id: str, update_data: dict
+    ) -> tuple[bool, str]:
         """Update camera settings."""
         try:
             camera = await self.camera_service.get_by_id(camera_id)
@@ -471,7 +540,10 @@ class CamerasViewService:
             await self.camera_service.update_settings(camera_id, update_data)
             return True, f"Settings saved for {camera.name}"
         except Exception as e:
-            logger.error("Error updating camera settings", extra={"camera_id": camera_id, "error": str(e)})
+            logger.error(
+                "Error updating camera settings",
+                extra={"camera_id": camera_id, "error": str(e)},
+            )
             return False, str(e)
 
     async def run_capability_detection(self, camera_id: str) -> dict | None:
@@ -481,11 +553,14 @@ class CamerasViewService:
             capabilities = await self.detect_camera_capabilities(camera_id, manager)
         if capabilities is not None:
             logger.info(
-                "Capability detection complete", extra={"camera_id": camera_id, "capabilities": capabilities}
+                "Capability detection complete",
+                extra={"camera_id": camera_id, "capabilities": capabilities},
             )
         return capabilities
 
-    async def detect_camera_capabilities(self, camera_id: str, camera_manager: CameraManager) -> dict | None:
+    async def detect_camera_capabilities(
+        self, camera_id: str, camera_manager: CameraManager
+    ) -> dict | None:
         """Run capability detection for a camera."""
         camera = await self.camera_service.get_by_id(camera_id)
         if not camera:
@@ -539,10 +614,15 @@ class CamerasViewService:
             deleted = await self.camera_service.delete(camera_id)
 
             if deleted:
-                logger.info("Deleted camera", extra={"camera_id": camera_id, "camera_name": camera_name})
+                logger.info(
+                    "Deleted camera",
+                    extra={"camera_id": camera_id, "camera_name": camera_name},
+                )
                 return True, f"Deleted camera: {camera_name}"
             else:
                 return False, "Failed to delete camera"
         except Exception as e:
-            logger.error("Error deleting camera", extra={"camera_id": camera_id, "error": str(e)})
+            logger.error(
+                "Error deleting camera", extra={"camera_id": camera_id, "error": str(e)}
+            )
             return False, str(e)

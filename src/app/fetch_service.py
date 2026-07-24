@@ -86,15 +86,23 @@ class FetchService:
                 # If no intervals in DB, use defaults
                 if not settings.intervals:
                     default_intervals = [15, 30, 60, 120, 300]
-                    await fetch_settings_crud.update_settings(session, obj_in={"intervals": default_intervals})
+                    await fetch_settings_crud.update_settings(
+                        session, obj_in={"intervals": default_intervals}
+                    )
                     await session.commit()
-                    logger.info("Initialized intervals in database", extra={"intervals": default_intervals})
+                    logger.info(
+                        "Initialized intervals in database",
+                        extra={"intervals": default_intervals},
+                    )
                     return default_intervals
                 else:
                     return settings.intervals
 
         except Exception as e:
-            logger.warning("Failed to load intervals from database", extra={"error": str(e), "fallback": [60]})
+            logger.warning(
+                "Failed to load intervals from database",
+                extra={"error": str(e), "fallback": [60]},
+            )
             return [60]
 
     async def _get_active_intervals(self) -> list[int]:
@@ -134,7 +142,9 @@ class FetchService:
                         "is_active": cam.is_active,
                     }
         except Exception as e:
-            logger.warning("Failed to load camera settings from database", extra={"error": str(e)})
+            logger.warning(
+                "Failed to load camera settings from database", extra={"error": str(e)}
+            )
         return settings
 
     async def _load_fetch_defaults(self) -> dict[str, Any]:
@@ -143,17 +153,25 @@ class FetchService:
         try:
             async with async_session() as session:
                 fetch_settings = await fetch_settings_crud.get_settings(session)
-                defaults["default_capture_method"] = fetch_settings.default_capture_method
+                defaults["default_capture_method"] = (
+                    fetch_settings.default_capture_method
+                )
                 defaults["default_rtsp_quality"] = fetch_settings.default_rtsp_quality
-                defaults["high_quality_snapshots"] = fetch_settings.high_quality_snapshots
+                defaults["high_quality_snapshots"] = (
+                    fetch_settings.high_quality_snapshots
+                )
                 defaults["rtsp_output_format"] = fetch_settings.rtsp_output_format
                 defaults["png_compression_level"] = fetch_settings.png_compression_level
                 defaults["rtsp_capture_timeout"] = fetch_settings.rtsp_capture_timeout
                 defaults["max_retries"] = fetch_settings.max_retries
                 defaults["retry_delay"] = fetch_settings.retry_delay
-                defaults["camera_refresh_interval"] = fetch_settings.camera_refresh_interval
+                defaults["camera_refresh_interval"] = (
+                    fetch_settings.camera_refresh_interval
+                )
         except Exception as e:
-            logger.error("Failed to load fetch defaults from database", extra={"error": str(e)})
+            logger.error(
+                "Failed to load fetch defaults from database", extra={"error": str(e)}
+            )
             raise  # Don't continue without database settings
         return defaults
 
@@ -166,7 +184,9 @@ class FetchService:
                 base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
                 api_key=config.UNIFI_PROTECT_API_KEY or fetch_settings.api_key or "",
                 verify_ssl=(
-                    config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else fetch_settings.verify_ssl
+                    config.UNIFI_PROTECT_VERIFY_SSL
+                    if config.UNIFI_PROTECT_BASE_URL
+                    else fetch_settings.verify_ssl
                 ),
                 request_timeout=fetch_settings.request_timeout,
                 rate_limit=fetch_settings.rate_limit,
@@ -219,7 +239,10 @@ class FetchService:
                         new_cameras.append(camera.name)
 
                     # Log a connectivity transition (only on change) to the activity feed
-                    if existing is not None and existing.is_connected != camera.is_connected:
+                    if (
+                        existing is not None
+                        and existing.is_connected != camera.is_connected
+                    ):
                         if camera.is_connected:
                             await activity_crud.log(
                                 db,
@@ -240,44 +263,72 @@ class FetchService:
                     await camera_crud.upsert_from_dict(db, data=camera_data)
 
                 await db.commit()
-                logger.info("Synced cameras to database", extra={"camera_count": len(cameras)})
+                logger.info(
+                    "Synced cameras to database", extra={"camera_count": len(cameras)}
+                )
 
                 if new_cameras:
                     logger.info(
                         "New cameras with defaults",
-                        extra={"cameras": new_cameras, "default_interval": 60, "default_method": "auto"},
+                        extra={
+                            "cameras": new_cameras,
+                            "default_interval": 60,
+                            "default_method": "auto",
+                        },
                     )
 
                 # Run capability detection for new connected cameras (parallel)
-                new_connected = [c for c in cameras if c.name in new_cameras and c.is_connected]
+                new_connected = [
+                    c for c in cameras if c.name in new_cameras and c.is_connected
+                ]
                 if new_connected:
-                    logger.info("Running capability detection", extra={"camera_count": len(new_connected)})
+                    logger.info(
+                        "Running capability detection",
+                        extra={"camera_count": len(new_connected)},
+                    )
 
                     async def _detect_one(camera: ApiCamera) -> None:
                         try:
-                            capabilities = await self.camera_manager.detect_camera_capabilities(camera)
+                            capabilities = (
+                                await self.camera_manager.detect_camera_capabilities(
+                                    camera
+                                )
+                            )
 
                             await camera_crud.update_capability_detection(
                                 db,
                                 camera.id,
-                                api_max_resolution=capabilities.get("api_max_resolution"),
-                                rtsp_max_resolution=capabilities.get("rtsp_max_resolution"),
-                                recommended_method=capabilities.get("recommended_method"),
+                                api_max_resolution=capabilities.get(
+                                    "api_max_resolution"
+                                ),
+                                rtsp_max_resolution=capabilities.get(
+                                    "rtsp_max_resolution"
+                                ),
+                                recommended_method=capabilities.get(
+                                    "recommended_method"
+                                ),
                             )
 
                             logger.info(
                                 "Detected camera capabilities",
                                 extra={
                                     "camera": camera.name,
-                                    "api_resolution": capabilities.get("api_max_resolution"),
-                                    "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
-                                    "recommended_method": capabilities.get("recommended_method"),
+                                    "api_resolution": capabilities.get(
+                                        "api_max_resolution"
+                                    ),
+                                    "rtsp_resolution": capabilities.get(
+                                        "rtsp_max_resolution"
+                                    ),
+                                    "recommended_method": capabilities.get(
+                                        "recommended_method"
+                                    ),
                                 },
                             )
 
                         except Exception as e:
                             logger.warning(
-                                "Failed to detect capabilities", extra={"camera": camera.name, "error": str(e)}
+                                "Failed to detect capabilities",
+                                extra={"camera": camera.name, "error": str(e)},
                             )
 
                     await asyncio.gather(*[_detect_one(cam) for cam in new_connected])
@@ -285,7 +336,9 @@ class FetchService:
                     logger.info("Capability detection complete")
 
         except Exception as e:
-            logger.warning("Failed to sync cameras to database", extra={"error": str(e)})
+            logger.warning(
+                "Failed to sync cameras to database", extra={"error": str(e)}
+            )
 
     async def sync_cameras(self) -> int:
         """Trigger camera sync on demand (e.g., after settings change).
@@ -330,17 +383,25 @@ class FetchService:
 
         # Load all available intervals from database
         self.intervals = await self._load_intervals_from_db()
-        logger.info("Loaded intervals from database", extra={"intervals": self.intervals})
+        logger.info(
+            "Loaded intervals from database", extra={"intervals": self.intervals}
+        )
 
         # Get intervals that actually have cameras - use THESE for LCM
         active_intervals = await self._get_active_intervals()
-        logger.info("Active intervals (cameras configured)", extra={"active_intervals": active_intervals})
+        logger.info(
+            "Active intervals (cameras configured)",
+            extra={"active_intervals": active_intervals},
+        )
 
         # Calculate common aligned timestamp based on ACTIVE intervals only
         self.common_start_timestamp = find_common_aligned_timestamp(active_intervals)
         logger.info(
             "Common start timestamp calculated",
-            extra={"timestamp": self.common_start_timestamp, "based_on": active_intervals},
+            extra={
+                "timestamp": self.common_start_timestamp,
+                "based_on": active_intervals,
+            },
         )
 
         # Start image service
@@ -361,22 +422,37 @@ class FetchService:
         try:
             await self._sync_cameras_to_db()
         except Exception as e:
-            logger.info("Could not sync cameras (API may not be configured yet)", extra={"error": str(e)})
+            logger.info(
+                "Could not sync cameras (API may not be configured yet)",
+                extra={"error": str(e)},
+            )
 
         # Try to discover cameras (OK if it fails - tasks will retry)
         try:
             cameras = await self.camera_manager.get_cameras(force_refresh=True)
-            use_distribution = self.camera_manager.should_use_camera_distribution(len(cameras))
+            use_distribution = self.camera_manager.should_use_camera_distribution(
+                len(cameras)
+            )
             if use_distribution:
-                optimal_offset = self.camera_manager.calculate_optimal_offset_seconds(len(cameras))
+                optimal_offset = self.camera_manager.calculate_optimal_offset_seconds(
+                    len(cameras)
+                )
                 logger.info(
                     "Camera distribution enabled",
-                    extra={"camera_count": len(cameras), "offset_seconds": optimal_offset},
+                    extra={
+                        "camera_count": len(cameras),
+                        "offset_seconds": optimal_offset,
+                    },
                 )
             else:
-                logger.info("Camera distribution disabled", extra={"camera_count": len(cameras)})
+                logger.info(
+                    "Camera distribution disabled", extra={"camera_count": len(cameras)}
+                )
         except Exception as e:
-            logger.info("Could not discover cameras (API may not be configured yet)", extra={"error": str(e)})
+            logger.info(
+                "Could not discover cameras (API may not be configured yet)",
+                extra={"error": str(e)},
+            )
 
         try:
             # Start interval tasks (they handle no cameras gracefully)
@@ -423,7 +499,9 @@ class FetchService:
 
         logger.info("Fetch service stopped")
 
-    async def capture_once(self, timestamp: int, interval: int) -> dict[str, CaptureResult]:
+    async def capture_once(
+        self, timestamp: int, interval: int
+    ) -> dict[str, CaptureResult]:
         """
         Perform a one-off capture for all cameras at the specified interval.
 
@@ -442,7 +520,9 @@ class FetchService:
         # Get cameras and filter for this interval
         cameras = await self.camera_manager.get_cameras()
         camera_settings = await self._load_camera_settings()
-        filtered_cameras = self._filter_cameras_for_interval(cameras, camera_settings, interval)
+        filtered_cameras = self._filter_cameras_for_interval(
+            cameras, camera_settings, interval
+        )
         connected_cameras = [cam for cam in filtered_cameras if cam.is_connected]
 
         if not connected_cameras:
@@ -453,7 +533,9 @@ class FetchService:
         fetch_defaults = await self._load_fetch_defaults()
 
         # Determine if we should use distribution
-        use_distribution = self.camera_manager.should_use_camera_distribution(len(connected_cameras))
+        use_distribution = self.camera_manager.should_use_camera_distribution(
+            len(connected_cameras)
+        )
 
         if use_distribution:
             results = await self._capture_distributed(
@@ -480,10 +562,16 @@ class FetchService:
             try:
                 # Check for API settings changes first
                 cm_settings = await self._load_camera_manager_settings()
-                if cm_settings.base_url != self._current_base_url or cm_settings.api_key != self._current_api_key:
+                if (
+                    cm_settings.base_url != self._current_base_url
+                    or cm_settings.api_key != self._current_api_key
+                ):
                     logger.debug(
                         "API settings changed, reinitializing camera manager",
-                        extra={"has_url": bool(cm_settings.base_url), "has_key": bool(cm_settings.api_key)},
+                        extra={
+                            "has_url": bool(cm_settings.base_url),
+                            "has_key": bool(cm_settings.api_key),
+                        },
                     )
 
                     # Close existing camera manager
@@ -502,18 +590,31 @@ class FetchService:
                     if cm_settings.base_url and cm_settings.api_key:
                         try:
                             await self._sync_cameras_to_db()
-                            cameras = await self.camera_manager.get_cameras(force_refresh=True)
-                            logger.info("Cameras discovered after settings change", extra={"count": len(cameras)})
+                            cameras = await self.camera_manager.get_cameras(
+                                force_refresh=True
+                            )
+                            logger.info(
+                                "Cameras discovered after settings change",
+                                extra={"count": len(cameras)},
+                            )
 
                             # Recalculate timestamp based on active intervals (cameras just synced)
                             active_intervals = await self._get_active_intervals()
-                            self.common_start_timestamp = find_common_aligned_timestamp(active_intervals)
+                            self.common_start_timestamp = find_common_aligned_timestamp(
+                                active_intervals
+                            )
                             logger.info(
                                 "Recalculated timestamp after camera sync",
-                                extra={"timestamp": self.common_start_timestamp, "based_on": active_intervals},
+                                extra={
+                                    "timestamp": self.common_start_timestamp,
+                                    "based_on": active_intervals,
+                                },
                             )
                         except Exception as e:
-                            logger.warning("Could not sync cameras after settings change", extra={"error": str(e)})
+                            logger.warning(
+                                "Could not sync cameras after settings change",
+                                extra={"error": str(e)},
+                            )
 
                 # Load current intervals from database
                 new_intervals = await self._load_intervals_from_db()
@@ -526,7 +627,10 @@ class FetchService:
                 removed = current_set - new_set
 
                 if added or removed:
-                    logger.info("Interval changes detected", extra={"added": list(added), "removed": list(removed)})
+                    logger.info(
+                        "Interval changes detected",
+                        extra={"added": list(added), "removed": list(removed)},
+                    )
 
                     # Stop removed interval tasks
                     for interval in removed:
@@ -534,14 +638,19 @@ class FetchService:
                             task = self.interval_tasks[interval]
                             if not task.done():
                                 task.cancel()
-                                logger.info("Stopped interval task", extra={"interval": interval})
+                                logger.info(
+                                    "Stopped interval task",
+                                    extra={"interval": interval},
+                                )
                             del self.interval_tasks[interval]
 
                     # Start new interval tasks
                     for interval in added:
                         task = asyncio.create_task(self._run_interval(interval))
                         self.interval_tasks[interval] = task
-                        logger.info("Started new interval task", extra={"interval": interval})
+                        logger.info(
+                            "Started new interval task", extra={"interval": interval}
+                        )
 
                     # Update intervals list
                     self.intervals = new_intervals
@@ -549,14 +658,21 @@ class FetchService:
                     # Recalculate common start timestamp based on ACTIVE intervals
                     if added or removed:
                         active_intervals = await self._get_active_intervals()
-                        self.common_start_timestamp = find_common_aligned_timestamp(active_intervals)
+                        self.common_start_timestamp = find_common_aligned_timestamp(
+                            active_intervals
+                        )
                         logger.info(
                             "Updated common start timestamp",
-                            extra={"timestamp": self.common_start_timestamp, "based_on": active_intervals},
+                            extra={
+                                "timestamp": self.common_start_timestamp,
+                                "based_on": active_intervals,
+                            },
                         )
 
             except Exception as e:
-                logger.error("Error monitoring settings changes", extra={"error": str(e)})
+                logger.error(
+                    "Error monitoring settings changes", extra={"error": str(e)}
+                )
 
     async def _check_fetch_enabled(self) -> bool:
         """Check if fetch is globally enabled in database settings."""
@@ -564,7 +680,9 @@ class FetchService:
             async with async_session() as session:
                 return await fetch_settings_crud.is_enabled(session)
         except Exception as e:
-            logger.warning("Failed to check fetch enabled status", extra={"error": str(e)})
+            logger.warning(
+                "Failed to check fetch enabled status", extra={"error": str(e)}
+            )
             return True  # Default to enabled if check fails
 
     async def _run_interval(self, interval: int) -> None:
@@ -595,7 +713,9 @@ class FetchService:
                 extra={
                     "interval": interval,
                     "sleep_seconds": round(sleep_time, 1),
-                    "scheduled_time": datetime.fromtimestamp(next_aligned_ts).strftime("%H:%M:%S"),
+                    "scheduled_time": datetime.fromtimestamp(next_aligned_ts).strftime(
+                        "%H:%M:%S"
+                    ),
                 },
             )
             await asyncio.sleep(sleep_time)
@@ -613,7 +733,9 @@ class FetchService:
             if now_time - last_enabled_check >= config.SETTINGS_RELOAD_INTERVAL:
                 last_enabled_check = now_time
                 if not await self._check_fetch_enabled():
-                    logger.debug("Fetch disabled, skipping capture", extra={"interval": interval})
+                    logger.debug(
+                        "Fetch disabled, skipping capture", extra={"interval": interval}
+                    )
                     await asyncio.sleep(config.SETTINGS_RELOAD_INTERVAL)
                     continue
 
@@ -621,7 +743,9 @@ class FetchService:
             # This is robust against asyncio.sleep overshoot — no exact-second polling needed
             now_ts = int(time.time())
             elapsed = now_ts - self.common_start_timestamp
-            current_aligned_ts = self.common_start_timestamp + (elapsed // interval) * interval
+            current_aligned_ts = (
+                self.common_start_timestamp + (elapsed // interval) * interval
+            )
 
             # Only fire if we've reached or passed the next expected timestamp
             if current_aligned_ts < next_aligned_ts:
@@ -675,14 +799,20 @@ class FetchService:
                     camera_settings = await self._get_camera_settings()
 
                     # Filter cameras based on per-camera interval settings
-                    filtered_cameras = self._filter_cameras_for_interval(api_cameras, camera_settings, interval)
+                    filtered_cameras = self._filter_cameras_for_interval(
+                        api_cameras, camera_settings, interval
+                    )
 
-                    if not filtered_cameras or not any(cam.is_connected for cam in filtered_cameras):
+                    if not filtered_cameras or not any(
+                        cam.is_connected for cam in filtered_cameras
+                    ):
                         # No cameras for this interval - advance to next
                         pass
                     else:
                         # Filter to connected cameras only
-                        connected_cameras = [cam for cam in filtered_cameras if cam.is_connected]
+                        connected_cameras = [
+                            cam for cam in filtered_cameras if cam.is_connected
+                        ]
 
                         # Load fetch defaults from database
                         fetch_defaults = await self._load_fetch_defaults()
@@ -690,7 +820,12 @@ class FetchService:
                         # Fire capture cycle as background task - don't block the interval loop
                         task = asyncio.create_task(
                             self._run_capture_cycle(
-                                connected_cameras, camera_settings, timestamp, interval, fetch_defaults, capture_time
+                                connected_cameras,
+                                camera_settings,
+                                timestamp,
+                                interval,
+                                fetch_defaults,
+                                capture_time,
                             )
                         )
                         in_flight.add(task)
@@ -699,7 +834,10 @@ class FetchService:
                 logger.info("Interval task cancelled", extra={"interval": interval})
                 break
             except Exception as e:
-                logger.error("Error in interval capture", extra={"interval": interval, "error": str(e)})
+                logger.error(
+                    "Error in interval capture",
+                    extra={"interval": interval, "error": str(e)},
+                )
 
             # Advance to next aligned timestamp
             next_aligned_ts = timestamp + interval
@@ -712,15 +850,23 @@ class FetchService:
                 # We're running significantly behind — jump to current alignment
                 logger.warning(
                     "Interval running behind schedule",
-                    extra={"interval": interval, "behind_seconds": round(-sleep_time, 1)},
+                    extra={
+                        "interval": interval,
+                        "behind_seconds": round(-sleep_time, 1),
+                    },
                 )
                 # Re-sync to current time to avoid firing stale timestamps
                 now_ts = int(time.time())
                 elapsed = now_ts - self.common_start_timestamp
-                next_aligned_ts = self.common_start_timestamp + ((elapsed // interval) + 1) * interval
+                next_aligned_ts = (
+                    self.common_start_timestamp + ((elapsed // interval) + 1) * interval
+                )
 
     def _filter_cameras_for_interval(
-        self, api_cameras: list[ApiCamera], camera_settings: dict[str, dict[str, Any]], interval: int
+        self,
+        api_cameras: list[ApiCamera],
+        camera_settings: dict[str, dict[str, Any]],
+        interval: int,
     ) -> list[ApiCamera]:
         """Filter API cameras based on database settings for this interval."""
         filtered = []
@@ -750,12 +896,18 @@ class FetchService:
     ) -> None:
         """Run a capture cycle as a background task - handles capture, db recording, and logging."""
         try:
-            use_distribution = self.camera_manager.should_use_camera_distribution(len(cameras))
+            use_distribution = self.camera_manager.should_use_camera_distribution(
+                len(cameras)
+            )
 
             if use_distribution:
-                results = await self._capture_distributed(cameras, camera_settings, timestamp, interval, fetch_defaults)
+                results = await self._capture_distributed(
+                    cameras, camera_settings, timestamp, interval, fetch_defaults
+                )
             else:
-                results = await self._capture_concurrent(cameras, camera_settings, timestamp, interval, fetch_defaults)
+                results = await self._capture_concurrent(
+                    cameras, camera_settings, timestamp, interval, fetch_defaults
+                )
 
             # Record captures to database
             await self._record_captures_to_db(results)
@@ -774,7 +926,9 @@ class FetchService:
                 },
             )
         except Exception as e:
-            logger.error("Capture cycle failed", extra={"interval": interval, "error": str(e)})
+            logger.error(
+                "Capture cycle failed", extra={"interval": interval, "error": str(e)}
+            )
 
     async def _capture_distributed(
         self,
@@ -790,7 +944,9 @@ class FetchService:
             return {}
 
         # Calculate optimal offset based on camera count
-        optimal_offset = self.camera_manager.calculate_optimal_offset_seconds(len(cameras))
+        optimal_offset = self.camera_manager.calculate_optimal_offset_seconds(
+            len(cameras)
+        )
 
         # Group cameras by consecutive offset (sorted by UUID for deterministic ordering)
         camera_offsets = calculate_consecutive_offsets(cameras, optimal_offset)
@@ -800,10 +956,16 @@ class FetchService:
             camera_groups[offset].append(camera)
 
         # Log distribution at debug level
-        slot_distribution = {f"{offset}s": len(cams) for offset, cams in sorted(camera_groups.items())}
+        slot_distribution = {
+            f"{offset}s": len(cams) for offset, cams in sorted(camera_groups.items())
+        }
         logger.debug(
             "Camera distribution",
-            extra={"interval": interval, "camera_count": len(cameras), "slots": slot_distribution},
+            extra={
+                "interval": interval,
+                "camera_count": len(cameras),
+                "slots": slot_distribution,
+            },
         )
 
         # Fire each group at its designated offset without blocking
@@ -819,7 +981,9 @@ class FetchService:
 
             # Fire and forget - create task without awaiting
             task = asyncio.create_task(
-                self._capture_group(group_cameras, camera_settings, timestamp, interval, fetch_defaults)
+                self._capture_group(
+                    group_cameras, camera_settings, timestamp, interval, fetch_defaults
+                )
             )
             tasks.append(task)
 
@@ -843,7 +1007,9 @@ class FetchService:
         fetch_defaults: dict[str, Any],
     ) -> dict[str, CaptureResult]:
         """Capture all cameras concurrently (no distribution)."""
-        return await self._capture_group(cameras, camera_settings, timestamp, interval, fetch_defaults)
+        return await self._capture_group(
+            cameras, camera_settings, timestamp, interval, fetch_defaults
+        )
 
     async def _capture_group(
         self,
@@ -886,7 +1052,14 @@ class FetchService:
                 month = date_obj.strftime("%m")
                 day = date_obj.strftime("%d")
 
-                output_dir = config.IMAGE_OUTPUT_PATH / camera.safe_name / f"{interval}s" / year / month / day
+                output_dir = (
+                    config.IMAGE_OUTPUT_PATH
+                    / camera.safe_name
+                    / f"{interval}s"
+                    / year
+                    / month
+                    / day
+                )
                 # RTSP uses configured format (png or jpg), API always uses jpg
                 file_ext = rtsp_output_format if capture_method == "rtsp" else "jpg"
                 output_path = output_dir / f"{camera.safe_name}_{timestamp}.{file_ext}"
@@ -929,7 +1102,9 @@ class FetchService:
                 camera_name, capture_result = result
                 capture_results[camera_name] = capture_result
             else:
-                logger.error("Unexpected error in camera capture", extra={"error": str(result)})
+                logger.error(
+                    "Unexpected error in camera capture", extra={"error": str(result)}
+                )
 
         return capture_results
 
@@ -948,7 +1123,12 @@ class FetchService:
 
         for attempt in range(max_retries + 1):
             result = await self.camera_manager.capture_snapshot(
-                camera, output_path, interval, timestamp, attempt, high_quality=high_quality
+                camera,
+                output_path,
+                interval,
+                timestamp,
+                attempt,
+                high_quality=high_quality,
             )
 
             if result.success:
@@ -1049,7 +1229,9 @@ class FetchService:
                     capture_datetime = datetime.fromtimestamp(result.timestamp)
 
                     # Extract file name from path
-                    file_name = Path(result.file_path).name if result.file_path else None
+                    file_name = (
+                        Path(result.file_path).name if result.file_path else None
+                    )
 
                     capture_data = CaptureCreate(
                         camera_id=result.camera_id,
@@ -1058,8 +1240,12 @@ class FetchService:
                         capture_datetime=capture_datetime,
                         capture_date=capture_datetime.date(),
                         interval=result.interval,
-                        status=CaptureStatus.SUCCESS if result.success else CaptureStatus.FAILED,
-                        capture_method=CaptureMethod(result.capture_method) if result.capture_method else None,
+                        status=CaptureStatus.SUCCESS
+                        if result.success
+                        else CaptureStatus.FAILED,
+                        capture_method=CaptureMethod(result.capture_method)
+                        if result.capture_method
+                        else None,
                         file_path=result.file_path,
                         file_name=file_name,
                         file_size=result.file_size,
@@ -1097,4 +1283,6 @@ class FetchService:
                 )
 
         except Exception as e:
-            logger.error("Failed to record captures to database", extra={"error": str(e)})
+            logger.error(
+                "Failed to record captures to database", extra={"error": str(e)}
+            )

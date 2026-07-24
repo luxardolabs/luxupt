@@ -235,7 +235,9 @@ def duration(value: int | float | timedelta | None, style: str = "short") -> str
     return " ".join(parts) if parts else "0s"
 
 
-def date_range(start_dt: datetime | None, end_dt: datetime | None, period: str = "24h") -> str:
+def date_range(
+    start_dt: datetime | None, end_dt: datetime | None, period: str = "24h"
+) -> str:
     """Format a date range for display.
 
     Args:

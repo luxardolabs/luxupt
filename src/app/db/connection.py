@@ -61,7 +61,7 @@ async_session = async_sessionmaker(
 )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     """Dependency that provides a database session with automatic commit/rollback."""
     async with async_session() as session:
         try:
@@ -87,13 +87,18 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
     alembic_ini = app_dir / "alembic.ini"
 
     if not alembic_ini.exists():
-        logger.warning("alembic.ini not found, skipping migrations", extra={"path": str(alembic_ini)})
+        logger.warning(
+            "alembic.ini not found, skipping migrations",
+            extra={"path": str(alembic_ini)},
+        )
         return
 
     try:
         alembic_cfg = AlembicConfig(str(alembic_ini))
         # Override the script location to be absolute
-        alembic_cfg.set_main_option("script_location", str(app_dir / "db" / "migrations"))
+        alembic_cfg.set_main_option(
+            "script_location", str(app_dir / "db" / "migrations")
+        )
 
         logger.info("Running database migrations")
         command.upgrade(alembic_cfg, "head")
@@ -145,7 +150,10 @@ async def init_db() -> None:
             result = await conn.execute(text("PRAGMA auto_vacuum"))
             current = result.scalar()
             if current != 2:  # 2 = INCREMENTAL
-                logger.info("Enabling incremental auto-vacuum (requires VACUUM)", extra={"current_mode": current})
+                logger.info(
+                    "Enabling incremental auto-vacuum (requires VACUUM)",
+                    extra={"current_mode": current},
+                )
                 await conn.execute(text("PRAGMA auto_vacuum = INCREMENTAL"))
                 await conn.execute(text("VACUUM"))
                 logger.info("Incremental auto-vacuum enabled")
@@ -158,7 +166,10 @@ async def init_db() -> None:
     except Exception as e:
         # Handle race condition where another process might have created tables
         if "already exists" in str(e).lower():
-            logger.debug("Tables already exist (likely created by another service)", extra={"error": str(e)})
+            logger.debug(
+                "Tables already exist (likely created by another service)",
+                extra={"error": str(e)},
+            )
         else:
             raise
 

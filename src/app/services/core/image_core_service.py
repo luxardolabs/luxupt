@@ -35,9 +35,12 @@ class ImageCoreService:
 
         self._running = True
         self._worker_tasks = [
-            asyncio.create_task(self._thumbnail_worker(worker_id=i)) for i in range(config.THUMBNAIL_WORKERS)
+            asyncio.create_task(self._thumbnail_worker(worker_id=i))
+            for i in range(config.THUMBNAIL_WORKERS)
         ]
-        logger.info("Image service started", extra={"workers": config.THUMBNAIL_WORKERS})
+        logger.info(
+            "Image service started", extra={"workers": config.THUMBNAIL_WORKERS}
+        )
 
     async def stop(self) -> None:
         """Stop the image service."""
@@ -103,8 +106,10 @@ class ImageCoreService:
             try:
                 # Wait for a thumbnail request with timeout
                 try:
-                    request = await asyncio.wait_for(self.thumbnail_queue.get(), timeout=1.0)
-                except asyncio.TimeoutError:
+                    request = await asyncio.wait_for(
+                        self.thumbnail_queue.get(), timeout=1.0
+                    )
+                except TimeoutError:
                     continue
 
                 # Generate thumbnail in thread pool (PIL is blocking)
@@ -125,7 +130,10 @@ class ImageCoreService:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error("Thumbnail worker error", extra={"worker_id": worker_id, "error": str(e)})
+                logger.error(
+                    "Thumbnail worker error",
+                    extra={"worker_id": worker_id, "error": str(e)},
+                )
 
     def _generate_thumbnail_sync(
         self,
@@ -138,7 +146,9 @@ class ImageCoreService:
     ) -> str | None:
         """Synchronous thumbnail generation (runs in thread pool)."""
         try:
-            thumb_path = self.build_thumbnail_path(camera_safe_name, interval, capture_date, timestamp, size)
+            thumb_path = self.build_thumbnail_path(
+                camera_safe_name, interval, capture_date, timestamp, size
+            )
             thumb_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(image_path, "rb") as f:
@@ -154,7 +164,10 @@ class ImageCoreService:
             logger.debug("Generated thumbnail", extra={"thumb_path": str(thumb_path)})
             return str(thumb_path)
         except Exception as e:
-            logger.warning("Failed to generate thumbnail", extra={"image_path": image_path, "error": str(e)})
+            logger.warning(
+                "Failed to generate thumbnail",
+                extra={"image_path": image_path, "error": str(e)},
+            )
             return None
 
     def get_thumbnail_path(
@@ -168,7 +181,9 @@ class ImageCoreService:
         """Get the path to a thumbnail if it exists."""
         if size is None:
             size = config.THUMBNAIL_SIZE_DEFAULT
-        thumb_path = self.build_thumbnail_path(camera_safe_name, interval, capture_date, timestamp, size)
+        thumb_path = self.build_thumbnail_path(
+            camera_safe_name, interval, capture_date, timestamp, size
+        )
         return thumb_path if thumb_path.exists() else None
 
 

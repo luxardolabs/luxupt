@@ -57,11 +57,15 @@ class ProtectClient:
         if not base_url:
             raise ValueError("base_url is required")
         if not username or not password:
-            raise ValueError("username and password are required for private-API access")
+            raise ValueError(
+                "username and password are required for private-API access"
+            )
 
         parsed = urlparse(base_url)
         if not parsed.scheme or not parsed.netloc:
-            raise ValueError(f"base_url must include scheme and host (got: {base_url!r})")
+            raise ValueError(
+                f"base_url must include scheme and host (got: {base_url!r})"
+            )
         self.host = f"{parsed.scheme}://{parsed.netloc}"
 
         self.username = username
@@ -114,12 +118,20 @@ class ProtectClient:
             resp = await self._client.post(
                 url,
                 json={"username": self.username, "password": self.password},
-                headers={"Accept": "application/json", "Content-Type": "application/json"},
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
             )
             if resp.status_code >= 400:
-                raise ProtectAuthError(f"login failed: HTTP {resp.status_code} - {resp.text[:200]}")
+                raise ProtectAuthError(
+                    f"login failed: HTTP {resp.status_code} - {resp.text[:200]}"
+                )
             self._logged_in = True
-            logger.info("Protect login successful", extra={"host": self.host, "user": self.username})
+            logger.info(
+                "Protect login successful",
+                extra={"host": self.host, "user": self.username},
+            )
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         """Issue a request, logging in on first call and once on 401."""
@@ -141,16 +153,24 @@ class ProtectClient:
     def _to_js_ms(dt: datetime) -> int:
         return int(dt.timestamp() * 1000)
 
-    async def get_all_camera_recording_ranges(self) -> dict[str, tuple[datetime, datetime]]:
+    async def get_all_camera_recording_ranges(
+        self,
+    ) -> dict[str, tuple[datetime, datetime]]:
         """Return {camera_id: (oldest, newest)} for every camera in one bootstrap call.
 
         Walks `bootstrap.cameras[].stats.video.recordingStart/End` (Unix ms)
         and converts to local-time datetimes. One ~161KB round-trip covers
         the whole NVR's cameras instead of N per-camera calls.
         """
-        resp = await self._request("GET", "/proxy/protect/api/bootstrap", headers={"Accept": "application/json"})
+        resp = await self._request(
+            "GET",
+            "/proxy/protect/api/bootstrap",
+            headers={"Accept": "application/json"},
+        )
         if resp.status_code >= 400:
-            raise ProtectRequestError(f"bootstrap fetch failed: HTTP {resp.status_code} - {resp.text[:200]}")
+            raise ProtectRequestError(
+                f"bootstrap fetch failed: HTTP {resp.status_code} - {resp.text[:200]}"
+            )
         data = resp.json()
         ranges: dict[str, tuple[datetime, datetime]] = {}
         for cam in data.get("cameras", []):
@@ -173,7 +193,12 @@ class ProtectClient:
         bytes are byte-identical for the same `ts` (deterministic).
         """
         path = f"/proxy/protect/api/cameras/{camera_id}/recording-snapshot"
-        resp = await self._request("GET", path, params={"ts": self._to_js_ms(ts)}, headers={"Accept": "image/jpeg"})
+        resp = await self._request(
+            "GET",
+            path,
+            params={"ts": self._to_js_ms(ts)},
+            headers={"Accept": "image/jpeg"},
+        )
         if resp.status_code >= 400:
             raise ProtectRequestError(
                 f"recording-snapshot failed for {camera_id} at {ts.isoformat()}: "
@@ -218,13 +243,19 @@ class ProtectClient:
         assert self._client is not None
 
         url = f"{self.host}{path}"
-        async with self._client.stream("GET", url, params=params, headers={"Accept": "video/mp4"}) as resp:
+        async with self._client.stream(
+            "GET", url, params=params, headers={"Accept": "video/mp4"}
+        ) as resp:
             if resp.status_code == 401:
                 await resp.aclose()
                 self._logged_in = False
                 await self._login()
-                async with self._client.stream("GET", url, params=params, headers={"Accept": "video/mp4"}) as resp2:
-                    await self._stream_to_file(resp2, output_path, chunk_size, progress_callback)
+                async with self._client.stream(
+                    "GET", url, params=params, headers={"Accept": "video/mp4"}
+                ) as resp2:
+                    await self._stream_to_file(
+                        resp2, output_path, chunk_size, progress_callback
+                    )
                 return
             if resp.status_code >= 400:
                 body = await resp.aread()

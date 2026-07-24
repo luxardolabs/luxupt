@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
 # Import all models to ensure they're registered with Base.metadata
-from models import (  # noqa: F401, E402
+from models import (  # noqa: F401
     Activity,
     BackupSettings,
     Camera,
@@ -27,7 +27,7 @@ from models import (  # noqa: F401, E402
     User,
 )
 
-from db.base import Base  # noqa: E402
+from db.base import Base
 
 # Alembic Config object
 config = context.config

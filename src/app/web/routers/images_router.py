@@ -296,7 +296,9 @@ async def get_image_thumbnail(
     if size is None:
         size = config.THUMBNAIL_SIZE_DEFAULT
 
-    thumb_path = view_service.build_thumbnail_path(camera, interval, capture_date, timestamp, size)
+    thumb_path = view_service.build_thumbnail_path(
+        camera, interval, capture_date, timestamp, size
+    )
 
     if not await async_fs.path_exists(thumb_path):
         # Thumbnail may still be in the generation queue — wait briefly

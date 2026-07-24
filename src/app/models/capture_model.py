@@ -31,14 +31,21 @@ class Capture(Base, TimestampMixin):
 
     # Camera reference (denormalized for query performance)
     camera_db_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("cameras.id", ondelete="SET NULL"), nullable=True, index=True
+        Integer,
+        ForeignKey("cameras.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     camera_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    camera_safe_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    camera_safe_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
 
     # Capture metadata
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    capture_datetime: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    capture_datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     capture_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     interval: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
@@ -49,10 +56,15 @@ class Capture(Base, TimestampMixin):
 
     # Status and error tracking
     status: Mapped[CaptureStatus] = mapped_column(
-        str_enum(CaptureStatus), default=CaptureStatus.SUCCESS, nullable=False, index=True
+        str_enum(CaptureStatus),
+        default=CaptureStatus.SUCCESS,
+        nullable=False,
+        index=True,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    capture_method: Mapped[CaptureMethod | None] = mapped_column(str_enum(CaptureMethod), nullable=True)
+    capture_method: Mapped[CaptureMethod | None] = mapped_column(
+        str_enum(CaptureMethod), nullable=True
+    )
     capture_duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationship

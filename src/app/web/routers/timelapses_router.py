@@ -564,7 +564,6 @@ async def delete_timelapse(
     if not success:
         raise HTTPException(status_code=404, detail="Timelapse not found")
 
-
     # Return OOB update to refresh the stats cards
     context = await view_service.get_stats_context()
     return templates.TemplateResponse(

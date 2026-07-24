@@ -20,7 +20,9 @@ class BackupSettings(Base, TimestampMixin):
     interval: Mapped[int] = mapped_column(Integer, default=3600, nullable=False)
 
     # Backup destination directory (relative to OUTPUT_DIR, default "backups")
-    backup_dir: Mapped[str] = mapped_column(String(256), default="backups", nullable=False)
+    backup_dir: Mapped[str] = mapped_column(
+        String(256), default="backups", nullable=False
+    )
 
     def __repr__(self) -> str:
         return f"<BackupSettings(retention={self.retention}, interval={self.interval})>"

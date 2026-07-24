@@ -28,12 +28,16 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
 
     async def get_active(self, db: AsyncSession) -> list[Camera]:
         """Get all active cameras."""
-        result = await db.execute(select(Camera).where(Camera.is_active == True).order_by(Camera.name))  # noqa: E712
+        result = await db.execute(
+            select(Camera).where(Camera.is_active == True).order_by(Camera.name)
+        )
         return list(result.scalars().all())
 
     async def get_inactive(self, db: AsyncSession) -> list[Camera]:
         """Get all inactive (disabled) cameras."""
-        result = await db.execute(select(Camera).where(Camera.is_active == False).order_by(Camera.name))  # noqa: E712
+        result = await db.execute(
+            select(Camera).where(Camera.is_active == False).order_by(Camera.name)
+        )
         return list(result.scalars().all())
 
     async def get_connected(self, db: AsyncSession) -> list[Camera]:
@@ -114,7 +118,11 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         return camera
 
     async def get_camera_stats(
-        self, db: AsyncSession, camera_id: str, *, global_intervals: list[int] | None = None
+        self,
+        db: AsyncSession,
+        camera_id: str,
+        *,
+        global_intervals: list[int] | None = None,
     ) -> dict:
         """Get statistics for a camera."""
         camera = await self.get_by_camera_id(db, camera_id)
@@ -161,8 +169,12 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
             select(
                 Capture.interval,
                 func.count(Capture.id).label("total"),
-                func.sum(case((Capture.status == "success", 1), else_=0)).label("success"),
-                func.sum(case((Capture.status != "success", 1), else_=0)).label("failed"),
+                func.sum(case((Capture.status == "success", 1), else_=0)).label(
+                    "success"
+                ),
+                func.sum(case((Capture.status != "success", 1), else_=0)).label(
+                    "failed"
+                ),
                 func.min(Capture.timestamp).label("first_capture_ts"),
             )
             .where(
@@ -182,7 +194,9 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         for row in rows:
             if row.first_capture_ts and row.interval > 0:
                 elapsed = max(0, now_ts - int(row.first_capture_ts))
-                expected = int(elapsed / row.interval) + 1  # +1 includes the first capture itself
+                expected = (
+                    int(elapsed / row.interval) + 1
+                )  # +1 includes the first capture itself
             else:
                 expected = 0
             success = int(row.success or 0)
@@ -199,13 +213,22 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         effective_intervals = camera.enabled_intervals or global_intervals or []
         for iv in effective_intervals:
             if iv not in interval_stats:
-                interval_stats[iv] = {"success": 0, "failed": 0, "expected": 0, "rate": 0.0}
+                interval_stats[iv] = {
+                    "success": 0,
+                    "failed": 0,
+                    "expected": 0,
+                    "rate": 0.0,
+                }
 
         # Compute today_summary across all intervals
         total_success_today = sum(d["success"] for d in interval_stats.values())
         total_failed_today = sum(d["failed"] for d in interval_stats.values())
         total_expected_today = sum(d["expected"] for d in interval_stats.values())
-        overall_rate = round(total_success_today / total_expected_today * 100, 1) if total_expected_today > 0 else 0.0
+        overall_rate = (
+            round(total_success_today / total_expected_today * 100, 1)
+            if total_expected_today > 0
+            else 0.0
+        )
         today_summary = {
             "success": total_success_today,
             "failed": total_failed_today,
@@ -293,11 +316,17 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         - enabled_intervals is None (use all intervals), OR
         - the interval is in the enabled_intervals list
         """
-        result = await db.execute(select(Camera).where(Camera.is_active == True).order_by(Camera.name))  # noqa: E712
+        result = await db.execute(
+            select(Camera).where(Camera.is_active == True).order_by(Camera.name)
+        )
         cameras = list(result.scalars().all())
 
         # Filter by interval
-        return [cam for cam in cameras if cam.enabled_intervals is None or interval in cam.enabled_intervals]
+        return [
+            cam
+            for cam in cameras
+            if cam.enabled_intervals is None or interval in cam.enabled_intervals
+        ]
 
     async def set_first_discovered(
         self,

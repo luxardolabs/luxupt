@@ -219,6 +219,8 @@ class TimelapseBrowserCoreService:
         return True
 
 
-async def get_timelapse_browser_service(db: AsyncSession) -> TimelapseBrowserCoreService:
+async def get_timelapse_browser_service(
+    db: AsyncSession,
+) -> TimelapseBrowserCoreService:
     """Factory function to create TimelapseBrowserCoreService instance."""
     return TimelapseBrowserCoreService(db)

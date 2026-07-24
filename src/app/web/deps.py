@@ -73,12 +73,18 @@ async def get_user_service(db: DbSession) -> UserCoreService:
 # Type aliases for dependency injection - Core services
 ActivityServiceDep = Annotated[ActivityCoreService, Depends(get_activity_service)]
 CameraServiceDep = Annotated[CameraCoreService, Depends(get_camera_service)]
-CaptureCleanupServiceDep = Annotated[CaptureCleanupCoreService, Depends(get_capture_cleanup_service)]
+CaptureCleanupServiceDep = Annotated[
+    CaptureCleanupCoreService, Depends(get_capture_cleanup_service)
+]
 CaptureServiceDep = Annotated[CaptureCoreService, Depends(get_capture_service)]
-CaptureStatsServiceDep = Annotated[CaptureStatsCoreService, Depends(get_capture_stats_service)]
+CaptureStatsServiceDep = Annotated[
+    CaptureStatsCoreService, Depends(get_capture_stats_service)
+]
 JobServiceDep = Annotated[JobCoreService, Depends(get_job_service)]
 SettingsServiceDep = Annotated[SettingsCoreService, Depends(get_settings_service)]
-TimelapseBrowserServiceDep = Annotated[TimelapseBrowserCoreService, Depends(get_timelapse_browser_service)]
+TimelapseBrowserServiceDep = Annotated[
+    TimelapseBrowserCoreService, Depends(get_timelapse_browser_service)
+]
 UserServiceDep = Annotated[UserCoreService, Depends(get_user_service)]
 
 
@@ -181,7 +187,9 @@ async def get_users_view_service(
 CamerasViewDep = Annotated[CamerasViewService, Depends(get_cameras_view_service)]
 DashboardViewDep = Annotated[DashboardViewService, Depends(get_dashboard_view_service)]
 ImagesViewDep = Annotated[ImagesViewService, Depends(get_images_view_service)]
-TimelapsesViewDep = Annotated[TimelapsesViewService, Depends(get_timelapses_view_service)]
+TimelapsesViewDep = Annotated[
+    TimelapsesViewService, Depends(get_timelapses_view_service)
+]
 SystemViewDep = Annotated[SystemViewService, Depends(get_system_view_service)]
 UsersViewDep = Annotated[UsersViewService, Depends(get_users_view_service)]
 

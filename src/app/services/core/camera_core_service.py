@@ -39,11 +39,17 @@ class CameraCoreService:
         """Get all connected cameras."""
         return await camera_crud.get_connected(self.db)
 
-    async def get_stats(self, camera_id: str, *, global_intervals: list[int] | None = None) -> dict:
+    async def get_stats(
+        self, camera_id: str, *, global_intervals: list[int] | None = None
+    ) -> dict:
         """Get statistics for a camera."""
-        return await camera_crud.get_camera_stats(self.db, camera_id, global_intervals=global_intervals)
+        return await camera_crud.get_camera_stats(
+            self.db, camera_id, global_intervals=global_intervals
+        )
 
-    async def update_settings(self, camera_id: str, settings: dict[str, Any]) -> Camera | None:
+    async def update_settings(
+        self, camera_id: str, settings: dict[str, Any]
+    ) -> Camera | None:
         """Update camera settings."""
         camera = await camera_crud.get_by_camera_id(self.db, camera_id)
         if not camera:
@@ -92,7 +98,9 @@ class CameraCoreService:
             state=state,
         )
 
-    async def increment_captures(self, camera_id: str, *, success: bool = True) -> Camera | None:
+    async def increment_captures(
+        self, camera_id: str, *, success: bool = True
+    ) -> Camera | None:
         """Increment capture counts for a camera."""
         return await camera_crud.increment_captures(self.db, camera_id, success=success)
 

@@ -33,9 +33,13 @@ def column_exists(table_name: str, column_name: str) -> bool:
 def upgrade() -> None:
     with op.batch_alter_table("fetch_settings") as batch_op:
         if not column_exists("fetch_settings", "username"):
-            batch_op.add_column(sa.Column("username", sa.String(length=255), nullable=True))
+            batch_op.add_column(
+                sa.Column("username", sa.String(length=255), nullable=True)
+            )
         if not column_exists("fetch_settings", "password"):
-            batch_op.add_column(sa.Column("password", sa.String(length=255), nullable=True))
+            batch_op.add_column(
+                sa.Column("password", sa.String(length=255), nullable=True)
+            )
 
 
 def downgrade() -> None:

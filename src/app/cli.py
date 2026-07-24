@@ -49,7 +49,9 @@ async def run_web_only() -> None:
     try:
         await start_web_server()
     except ImportError as e:
-        logger.error("Web interface dependencies not available", extra={"error": str(e)})
+        logger.error(
+            "Web interface dependencies not available", extra={"error": str(e)}
+        )
     except Exception as e:
         logger.error("Web server error", extra={"error": str(e)})
 
@@ -80,7 +82,10 @@ async def test_cameras() -> None:
         # Report results
         successful = sum(1 for result in results.values() if result.success)
         total = len(results)
-        camera_results = {name: "accessible" if result.success else "failed" for name, result in results.items()}
+        camera_results = {
+            name: "accessible" if result.success else "failed"
+            for name, result in results.items()
+        }
 
         logger.info(
             "Camera test completed",
@@ -105,7 +110,9 @@ async def set_protect_creds(username: str, password: str) -> None:
     """
     crud = CRUDFetchSettings()
     async with async_session() as db:
-        await crud.update_settings(db, obj_in={"username": username, "password": password})
+        await crud.update_settings(
+            db, obj_in={"username": username, "password": password}
+        )
         await db.commit()
     logger.info(
         "Stored Protect credentials in fetch_settings",
@@ -206,7 +213,9 @@ async def handle_cli_command(command: str) -> bool:
         if not username or not password:
             logger.error(
                 "set-protect-creds requires --username and --password",
-                extra={"example": "python main.py set-protect-creds --username admin --password 'secret'"},
+                extra={
+                    "example": "python main.py set-protect-creds --username admin --password 'secret'"
+                },
             )
             return True
         await set_protect_creds(username, password)
@@ -217,7 +226,10 @@ async def handle_cli_command(command: str) -> bool:
         return True
 
     else:
-        logger.error("Unknown command", extra={"command": command, "hint": "Use 'python main.py help'"})
+        logger.error(
+            "Unknown command",
+            extra={"command": command, "hint": "Use 'python main.py help'"},
+        )
         return True
 
     return False

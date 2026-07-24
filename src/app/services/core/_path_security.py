@@ -43,7 +43,9 @@ def _is_safe_path(file_path: str, allowed_base: Path) -> bool:
         return False
 
 
-def validate_image_path(file_path: str | None, context: dict | None = None) -> str | None:
+def validate_image_path(
+    file_path: str | None, context: dict | None = None
+) -> str | None:
     """Validate an image path and return it if safe, None otherwise."""
     if not file_path:
         return None
@@ -58,7 +60,9 @@ def validate_image_path(file_path: str | None, context: dict | None = None) -> s
     return file_path
 
 
-def validate_video_path(file_path: str | None, context: dict | None = None) -> str | None:
+def validate_video_path(
+    file_path: str | None, context: dict | None = None
+) -> str | None:
     """Validate a video path and return it if safe, None otherwise."""
     if not file_path:
         return None
@@ -73,7 +77,9 @@ def validate_video_path(file_path: str | None, context: dict | None = None) -> s
     return file_path
 
 
-def validate_thumbnail_path(file_path: str | None, context: dict | None = None) -> str | None:
+def validate_thumbnail_path(
+    file_path: str | None, context: dict | None = None
+) -> str | None:
     """Validate a thumbnail path and return it if safe, None otherwise."""
     if not file_path:
         return None

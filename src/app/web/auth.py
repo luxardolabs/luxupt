@@ -181,7 +181,9 @@ class AuthService:
         return username == config.WEB_USERNAME and password == config.WEB_PASSWORD
 
     @staticmethod
-    async def authenticate_user_db(db: AsyncSession, username: str, password: str) -> tuple[bool, int | None]:
+    async def authenticate_user_db(
+        db: AsyncSession, username: str, password: str
+    ) -> tuple[bool, int | None]:
         """Authenticate user credentials against database.
 
         Returns (success, user_id) tuple. user_id is set on successful auth.
@@ -192,7 +194,9 @@ class AuthService:
         return False, None
 
     @staticmethod
-    async def authenticate_user(db: AsyncSession | None, username: str, password: str) -> tuple[bool, int | None]:
+    async def authenticate_user(
+        db: AsyncSession | None, username: str, password: str
+    ) -> tuple[bool, int | None]:
         """Authenticate user credentials.
 
         Checks env vars first for env username, then database for all users.
@@ -218,7 +222,9 @@ class AuthService:
         if expires_delta:
             expire = datetime.now(UTC) + expires_delta
         else:
-            expire = datetime.now(UTC) + timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+            expire = datetime.now(UTC) + timedelta(
+                minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES
+            )
 
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -277,7 +283,12 @@ async def login_form(request: Request) -> Response:
     return cast(Response, templates.TemplateResponse("pages/login.html", context))
 
 
-async def login(request: Request, db: AsyncSession, username: str = Form(...), password: str = Form(...)) -> Response:
+async def login(
+    request: Request,
+    db: AsyncSession,
+    username: str = Form(...),
+    password: str = Form(...),
+) -> Response:
     """Process login form with rate limiting and adaptive cookie security.
 
     Uses the caller's request-scoped session; get_db() owns the commit.
@@ -306,7 +317,9 @@ async def login(request: Request, db: AsyncSession, username: str = Form(...), p
 
     if not success:
         _record_login_attempt(client_ip)
-        logger.warning("Failed login attempt", extra={"username": username, "client_ip": client_ip})
+        logger.warning(
+            "Failed login attempt", extra={"username": username, "client_ip": client_ip}
+        )
         return cast(
             Response,
             templates.TemplateResponse(
@@ -327,11 +340,15 @@ async def login(request: Request, db: AsyncSession, username: str = Form(...), p
 
     # Success - clear rate limit tracking
     _clear_login_attempts(client_ip)
-    logger.info("Successful login", extra={"username": username, "client_ip": client_ip})
+    logger.info(
+        "Successful login", extra={"username": username, "client_ip": client_ip}
+    )
 
     # Create access token
     access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = AuthService.create_access_token(data={"sub": username}, expires_delta=access_token_expires)
+    access_token = AuthService.create_access_token(
+        data={"sub": username}, expires_delta=access_token_expires
+    )
 
     # Determine cookie security based on request context
     use_secure_cookie = _should_set_secure_cookie(request)

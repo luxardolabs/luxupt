@@ -70,15 +70,23 @@ def _expand_timestamps(
 
     while cur_date <= last_date:
         if daily_start is not None and daily_end is not None:
-            window_start = datetime.combine(cur_date, daily_start, tzinfo=start_at.tzinfo)
-            window_end_naive = datetime.combine(cur_date, daily_end, tzinfo=start_at.tzinfo)
+            window_start = datetime.combine(
+                cur_date, daily_start, tzinfo=start_at.tzinfo
+            )
+            window_end_naive = datetime.combine(
+                cur_date, daily_end, tzinfo=start_at.tzinfo
+            )
             # If end-of-day rolls past midnight, push to next day
             if daily_end <= daily_start:
                 window_end_naive += timedelta(days=1)
             window_end = window_end_naive
         else:
-            window_start = datetime.combine(cur_date, time(0, 0), tzinfo=start_at.tzinfo)
-            window_end = datetime.combine(cur_date + timedelta(days=1), time(0, 0), tzinfo=start_at.tzinfo)
+            window_start = datetime.combine(
+                cur_date, time(0, 0), tzinfo=start_at.tzinfo
+            )
+            window_end = datetime.combine(
+                cur_date + timedelta(days=1), time(0, 0), tzinfo=start_at.tzinfo
+            )
 
         cur = max(window_start, start_at)
         limit = min(window_end, end_at)
@@ -139,7 +147,9 @@ class HistoricalFetchCoreService:
             raise ValueError(f"historical job {job.job_id} has end_at <= start_at")
 
         # Reject ranges that overlap the recording-write-lag window
-        cutoff = datetime.now(tz=job.end_at.tzinfo) - timedelta(seconds=MIN_RECORDING_LAG_SECONDS)
+        cutoff = datetime.now(tz=job.end_at.tzinfo) - timedelta(
+            seconds=MIN_RECORDING_LAG_SECONDS
+        )
         if job.end_at > cutoff:
             raise ValueError(
                 f"historical job end_at must be at least {MIN_RECORDING_LAG_SECONDS}s in the past "
@@ -174,7 +184,9 @@ class HistoricalFetchCoreService:
 
         base_url, username, password, verify_ssl = await _resolve_protect_creds()
         if not (base_url and username and password):
-            raise RuntimeError("Protect credentials (base_url + username + password) are not configured")
+            raise RuntimeError(
+                "Protect credentials (base_url + username + password) are not configured"
+            )
 
         semaphore = asyncio.Semaphore(concurrency)
         completed = 0
@@ -240,18 +252,28 @@ class HistoricalFetchCoreService:
                                     interval=job.interval,
                                     status=status,
                                     capture_method=CaptureMethod.PROTECT_HISTORICAL,
-                                    file_path=str(path) if status == "success" else None,
-                                    file_name=path.name if status == "success" else None,
+                                    file_path=str(path)
+                                    if status == "success"
+                                    else None,
+                                    file_name=path.name
+                                    if status == "success"
+                                    else None,
                                     file_size=file_size,
                                     error_message=error_msg,
-                                    capture_duration_ms=int((time_module.time() - fetch_start) * 1000),
+                                    capture_duration_ms=int(
+                                        (time_module.time() - fetch_start) * 1000
+                                    ),
                                 ),
                             )
                             await session.commit()
                     except Exception as e:
                         logger.warning(
                             "Failed to record capture row",
-                            extra={"job_id": job.job_id, "ts": ts.isoformat(), "error": str(e)},
+                            extra={
+                                "job_id": job.job_id,
+                                "ts": ts.isoformat(),
+                                "error": str(e),
+                            },
                         )
 
                     async with completed_lock:
@@ -264,7 +286,9 @@ class HistoricalFetchCoreService:
                             errors += 1
 
                         # Throttled progress writes: every ~5 frames or every 10%
-                        if completed % max(1, len(timestamps) // 20) == 0 or completed == len(timestamps):
+                        if completed % max(
+                            1, len(timestamps) // 20
+                        ) == 0 or completed == len(timestamps):
                             parts = [f"{succeeded} ok"]
                             if no_recording:
                                 parts.append(f"{no_recording} no-recording")
@@ -281,12 +305,16 @@ class HistoricalFetchCoreService:
                                     )
                                     await session.commit()
                             except Exception as e:
-                                logger.debug("Progress update failed", extra={"error": str(e)})
+                                logger.debug(
+                                    "Progress update failed", extra={"error": str(e)}
+                                )
 
             try:
                 await asyncio.gather(*(fetch_one(ts) for ts in timestamps))
             except HistoricalJobCanceled:
-                logger.info("Historical job canceled mid-flight", extra={"job_id": job.job_id})
+                logger.info(
+                    "Historical job canceled mid-flight", extra={"job_id": job.job_id}
+                )
                 raise
 
         elapsed = time_module.time() - started

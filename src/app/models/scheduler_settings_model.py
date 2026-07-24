@@ -29,7 +29,9 @@ class SchedulerSettings(Base, TimestampMixin):
     enabled_cameras: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     # List of intervals to process (default [60] = 60s only)
-    enabled_intervals: Mapped[list[int] | None] = mapped_column(JSON, default=[60], nullable=True)
+    enabled_intervals: Mapped[list[int] | None] = mapped_column(
+        JSON, default=[60], nullable=True
+    )
 
     # Number of concurrent timelapse encodings (default 2)
     concurrent_jobs: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
@@ -38,10 +40,14 @@ class SchedulerSettings(Base, TimestampMixin):
     keep_images: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Recreate existing timelapses (default True = overwrite if exists)
-    recreate_existing: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    recreate_existing: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
 
     # When scheduler last ran
-    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # ===========================================
     # FFmpeg/Encoding Settings
@@ -59,7 +65,9 @@ class SchedulerSettings(Base, TimestampMixin):
     preset: Mapped[str] = mapped_column(String(16), default="medium", nullable=False)
 
     # Pixel format
-    pixel_format: Mapped[str] = mapped_column(String(16), default="yuv420p", nullable=False)
+    pixel_format: Mapped[str] = mapped_column(
+        String(16), default="yuv420p", nullable=False
+    )
 
     # FFmpeg timeout in seconds (default: 4 hours)
     ffmpeg_timeout: Mapped[int] = mapped_column(Integer, default=14400, nullable=False)

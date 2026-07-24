@@ -30,7 +30,12 @@ async def cameras_page(
 
     return templates.TemplateResponse(
         "pages/cameras.html",
-        {"request": request, "user": user, "needs_api_setup": fetch_context["needs_api"], **context},
+        {
+            "request": request,
+            "user": user,
+            "needs_api_setup": fetch_context["needs_api"],
+            **context,
+        },
     )
 
 
@@ -120,7 +125,12 @@ async def save_fetch_settings(
 ) -> Response:
     """Save global fetch settings."""
     try:
-        success, message, cameras_synced, reactivated = await view_service.save_fetch_settings(
+        (
+            success,
+            message,
+            cameras_synced,
+            reactivated,
+        ) = await view_service.save_fetch_settings(
             enabled=enabled,
             intervals=intervals,
             default_capture_method=default_capture_method,
@@ -334,7 +344,11 @@ async def detect_camera_capabilities(
         if capabilities is None:
             return templates.TemplateResponse(
                 "partials/cameras/camera_settings_result.html",
-                {"request": request, "success": False, "error": "Camera not found or not connected"},
+                {
+                    "request": request,
+                    "success": False,
+                    "error": "Camera not found or not connected",
+                },
             )
 
         response = templates.TemplateResponse(

@@ -64,7 +64,9 @@ class UsersViewService:
             errors.append("Passwords do not match")
 
         if errors:
-            logger.debug("Validation errors", extra={"errors": errors, "username": username})
+            logger.debug(
+                "Validation errors", extra={"errors": errors, "username": username}
+            )
 
         return errors
 
@@ -88,9 +90,8 @@ class UsersViewService:
             errors.append("Username already exists")
 
         # Password validation (only if provided)
-        if password:
-            if password != confirm_password:
-                errors.append("Passwords do not match")
+        if password and password != confirm_password:
+            errors.append("Passwords do not match")
 
         return errors
 

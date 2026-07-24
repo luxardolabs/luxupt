@@ -275,7 +275,9 @@ class CaptureCoreService:
             limit=limit,
         )
 
-    async def get_recent_failures(self, *, limit: int = config.RECENT_ITEMS_LIMIT) -> list[Capture]:
+    async def get_recent_failures(
+        self, *, limit: int = config.RECENT_ITEMS_LIMIT
+    ) -> list[Capture]:
         """Get recent failed captures."""
         return await capture_crud.get_recent_failures(self.db, limit=limit)
 

@@ -82,7 +82,9 @@ class Camera:
         return self.name.replace(" ", "_").replace("/", "_").replace("\\", "_")
 
 
-def calculate_consecutive_offsets(cameras: list[Camera], offset_seconds: int) -> dict[str, int]:
+def calculate_consecutive_offsets(
+    cameras: list[Camera], offset_seconds: int
+) -> dict[str, int]:
     """
     Calculate consecutive slot offsets for cameras based on UUID sort order.
 
@@ -235,19 +237,24 @@ class CameraManager:
             not force
             and self.last_camera_refresh
             and self.cameras
-            and (now - self.last_camera_refresh).total_seconds() < self.settings.camera_refresh_interval
+            and (now - self.last_camera_refresh).total_seconds()
+            < self.settings.camera_refresh_interval
         ):
             return self.cameras
 
         try:
             url = f"{self.settings.base_url}/cameras"
 
-            response = await self.client.get(url, headers=self.settings.get_json_headers())
+            response = await self.client.get(
+                url, headers=self.settings.get_json_headers()
+            )
             response.raise_for_status()
             cameras_data = response.json()
 
             # Convert API response to Camera objects
-            all_cameras = [Camera.from_api_response(cam_data) for cam_data in cameras_data]
+            all_cameras = [
+                Camera.from_api_response(cam_data) for cam_data in cameras_data
+            ]
 
             self.cameras = all_cameras
             self.last_camera_refresh = now
@@ -281,15 +288,24 @@ class CameraManager:
                     if self._locked_total_cameras > 0:
                         logger.info(
                             "Camera count changed, recalculating distribution",
-                            extra={"old": self._locked_total_cameras, "new": camera_count},
+                            extra={
+                                "old": self._locked_total_cameras,
+                                "new": camera_count,
+                            },
                         )
                     self._locked_total_cameras = camera_count
-                    self._locked_use_distribution = self.should_use_camera_distribution(camera_count)
-                    self._locked_optimal_offset = self.calculate_optimal_offset_seconds(camera_count)
+                    self._locked_use_distribution = self.should_use_camera_distribution(
+                        camera_count
+                    )
+                    self._locked_optimal_offset = self.calculate_optimal_offset_seconds(
+                        camera_count
+                    )
 
                     # Calculate consecutive slot offsets (sorted by UUID)
                     if self._locked_use_distribution:
-                        self._camera_offsets = calculate_consecutive_offsets(all_cameras, self._locked_optimal_offset)
+                        self._camera_offsets = calculate_consecutive_offsets(
+                            all_cameras, self._locked_optimal_offset
+                        )
                     else:
                         self._camera_offsets = {}
 
@@ -298,7 +314,11 @@ class CameraManager:
                         extra={
                             "total_cameras": self._locked_total_cameras,
                             "distribution_enabled": self._locked_use_distribution,
-                            "offset_seconds": (self._locked_optimal_offset if self._locked_use_distribution else None),
+                            "offset_seconds": (
+                                self._locked_optimal_offset
+                                if self._locked_use_distribution
+                                else None
+                            ),
                         },
                     )
 
@@ -344,7 +364,9 @@ class CameraManager:
 
         return self.cameras
 
-    def _write_and_verify_snapshot(self, output_path: str, data: bytes, min_size: int) -> int:
+    def _write_and_verify_snapshot(
+        self, output_path: str, data: bytes, min_size: int
+    ) -> int:
         """Write snapshot data and return file size. Returns 0 if too small/missing."""
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "wb") as f:
@@ -377,7 +399,9 @@ class CameraManager:
         start_time = time_module.time()
 
         # Base result for failures
-        def make_result(success: bool, file_size: int | None = None, error: str | None = None) -> CaptureResult:
+        def make_result(
+            success: bool, file_size: int | None = None, error: str | None = None
+        ) -> CaptureResult:
             """Build a CaptureResult with elapsed time from the enclosing capture call."""
             duration_ms = int((time_module.time() - start_time) * 1000)
             return CaptureResult(
@@ -396,9 +420,15 @@ class CameraManager:
         if not camera.is_connected:
             logger.debug(
                 "Skipping disconnected camera",
-                extra={"camera": camera.name, "interval": interval, "state": camera.state},
+                extra={
+                    "camera": camera.name,
+                    "interval": interval,
+                    "state": camera.state,
+                },
             )
-            return make_result(False, error=f"Camera not connected (state: {camera.state})")
+            return make_result(
+                False, error=f"Camera not connected (state: {camera.state})"
+            )
 
         try:
             url = f"{self.settings.base_url}/cameras/{camera.id}/snapshot"
@@ -412,9 +442,14 @@ class CameraManager:
                 quality_note = "STD"
 
             # Log the request we're about to make
-            logger.debug("Requesting snapshot", extra={"camera": camera.name, "interval": interval})
+            logger.debug(
+                "Requesting snapshot",
+                extra={"camera": camera.name, "interval": interval},
+            )
 
-            response = await self.client.get(url, headers=self.settings.get_image_headers(), params=params)
+            response = await self.client.get(
+                url, headers=self.settings.get_image_headers(), params=params
+            )
 
             if response.status_code == 200:
                 content_type = response.headers.get("Content-Type", "")
@@ -422,7 +457,10 @@ class CameraManager:
                 if content_type.startswith("image/"):
                     # Write image data and verify in a single thread dispatch
                     file_size = await asyncio.to_thread(
-                        self._write_and_verify_snapshot, output_path, response.content, 1000
+                        self._write_and_verify_snapshot,
+                        output_path,
+                        response.content,
+                        1000,
                     )
 
                     if file_size > 0:
@@ -441,14 +479,22 @@ class CameraManager:
                         error_msg = "Image file too small or missing"
                         logger.error(
                             "Capture failed - file too small",
-                            extra={"camera": camera.name, "interval": interval, "error": error_msg},
+                            extra={
+                                "camera": camera.name,
+                                "interval": interval,
+                                "error": error_msg,
+                            },
                         )
                         return make_result(False, error=error_msg)
                 else:
                     error_msg = f"Invalid content type: {content_type}"
                     logger.error(
                         "Capture failed - invalid content type",
-                        extra={"camera": camera.name, "interval": interval, "content_type": content_type},
+                        extra={
+                            "camera": camera.name,
+                            "interval": interval,
+                            "content_type": content_type,
+                        },
                     )
                     return make_result(False, error=error_msg)
             else:
@@ -472,16 +518,22 @@ class CameraManager:
 
         except httpx.TimeoutException:
             error_msg = "Timeout"
-            logger.error("Capture timeout", extra={"camera": camera.name, "interval": interval})
+            logger.error(
+                "Capture timeout", extra={"camera": camera.name, "interval": interval}
+            )
             return make_result(False, error=error_msg)
         except httpx.RequestError as e:
             error_msg = "Network error"
-            logger.error("Capture network error", extra={"camera": camera.name, "interval": interval, "error": str(e)})
+            logger.error(
+                "Capture network error",
+                extra={"camera": camera.name, "interval": interval, "error": str(e)},
+            )
             return make_result(False, error=error_msg)
         except Exception as e:
             error_msg = "Capture failed"
             logger.error(
-                "Capture unexpected error", extra={"camera": camera.name, "interval": interval, "error": str(e)}
+                "Capture unexpected error",
+                extra={"camera": camera.name, "interval": interval, "error": str(e)},
             )
             return make_result(False, error=error_msg)
 
@@ -506,7 +558,10 @@ class CameraManager:
             cached = self._rtsps_cache[cache_key]
             # Cache is valid for configured TTL
             cache_age = (datetime.now() - cached["created_at"]).total_seconds()
-            if cache_age < self.settings.rtsps_url_cache_ttl and cached["quality"] == quality:
+            if (
+                cache_age < self.settings.rtsps_url_cache_ttl
+                and cached["quality"] == quality
+            ):
                 return str(cached["url"])
 
         try:
@@ -589,7 +644,9 @@ class CameraManager:
         rtsp_quality = quality
         start_time = time_module.time()
 
-        def make_result(success: bool, file_size: int | None = None, error: str | None = None) -> CaptureResult:
+        def make_result(
+            success: bool, file_size: int | None = None, error: str | None = None
+        ) -> CaptureResult:
             """Build a CaptureResult with elapsed time from the enclosing RTSP capture call."""
             duration_ms = int((time_module.time() - start_time) * 1000)
             return CaptureResult(
@@ -608,9 +665,15 @@ class CameraManager:
         if not camera.is_connected:
             logger.debug(
                 "Skipping disconnected camera",
-                extra={"camera": camera.name, "interval": interval, "state": camera.state},
+                extra={
+                    "camera": camera.name,
+                    "interval": interval,
+                    "state": camera.state,
+                },
             )
-            return make_result(False, error=f"Camera not connected (state: {camera.state})")
+            return make_result(
+                False, error=f"Camera not connected (state: {camera.state})"
+            )
 
         # Get RTSPS URL
         rtsps_url = await self.get_rtsps_url(camera, rtsp_quality)
@@ -689,7 +752,9 @@ class CameraManager:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=capture_timeout)
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), timeout=capture_timeout
+                )
                 encode_duration_ms = (time_module.perf_counter() - start_time) * 1000
 
                 exists, file_size = await async_fs.file_exists_and_size(output_path)
@@ -704,7 +769,9 @@ class CameraManager:
                                 "file_size_bytes": file_size,
                                 "encode_ms": round(encode_duration_ms, 1),
                                 "format": output_format,
-                                "compression_level": png_compression_level if output_format == "png" else None,
+                                "compression_level": png_compression_level
+                                if output_format == "png"
+                                else None,
                                 "path": output_path,
                             },
                         )
@@ -713,37 +780,70 @@ class CameraManager:
                         error_msg = f"Image too small: {file_size} bytes"
                         logger.error(
                             "RTSP capture failed - image too small",
-                            extra={"camera": camera.name, "interval": interval, "file_size_bytes": file_size},
+                            extra={
+                                "camera": camera.name,
+                                "interval": interval,
+                                "file_size_bytes": file_size,
+                            },
                         )
-                        await asyncio.to_thread(lambda: os.remove(output_path) if os.path.exists(output_path) else None)
+                        await asyncio.to_thread(
+                            lambda: (
+                                os.remove(output_path)
+                                if os.path.exists(output_path)
+                                else None
+                            )
+                        )
                         return make_result(False, error=error_msg)
                 else:
-                    stderr_text = stderr.decode("utf-8", errors="ignore") if stderr else ""
+                    stderr_text = (
+                        stderr.decode("utf-8", errors="ignore") if stderr else ""
+                    )
                     logger.debug(
                         "RTSP capture FFmpeg full stderr",
-                        extra={"camera": camera.name, "interval": interval, "stderr": stderr_text},
+                        extra={
+                            "camera": camera.name,
+                            "interval": interval,
+                            "stderr": stderr_text,
+                        },
                     )
                     # Show the raw ffmpeg stderr verbatim, so the actual failure is visible in
                     # the activity log without cracking open a file. Nothing stripped or capped.
-                    error_msg = f"FFmpeg error: {stderr_text}" if stderr_text else "FFmpeg failed"
+                    error_msg = (
+                        f"FFmpeg error: {stderr_text}"
+                        if stderr_text
+                        else "FFmpeg failed"
+                    )
                     # If the stderr points at H.265, prepend a hint — but never hide the stderr.
                     stderr_lower = stderr_text.lower()
-                    if "hevc" in stderr_lower or "h265" in stderr_lower or "hev1" in stderr_lower:
+                    if (
+                        "hevc" in stderr_lower
+                        or "h265" in stderr_lower
+                        or "hev1" in stderr_lower
+                    ):
                         error_msg = (
                             "Camera may be using Enhanced (H.265) encoding — switch to "
-                            "Standard (H.264) in UniFi Protect settings.\n\n" + error_msg
+                            "Standard (H.264) in UniFi Protect settings.\n\n"
+                            + error_msg
                         )
                     logger.error(
                         "RTSP capture failed - FFmpeg error",
-                        extra={"camera": camera.name, "interval": interval, "error": error_msg},
+                        extra={
+                            "camera": camera.name,
+                            "interval": interval,
+                            "error": error_msg,
+                        },
                     )
                     return make_result(False, error=error_msg)
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 error_msg = "Timeout"
                 logger.error(
                     "RTSP capture timeout",
-                    extra={"camera": camera.name, "interval": interval, "timeout_seconds": capture_timeout},
+                    extra={
+                        "camera": camera.name,
+                        "interval": interval,
+                        "timeout_seconds": capture_timeout,
+                    },
                 )
                 try:
                     process.kill()
@@ -795,7 +895,9 @@ class CameraManager:
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
                 api_path = tmp.name
 
-            api_result = await self.capture_snapshot(camera, api_path, 0, timestamp, 0, high_quality=True)
+            api_result = await self.capture_snapshot(
+                camera, api_path, 0, timestamp, 0, high_quality=True
+            )
 
             if api_result.success:
                 api_exists = await asyncio.to_thread(os.path.exists, api_path)
@@ -806,7 +908,9 @@ class CameraManager:
                         with Image.open(path) as img:
                             return img.size
 
-                    width, height = await asyncio.to_thread(get_image_dimensions, api_path)
+                    width, height = await asyncio.to_thread(
+                        get_image_dimensions, api_path
+                    )
                     result["api_max_resolution"] = f"{width}x{height}"
                     logger.info(
                         "API capture test complete",
@@ -814,10 +918,15 @@ class CameraManager:
                     )
 
             # Cleanup
-            await asyncio.to_thread(lambda: os.remove(api_path) if os.path.exists(api_path) else None)
+            await asyncio.to_thread(
+                lambda: os.remove(api_path) if os.path.exists(api_path) else None
+            )
 
         except Exception as e:
-            logger.warning("API capture test failed", extra={"camera": camera.name, "error": str(e)})
+            logger.warning(
+                "API capture test failed",
+                extra={"camera": camera.name, "error": str(e)},
+            )
 
         # Test RTSP capture
         try:
@@ -844,7 +953,9 @@ class CameraManager:
                         with Image.open(path) as img:
                             return img.size
 
-                    width, height = await asyncio.to_thread(get_rtsp_image_dimensions, rtsp_path)
+                    width, height = await asyncio.to_thread(
+                        get_rtsp_image_dimensions, rtsp_path
+                    )
                     result["rtsp_max_resolution"] = f"{width}x{height}"
                     logger.info(
                         "RTSP capture test complete",
@@ -852,10 +963,15 @@ class CameraManager:
                     )
 
             # Cleanup
-            await asyncio.to_thread(lambda: os.remove(rtsp_path) if os.path.exists(rtsp_path) else None)
+            await asyncio.to_thread(
+                lambda: os.remove(rtsp_path) if os.path.exists(rtsp_path) else None
+            )
 
         except Exception as e:
-            logger.warning("RTSP capture test failed", extra={"camera": camera.name, "error": str(e)})
+            logger.warning(
+                "RTSP capture test failed",
+                extra={"camera": camera.name, "error": str(e)},
+            )
 
         # Determine recommended method
         api_res = result["api_max_resolution"]

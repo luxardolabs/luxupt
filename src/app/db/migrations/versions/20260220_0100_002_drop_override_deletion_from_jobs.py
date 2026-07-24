@@ -45,5 +45,10 @@ def downgrade() -> None:
     if not column_exists("jobs", "override_deletion"):
         with op.batch_alter_table("jobs") as batch_op:
             batch_op.add_column(
-                sa.Column("override_deletion", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+                sa.Column(
+                    "override_deletion",
+                    sa.Boolean(),
+                    nullable=False,
+                    server_default=sa.text("0"),
+                )
             )

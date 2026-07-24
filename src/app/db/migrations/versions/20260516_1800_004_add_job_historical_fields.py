@@ -40,20 +40,37 @@ def upgrade() -> None:
     with op.batch_alter_table("jobs") as batch_op:
         if not column_exists("jobs", "job_type"):
             batch_op.add_column(
-                sa.Column("job_type", sa.String(length=32), nullable=False, server_default=sa.text("'live_daily'"))
+                sa.Column(
+                    "job_type",
+                    sa.String(length=32),
+                    nullable=False,
+                    server_default=sa.text("'live_daily'"),
+                )
             )
         if not column_exists("jobs", "start_at"):
-            batch_op.add_column(sa.Column("start_at", sa.DateTime(timezone=True), nullable=True))
+            batch_op.add_column(
+                sa.Column("start_at", sa.DateTime(timezone=True), nullable=True)
+            )
         if not column_exists("jobs", "end_at"):
-            batch_op.add_column(sa.Column("end_at", sa.DateTime(timezone=True), nullable=True))
+            batch_op.add_column(
+                sa.Column("end_at", sa.DateTime(timezone=True), nullable=True)
+            )
         if not column_exists("jobs", "daily_window_start"):
-            batch_op.add_column(sa.Column("daily_window_start", sa.Time(), nullable=True))
+            batch_op.add_column(
+                sa.Column("daily_window_start", sa.Time(), nullable=True)
+            )
         if not column_exists("jobs", "daily_window_end"):
             batch_op.add_column(sa.Column("daily_window_end", sa.Time(), nullable=True))
 
 
 def downgrade() -> None:
     with op.batch_alter_table("jobs") as batch_op:
-        for col in ("daily_window_end", "daily_window_start", "end_at", "start_at", "job_type"):
+        for col in (
+            "daily_window_end",
+            "daily_window_start",
+            "end_at",
+            "start_at",
+            "job_type",
+        ):
             if column_exists("jobs", col):
                 batch_op.drop_column(col)

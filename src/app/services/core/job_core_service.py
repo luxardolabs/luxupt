@@ -166,14 +166,25 @@ class JobCoreService:
         if pid:
             try:
                 os.kill(pid, signal.SIGTERM)
-                logger.info("Killed FFmpeg process", extra={"job_id": job_id, "pid": pid})
+                logger.info(
+                    "Killed FFmpeg process", extra={"job_id": job_id, "pid": pid}
+                )
             except ProcessLookupError:
                 # Process already finished
-                logger.debug("FFmpeg process already finished", extra={"job_id": job_id, "pid": pid})
+                logger.debug(
+                    "FFmpeg process already finished",
+                    extra={"job_id": job_id, "pid": pid},
+                )
             except PermissionError:
-                logger.warning("Permission denied killing FFmpeg", extra={"job_id": job_id, "pid": pid})
+                logger.warning(
+                    "Permission denied killing FFmpeg",
+                    extra={"job_id": job_id, "pid": pid},
+                )
             except Exception as e:
-                logger.warning("Failed to kill FFmpeg process", extra={"job_id": job_id, "pid": pid, "error": str(e)})
+                logger.warning(
+                    "Failed to kill FFmpeg process",
+                    extra={"job_id": job_id, "pid": pid, "error": str(e)},
+                )
 
         return await job_crud.cancel_job(self.db, job_id)
 
@@ -193,14 +204,22 @@ class JobCoreService:
             if job.pid:
                 try:
                     os.kill(job.pid, signal.SIGTERM)
-                    logger.info("Killed orphaned FFmpeg process", extra={"job_id": job.job_id, "pid": job.pid})
+                    logger.info(
+                        "Killed orphaned FFmpeg process",
+                        extra={"job_id": job.job_id, "pid": job.pid},
+                    )
                 except ProcessLookupError:
                     pass  # Process already finished
                 except Exception as e:
-                    logger.warning("Failed to kill orphaned FFmpeg", extra={"pid": job.pid, "error": str(e)})
+                    logger.warning(
+                        "Failed to kill orphaned FFmpeg",
+                        extra={"pid": job.pid, "error": str(e)},
+                    )
 
         # Now mark all stale jobs as failed and clear PIDs
-        return await job_crud.mark_stale_failed(self.db, error="Marked as stale by user")
+        return await job_crud.mark_stale_failed(
+            self.db, error="Marked as stale by user"
+        )
 
     async def get_summary(self) -> dict:
         """Get job summary statistics."""
@@ -243,13 +262,19 @@ class JobProcessor:
         async with self._semaphore_init_lock:
             # Double-check after acquiring lock
             if self._semaphore is None or self._concurrent_limit != concurrent_jobs:
-                if self._concurrent_limit is not None and self._concurrent_limit != concurrent_jobs:
+                if (
+                    self._concurrent_limit is not None
+                    and self._concurrent_limit != concurrent_jobs
+                ):
                     logger.info(
                         "Updating job processor concurrent limit",
                         extra={"old": self._concurrent_limit, "new": concurrent_jobs},
                     )
                 else:
-                    logger.info("Set job processor concurrent limit", extra={"concurrent_jobs": concurrent_jobs})
+                    logger.info(
+                        "Set job processor concurrent limit",
+                        extra={"concurrent_jobs": concurrent_jobs},
+                    )
                 self._concurrent_limit = concurrent_jobs
                 self._semaphore = asyncio.Semaphore(concurrent_jobs)
             return self._semaphore
@@ -263,7 +288,9 @@ class JobProcessor:
                 base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
                 api_key=config.UNIFI_PROTECT_API_KEY or fetch_settings.api_key or "",
                 verify_ssl=(
-                    config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else fetch_settings.verify_ssl
+                    config.UNIFI_PROTECT_VERIFY_SSL
+                    if config.UNIFI_PROTECT_BASE_URL
+                    else fetch_settings.verify_ssl
                 ),
                 request_timeout=fetch_settings.request_timeout,
                 rate_limit=fetch_settings.rate_limit,
@@ -274,10 +301,17 @@ class JobProcessor:
             )
 
     def start_job(
-        self, job_id: str, date_str: str, camera: str, interval: int, keep_images: bool | None = None
+        self,
+        job_id: str,
+        date_str: str,
+        camera: str,
+        interval: int,
+        keep_images: bool | None = None,
     ) -> None:
         """Queue a job for processing in the background (respects concurrency limit)."""
-        asyncio.create_task(self._process_job(job_id, date_str, camera, interval, keep_images))
+        asyncio.create_task(
+            self._process_job(job_id, date_str, camera, interval, keep_images)
+        )
 
     async def update_job_progress(
         self,
@@ -304,10 +338,18 @@ class JobProcessor:
                 )
                 await db.commit()
         except Exception as e:
-            logger.warning("Failed to update job progress", extra={"job_id": job_id, "error": str(e)})
+            logger.warning(
+                "Failed to update job progress",
+                extra={"job_id": job_id, "error": str(e)},
+            )
 
     async def _process_job(
-        self, job_id: str, date_str: str, camera: str, interval: int, keep_images: bool | None = None
+        self,
+        job_id: str,
+        date_str: str,
+        camera: str,
+        interval: int,
+        keep_images: bool | None = None,
     ) -> None:
         """Process a timelapse job with progress tracking (waits for semaphore).
 
@@ -339,7 +381,9 @@ class JobProcessor:
                 # right method based on job_type further down.
                 if job_obj.job_type in ("historical", "historical_combined"):
                     try:
-                        result = await HistoricalFetchCoreService().run_historical_job(job_obj)
+                        result = await HistoricalFetchCoreService().run_historical_job(
+                            job_obj
+                        )
                     except HistoricalJobCanceled:
                         logger.info("Historical job canceled", extra={"job_id": job_id})
                         return
@@ -358,13 +402,20 @@ class JobProcessor:
                 timelapse_service.set_progress_callback(self, job_id)
 
                 # Load encoding settings from database
-                encoding_settings = EncodingSettings.from_scheduler_settings(scheduler_settings)
+                encoding_settings = EncodingSettings.from_scheduler_settings(
+                    scheduler_settings
+                )
 
                 # Determine keep_images: use scheduler setting if not explicitly specified
                 if keep_images is None:
                     keep_images = scheduler_settings.keep_images
                 elif keep_images and not scheduler_settings.keep_images:
-                    await self.update_job_progress(job_id, 5, "running", "Keeping images for this job (job override)")
+                    await self.update_job_progress(
+                        job_id,
+                        5,
+                        "running",
+                        "Keeping images for this job (job override)",
+                    )
 
                 # Initialize camera manager with settings from database
                 cm_settings = await self._load_camera_manager_settings()
@@ -376,14 +427,20 @@ class JobProcessor:
 
                     if job_obj.job_type == "historical_combined":
                         # Multi-day combined assembly — globs across the date range
-                        success = await timelapse_service.create_combined_timelapse_for_range(
-                            camera,
-                            interval,
-                            start_date=job_obj.start_at.date() if job_obj.start_at else date_obj.date(),
-                            end_date=job_obj.end_at.date() if job_obj.end_at else date_obj.date(),
-                            keep_images=keep_images,
-                            encoding_settings=encoding_settings,
-                            job_id=job_id,
+                        success = (
+                            await timelapse_service.create_combined_timelapse_for_range(
+                                camera,
+                                interval,
+                                start_date=job_obj.start_at.date()
+                                if job_obj.start_at
+                                else date_obj.date(),
+                                end_date=job_obj.end_at.date()
+                                if job_obj.end_at
+                                else date_obj.date(),
+                                keep_images=keep_images,
+                                encoding_settings=encoding_settings,
+                                job_id=job_id,
+                            )
                         )
                     else:
                         success = await timelapse_service._create_timelapse_for_camera_interval(
@@ -396,15 +453,24 @@ class JobProcessor:
                         )
 
                     if success:
-                        await self._finalize_successful_job(job_id, camera, date_obj, interval)
+                        await self._finalize_successful_job(
+                            job_id, camera, date_obj, interval
+                        )
                     else:
                         async with async_session() as db:
-                            await job_crud.fail_job(db, job_id, error="Timelapse creation failed")
+                            await job_crud.fail_job(
+                                db, job_id, error="Timelapse creation failed"
+                            )
                             await db.commit()
 
                 finally:
-                    if hasattr(timelapse_service, "camera_manager") and timelapse_service.camera_manager is not None:
-                        await timelapse_service.camera_manager.__aexit__(None, None, None)
+                    if (
+                        hasattr(timelapse_service, "camera_manager")
+                        and timelapse_service.camera_manager is not None
+                    ):
+                        await timelapse_service.camera_manager.__aexit__(
+                            None, None, None
+                        )
 
             except Exception as e:
                 error_msg = str(e) if str(e) else type(e).__name__
@@ -419,7 +485,9 @@ class JobProcessor:
                         extra={"job_id": job_id, "error": str(db_err)},
                     )
 
-    async def _finalize_successful_job(self, job_id: str, camera: str, date_obj: datetime, interval: int) -> None:
+    async def _finalize_successful_job(
+        self, job_id: str, camera: str, date_obj: datetime, interval: int
+    ) -> None:
         """Finalize a successful job - probe metadata, generate thumbnail, save to DB.
 
         Filename layout depends on job_type:
@@ -430,31 +498,47 @@ class JobProcessor:
         async with async_session() as db:
             job = await job_crud.get_by_job_id(db, job_id)
 
-        if job is not None and job.job_type == "historical_combined" and job.start_at and job.end_at:
+        if (
+            job is not None
+            and job.job_type == "historical_combined"
+            and job.start_at
+            and job.end_at
+        ):
             start_d = job.start_at.date()
             end_d = job.end_at.date()
             year = start_d.strftime("%Y")
             month = start_d.strftime("%m")
             # Include job_id prefix so concurrent jobs with the same range produce different files
             job_short = job.job_id[:8] if job.job_id else "x"
-            output_filename = (
-                f"{camera}_{start_d.strftime('%Y%m%d')}_to_{end_d.strftime('%Y%m%d')}_{interval}s_{job_short}.mp4"
-            )
+            output_filename = f"{camera}_{start_d.strftime('%Y%m%d')}_to_{end_d.strftime('%Y%m%d')}_{interval}s_{job_short}.mp4"
         else:
             year = date_obj.strftime("%Y")
             month = date_obj.strftime("%m")
-            output_filename = f"{camera}_{year}{month}{date_obj.strftime('%d')}_{interval}s.mp4"
-        output_path = config.VIDEO_OUTPUT_PATH / year / month / camera / f"{interval}s" / output_filename
+            output_filename = (
+                f"{camera}_{year}{month}{date_obj.strftime('%d')}_{interval}s.mp4"
+            )
+        output_path = (
+            config.VIDEO_OUTPUT_PATH
+            / year
+            / month
+            / camera
+            / f"{interval}s"
+            / output_filename
+        )
 
         # Single async check for existence + size (one thread dispatch instead of 5+ blocking calls)
-        output_exists, file_size_raw = await async_fs.file_exists_and_size(str(output_path))
+        output_exists, file_size_raw = await async_fs.file_exists_and_size(
+            str(output_path)
+        )
         file_size = file_size_raw if output_exists else None
 
         # Load encoding settings from database
         async with async_session() as db:
             scheduler_settings = await scheduler_settings_crud.get_settings(db)
             frame_rate = scheduler_settings.frame_rate
-            probe_timeout = scheduler_settings.ffmpeg_timeout  # Use main timeout for probe too
+            probe_timeout = (
+                scheduler_settings.ffmpeg_timeout
+            )  # Use main timeout for probe too
 
         # Probe video metadata
         duration_seconds = 0.0
@@ -464,9 +548,11 @@ class JobProcessor:
 
         if output_exists:
             # Get video metadata
-            duration_seconds, resolution, frame_count = await self._probe_video_metadata(
-                output_path, frame_rate, probe_timeout
-            )
+            (
+                duration_seconds,
+                resolution,
+                frame_count,
+            ) = await self._probe_video_metadata(output_path, frame_rate, probe_timeout)
 
             # Decode-validation: ffprobe only reads container headers. To catch corrupted
             # encoded streams (e.g. from a concurrent write collision), actually decode
@@ -492,7 +578,9 @@ class JobProcessor:
                 return
 
             # Generate thumbnail
-            thumbnail_path = await self._generate_thumbnail(output_path, duration_seconds, probe_timeout)
+            thumbnail_path = await self._generate_thumbnail(
+                output_path, duration_seconds, probe_timeout
+            )
 
         # Save to database
         async with async_session() as db:
@@ -517,7 +605,9 @@ class JobProcessor:
                     # can render the date span instead of pinning it to start_date.
                     "end_date": (
                         job.end_at.date()
-                        if job is not None and job.job_type == "historical_combined" and job.end_at
+                        if job is not None
+                        and job.job_type == "historical_combined"
+                        and job.end_at
                         else None
                     ),
                     "interval": interval,
@@ -537,7 +627,11 @@ class JobProcessor:
 
         logger.info(
             "Created timelapse record",
-            extra={"camera": camera, "date": date_obj.strftime("%Y-%m-%d"), "interval": interval},
+            extra={
+                "camera": camera,
+                "date": date_obj.strftime("%Y-%m-%d"),
+                "interval": interval,
+            },
         )
 
     async def _validate_decodable(self, output_path: config.Path, timeout: int) -> bool:
@@ -578,7 +672,11 @@ class JobProcessor:
         if rc != 0 or stderr.strip():
             logger.warning(
                 "Decode validation failed",
-                extra={"output": str(output_path), "rc": rc, "stderr_head": stderr[:400]},
+                extra={
+                    "output": str(output_path),
+                    "rc": rc,
+                    "stderr_head": stderr[:400],
+                },
             )
             return False
         return True
@@ -671,7 +769,9 @@ class JobProcessor:
                 logger.info("Generated thumbnail", extra={"path": str(thumb_path)})
                 return str(thumb_path)
             else:
-                logger.warning("Thumbnail generation failed", extra={"stderr": result.stderr})
+                logger.warning(
+                    "Thumbnail generation failed", extra={"stderr": result.stderr}
+                )
         except Exception as e:
             logger.warning("Could not generate thumbnail", extra={"error": str(e)})
 

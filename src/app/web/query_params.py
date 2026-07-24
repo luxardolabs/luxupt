@@ -30,8 +30,12 @@ def empty_to_none(v: object) -> object:
 
 # ── Closed-set filters: typed by the enum (single source of truth) ──────────
 TimelapseStatusFilter = Annotated[
-    TimelapseStatus | None, BeforeValidator(empty_to_none), Query(description="Filter by timelapse status")
+    TimelapseStatus | None,
+    BeforeValidator(empty_to_none),
+    Query(description="Filter by timelapse status"),
 ]
 ActivityTypeFilter = Annotated[
-    ActivityType | None, BeforeValidator(empty_to_none), Query(description="Filter by activity type")
+    ActivityType | None,
+    BeforeValidator(empty_to_none),
+    Query(description="Filter by activity type"),
 ]

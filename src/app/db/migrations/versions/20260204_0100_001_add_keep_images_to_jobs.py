@@ -38,7 +38,14 @@ def upgrade() -> None:
     if not column_exists("jobs", "keep_images"):
         # Use batch mode for SQLite compatibility
         with op.batch_alter_table("jobs") as batch_op:
-            batch_op.add_column(sa.Column("keep_images", sa.Boolean(), nullable=False, server_default=sa.text("1")))
+            batch_op.add_column(
+                sa.Column(
+                    "keep_images",
+                    sa.Boolean(),
+                    nullable=False,
+                    server_default=sa.text("1"),
+                )
+            )
 
 
 def downgrade() -> None:

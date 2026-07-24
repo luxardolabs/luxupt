@@ -13,7 +13,9 @@ class CRUDSchedulerSettings:
 
     async def get_settings(self, db: AsyncSession) -> SchedulerSettings:
         """Get scheduler settings, creating default row if it doesn't exist."""
-        result = await db.execute(select(SchedulerSettings).where(SchedulerSettings.id == 1))
+        result = await db.execute(
+            select(SchedulerSettings).where(SchedulerSettings.id == 1)
+        )
         settings: SchedulerSettings | None = result.scalar_one_or_none()
 
         if settings is None:

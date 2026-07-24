@@ -84,7 +84,9 @@ class CaptureCleanupCoreService:
 
     async def _cleanup_files_background(self, file_info: list[dict]) -> None:
         """Delete image files and thumbnail dirs in a thread pool (non-blocking)."""
-        files_deleted, thumb_dirs_deleted = await asyncio.to_thread(self._cleanup_files_sync, file_info)
+        files_deleted, thumb_dirs_deleted = await asyncio.to_thread(
+            self._cleanup_files_sync, file_info
+        )
 
         logger.info(
             "Background file cleanup completed",
@@ -135,7 +137,9 @@ class CaptureCleanupCoreService:
         if thumb_dir.exists():
             try:
                 shutil.rmtree(thumb_dir)
-                logger.debug("Deleted thumbnail directory", extra={"path": str(thumb_dir)})
+                logger.debug(
+                    "Deleted thumbnail directory", extra={"path": str(thumb_dir)}
+                )
                 return True
             except Exception as e:
                 logger.warning(

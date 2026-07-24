@@ -33,11 +33,15 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    job_id: Mapped[str] = mapped_column(String(36), unique=True, nullable=False, default=generate_uuid, index=True)
+    job_id: Mapped[str] = mapped_column(
+        String(36), unique=True, nullable=False, default=generate_uuid, index=True
+    )
 
     # Job metadata
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    camera_safe_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    camera_safe_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
     camera_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     target_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     interval: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -48,8 +52,12 @@ class Job(Base):
     )
 
     # Historical job range — null for live_daily jobs
-    start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    start_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    end_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Optional daily window filter (e.g., only 07:00 → 19:00 each day in the range)
     daily_window_start: Mapped[time | None] = mapped_column(Time, nullable=True)
     daily_window_end: Mapped[time | None] = mapped_column(Time, nullable=True)
@@ -64,18 +72,28 @@ class Job(Base):
     # Progress details for UI
     current_frame: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_frames: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    current_image: Mapped[str | None] = mapped_column(String(512), nullable=True)  # Current image being processed
+    current_image: Mapped[str | None] = mapped_column(
+        String(512), nullable=True
+    )  # Current image being processed
 
     # Process tracking
-    pid: Mapped[int | None] = mapped_column(Integer, nullable=True)  # FFmpeg process ID for killing
+    pid: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # FFmpeg process ID for killing
 
     # Override settings
     keep_images: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Timing
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Result
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -102,17 +120,21 @@ class Job(Base):
             "job_type": self.job_type,
             "start_at": self.start_at.isoformat() if self.start_at else None,
             "end_at": self.end_at.isoformat() if self.end_at else None,
-            "daily_window_start": self.daily_window_start.isoformat() if self.daily_window_start else None,
-            "daily_window_end": self.daily_window_end.isoformat() if self.daily_window_end else None,
+            "daily_window_start": self.daily_window_start.isoformat()
+            if self.daily_window_start
+            else None,
+            "daily_window_end": self.daily_window_end.isoformat()
+            if self.daily_window_end
+            else None,
             "status": self.status,
             "progress": self.progress,
             "message": self.message,
             "keep_images": self.keep_images,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "error": self.error,
             "output_file": self.output_file,
         }
-
-

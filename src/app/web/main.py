@@ -101,7 +101,9 @@ async def log_database_settings() -> None:
                 },
             )
         except Exception as e:
-            logger.warning("Could not load database settings for logging", extra={"error": str(e)})
+            logger.warning(
+                "Could not load database settings for logging", extra={"error": str(e)}
+            )
         break
 
 
@@ -154,18 +156,25 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
                 await camera_crud.upsert_from_dict(db, data=camera_data)
 
             await db.commit()
-            logger.info("Synced cameras to database", extra={"camera_count": len(cameras)})
+            logger.info(
+                "Synced cameras to database", extra={"camera_count": len(cameras)}
+            )
 
             if new_cameras:
                 logger.info("New cameras discovered", extra={"cameras": new_cameras})
 
             # Run capability detection for new connected cameras
             if new_camera_objects:
-                logger.info("Running capability detection", extra={"camera_count": len(new_camera_objects)})
+                logger.info(
+                    "Running capability detection",
+                    extra={"camera_count": len(new_camera_objects)},
+                )
 
                 for camera in new_camera_objects:
                     try:
-                        capabilities = await camera_manager.detect_camera_capabilities(camera)
+                        capabilities = await camera_manager.detect_camera_capabilities(
+                            camera
+                        )
 
                         # Update camera with detection results
                         await camera_crud.update_capability_detection(
@@ -180,14 +189,23 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
                             "Detected camera capabilities",
                             extra={
                                 "camera": camera.name,
-                                "api_resolution": capabilities.get("api_max_resolution"),
-                                "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
-                                "recommended_method": capabilities.get("recommended_method"),
+                                "api_resolution": capabilities.get(
+                                    "api_max_resolution"
+                                ),
+                                "rtsp_resolution": capabilities.get(
+                                    "rtsp_max_resolution"
+                                ),
+                                "recommended_method": capabilities.get(
+                                    "recommended_method"
+                                ),
                             },
                         )
 
                     except Exception as e:
-                        logger.warning("Failed to detect capabilities", extra={"camera": camera.name, "error": str(e)})
+                        logger.warning(
+                            "Failed to detect capabilities",
+                            extra={"camera": camera.name, "error": str(e)},
+                        )
 
                 await db.commit()
                 logger.info("Capability detection complete for new cameras")
@@ -201,7 +219,7 @@ setup_logging()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifespan."""
     from fetch_service import FetchService
     from services.core.backup_core_service import BackupCoreService
@@ -220,7 +238,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         cm_settings = CameraManagerSettings(
             base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
             api_key=config.UNIFI_PROTECT_API_KEY or fetch_settings.api_key or "",
-            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else fetch_settings.verify_ssl,
+            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL
+            if config.UNIFI_PROTECT_BASE_URL
+            else fetch_settings.verify_ssl,
             request_timeout=fetch_settings.request_timeout,
             rate_limit=fetch_settings.rate_limit,
             rate_limit_buffer=fetch_settings.rate_limit_buffer,
@@ -261,7 +281,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Record service start in the activity log
     async with async_session() as session:
         await activity_crud.log(
-            session, activity_type=ActivityType.SERVICE_STARTED, message="LuxUPT service started"
+            session,
+            activity_type=ActivityType.SERVICE_STARTED,
+            message="LuxUPT service started",
         )
         await session.commit()
 
@@ -274,7 +296,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         async with async_session() as session:
             await activity_crud.log(
-                session, activity_type=ActivityType.SERVICE_STOPPED, message="LuxUPT service stopped"
+                session,
+                activity_type=ActivityType.SERVICE_STOPPED,
+                message="LuxUPT service stopped",
             )
             await session.commit()
     except Exception as e:
@@ -313,9 +337,14 @@ def create_app() -> FastAPI:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
         """Handle all HTTPExceptions with HTML error pages."""
-        templates_inst: Jinja2Templates | None = getattr(request.app.state, "templates", None)
+        templates_inst: Jinja2Templates | None = getattr(
+            request.app.state, "templates", None
+        )
         if templates_inst is None:
-            return HTMLResponse(content=f"<h1>{exc.status_code}</h1><p>{exc.detail}</p>", status_code=exc.status_code)
+            return HTMLResponse(
+                content=f"<h1>{exc.status_code}</h1><p>{exc.detail}</p>",
+                status_code=exc.status_code,
+            )
 
         error_titles = {
             401: "Unauthorized",
@@ -327,7 +356,11 @@ def create_app() -> FastAPI:
 
         # Use dedicated error page if available, fall back to generic
         dedicated_pages = {401, 403, 404, 500, 503}
-        template_name = f"pages/{exc.status_code}.html" if exc.status_code in dedicated_pages else "pages/error.html"
+        template_name = (
+            f"pages/{exc.status_code}.html"
+            if exc.status_code in dedicated_pages
+            else "pages/error.html"
+        )
         return templates_inst.TemplateResponse(
             request,
             template_name,
@@ -340,12 +373,22 @@ def create_app() -> FastAPI:
         )
 
     @app.exception_handler(500)
-    async def internal_server_error_handler(request: Request, exc: Exception) -> Response:
+    async def internal_server_error_handler(
+        request: Request, exc: Exception
+    ) -> Response:
         """Handle unhandled exceptions with HTML error page."""
-        logger.error("Internal server error", extra={"url": str(request.url), "error": str(exc)}, exc_info=True)
-        templates_inst: Jinja2Templates | None = getattr(request.app.state, "templates", None)
+        logger.error(
+            "Internal server error",
+            extra={"url": str(request.url), "error": str(exc)},
+            exc_info=True,
+        )
+        templates_inst: Jinja2Templates | None = getattr(
+            request.app.state, "templates", None
+        )
         if templates_inst is None:
-            return HTMLResponse(content="<h1>500</h1><p>Internal server error</p>", status_code=500)
+            return HTMLResponse(
+                content="<h1>500</h1><p>Internal server error</p>", status_code=500
+            )
 
         return templates_inst.TemplateResponse(
             request,
@@ -426,7 +469,9 @@ def create_app() -> FastAPI:
 
     # Root redirect
     @app.get("/", response_class=HTMLResponse)
-    async def root(request: Request, user: str = Depends(get_current_user)) -> RedirectResponse:
+    async def root(
+        request: Request, user: str = Depends(get_current_user)
+    ) -> RedirectResponse:
         """Redirect to cameras."""
         return RedirectResponse(url="/cameras", status_code=302)
 
@@ -435,7 +480,9 @@ def create_app() -> FastAPI:
 
 def get_camera_manager(request: Request) -> CameraManager:
     """Get the camera manager from app state."""
-    camera_manager: CameraManager | None = getattr(request.app.state, "camera_manager", None)
+    camera_manager: CameraManager | None = getattr(
+        request.app.state, "camera_manager", None
+    )
     if camera_manager is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -505,7 +552,9 @@ async def prometheus_metrics(request: Request) -> PlainTextResponse:
         metrics = await metrics_service.get_all_metrics(db)
         break
 
-    return PlainTextResponse(content=metrics, media_type="text/plain; version=0.0.4; charset=utf-8")
+    return PlainTextResponse(
+        content=metrics, media_type="text/plain; version=0.0.4; charset=utf-8"
+    )
 
 
 async def start_web_server() -> None:
@@ -542,7 +591,9 @@ async def start_web_server() -> None:
         uvicorn_kwargs["reload_dirs"] = [app_dir]
         # Include templates and static files
         uvicorn_kwargs["reload_includes"] = ["*.py", "*.html", "*.css", "*.js"]
-        logger.info("Hot reload watching", extra={"dirs": uvicorn_kwargs["reload_dirs"]})
+        logger.info(
+            "Hot reload watching", extra={"dirs": uvicorn_kwargs["reload_dirs"]}
+        )
     else:
         uvicorn_kwargs["app"] = app
 

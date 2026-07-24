@@ -108,8 +108,12 @@ class MetricsCoreService:
 
             # Count by status
             active_cameras = sum(1 for c in cameras if c.is_active) if cameras else 0
-            connected_cameras = sum(1 for c in cameras if c.is_connected) if cameras else 0
-            recording_cameras = sum(1 for c in cameras if c.is_recording) if cameras else 0
+            connected_cameras = (
+                sum(1 for c in cameras if c.is_connected) if cameras else 0
+            )
+            recording_cameras = (
+                sum(1 for c in cameras if c.is_recording) if cameras else 0
+            )
 
             metrics.append(
                 self._format_metric(

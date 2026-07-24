@@ -65,7 +65,9 @@ class StructuredJsonFormatter(_JsonFormatterBase):
             log_record["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
                 "message": str(record.exc_info[1]) if record.exc_info[1] else None,
-                "traceback": self.formatException(record.exc_info) if record.exc_info else None,
+                "traceback": self.formatException(record.exc_info)
+                if record.exc_info
+                else None,
             }
 
 
@@ -108,7 +110,11 @@ class StructuredTextFormatter(logging.Formatter):
             "message",
         }
 
-        extra_fields = {k: v for k, v in record.__dict__.items() if k not in standard_attrs and not k.startswith("_")}
+        extra_fields = {
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in standard_attrs and not k.startswith("_")
+        }
 
         if extra_fields:
             extras_str = " ".join(f"{k}={v}" for k, v in extra_fields.items())
@@ -228,7 +234,9 @@ def setup_logging() -> None:
         extra={
             "log_level": logging.getLevelName(log_level),
             "format": "json" if use_json else "text",
-            "module_overrides": list(module_overrides.keys()) if module_overrides else [],
+            "module_overrides": list(module_overrides.keys())
+            if module_overrides
+            else [],
         },
     )
 

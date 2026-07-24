@@ -19,8 +19,12 @@ class Activity(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # Event metadata
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    activity_type: Mapped[ActivityType] = mapped_column(str_enum(ActivityType, length=64), nullable=False, index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    activity_type: Mapped[ActivityType] = mapped_column(
+        str_enum(ActivityType, length=64), nullable=False, index=True
+    )
     message: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Optional context
@@ -51,7 +55,6 @@ class Activity(Base):
             "interval": self.interval,
             "details": self.details,
         }
-
 
     ERROR = "error"
     INFO = "info"

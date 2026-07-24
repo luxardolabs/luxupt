@@ -23,7 +23,11 @@ UNIFI_PROTECT_BASE_URL = os.getenv("UNIFI_PROTECT_BASE_URL", "")
 UNIFI_PROTECT_API_KEY = os.getenv("UNIFI_PROTECT_API_KEY", "")
 UNIFI_PROTECT_USERNAME = os.getenv("UNIFI_PROTECT_USERNAME", "")
 UNIFI_PROTECT_PASSWORD = os.getenv("UNIFI_PROTECT_PASSWORD", "")
-UNIFI_PROTECT_VERIFY_SSL = os.getenv("UNIFI_PROTECT_VERIFY_SSL", "false").lower() in ["true", "1", "yes"]
+UNIFI_PROTECT_VERIFY_SSL = os.getenv("UNIFI_PROTECT_VERIFY_SSL", "false").lower() in [
+    "true",
+    "1",
+    "yes",
+]
 
 # =============================================================================
 # PATH CONFIGURATIONS (cannot change at runtime)
@@ -81,11 +85,19 @@ except (json.JSONDecodeError, TypeError):
 WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
 WEB_DEV_RELOAD = os.getenv("WEB_DEV_RELOAD", "False").lower() in ["true", "1", "yes"]
 WEB_SESSION_SECRET = os.getenv("WEB_SESSION_SECRET", "")  # Auto-generated if empty
-WEB_CORS_ORIGINS = os.getenv("WEB_CORS_ORIGINS", "").split(",") if os.getenv("WEB_CORS_ORIGINS") else []
+WEB_CORS_ORIGINS = (
+    os.getenv("WEB_CORS_ORIGINS", "").split(",")
+    if os.getenv("WEB_CORS_ORIGINS")
+    else []
+)
 
 # Cookie security mode: "auto", "always", "never"
 WEB_COOKIE_SECURE_MODE = os.getenv("WEB_COOKIE_SECURE_MODE", "auto").lower()
-WEB_TRUST_PROXY_HEADERS = os.getenv("WEB_TRUST_PROXY_HEADERS", "True").lower() in ["true", "1", "yes"]
+WEB_TRUST_PROXY_HEADERS = os.getenv("WEB_TRUST_PROXY_HEADERS", "True").lower() in [
+    "true",
+    "1",
+    "yes",
+]
 
 # Environment-based authentication (backward compatibility)
 # If both are set, env auth takes priority over database users
@@ -97,7 +109,9 @@ WEB_LOGIN_RATE_LIMIT = int(os.getenv("WEB_LOGIN_RATE_LIMIT", "5"))
 WEB_LOGIN_RATE_WINDOW_SECONDS = int(os.getenv("WEB_LOGIN_RATE_WINDOW_SECONDS", "60"))
 
 # JWT token expiry
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))  # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080")
+)  # 7 days
 
 # =============================================================================
 # PAGINATION DEFAULTS

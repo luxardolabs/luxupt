@@ -30,8 +30,6 @@ class SchedulerSettingsBase(BaseModel):
 class SchedulerSettingsCreate(SchedulerSettingsBase):
     """Schema for creating SchedulerSettings."""
 
-    pass
-
 
 class SchedulerSettingsUpdate(BaseModel):
     """Schema for updating SchedulerSettings - all fields optional for PATCH."""

@@ -30,7 +30,9 @@ async def main() -> None:
     # Must have a command
     if len(sys.argv) < 2:
         show_help()
-        logger.info("For normal operation, run: uvicorn web.main:app --host 0.0.0.0 --port 8080")
+        logger.info(
+            "For normal operation, run: uvicorn web.main:app --host 0.0.0.0 --port 8080"
+        )
         return
 
     command = sys.argv[1].lower()

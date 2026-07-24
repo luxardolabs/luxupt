@@ -36,7 +36,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Strict-Transport-Security: HTTPS enforcement (only when accessed via HTTPS)
     """
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """Add security headers to every response."""
         response = await call_next(request)
 
@@ -67,7 +69,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Add HSTS header only when accessed via HTTPS
         # This tells browsers to always use HTTPS in the future
         if _is_https_request(request):
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
 
         return response
 
@@ -79,7 +83,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     Skips logging for static files unless there's an error.
     """
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """Log request method, URL, status code, and timing. Skip static files unless errored."""
         start_time = time.time()
         try:
@@ -87,7 +93,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             process_time = time.time() - start_time
 
             # Only log non-static requests or errors
-            if not request.url.path.startswith("/static") or response.status_code >= 400:
+            if (
+                not request.url.path.startswith("/static")
+                or response.status_code >= 400
+            ):
                 logger.info(
                     "HTTP request completed",
                     extra={
@@ -127,7 +136,9 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
     # Paths that don't require authentication
     PUBLIC_PATHS = {"/login", "/setup", "/health", "/metrics", "/static"}
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """Check authentication and redirect to login or setup if needed."""
         # Check if this is a public path or static file
         if any(request.url.path.startswith(path) for path in self.PUBLIC_PATHS):
@@ -185,7 +196,9 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
         """Handle unauthenticated requests based on request type."""
         if request.url.path.startswith("/api/"):
             # For API calls, return 401 JSON
-            return JSONResponse(status_code=401, content={"detail": "Authentication required"})
+            return JSONResponse(
+                status_code=401, content={"detail": "Authentication required"}
+            )
         else:
             # For page/HTMX requests, redirect to login or setup
             return await self._create_auth_redirect(request)

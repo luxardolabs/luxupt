@@ -44,7 +44,11 @@ class SettingsCoreService:
         effective_api_key = config.UNIFI_PROTECT_API_KEY or settings.api_key or ""
         effective_username = config.UNIFI_PROTECT_USERNAME or settings.username or ""
         effective_password = config.UNIFI_PROTECT_PASSWORD or settings.password or ""
-        effective_verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else settings.verify_ssl
+        effective_verify_ssl = (
+            config.UNIFI_PROTECT_VERIFY_SSL
+            if config.UNIFI_PROTECT_BASE_URL
+            else settings.verify_ssl
+        )
 
         return {
             "base_url": effective_base_url,
@@ -67,7 +71,9 @@ class SettingsCoreService:
         return CameraManagerSettings(
             base_url=config.UNIFI_PROTECT_BASE_URL or s.base_url or "",
             api_key=config.UNIFI_PROTECT_API_KEY or s.api_key or "",
-            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else s.verify_ssl,
+            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL
+            if config.UNIFI_PROTECT_BASE_URL
+            else s.verify_ssl,
             request_timeout=s.request_timeout,
             rate_limit=s.rate_limit,
             rate_limit_buffer=s.rate_limit_buffer,
@@ -82,7 +88,11 @@ class SettingsCoreService:
         base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
         username = config.UNIFI_PROTECT_USERNAME or s.username or ""
         password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
-        verify_ssl = config.UNIFI_PROTECT_VERIFY_SSL if config.UNIFI_PROTECT_BASE_URL else bool(s.verify_ssl)
+        verify_ssl = (
+            config.UNIFI_PROTECT_VERIFY_SSL
+            if config.UNIFI_PROTECT_BASE_URL
+            else bool(s.verify_ssl)
+        )
         return base_url, username, password, verify_ssl
 
     async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettings:
@@ -103,7 +113,9 @@ class SettingsCoreService:
         """Get scheduler settings."""
         return await scheduler_settings_crud.get_settings(self.db)
 
-    async def update_scheduler_settings(self, settings: dict[str, Any]) -> SchedulerSettings:
+    async def update_scheduler_settings(
+        self, settings: dict[str, Any]
+    ) -> SchedulerSettings:
         """Update scheduler settings."""
         return await scheduler_settings_crud.update_settings(self.db, obj_in=settings)
 

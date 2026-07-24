@@ -37,7 +37,9 @@ class CRUDTimelapse(CRUDBase[Timelapse, TimelapseCreate, TimelapseUpdate]):
         if status:
             query = query.where(Timelapse.status == status)
 
-        query = query.order_by(Timelapse.timelapse_date.desc(), Timelapse.created_at.desc())
+        query = query.order_by(
+            Timelapse.timelapse_date.desc(), Timelapse.created_at.desc()
+        )
         query = query.offset(skip).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
@@ -160,15 +162,36 @@ class CRUDTimelapse(CRUDBase[Timelapse, TimelapseCreate, TimelapseUpdate]):
         result = await db.execute(
             select(
                 func.count(Timelapse.id).label("total"),
-                func.sum(case((Timelapse.status == "completed", 1), else_=0)).label("completed"),
-                func.sum(case((Timelapse.status == "pending", 1), else_=0)).label("pending"),
-                func.sum(case((Timelapse.status == "failed", 1), else_=0)).label("failed"),
-                func.coalesce(
-                    func.sum(case((Timelapse.status == "completed", Timelapse.duration_seconds), else_=0)), 0
-                ).label("total_duration"),
-                func.coalesce(func.sum(case((Timelapse.status == "completed", Timelapse.file_size), else_=0)), 0).label(
-                    "total_size"
+                func.sum(case((Timelapse.status == "completed", 1), else_=0)).label(
+                    "completed"
                 ),
+                func.sum(case((Timelapse.status == "pending", 1), else_=0)).label(
+                    "pending"
+                ),
+                func.sum(case((Timelapse.status == "failed", 1), else_=0)).label(
+                    "failed"
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Timelapse.status == "completed",
+                                Timelapse.duration_seconds,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("total_duration"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Timelapse.status == "completed", Timelapse.file_size),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("total_size"),
             )
         )
         row = result.one()

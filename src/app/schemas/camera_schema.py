@@ -40,8 +40,6 @@ class CameraBase(BaseModel):
 class CameraCreate(CameraBase):
     """Schema for creating a new Camera."""
 
-    pass
-
 
 class CameraUpdate(BaseModel):
     """Schema for updating a Camera."""

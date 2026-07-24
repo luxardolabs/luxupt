@@ -15,8 +15,6 @@ from crud.base_crud import CRUDBase
 class CaptureUpdate(BaseModel):
     """Placeholder for capture updates (rarely needed)."""
 
-    pass
-
 
 class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
     """CRUD operations for Capture model."""
@@ -165,7 +163,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         result = await db.execute(
             select(
                 func.count(Capture.id).label("total"),
-                func.sum(case((Capture.status == "success", 1), else_=0)).label("successful"),
+                func.sum(case((Capture.status == "success", 1), else_=0)).label(
+                    "successful"
+                ),
                 func.count(func.distinct(Capture.camera_id)).label("unique_cameras"),
                 func.count(func.distinct(Capture.capture_date)).label("unique_dates"),
                 func.coalesce(func.sum(Capture.file_size), 0).label("total_size"),
@@ -217,7 +217,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         before_date: date,
     ) -> int:
         """Delete captures older than a date. Returns count of deleted records."""
-        result = await db.execute(delete(Capture).where(Capture.capture_date < before_date))
+        result = await db.execute(
+            delete(Capture).where(Capture.capture_date < before_date)
+        )
         await db.flush()
         return result.rowcount  # type: ignore[attr-defined, no-any-return]
 
@@ -248,7 +250,10 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
     ) -> list[Capture]:
         """Get recent failed captures with error messages."""
         result = await db.execute(
-            select(Capture).where(Capture.status == "failed").order_by(Capture.timestamp.desc()).limit(limit)
+            select(Capture)
+            .where(Capture.status == "failed")
+            .order_by(Capture.timestamp.desc())
+            .limit(limit)
         )
         return list(result.scalars().all())
 
@@ -316,13 +321,19 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         if direction == "prev":
             # Previous = older OR same timestamp with lower id
             query = query.where(
-                or_(Capture.timestamp < timestamp, and_(Capture.timestamp == timestamp, Capture.id < current_id))
+                or_(
+                    Capture.timestamp < timestamp,
+                    and_(Capture.timestamp == timestamp, Capture.id < current_id),
+                )
             )
             query = query.order_by(Capture.timestamp.desc(), Capture.id.desc())
         else:  # next
             # Next = newer OR same timestamp with higher id
             query = query.where(
-                or_(Capture.timestamp > timestamp, and_(Capture.timestamp == timestamp, Capture.id > current_id))
+                or_(
+                    Capture.timestamp > timestamp,
+                    and_(Capture.timestamp == timestamp, Capture.id > current_id),
+                )
             )
             query = query.order_by(Capture.timestamp.asc(), Capture.id.asc())
 
@@ -356,7 +367,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             filters.append(Capture.timestamp <= until_timestamp)
 
         # Group by time bucket and camera for breakdown
-        bucket_expr = (Capture.timestamp / bucket_seconds).cast(Integer) * bucket_seconds
+        bucket_expr = (Capture.timestamp / bucket_seconds).cast(
+            Integer
+        ) * bucket_seconds
 
         query = (
             select(
@@ -388,7 +401,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
                 }
 
             bucket = buckets[bucket_ts]
-            row_count: int = row[4]  # Access count by index since 'count' conflicts with tuple.count
+            row_count: int = row[
+                4
+            ]  # Access count by index since 'count' conflicts with tuple.count
             bucket["total_duration"] += (row.avg_duration or 0) * row_count
             bucket["total_size"] += (row.avg_size or 0) * row_count
             bucket["total_count"] += row_count
@@ -402,8 +417,12 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         result_list = []
         for bucket in buckets.values():
             if bucket["total_count"] > 0:
-                bucket["avg_duration_ms"] = round(bucket["total_duration"] / bucket["total_count"], 1)
-                bucket["avg_file_size"] = round(bucket["total_size"] / bucket["total_count"] / 1024, 1)  # KB
+                bucket["avg_duration_ms"] = round(
+                    bucket["total_duration"] / bucket["total_count"], 1
+                )
+                bucket["avg_file_size"] = round(
+                    bucket["total_size"] / bucket["total_count"] / 1024, 1
+                )  # KB
             else:
                 bucket["avg_duration_ms"] = 0
                 bucket["avg_file_size"] = 0
@@ -482,7 +501,14 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         result = await db.execute(query)
         rows = result.all()
 
-        return [{"camera": row.camera_safe_name, "camera_id": row.camera_id, "count": row.count} for row in rows]
+        return [
+            {
+                "camera": row.camera_safe_name,
+                "camera_id": row.camera_id,
+                "count": row.count,
+            }
+            for row in rows
+        ]
 
     async def get_success_failure_stats(
         self,
@@ -512,7 +538,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         total = total_result.scalar() or 0
 
         # Get success count
-        success_query = select(func.count(Capture.id)).where(Capture.status == "success")
+        success_query = select(func.count(Capture.id)).where(
+            Capture.status == "success"
+        )
         if filters:
             success_query = success_query.where(*filters)
         success_result = await db.execute(success_query)
@@ -555,13 +583,19 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             filters.append(Capture.timestamp <= until_timestamp)
 
         # Group by time bucket using integer division
-        bucket_expr = (Capture.timestamp / bucket_seconds).cast(Integer) * bucket_seconds
+        bucket_expr = (Capture.timestamp / bucket_seconds).cast(
+            Integer
+        ) * bucket_seconds
 
         query = (
             select(
                 bucket_expr.label("bucket"),
-                func.sum(case((Capture.status == "success", 1), else_=0)).label("success"),
-                func.sum(case((Capture.status != "success", 1), else_=0)).label("failed"),
+                func.sum(case((Capture.status == "success", 1), else_=0)).label(
+                    "success"
+                ),
+                func.sum(case((Capture.status != "success", 1), else_=0)).label(
+                    "failed"
+                ),
             )
             .group_by(bucket_expr)
             .order_by(bucket_expr.asc())

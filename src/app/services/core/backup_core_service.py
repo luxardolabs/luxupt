@@ -78,7 +78,9 @@ class BackupCoreService:
         try:
             # Use SQLite's backup API (hot backup, works while DB is in use)
             # Run in thread pool to not block event loop
-            await asyncio.to_thread(self._backup_sync, str(DATABASE_PATH), str(backup_file))
+            await asyncio.to_thread(
+                self._backup_sync, str(DATABASE_PATH), str(backup_file)
+            )
 
             # Get file size for logging
             stat_result = await async_fs.path_stat(backup_file)
@@ -123,7 +125,10 @@ class BackupCoreService:
                 backup_file.unlink()
                 logger.info("Deleted old backup", extra={"path": str(backup_file)})
             except Exception as e:
-                logger.warning("Failed to delete backup", extra={"path": str(backup_file), "error": str(e)})
+                logger.warning(
+                    "Failed to delete backup",
+                    extra={"path": str(backup_file), "error": str(e)},
+                )
 
     async def _prune_backups(self, backup_dir: str, retention: int) -> None:
         """Delete old backups beyond retention limit."""

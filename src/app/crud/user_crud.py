@@ -28,7 +28,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         result = await db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
-    async def create_user(self, db: AsyncSession, *, username: str, password: str, is_admin: bool = True) -> User:
+    async def create_user(
+        self, db: AsyncSession, *, username: str, password: str, is_admin: bool = True
+    ) -> User:
         """Create a new user with hashed password."""
         password_hash = cast(str, pwd_context.hash(password))
         user = User(
@@ -66,7 +68,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         """Verify a password against its hash."""
         return cast(bool, pwd_context.verify(plain_password, hashed_password))
 
-    async def authenticate(self, db: AsyncSession, username: str, password: str) -> User | None:
+    async def authenticate(
+        self, db: AsyncSession, username: str, password: str
+    ) -> User | None:
         """Authenticate a user by username and password.
 
         Returns the User if authentication succeeds, None otherwise.
@@ -105,7 +109,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         Password hash is a placeholder since auth is done against env vars.
         """
         # Find existing env user
-        result = await db.execute(select(User).where(User.auth_source == User.SOURCE_ENV))
+        result = await db.execute(
+            select(User).where(User.auth_source == User.SOURCE_ENV)
+        )
         env_user = result.scalar_one_or_none()
 
         if env_user:
@@ -131,7 +137,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
 
     async def get_env_user(self, db: AsyncSession) -> User | None:
         """Get the environment-managed user if it exists."""
-        result = await db.execute(select(User).where(User.auth_source == User.SOURCE_ENV))
+        result = await db.execute(
+            select(User).where(User.auth_source == User.SOURCE_ENV)
+        )
         return result.scalar_one_or_none()
 
 

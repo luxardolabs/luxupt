@@ -29,7 +29,9 @@ class FetchSettings(Base, TimestampMixin):
     )
 
     # Default RTSP quality for new cameras ("high", "medium", "low")
-    default_rtsp_quality: Mapped[str] = mapped_column(String(16), default="high", nullable=False)
+    default_rtsp_quality: Mapped[str] = mapped_column(
+        String(16), default="high", nullable=False
+    )
 
     # ===========================================
     # API Connection Settings (override env vars)
@@ -68,16 +70,24 @@ class FetchSettings(Base, TimestampMixin):
     # ===========================================
 
     # Request high quality snapshots 1080p+
-    high_quality_snapshots: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    high_quality_snapshots: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
 
     # RTSP output format: "png" (higher quality, larger) or "jpg" (smaller, faster)
-    rtsp_output_format: Mapped[str] = mapped_column(String(8), default="png", nullable=False)
+    rtsp_output_format: Mapped[str] = mapped_column(
+        String(8), default="png", nullable=False
+    )
 
     # PNG compression level 0-9 (0=none/fast, 9=max/slow, 6=good balance)
-    png_compression_level: Mapped[int] = mapped_column(Integer, default=6, nullable=False)
+    png_compression_level: Mapped[int] = mapped_column(
+        Integer, default=6, nullable=False
+    )
 
     # RTSP capture timeout in seconds (per camera)
-    rtsp_capture_timeout: Mapped[int] = mapped_column(Integer, default=15, nullable=False)
+    rtsp_capture_timeout: Mapped[int] = mapped_column(
+        Integer, default=15, nullable=False
+    )
 
     # ===========================================
     # Rate Limiting Settings
@@ -104,7 +114,9 @@ class FetchSettings(Base, TimestampMixin):
     # ===========================================
 
     # How often to check for new cameras in seconds
-    camera_refresh_interval: Mapped[int] = mapped_column(Integer, default=300, nullable=False)
+    camera_refresh_interval: Mapped[int] = mapped_column(
+        Integer, default=300, nullable=False
+    )
 
     def __repr__(self) -> str:
         return f"<FetchSettings(enabled={self.enabled}, intervals={self.intervals})>"

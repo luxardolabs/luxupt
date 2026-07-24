@@ -32,10 +32,15 @@ class Timelapse(Base, TimestampMixin):
 
     # Camera reference
     camera_db_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("cameras.id", ondelete="SET NULL"), nullable=True, index=True
+        Integer,
+        ForeignKey("cameras.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     camera_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    camera_safe_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    camera_safe_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
 
     # Timelapse metadata
     timelapse_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
@@ -50,18 +55,27 @@ class Timelapse(Base, TimestampMixin):
     file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     file_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)  # e.g., "1920x1080"
+    resolution: Mapped[str | None] = mapped_column(
+        String(32), nullable=True
+    )  # e.g., "1920x1080"
     thumbnail_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Status tracking
     status: Mapped[TimelapseStatus] = mapped_column(
-        str_enum(TimelapseStatus), default=TimelapseStatus.PENDING, nullable=False, index=True
+        str_enum(TimelapseStatus),
+        default=TimelapseStatus.PENDING,
+        nullable=False,
+        index=True,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Processing metadata
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     processing_time_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationship

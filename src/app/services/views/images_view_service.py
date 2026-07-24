@@ -27,7 +27,9 @@ class ImagesViewService:
         self, camera: str, interval: int, capture_date: date, timestamp: int, size: int
     ) -> Path:
         """Build the on-disk path for a capture's thumbnail (created at fetch time)."""
-        return image_service.build_thumbnail_path(camera, interval, capture_date, timestamp, size)
+        return image_service.build_thumbnail_path(
+            camera, interval, capture_date, timestamp, size
+        )
 
     async def get_capture_path(
         self, camera_safe_name: str, timestamp: int, interval: int | None = None
@@ -47,7 +49,9 @@ class ImagesViewService:
         if not camera:
             return None, False
 
-        return await self.capture_service.get_validated_file_path(camera.camera_id, timestamp, interval)
+        return await self.capture_service.get_validated_file_path(
+            camera.camera_id, timestamp, interval
+        )
 
     async def get_capture_for_thumbnail(
         self,
@@ -73,12 +77,16 @@ class ImagesViewService:
         camera_id = camera.camera_id
 
         # Get capture with exact interval match
-        capture = await self.capture_service.get_by_camera_and_timestamp(camera_id, timestamp, interval=interval)
+        capture = await self.capture_service.get_by_camera_and_timestamp(
+            camera_id, timestamp, interval=interval
+        )
         if not capture:
             return None
 
         # Validate file path
-        file_path, exists = await self.capture_service.get_validated_file_path(camera_id, timestamp)
+        file_path, exists = await self.capture_service.get_validated_file_path(
+            camera_id, timestamp
+        )
         if not file_path:
             return None
 
@@ -124,7 +132,9 @@ class ImagesViewService:
         # Get filter options
         cameras = await self.camera_service.get_active()
         available_dates = await self.capture_service.get_available_dates(camera=camera)
-        available_intervals = await self.capture_service.get_available_intervals(camera=camera)
+        available_intervals = await self.capture_service.get_available_intervals(
+            camera=camera
+        )
 
         # Get stats for total storage size
         capture_stats = await self.capture_service.get_capture_stats()
@@ -247,8 +257,12 @@ class ImagesViewService:
             limit=per_page,
         )
 
-        available_dates = await self.capture_service.get_available_dates(camera=camera_id)
-        available_intervals = await self.capture_service.get_available_intervals(camera=camera_id)
+        available_dates = await self.capture_service.get_available_dates(
+            camera=camera_id
+        )
+        available_intervals = await self.capture_service.get_available_intervals(
+            camera=camera_id
+        )
 
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
@@ -350,7 +364,12 @@ class ImagesViewService:
 
         # Build camera options with value/label for dropdowns
         camera_options = [
-            {"value": cid, "label": camera_map[cid].safe_name.replace("_", " ") if cid in camera_map else cid}
+            {
+                "value": cid,
+                "label": camera_map[cid].safe_name.replace("_", " ")
+                if cid in camera_map
+                else cid,
+            }
             for cid in camera_ids
         ]
 
@@ -399,14 +418,21 @@ class ImagesViewService:
 
         # Build camera options with value/label for dropdowns
         camera_options = [
-            {"value": cid, "label": camera_map[cid].safe_name.replace("_", " ") if cid in camera_map else cid}
+            {
+                "value": cid,
+                "label": camera_map[cid].safe_name.replace("_", " ")
+                if cid in camera_map
+                else cid,
+            }
             for cid in camera_ids
         ]
 
         # Dates: filter by selected camera
         dates = await self.capture_service.get_available_dates(camera=camera)
         # Intervals: filter by selected camera and date
-        intervals = await self.capture_service.get_available_intervals(camera=camera, capture_date=capture_date)
+        intervals = await self.capture_service.get_available_intervals(
+            camera=camera, capture_date=capture_date
+        )
 
         return {
             **result,

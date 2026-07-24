@@ -1,6 +1,5 @@
 """User service for user management operations."""
 
-
 import config
 from crud.user_crud import user_crud
 from models.user_model import User
@@ -65,7 +64,9 @@ class UserCoreService:
         """Count total users."""
         return await user_crud.count(self.db)
 
-    async def username_exists(self, username: str, exclude_id: int | None = None) -> bool:
+    async def username_exists(
+        self, username: str, exclude_id: int | None = None
+    ) -> bool:
         """Check if username already exists (optionally excluding a specific user ID)."""
         user = await self.get_by_username(username)
         if user is None:

@@ -55,7 +55,9 @@ async def create_first_user(
     if not await needs_setup(db):
         return RedirectResponse(url="/login", status_code=302)
 
-    errors = await view_service.validate_user_create(username, password, confirm_password)
+    errors = await view_service.validate_user_create(
+        username, password, confirm_password
+    )
     if errors:
         return cast(
             Response,
@@ -66,13 +68,19 @@ async def create_first_user(
             ),
         )
 
-    success, _message, created_username = await view_service.create_user(username, password, is_admin=True)
+    success, _message, created_username = await view_service.create_user(
+        username, password, is_admin=True
+    )
     if not success or created_username is None:
         return cast(
             Response,
             templates.TemplateResponse(
                 "pages/setup.html",
-                {"request": request, "errors": ["Failed to create user. Please try again."], "username": username},
+                {
+                    "request": request,
+                    "errors": ["Failed to create user. Please try again."],
+                    "username": username,
+                },
                 status_code=500,
             ),
         )

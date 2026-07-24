@@ -36,7 +36,9 @@ class TimelapsesViewService:
         self.job_service = job_service
         self.settings_service = settings_service
 
-    def end_at_for(self, day: date, end_t: time, now_local: datetime, lag_seconds: int = 60) -> datetime:
+    def end_at_for(
+        self, day: date, end_t: time, now_local: datetime, lag_seconds: int = 60
+    ) -> datetime:
         """Effective end datetime for a day: clamp to the recording-lag threshold when the day is today.
 
         Protect's recording-snapshot endpoint 404s on too-recent timestamps, so an end time
@@ -83,7 +85,9 @@ class TimelapsesViewService:
     async def get_dates_context(self, camera: str | None = None) -> dict:
         """Get available dates for timelapse creation."""
         if camera:
-            available_dates = await self.capture_service.get_available_dates(camera=camera)
+            available_dates = await self.capture_service.get_available_dates(
+                camera=camera
+            )
         else:
             available_dates = []
         return {"available_dates": available_dates}
@@ -219,7 +223,9 @@ class TimelapsesViewService:
             "recreate_existing": recreate_existing is not None,
             "enabled_cameras": enabled_cameras if enabled_cameras else None,
             # Convert interval strings to integers
-            "enabled_intervals": [int(i) for i in enabled_intervals] if enabled_intervals else None,
+            "enabled_intervals": [int(i) for i in enabled_intervals]
+            if enabled_intervals
+            else None,
             # FFmpeg settings (None means use env var defaults)
             "frame_rate": frame_rate if frame_rate else None,
             "crf": crf if crf is not None else None,  # crf=0 is valid
@@ -228,7 +234,11 @@ class TimelapsesViewService:
             "ffmpeg_timeout": ffmpeg_timeout if ffmpeg_timeout else None,
         }
         await self.update_scheduler_settings(update_data)
-        return {"success": True, "enabled": is_enabled, "run_time": update_data["run_time"]}
+        return {
+            "success": True,
+            "enabled": is_enabled,
+            "run_time": update_data["run_time"],
+        }
 
     async def get_lightbox_context(self, timelapse_id: int) -> dict:
         """Get lightbox context for video viewing."""
@@ -269,7 +279,9 @@ class TimelapsesViewService:
         )
         return existing_job is not None
 
-    async def create_and_start_job(self, *, camera_id: str, date_str: str, interval: int) -> dict:
+    async def create_and_start_job(
+        self, *, camera_id: str, date_str: str, interval: int
+    ) -> dict:
         """Create a single timelapse job and kick off processing.
 
         Returns context for create_result.html.
@@ -321,13 +333,21 @@ class TimelapsesViewService:
         camera_ranges: dict[str, dict[str, str | int]] = {}
         range_error: str | None = None
         if cameras:
-            base_url, username, password, verify_ssl = await self.settings_service.get_protect_credentials()
+            (
+                base_url,
+                username,
+                password,
+                verify_ssl,
+            ) = await self.settings_service.get_protect_credentials()
             if not (base_url and username and password):
                 range_error = "Protect credentials are not configured."
             else:
                 try:
                     async with ProtectClient(
-                        base_url=base_url, username=username, password=password, verify_ssl=verify_ssl
+                        base_url=base_url,
+                        username=username,
+                        password=password,
+                        verify_ssl=verify_ssl,
                     ) as pc:
                         raw_ranges = await pc.get_all_camera_recording_ranges()
                     for cam in cameras:
@@ -352,7 +372,10 @@ class TimelapsesViewService:
                                 "days": (newest_d - oldest_d).days,
                             }
                 except Exception as e:
-                    logger.warning("Bootstrap fetch for recording ranges failed", extra={"error": str(e)})
+                    logger.warning(
+                        "Bootstrap fetch for recording ranges failed",
+                        extra={"error": str(e)},
+                    )
                     range_error = f"Could not read recording ranges: {str(e)[:200]}"
 
         # Union range for the date input bounds (oldest of all, newest of all)
@@ -363,7 +386,9 @@ class TimelapsesViewService:
             union_oldest = min(str(r["oldest"]) for r in camera_ranges.values())
             union_newest = max(str(r["newest"]) for r in camera_ranges.values())
             # Default to yesterday if it's within union, else the newest
-            default_d = min(date.fromisoformat(union_newest), date.today() - timedelta(days=1))
+            default_d = min(
+                date.fromisoformat(union_newest), date.today() - timedelta(days=1)
+            )
             if default_d < date.fromisoformat(union_oldest):
                 default_d = date.fromisoformat(union_oldest)
             default_date = default_d.isoformat()
@@ -401,7 +426,10 @@ class TimelapsesViewService:
         try:
             interval_int = int(interval)
             if interval_int < 5 or interval_int > 86400:
-                return {"success": False, "error": "Interval must be between 5 and 86400 seconds."}
+                return {
+                    "success": False,
+                    "error": "Interval must be between 5 and 86400 seconds.",
+                }
             start_d = date.fromisoformat(start_date)
             end_d = date.fromisoformat(end_date)
             start_t = time.fromisoformat(start_time)
@@ -410,7 +438,10 @@ class TimelapsesViewService:
             if end_t <= start_t:
                 return {"success": False, "error": "End time must be after start time."}
             if end_d < start_d:
-                return {"success": False, "error": "End date must be on or after start date."}
+                return {
+                    "success": False,
+                    "error": "End date must be on or after start date.",
+                }
             # Recording-write lag: Protect needs ~60s before a frame is in the recording stream.
             # If the end date is in the future entirely, reject. If it's today (or past)
             # with a time that crosses the lag boundary, clamp silently.
@@ -419,7 +450,10 @@ class TimelapsesViewService:
                 return {"success": False, "error": "End date cannot be in the future."}
             # If end_t for the actual end_d already lands in the past, fine. If end_d is today
             # and end_t pushes into the future, end_at_for will clamp to the recording-lag threshold.
-            if self.end_at_for(end_d, end_t, now_local) <= datetime.combine(start_d, start_t).astimezone():
+            if (
+                self.end_at_for(end_d, end_t, now_local)
+                <= datetime.combine(start_d, start_t).astimezone()
+            ):
                 return {
                     "success": False,
                     "error": (
@@ -483,13 +517,17 @@ class TimelapsesViewService:
                 # Commit before kickoff: the JobProcessor task reads the job row from its own session
                 await self.db.commit()
                 created_jobs.append(job.job_id)
-                get_job_processor().start_job(job.job_id, start_d.isoformat(), camera_safe_name, interval_int)
+                get_job_processor().start_job(
+                    job.job_id, start_d.isoformat(), camera_safe_name, interval_int
+                )
             else:
                 # Fan out one job per day in the range
                 day = start_d
                 while day <= end_d:
                     date_str = day.isoformat()
-                    if await self.check_job_exists(camera_safe_name, date_str, interval_int):
+                    if await self.check_job_exists(
+                        camera_safe_name, date_str, interval_int
+                    ):
                         if not force_recreate:
                             skipped_days.append(date_str)
                             day += timedelta(days=1)
@@ -526,7 +564,9 @@ class TimelapsesViewService:
                     # Commit before kickoff: the JobProcessor task reads the job row from its own session
                     await self.db.commit()
                     created_jobs.append(job.job_id)
-                    get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval_int)
+                    get_job_processor().start_job(
+                        job.job_id, date_str, camera_safe_name, interval_int
+                    )
                     day += timedelta(days=1)
 
             if not created_jobs:
@@ -555,7 +595,10 @@ class TimelapsesViewService:
                 "recreated_jobs": recreated_jobs,
             }
         except Exception as e:
-            logger.error("Error creating historical timelapse", extra={"error": str(e), "type": type(e).__name__})
+            logger.error(
+                "Error creating historical timelapse",
+                extra={"error": str(e), "type": type(e).__name__},
+            )
             return {"success": False, "error": f"{type(e).__name__}: {str(e)[:200]}"}
 
     async def get_browser_context(
@@ -571,8 +614,12 @@ class TimelapsesViewService:
         """Get all data needed for timelapses browser page."""
         # Get filter options first (needed to determine default date)
         cameras = await self.camera_service.get_active()
-        available_dates = await self.timelapse_service.get_available_dates(camera=camera)
-        available_intervals = await self.timelapse_service.get_available_intervals(camera=camera)
+        available_dates = await self.timelapse_service.get_available_dates(
+            camera=camera
+        )
+        available_intervals = await self.timelapse_service.get_available_intervals(
+            camera=camera
+        )
 
         # No date filter ("All Dates") means all dates — do NOT default to the most
         # recent day (that made "All Dates" unreachable). A specific date still filters.
@@ -678,8 +725,12 @@ class TimelapsesViewService:
 
         # Get available dates with captures
         if camera:
-            available_dates = await self.capture_service.get_available_dates(camera=camera)
-            available_intervals = await self.capture_service.get_available_intervals(camera=camera)
+            available_dates = await self.capture_service.get_available_dates(
+                camera=camera
+            )
+            available_intervals = await self.capture_service.get_available_intervals(
+                camera=camera
+            )
         else:
             available_dates = await self.capture_service.get_available_dates()
             available_intervals = await self.capture_service.get_available_intervals()
@@ -711,7 +762,9 @@ class TimelapsesViewService:
         # Use camera_id for queries
         camera_id = camera.camera_id
 
-        total = await self.timelapse_service.count_by_filters(camera=camera_id, status="completed")
+        total = await self.timelapse_service.count_by_filters(
+            camera=camera_id, status="completed"
+        )
 
         skip = (page - 1) * per_page
         timelapses = await self.timelapse_service.get_by_filters(

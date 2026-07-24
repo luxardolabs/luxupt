@@ -59,7 +59,9 @@ class HealthCoreService:
             # Check if we have any cameras discovered
             cameras = await self.camera_manager.get_cameras()
             camera_count = len(cameras) if cameras else 0
-            connected_count = sum(1 for c in cameras if c.is_connected) if cameras else 0
+            connected_count = (
+                sum(1 for c in cameras if c.is_connected) if cameras else 0
+            )
 
             if camera_count == 0:
                 return {
@@ -94,7 +96,10 @@ class HealthCoreService:
         """Check storage availability."""
         issues = []
 
-        for path_name, path in [("images", config.IMAGE_OUTPUT_PATH), ("videos", config.VIDEO_OUTPUT_PATH)]:
+        for path_name, path in [
+            ("images", config.IMAGE_OUTPUT_PATH),
+            ("videos", config.VIDEO_OUTPUT_PATH),
+        ]:
             if not path.exists():
                 issues.append(f"{path_name} path does not exist")
                 continue
@@ -137,26 +142,38 @@ class HealthCoreService:
         checks["database"] = await self.check_database(db)
         if checks["database"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
-        elif checks["database"]["status"] == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
+        elif (
+            checks["database"]["status"] == HealthStatus.DEGRADED
+            and overall_status == HealthStatus.HEALTHY
+        ):
             overall_status = HealthStatus.DEGRADED
 
         # Camera manager check
         checks["camera_manager"] = await self.check_camera_manager()
         if checks["camera_manager"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
-        elif checks["camera_manager"]["status"] == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
+        elif (
+            checks["camera_manager"]["status"] == HealthStatus.DEGRADED
+            and overall_status == HealthStatus.HEALTHY
+        ):
             overall_status = HealthStatus.DEGRADED
 
         # Storage check
         checks["storage"] = self.check_storage()
         if checks["storage"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
-        elif checks["storage"]["status"] == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
+        elif (
+            checks["storage"]["status"] == HealthStatus.DEGRADED
+            and overall_status == HealthStatus.HEALTHY
+        ):
             overall_status = HealthStatus.DEGRADED
 
         # Services check
         checks["services"] = self.check_services_enabled()
-        if checks["services"]["status"] == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
+        if (
+            checks["services"]["status"] == HealthStatus.DEGRADED
+            and overall_status == HealthStatus.HEALTHY
+        ):
             overall_status = HealthStatus.DEGRADED
 
         # Calculate uptime

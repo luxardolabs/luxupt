@@ -223,10 +223,16 @@ async def create_user(
     """Create a new user."""
     logger.debug(
         "Create user request",
-        extra={"username": username, "is_admin": is_admin, "password_length": len(password)},
+        extra={
+            "username": username,
+            "is_admin": is_admin,
+            "password_length": len(password),
+        },
     )
     # Validate via view service
-    errors = await view_service.validate_user_create(username, password, confirm_password)
+    errors = await view_service.validate_user_create(
+        username, password, confirm_password
+    )
 
     if errors:
         return templates.TemplateResponse(
@@ -236,10 +242,14 @@ async def create_user(
         )
 
     # Create via view service
-    success, message, new_username = await view_service.create_user(username, password, is_admin)
+    success, message, new_username = await view_service.create_user(
+        username, password, is_admin
+    )
 
     if success and new_username:
-        logger.info("User created", extra={"username": new_username, "created_by": user})
+        logger.info(
+            "User created", extra={"username": new_username, "created_by": user}
+        )
 
     return templates.TemplateResponse(
         "partials/system/user_form_result.html",
@@ -267,7 +277,9 @@ async def update_user(
 ) -> Response:
     """Update an existing user."""
     # Validate via view service
-    errors = await view_service.validate_user_update(user_id, username, password, confirm_password)
+    errors = await view_service.validate_user_update(
+        user_id, username, password, confirm_password
+    )
 
     if errors:
         return templates.TemplateResponse(
@@ -277,10 +289,15 @@ async def update_user(
         )
 
     # Update via view service
-    success, message = await view_service.update_user(user_id, username, password if password else None, is_admin)
+    success, message = await view_service.update_user(
+        user_id, username, password if password else None, is_admin
+    )
 
     if success:
-        logger.info("User updated", extra={"user_id": user_id, "username": username, "updated_by": user})
+        logger.info(
+            "User updated",
+            extra={"user_id": user_id, "username": username, "updated_by": user},
+        )
 
     return templates.TemplateResponse(
         "partials/system/user_form_result.html",
@@ -382,7 +399,11 @@ async def update_backup_settings(
         if enabled and retention < 1:
             return templates.TemplateResponse(
                 "partials/system/backup_form_result.html",
-                {"request": request, "success": False, "errors": ["Backups to keep must be at least 1"]},
+                {
+                    "request": request,
+                    "success": False,
+                    "errors": ["Backups to keep must be at least 1"],
+                },
                 status_code=400,
             )
 
@@ -390,7 +411,11 @@ async def update_backup_settings(
         if interval_hours < 1:
             return templates.TemplateResponse(
                 "partials/system/backup_form_result.html",
-                {"request": request, "success": False, "errors": ["Interval must be at least 1 hour"]},
+                {
+                    "request": request,
+                    "success": False,
+                    "errors": ["Interval must be at least 1 hour"],
+                },
                 status_code=400,
             )
 

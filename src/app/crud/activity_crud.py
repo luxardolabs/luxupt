@@ -16,8 +16,6 @@ from crud.base_crud import CRUDBase
 class ActivityUpdate(BaseModel):
     """Placeholder for activity updates (rarely needed)."""
 
-    pass
-
 
 class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
     """CRUD operations for Activity model."""
@@ -219,28 +217,51 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         result = await db.execute(
             select(
                 func.count(Activity.id).label("total"),
-                func.sum(case((Activity.activity_type == ActivityType.CAPTURE_SUCCESS, 1), else_=0)).label(
-                    "capture_success"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.CAPTURE_FAILED, 1), else_=0)).label(
-                    "capture_failed"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.TIMELAPSE_STARTED, 1), else_=0)).label(
-                    "timelapse_started"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.TIMELAPSE_COMPLETED, 1), else_=0)).label(
-                    "timelapse_completed"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.TIMELAPSE_FAILED, 1), else_=0)).label(
-                    "timelapse_failed"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.ERROR, 1), else_=0)).label("error"),
-                func.sum(case((Activity.activity_type == ActivityType.CAMERA_ONLINE, 1), else_=0)).label(
-                    "cameras_online"
-                ),
-                func.sum(case((Activity.activity_type == ActivityType.CAMERA_OFFLINE, 1), else_=0)).label(
-                    "cameras_offline"
-                ),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.CAPTURE_SUCCESS, 1),
+                        else_=0,
+                    )
+                ).label("capture_success"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.CAPTURE_FAILED, 1),
+                        else_=0,
+                    )
+                ).label("capture_failed"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.TIMELAPSE_STARTED, 1),
+                        else_=0,
+                    )
+                ).label("timelapse_started"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.TIMELAPSE_COMPLETED, 1),
+                        else_=0,
+                    )
+                ).label("timelapse_completed"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.TIMELAPSE_FAILED, 1),
+                        else_=0,
+                    )
+                ).label("timelapse_failed"),
+                func.sum(
+                    case((Activity.activity_type == ActivityType.ERROR, 1), else_=0)
+                ).label("error"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.CAMERA_ONLINE, 1),
+                        else_=0,
+                    )
+                ).label("cameras_online"),
+                func.sum(
+                    case(
+                        (Activity.activity_type == ActivityType.CAMERA_OFFLINE, 1),
+                        else_=0,
+                    )
+                ).label("cameras_offline"),
             ).where(Activity.timestamp >= since)
         )
         row = result.one()
