@@ -235,7 +235,7 @@ class AuthService:
         """Verify JWT token and return username."""
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username: str = payload.get("sub")
+            username: str | None = payload.get("sub")
             if username is None:
                 return None
             return username

@@ -231,5 +231,3 @@ async def handle_cli_command(command: str) -> bool:
             extra={"command": command, "hint": "Use 'python main.py help'"},
         )
         return True
-
-    return False

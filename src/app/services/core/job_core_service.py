@@ -6,6 +6,7 @@ import os
 import signal
 import subprocess
 from datetime import date, datetime, time
+from pathlib import Path
 
 import config
 from camera_manager import CameraManager, CameraManagerSettings
@@ -634,7 +635,7 @@ class JobProcessor:
             },
         )
 
-    async def _validate_decodable(self, output_path: config.Path, timeout: int) -> bool:
+    async def _validate_decodable(self, output_path: Path, timeout: int) -> bool:
         """Decode the file to null and check that ffmpeg doesn't report decoding errors.
 
         ffprobe only reads container headers, so it can report valid metadata
@@ -682,7 +683,7 @@ class JobProcessor:
         return True
 
     async def _probe_video_metadata(
-        self, output_path: config.Path, frame_rate: int, probe_timeout: int
+        self, output_path: Path, frame_rate: int, probe_timeout: int
     ) -> tuple[float, str | None, int]:
         """Probe video file for metadata. Returns (duration, resolution, frame_count)."""
         duration_seconds = 0.0
@@ -732,7 +733,7 @@ class JobProcessor:
         return duration_seconds, resolution, frame_count
 
     async def _generate_thumbnail(
-        self, output_path: config.Path, duration_seconds: float, probe_timeout: int
+        self, output_path: Path, duration_seconds: float, probe_timeout: int
     ) -> str | None:
         """Generate thumbnail from video. Returns thumbnail path or None."""
         thumb_filename = output_path.stem + "_thumb.jpg"
