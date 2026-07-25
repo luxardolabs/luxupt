@@ -1,7 +1,6 @@
 """Periodic snapshot capture service with rate limiting, retry logic, and scheduling."""
 
 import asyncio
-import math
 import time
 from collections import defaultdict
 from datetime import datetime
@@ -27,38 +26,6 @@ from services.core.image_core_service import image_service
 logger = get_logger(__name__)
 
 
-def find_common_aligned_timestamp(intervals: list[int]) -> int:
-    """
-    Find a timestamp that aligns perfectly with ALL given intervals.
-
-    This ensures that cameras with different intervals (15s, 30s, 60s, etc.)
-    all start capturing at the same moment, with their captures staying
-    synchronized over time.
-
-    Args:
-        intervals: List of capture intervals in seconds (only intervals with cameras)
-
-    Returns:
-        Next timestamp that is divisible by LCM of all intervals
-    """
-    if not intervals:
-        return int(time.time()) + 5
-
-    # Calculate LCM of all intervals
-    def lcm(a: int, b: int) -> int:
-        """Compute the least common multiple of two integers."""
-        return abs(a * b) // math.gcd(a, b)
-
-    common_period = intervals[0]
-    for interval in intervals[1:]:
-        common_period = lcm(common_period, interval)
-
-    now = int(time.time())
-    # Find next timestamp divisible by common_period, with small buffer
-    next_aligned = ((now // common_period) + 1) * common_period
-    return next_aligned
-
-
 class FetchService:
     """Service for periodically fetching camera snapshots."""
 
@@ -67,9 +34,6 @@ class FetchService:
         self.interval_tasks: dict[int, asyncio.Task] = {}  # interval -> task
         self.running = False
         self.intervals: list[int] = []  # Global intervals from DB
-
-        # Common start timestamp for alignment
-        self.common_start_timestamp: int = 0
 
         # Track current API settings to detect changes
         self._current_base_url: str = ""
@@ -104,28 +68,6 @@ class FetchService:
                 extra={"error": str(e), "fallback": [60]},
             )
             return [60]
-
-    async def _get_active_intervals(self) -> list[int]:
-        """Get intervals that actually have cameras configured.
-
-        Returns only intervals that at least one active camera is using.
-        This is used for LCM calculation to avoid waiting for unused intervals.
-        """
-        active_intervals: set[int] = set()
-        try:
-            async with async_session() as session:
-                cameras = await camera_crud.get_active(session)
-                for cam in cameras:
-                    if cam.enabled_intervals:
-                        active_intervals.update(cam.enabled_intervals)
-        except Exception as e:
-            logger.warning("Failed to get active intervals", extra={"error": str(e)})
-
-        # If no cameras or no intervals, default to [60]
-        if not active_intervals:
-            return [60]
-
-        return sorted(active_intervals)
 
     async def _load_camera_settings(self) -> dict[str, dict[str, Any]]:
         """Load camera settings from database."""
@@ -387,22 +329,10 @@ class FetchService:
             "Loaded intervals from database", extra={"intervals": self.intervals}
         )
 
-        # Get intervals that actually have cameras - use THESE for LCM
-        active_intervals = await self._get_active_intervals()
-        logger.info(
-            "Active intervals (cameras configured)",
-            extra={"active_intervals": active_intervals},
-        )
-
-        # Calculate common aligned timestamp based on ACTIVE intervals only
-        self.common_start_timestamp = find_common_aligned_timestamp(active_intervals)
-        logger.info(
-            "Common start timestamp calculated",
-            extra={
-                "timestamp": self.common_start_timestamp,
-                "based_on": active_intervals,
-            },
-        )
+        # Each interval self-aligns to the Unix epoch in _run_interval — no global
+        # start timestamp to compute here (see GH #4: the old LCM anchor grew without
+        # bound as intervals diversified and could push the first capture far into the
+        # future, silently stopping all capture).
 
         # Start image service
         await image_service.start()
@@ -553,7 +483,9 @@ class FetchService:
 
     async def _monitor_interval_changes(self) -> None:
         """Monitor for changes to global intervals and API settings, update tasks accordingly."""
-        while self.running:
+        # `while True` + post-sleep check (not `while self.running`): another task flips
+        # self.running to False during the long sleep, and this guard must break promptly.
+        while True:
             await asyncio.sleep(config.SETTINGS_RELOAD_INTERVAL)
 
             if not self.running:
@@ -596,19 +528,6 @@ class FetchService:
                             logger.info(
                                 "Cameras discovered after settings change",
                                 extra={"count": len(cameras)},
-                            )
-
-                            # Recalculate timestamp based on active intervals (cameras just synced)
-                            active_intervals = await self._get_active_intervals()
-                            self.common_start_timestamp = find_common_aligned_timestamp(
-                                active_intervals
-                            )
-                            logger.info(
-                                "Recalculated timestamp after camera sync",
-                                extra={
-                                    "timestamp": self.common_start_timestamp,
-                                    "based_on": active_intervals,
-                                },
                             )
                         except Exception as e:
                             logger.warning(
@@ -655,19 +574,8 @@ class FetchService:
                     # Update intervals list
                     self.intervals = new_intervals
 
-                    # Recalculate common start timestamp based on ACTIVE intervals
-                    if added or removed:
-                        active_intervals = await self._get_active_intervals()
-                        self.common_start_timestamp = find_common_aligned_timestamp(
-                            active_intervals
-                        )
-                        logger.info(
-                            "Updated common start timestamp",
-                            extra={
-                                "timestamp": self.common_start_timestamp,
-                                "based_on": active_intervals,
-                            },
-                        )
+                    # No global re-alignment needed: each interval task self-aligns to
+                    # the epoch, so adding/removing intervals never disturbs the others.
 
             except Exception as e:
                 logger.error(
@@ -689,21 +597,13 @@ class FetchService:
         """Run capture loop for a specific interval."""
         logger.info("Starting interval capture loop", extra={"interval": interval})
 
-        # ALL intervals use the exact same start timestamp
-        next_aligned_ts = self.common_start_timestamp
-
-        # Log alignment status
-        if self.common_start_timestamp % interval == 0:
-            logger.debug(
-                "Starting aligned with timestamp",
-                extra={"interval": interval, "timestamp": self.common_start_timestamp},
-            )
-        else:
-            offset = self.common_start_timestamp % interval
-            logger.debug(
-                "Starting with offset from natural alignment",
-                extra={"interval": interval, "offset": offset},
-            )
+        # Anchor to the Unix epoch (t=0): fire at multiples of `interval` from epoch.
+        # Epoch is divisible by every interval, so all intervals are naturally
+        # phase-aligned with each other (15s and 60s both hit :00) without any global
+        # LCM — any number/mix of intervals stays synchronized and none blocks the
+        # others (fixes GH #4). First capture is the next epoch-aligned boundary.
+        now_ts = int(time.time())
+        next_aligned_ts = ((now_ts // interval) + 1) * interval
 
         # Wait for first execution
         sleep_time = next_aligned_ts - time.time()
@@ -739,13 +639,10 @@ class FetchService:
                     await asyncio.sleep(config.SETTINGS_RELOAD_INTERVAL)
                     continue
 
-            # Snap to the current aligned timestamp using integer division
+            # Snap to the current epoch-aligned timestamp using integer division
             # This is robust against asyncio.sleep overshoot — no exact-second polling needed
             now_ts = int(time.time())
-            elapsed = now_ts - self.common_start_timestamp
-            current_aligned_ts = (
-                self.common_start_timestamp + (elapsed // interval) * interval
-            )
+            current_aligned_ts = (now_ts // interval) * interval
 
             # Only fire if we've reached or passed the next expected timestamp
             if current_aligned_ts < next_aligned_ts:
@@ -857,10 +754,7 @@ class FetchService:
                 )
                 # Re-sync to current time to avoid firing stale timestamps
                 now_ts = int(time.time())
-                elapsed = now_ts - self.common_start_timestamp
-                next_aligned_ts = (
-                    self.common_start_timestamp + ((elapsed // interval) + 1) * interval
-                )
+                next_aligned_ts = ((now_ts // interval) + 1) * interval
 
     def _filter_cameras_for_interval(
         self,
