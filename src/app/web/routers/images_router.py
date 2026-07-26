@@ -42,8 +42,9 @@ async def images_page(
     )
 
     return templates.TemplateResponse(
+        request,
         "pages/images.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -74,8 +75,9 @@ async def image_grid_partial(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/images/image_grid.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -93,9 +95,9 @@ async def image_filters_partial(
     context = await view_service.get_browser_context(camera=camera)
 
     return templates.TemplateResponse(
+        request,
         "partials/images/image_filters.html",
         {
-            "request": request,
             "cameras": context["cameras"],
             "available_dates": context["available_dates"],
             "available_intervals": context["available_intervals"],
@@ -129,14 +131,16 @@ async def camera_images_page(
 
     if context["camera"] is None:
         return templates.TemplateResponse(
+            request,
             "pages/404.html",
-            {"request": request, "message": "Camera not found"},
+            {"message": "Camera not found"},
             status_code=404,
         )
 
     return templates.TemplateResponse(
+        request,
         "pages/camera_images.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -151,8 +155,9 @@ async def latest_images_page(
     context = await view_service.get_latest_images_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/latest_images.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -201,8 +206,9 @@ async def image_lightbox(
     context["filter_params"] = "&".join(params)
 
     return templates.TemplateResponse(
+        request,
         "partials/images/lightbox.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -244,8 +250,9 @@ async def image_lightbox_content(
     context["filter_params"] = "&".join(params)
 
     return templates.TemplateResponse(
+        request,
         "partials/images/lightbox_content.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -332,8 +339,9 @@ async def delete_images_panel(
     context = await view_service.get_delete_panel_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/images/delete_panel.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -360,8 +368,9 @@ async def delete_images_preview(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/images/delete_preview.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -391,6 +400,7 @@ async def delete_images(
     context = await view_service.get_delete_panel_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/images/delete_result.html",
-        {"request": request, "result": result, **context},
+        {"result": result, **context},
     )

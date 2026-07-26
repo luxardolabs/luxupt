@@ -31,8 +31,9 @@ async def setup_page(
     return cast(
         Response,
         templates.TemplateResponse(
+            request,
             "pages/setup.html",
-            {"request": request},
+            {},
         ),
     )
 
@@ -62,8 +63,9 @@ async def create_first_user(
         return cast(
             Response,
             templates.TemplateResponse(
+                request,
                 "pages/setup.html",
-                {"request": request, "errors": errors, "username": username.strip()},
+                {"errors": errors, "username": username.strip()},
                 status_code=400,
             ),
         )
@@ -75,9 +77,9 @@ async def create_first_user(
         return cast(
             Response,
             templates.TemplateResponse(
+                request,
                 "pages/setup.html",
                 {
-                    "request": request,
                     "errors": ["Failed to create user. Please try again."],
                     "username": username,
                 },

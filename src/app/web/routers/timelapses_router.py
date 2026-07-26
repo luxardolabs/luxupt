@@ -40,8 +40,9 @@ async def timelapses_page(
     )
 
     return templates.TemplateResponse(
+        request,
         "pages/timelapses.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -58,8 +59,9 @@ async def timelapses_jobs_page(
     jobs_context = await view_service.get_jobs_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/timelapses_jobs.html",
-        {"request": request, "user": user, **stats_context, **jobs_context},
+        {"user": user, **stats_context, **jobs_context},
     )
 
 
@@ -75,8 +77,9 @@ async def create_timelapse_panel(
     context = await view_service.get_create_timelapse_context(camera=camera)
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/create_panel.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -97,8 +100,9 @@ async def historical_timelapse_panel(
     context = await view_service.get_historical_panel_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/historical_panel.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -139,8 +143,9 @@ async def create_historical_timelapse(
         recreate_existing=recreate_existing,
     )
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/create_result.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -166,15 +171,16 @@ async def create_timelapse(
             interval=int(interval),
         )
         return templates.TemplateResponse(
+            request,
             "partials/timelapses/create_result.html",
-            {"request": request, **context},
+            {**context},
         )
     except Exception as e:
         logger.error("Error creating timelapse", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/timelapses/create_result.html",
             {
-                "request": request,
                 "success": False,
                 "error": "Failed to create timelapse. Check server logs for details.",
             },
@@ -193,8 +199,9 @@ async def dates_select_partial(
     context = await view_service.get_dates_context(camera=camera)
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/date_select.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -211,8 +218,9 @@ async def intervals_select_partial(
     context = await view_service.get_intervals_context(camera=camera, date_str=date_str)
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/interval_select.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -236,8 +244,9 @@ async def preview_partial(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/preview.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -266,8 +275,9 @@ async def timelapse_list_partial(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/timelapse_list.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -282,8 +292,9 @@ async def stats_partial(
     context = await view_service.get_stats_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/stats.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -298,8 +309,9 @@ async def jobs_partial(
     context = await view_service.get_jobs_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/job_list.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -314,8 +326,9 @@ async def completed_jobs_partial(
     completed_jobs = await view_service.job_service.get_completed(limit=8)
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/recently_completed.html",
-        {"request": request, "completed_jobs": completed_jobs},
+        {"completed_jobs": completed_jobs},
     )
 
 
@@ -332,13 +345,15 @@ async def job_progress_partial(
 
     if not context["job"]:
         return templates.TemplateResponse(
+            request,
             "partials/timelapses/job_not_found.html",
-            {"request": request, "job_id": job_id},
+            {"job_id": job_id},
         )
 
     response = templates.TemplateResponse(
+        request,
         "partials/timelapses/job_progress.html",
-        {"request": request, **context},
+        {**context},
     )
 
     # Trigger parent refresh when job completes or fails
@@ -367,8 +382,9 @@ async def delete_job(
     # Return refreshed job list via OOB swap to update counts and bring in next items
     jobs_context = await view_service.get_jobs_context()
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/job_list.html",
-        {"request": request, **jobs_context},
+        {**jobs_context},
         headers={
             "HX-Reswap": "innerHTML",
             "HX-Retarget": "#active-jobs",
@@ -392,8 +408,9 @@ async def cleanup_stale_jobs(
     # Return updated job list
     context = await view_service.get_jobs_context()
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/job_list.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -408,8 +425,9 @@ async def scheduler_panel(
     context = await view_service.get_scheduler_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/scheduler_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -453,15 +471,16 @@ async def save_scheduler_settings(
         )
 
         return templates.TemplateResponse(
+            request,
             "partials/timelapses/scheduler_result.html",
-            {"request": request, **context},
+            {**context},
         )
     except Exception as e:
         logger.error("Error saving scheduler settings", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/timelapses/scheduler_result.html",
             {
-                "request": request,
                 "success": False,
                 "error": "Failed to save scheduler settings. Check server logs for details.",
             },
@@ -485,14 +504,16 @@ async def camera_timelapses_page(
 
     if context["camera"] is None:
         return templates.TemplateResponse(
+            request,
             "pages/404.html",
-            {"request": request, "message": "Camera not found"},
+            {"message": "Camera not found"},
             status_code=404,
         )
 
     return templates.TemplateResponse(
+        request,
         "pages/camera_timelapses.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -511,8 +532,9 @@ async def timelapse_lightbox(
         raise HTTPException(status_code=404, detail="Timelapse not found")
 
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/lightbox.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -567,6 +589,7 @@ async def delete_timelapse(
     # Return OOB update to refresh the stats cards
     context = await view_service.get_stats_context()
     return templates.TemplateResponse(
+        request,
         "partials/timelapses/stats_oob.html",
-        {"request": request, **context},
+        {**context},
     )

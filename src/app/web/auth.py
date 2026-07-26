@@ -274,13 +274,15 @@ async def login_form(request: Request) -> Response:
                 return RedirectResponse(url="/setup", status_code=302)
 
     templates = request.app.state.templates
-    context: dict = {"request": request}
+    context: dict = {}
 
     # Show success message if redirected from setup
     if request.query_params.get("setup_complete") == "1":
         context["success"] = "Account created successfully. Please sign in."
 
-    return cast(Response, templates.TemplateResponse("pages/login.html", context))
+    return cast(
+        Response, templates.TemplateResponse(request, "pages/login.html", context)
+    )
 
 
 async def login(
@@ -303,10 +305,10 @@ async def login(
         return cast(
             Response,
             templates.TemplateResponse(
+                request,
                 "pages/login.html",
                 {
-                    "request": request,
-                    "error": f"Too many login attempts. Please wait {wait_seconds} seconds.",
+                    "error": f"Too many login attempts. Please wait {wait_seconds} seconds."
                 },
                 status_code=429,
             ),
@@ -323,8 +325,9 @@ async def login(
         return cast(
             Response,
             templates.TemplateResponse(
+                request,
                 "pages/login.html",
-                {"request": request, "error": "Invalid username or password"},
+                {"error": "Invalid username or password"},
                 status_code=400,
             ),
         )

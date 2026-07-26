@@ -29,13 +29,9 @@ async def cameras_page(
     fetch_context = await cameras_view_service.get_fetch_settings_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/cameras.html",
-        {
-            "request": request,
-            "user": user,
-            "needs_api_setup": fetch_context["needs_api"],
-            **context,
-        },
+        {"user": user, "needs_api_setup": fetch_context["needs_api"], **context},
     )
 
 
@@ -49,8 +45,9 @@ async def camera_list_partial(
     """Render camera list partial for HTMX updates."""
     context = await view_service.get_camera_cards_context()
     return templates.TemplateResponse(
+        request,
         "partials/cameras/camera_list.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -66,8 +63,9 @@ async def camera_card_partial(
     context = await view_service.get_camera_card_context(camera_safe_name)
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/camera_card.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -82,8 +80,9 @@ async def fetch_settings_panel(
     context = await view_service.get_fetch_settings_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/fetch_settings_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -158,9 +157,9 @@ async def save_fetch_settings(
         if cameras_synced is not None and cameras_synced < 0:
             # Connection failed
             return templates.TemplateResponse(
+                request,
                 "partials/cameras/camera_settings_result.html",
                 {
-                    "request": request,
                     "success": False,
                     "error": "Settings saved, but connection test failed",
                     "details": message,
@@ -168,12 +167,9 @@ async def save_fetch_settings(
             )
 
         response = templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
-            {
-                "request": request,
-                "success": success,
-                "message": message,
-            },
+            {"success": success, "message": message},
         )
         # Refresh the camera list in place (covers reactivated cameras and any
         # setting that changes a card) instead of a full page reload
@@ -184,9 +180,9 @@ async def save_fetch_settings(
     except Exception as e:
         logger.error("Error saving fetch settings", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
             {
-                "request": request,
                 "success": False,
                 "error": "Failed to save fetch settings. Check server logs for details.",
             },
@@ -208,8 +204,9 @@ async def test_protect_connection(
     context = await view_service.test_protect_connection()
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/protect_test_result.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -224,8 +221,9 @@ async def capture_stats_panel(
     context = await view_service.get_capture_stats_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/capture_stats_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -249,8 +247,9 @@ async def capture_stats_charts(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/capture_stats_charts.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -266,14 +265,16 @@ async def camera_settings_panel(
     context = await view_service.get_camera_settings_context(camera_id)
     if not context["camera"]:
         return templates.TemplateResponse(
+            request,
             "partials/cameras/camera_not_found.html",
-            {"request": request},
+            {},
             status_code=404,
         )
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/camera_settings_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -301,17 +302,15 @@ async def save_camera_settings(
 
         if not success:
             return templates.TemplateResponse(
+                request,
                 "partials/cameras/camera_settings_result.html",
-                {"request": request, "success": False, "error": message},
+                {"success": False, "error": message},
             )
 
         response = templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
-            {
-                "request": request,
-                "success": True,
-                "message": message,
-            },
+            {"success": True, "message": message},
         )
         # Refresh the camera list in place (morph swap) instead of a full page reload
         response.headers["HX-Trigger"] = "camera-list-refresh"
@@ -320,9 +319,9 @@ async def save_camera_settings(
     except Exception as e:
         logger.error("Error saving camera settings", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
             {
-                "request": request,
                 "success": False,
                 "error": "Failed to save camera settings. Check server logs for details.",
             },
@@ -343,18 +342,15 @@ async def detect_camera_capabilities(
 
         if capabilities is None:
             return templates.TemplateResponse(
+                request,
                 "partials/cameras/camera_settings_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "error": "Camera not found or not connected",
-                },
+                {"success": False, "error": "Camera not found or not connected"},
             )
 
         response = templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
             {
-                "request": request,
                 "detected": True,
                 "api_resolution": capabilities.get("api_max_resolution"),
                 "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
@@ -368,9 +364,9 @@ async def detect_camera_capabilities(
     except Exception as e:
         logger.error("Error detecting camera capabilities", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/cameras/camera_settings_result.html",
             {
-                "request": request,
                 "success": False,
                 "error": "Failed to detect camera capabilities. Check server logs for details.",
             },
@@ -393,9 +389,9 @@ async def delete_camera(
     success, message = await view_service.delete_camera(camera_id)
 
     response = templates.TemplateResponse(
+        request,
         "partials/cameras/camera_settings_result.html",
         {
-            "request": request,
             "success": success,
             "message": message if success else None,
             "error": message if not success else None,
@@ -419,14 +415,16 @@ async def camera_panel(
     context = await view_service.get_camera_panel_context(camera_safe_name)
     if not context["camera"]:
         return templates.TemplateResponse(
+            request,
             "partials/cameras/camera_not_found.html",
-            {"request": request},
+            {},
             status_code=404,
         )
 
     return templates.TemplateResponse(
+        request,
         "partials/cameras/camera_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -442,12 +440,14 @@ async def camera_detail_page(
     context = await view_service.get_camera_detail_context(camera_safe_name)
     if not context["camera"]:
         return templates.TemplateResponse(
+            request,
             "pages/404.html",
-            {"request": request, "message": "Camera not found"},
+            {"message": "Camera not found"},
             status_code=404,
         )
 
     return templates.TemplateResponse(
+        request,
         "pages/camera_detail.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )

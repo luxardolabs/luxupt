@@ -28,8 +28,9 @@ async def system_page(
     context = await view_service.get_system_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/system.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -44,8 +45,9 @@ async def settings_page(
     context = await view_service.get_settings_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/settings.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -69,8 +71,9 @@ async def activity_log_page(
     )
 
     return templates.TemplateResponse(
+        request,
         "pages/activity.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -85,8 +88,9 @@ async def system_stats_partial(
     context = await view_service.get_system_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/system/stats.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -110,8 +114,9 @@ async def activity_feed_partial(
     )
 
     return templates.TemplateResponse(
+        request,
         "partials/activity/activity_feed.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -131,8 +136,9 @@ async def components_page(
         raise HTTPException(status_code=404, detail="Not found")
 
     return templates.TemplateResponse(
+        request,
         "pages/components.html",
-        {"request": request, "user": user},
+        {"user": user},
     )
 
 
@@ -150,8 +156,9 @@ async def about_page(
     context = await view_service.get_about_context(uptime_seconds)
 
     return templates.TemplateResponse(
+        request,
         "pages/about.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -171,8 +178,9 @@ async def users_page(
     context = await view_service.get_users_context()
 
     return templates.TemplateResponse(
+        request,
         "pages/users.html",
-        {"request": request, "user": user, **context},
+        {"user": user, **context},
     )
 
 
@@ -187,8 +195,9 @@ async def users_list_partial(
     context = await view_service.get_users_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/system/users_list.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -204,8 +213,9 @@ async def user_form_panel(
     context = await view_service.get_user_form_context(user_id)
 
     return templates.TemplateResponse(
+        request,
         "partials/system/user_form_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -236,8 +246,9 @@ async def create_user(
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "partials/system/user_form_result.html",
-            {"request": request, "success": False, "errors": errors},
+            {"success": False, "errors": errors},
             status_code=400,
         )
 
@@ -252,9 +263,9 @@ async def create_user(
         )
 
     return templates.TemplateResponse(
+        request,
         "partials/system/user_form_result.html",
         {
-            "request": request,
             "success": success,
             "message": message if success else None,
             "errors": [message] if not success else None,
@@ -283,8 +294,9 @@ async def update_user(
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "partials/system/user_form_result.html",
-            {"request": request, "success": False, "errors": errors},
+            {"success": False, "errors": errors},
             status_code=400,
         )
 
@@ -300,9 +312,9 @@ async def update_user(
         )
 
     return templates.TemplateResponse(
+        request,
         "partials/system/user_form_result.html",
         {
-            "request": request,
             "success": success,
             "message": message if success else None,
             "errors": [message] if not success else None,
@@ -323,8 +335,9 @@ async def user_delete_confirm_panel(
     context = await view_service.get_delete_confirm_context(user_id)
 
     return templates.TemplateResponse(
+        request,
         "partials/system/user_delete_confirm.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -344,9 +357,9 @@ async def delete_user(
         logger.info("User deleted", extra={"user_id": user_id, "deleted_by": user})
 
     return templates.TemplateResponse(
+        request,
         "partials/system/user_form_result.html",
         {
-            "request": request,
             "success": success,
             "message": message if success else None,
             "errors": [message] if not success else None,
@@ -371,8 +384,9 @@ async def backup_settings_panel(
     context = await view_service.get_backup_settings_context()
 
     return templates.TemplateResponse(
+        request,
         "partials/system/backup_settings_panel.html",
-        {"request": request, **context},
+        {**context},
     )
 
 
@@ -398,24 +412,18 @@ async def update_backup_settings(
         # Validate retention when enabled
         if enabled and retention < 1:
             return templates.TemplateResponse(
+                request,
                 "partials/system/backup_form_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "errors": ["Backups to keep must be at least 1"],
-                },
+                {"success": False, "errors": ["Backups to keep must be at least 1"]},
                 status_code=400,
             )
 
         # Validate interval (minimum 1 hour)
         if interval_hours < 1:
             return templates.TemplateResponse(
+                request,
                 "partials/system/backup_form_result.html",
-                {
-                    "request": request,
-                    "success": False,
-                    "errors": ["Interval must be at least 1 hour"],
-                },
+                {"success": False, "errors": ["Interval must be at least 1 hour"]},
                 status_code=400,
             )
 
@@ -439,14 +447,16 @@ async def update_backup_settings(
         )
 
         return templates.TemplateResponse(
+            request,
             "partials/system/backup_form_result.html",
-            {"request": request, "success": True, "message": "Backup settings saved"},
+            {"success": True, "message": "Backup settings saved"},
         )
 
     except Exception as e:
         logger.error("Failed to update backup settings", extra={"error": str(e)})
         return templates.TemplateResponse(
+            request,
             "partials/system/backup_form_result.html",
-            {"request": request, "success": False, "errors": [str(e)]},
+            {"success": False, "errors": [str(e)]},
             status_code=500,
         )
