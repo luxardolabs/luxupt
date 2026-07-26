@@ -16,7 +16,7 @@ import config
 
 # Optional JSON logging support
 try:
-    from pythonjsonlogger import jsonlogger
+    from pythonjsonlogger import json as jsonlogger
 
     JSON_LOGGING_AVAILABLE = True
     _JsonFormatterBase: type = jsonlogger.JsonFormatter
