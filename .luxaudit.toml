@@ -1,0 +1,10 @@
+# luxaudit — fleet dependency-vulnerability guard. Source auto-detected (poetry.lock).
+# [[ignore]] is the ratchet dial: a deferred vuln is STILL reported, never hidden.
+# Every entry needs a written reason; drain to zero.
+
+[[ignore]]
+id = "CVE-2024-23342"   # alias of PYSEC-2026-1325 — ecdsa Minerva P-256 timing attack
+reason = """No fix released upstream (python-ecdsa has no patched version), AND not reachable in \
+luxupt: ecdsa is transitive via python-jose[cryptography]; the vulnerable ecdsa.SigningKey.sign_digest() \
+ECDSA-signing path is only used for ES256/384/512, but luxupt's JWT is HS256 (symmetric HMAC — \
+src/app/web/auth.py:50), so it is never exercised. Drain when upstream ships a fix. Tracked: LUXUPT-66."""

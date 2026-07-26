@@ -26,10 +26,10 @@ packages = [{include = "app", from = "src"}]
 python = "^3.13"
 httpx = "^0.28.1"
 urllib3 = "^2.6.3"
-fastapi = "^0.128.0"
+fastapi = "^0.140.0"  # >=0.140 admits starlette 1.x (fixes the starlette CVEs; ^0.128 capped it <1.0)
 uvicorn = {version = "^0.40.0", extras = ["standard"]}
 jinja2 = "^3.1.6"
-python-multipart = "^0.0.22"
+python-multipart = ">=0.0.31,<0.1.0"  # 0.0.31 clears the multipart DoS CVEs (^0.0.22 pinned it exactly)
 python-jose = {version = "^3.5.0", extras = ["cryptography"]}
 passlib = {version = "^1.7.4", extras = ["argon2"]}
 aiofiles = "^25.1.0"
