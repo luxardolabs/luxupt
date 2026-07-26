@@ -27,8 +27,9 @@ os.environ.setdefault("WEB_USERNAME", "testadmin")
 os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 
 from db.base import Base  # noqa: E402
-from db.connection import engine  # noqa: E402
+from db.connection import async_session, engine  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 from web.main import app  # noqa: E402
 
 TEST_USERNAME = os.environ["WEB_USERNAME"]
@@ -42,6 +43,20 @@ async def _schema() -> AsyncGenerator[None]:
         await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session() -> AsyncGenerator[AsyncSession]:
+    """A DB session on the temp sqlite; rolled back after each test for isolation.
+
+    CRUD helpers flush but don't commit (get_db owns the request transaction), so
+    a same-session read sees the flushed rows and the rollback leaves nothing behind.
+    """
+    async with async_session() as session:
+        try:
+            yield session
+        finally:
+            await session.rollback()
 
 
 @pytest_asyncio.fixture
