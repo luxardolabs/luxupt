@@ -63,17 +63,11 @@ build-backend = "poetry.core.masonry.api"
 # (lint.no_local_ruff_config / types.no_local_mypy_config); black/isort are replaced by
 # luxlint's canonical `ruff format`.
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src/app"]   # flat-import root: tests import `web.main`, `db.connection`, … (no app/ pkg)
-python_files = ["test_*.py", "*_test.py"]
-addopts = [
-    "--verbose",
-    "--cov=src/app",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--asyncio-mode=auto"
-]
+# pytest config intentionally removed — owned by luxlint (fleet test standard,
+# byte-identical in the image; test.no_local_pytest_config flags a local one). `make test`
+# runs the canonical config as a tail: `luxlint --emit-config pytest` then `pytest -c <it>`,
+# with PYTHONPATH=src/app for the flat-import root (there's no app/ package). See the
+# test-suite playbook: `luxlint --playbook test-suite`.
 
 [tool.coverage.run]
 source = ["src/app"]
