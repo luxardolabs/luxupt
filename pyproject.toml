@@ -65,10 +65,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src/app"]   # flat-import root: tests import `web.main`, `db.connection`, … (no app/ pkg)
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     "--verbose",
-    "--cov=app",
+    "--cov=src/app",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--asyncio-mode=auto"
