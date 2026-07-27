@@ -11,6 +11,7 @@ from logging_config import get_logger
 from web.auth import get_current_user
 from web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from web.main import get_start_time
+from web.query_params import IntFilter
 
 logger = get_logger(__name__)
 
@@ -206,7 +207,7 @@ async def user_form_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
-    user_id: int | None = Query(None),
+    user_id: IntFilter = None,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the user create/edit form panel."""

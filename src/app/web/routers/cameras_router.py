@@ -8,6 +8,7 @@ from logging_config import get_logger
 
 from web.auth import get_current_user
 from web.deps import CamerasViewDep, DashboardViewDep, TemplatesDep
+from web.query_params import IntFilter
 
 logger = get_logger(__name__)
 
@@ -233,7 +234,7 @@ async def capture_stats_charts(
     templates: TemplatesDep,
     view_service: CamerasViewDep,
     camera: str | None = None,
-    interval: int | None = None,
+    interval: IntFilter = None,
     period: str = "24h",
     offset: int = 0,
     user: str = Depends(get_current_user),

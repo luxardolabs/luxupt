@@ -10,6 +10,7 @@ from utils import async_fs
 
 from web.auth import get_current_user
 from web.deps import ImagesViewDep, TemplatesDep
+from web.query_params import ThumbnailSizeFilter
 
 router = APIRouter(tags=["images"])
 
@@ -292,7 +293,7 @@ async def get_image_thumbnail(
     capture_date: date,
     timestamp: int,
     view_service: ImagesViewDep,
-    size: int | None = Query(None, ge=50, le=1024),
+    size: ThumbnailSizeFilter = None,
     _user: str = Depends(get_current_user),
 ) -> Response:
     """Serve thumbnail for an image.
