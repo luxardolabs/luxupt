@@ -1,0 +1,14 @@
+# Lean pytest deps image — the "deps" ingredient of the fleet lint/test topology
+# (luxarch --doc FLEET-BUILD-DEPLOY-STANDARD). Deps come from the LOCK, NOT from :dev.
+# Built by `make test`; the poetry-install layer is keyed on pyproject.toml/poetry.lock,
+# so docker's layer cache rebuilds it ONLY when deps change. Source (incl. tests/) is
+# over-mounted at run time (never baked), and the pytest config is emitted by luxlint —
+# nothing stale is ever inherited from :dev.
+FROM python:3.13-slim
+
+RUN pip install --no-cache-dir "poetry==1.7.1"
+
+WORKDIR /w
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-root --no-interaction
