@@ -25,88 +25,44 @@
 </div>
 {% endmacro %}
 
-{% macro pagination(pagination, base_url, extra_params={}) %}
-{% set params_list = [] %}
-{% for k, v in extra_params.items() if v is not none %}
-{% set _ = params_list.append(k ~ '=' ~ (v|string)) %}
-{% endfor %}
-{% set params_str = params_list|join('&') %}
-<nav class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-surface-400/50 pt-4">
-    <div class="text-sm text-surface-200 text-center sm:text-left">
-        Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - {{ [pagination.page * pagination.per_page, pagination.total_count]|min }} of {{ pagination.total_count }}
-    </div>
-    <div class="flex items-center justify-center sm:justify-end gap-2">
-        {% if pagination.has_prev %}
-        <a href="{{ base_url }}?page={{ pagination.page - 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
-           class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
-            Previous
-        </a>
-        {% else %}
-        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
-            Previous
-        </span>
-        {% endif %}
-
-        <span class="text-sm text-surface-200">
-            Page {{ pagination.page }} of {{ pagination.total_pages }}
-        </span>
-
-        {% if pagination.has_next %}
-        <a href="{{ base_url }}?page={{ pagination.page + 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
-           class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
-            Next
-        </a>
-        {% else %}
-        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
-            Next
-        </span>
-        {% endif %}
-    </div>
-</nav>
+{# Canonical pagination (LUXARCH pagination playbook, fw.template_pagination):
+   - the `total_pages > 1` guard and page math live HERE, never in the page template;
+   - every link goes through paginated_url() so the active filters ride along;
+   - `target` set → HTMX in-place swap (luxupt's default); omit it for a plain <a> link.
+   Fed the fleet Pagination DTO (build_pagination): range_start/range_end/total/prev_page/next_page. #}
+{% macro _page_link(url, label, target) %}
+{% if target %}
+<button hx-get="{{ url }}" hx-target="#{{ target }}" hx-swap="innerHTML"
+        class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">{{ label }}</button>
+{% else %}
+<a href="{{ url }}"
+   class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">{{ label }}</a>
+{% endif %}
 {% endmacro %}
 
-{% macro htmx_pagination(pagination, target_id, base_url, extra_params={}) %}
-{% set params_list = [] %}
-{% for k, v in extra_params.items() if v is not none %}
-{% set _ = params_list.append(k ~ '=' ~ (v|string)) %}
-{% endfor %}
-{% set params_str = params_list|join('&') %}
+{% macro pagination_controls(pagination, base_url, query_params=None, target=None) %}
+{% if pagination.total_pages > 1 %}
 <nav class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-surface-400/50 pt-4">
     <div class="text-sm text-surface-200 text-center sm:text-left">
-        Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - {{ [pagination.page * pagination.per_page, pagination.total_count]|min }} of {{ pagination.total_count }}
+        Showing {{ pagination.range_start }} - {{ pagination.range_end }} of {{ pagination.total }}
     </div>
     <div class="flex items-center justify-center sm:justify-end gap-2">
         {% if pagination.has_prev %}
-        <button hx-get="{{ base_url }}?page={{ pagination.page - 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
-                hx-target="#{{ target_id }}"
-                hx-swap="innerHTML"
-                class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
-            Previous
-        </button>
+        {{ _page_link(paginated_url(base_url, query_params, page=pagination.prev_page), "Previous", target) }}
         {% else %}
-        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
-            Previous
-        </span>
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">Previous</span>
         {% endif %}
 
-        <span class="text-sm text-surface-200">
-            Page {{ pagination.page }} of {{ pagination.total_pages }}
-        </span>
+        <span class="text-sm text-surface-200">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
 
         {% if pagination.has_next %}
-        <button hx-get="{{ base_url }}?page={{ pagination.page + 1 }}{% if params_str %}&{{ params_str }}{% endif %}"
-                hx-target="#{{ target_id }}"
-                hx-swap="innerHTML"
-                class="inline-flex items-center rounded-lg border border-surface-300 bg-surface-500 px-3 py-1.5 text-sm text-surface-100 hover:bg-surface-400">
-            Next
-        </button>
+        {{ _page_link(paginated_url(base_url, query_params, page=pagination.next_page), "Next", target) }}
         {% else %}
-        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">
-            Next
-        </span>
+        <span class="inline-flex items-center rounded-lg border border-surface-400 px-3 py-1.5 text-sm text-surface-200">Next</span>
         {% endif %}
     </div>
 </nav>
+{% endif %}
 {% endmacro %}
 
 {% macro breadcrumb(items) %}

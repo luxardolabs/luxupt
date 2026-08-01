@@ -3,7 +3,7 @@
 {% from "macros/forms.html" import filter_select %}
 {% from "macros/buttons.html" import primary, secondary %}
 {% from "macros/icons.html" import icon %}
-{% from "macros/navigation.html" import htmx_pagination, page_header, tab_nav, section %}
+{% from "macros/navigation.html" import pagination_controls, page_header, tab_nav, section %}
 
 {% set tabs = [
     {"id": "browser", "label": "Browser", "href": "/timelapses", "icon_name": "film"},
@@ -57,11 +57,9 @@
     </div>
 
     {# Pagination #}
-    {% if pagination.total_pages > 1 %}
     <div class="mt-4">
-        {{ htmx_pagination(pagination, "timelapse-grid", "/timelapses/partials/list", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}) }}
+        {{ pagination_controls(pagination, "/timelapses/partials/list", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
     </div>
-    {% endif %}
     {% else %}
     {{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters') }}
     {% endif %}

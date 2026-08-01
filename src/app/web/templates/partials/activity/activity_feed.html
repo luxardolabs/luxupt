@@ -1,5 +1,5 @@
 {% from "macros/icons.html" import icon %}
-{% from "macros/navigation.html" import htmx_pagination %}
+{% from "macros/navigation.html" import pagination_controls %}
 {% from "macros/cards.html" import empty_state %}
 {% from "macros/badges.html" import chip %}
 
@@ -55,7 +55,7 @@
 </div>
 
 <div class="mt-6">
-    {{ htmx_pagination(pagination, "activity-feed", "/system/partials/activity", {"show": filters.show, "period": filters.period, "camera_id": filters.camera_id}) }}
+    {{ pagination_controls(pagination, "/system/partials/activity", {"show": filters.show, "period": filters.period, "camera_id": filters.camera_id}, target="activity-feed") }}
 </div>
 {% else %}
 {{ empty_state('clipboard-document-list', 'No activity', 'No events match the current filters.') }}

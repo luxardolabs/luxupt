@@ -1,7 +1,7 @@
 {% extends "layouts/base.html" %}
 {% from "macros/cards.html" import card, image_card, stat_card, empty_state %}
 {% from "macros/forms.html" import filter_select %}
-{% from "macros/navigation.html" import htmx_pagination, page_header, section %}
+{% from "macros/navigation.html" import pagination_controls, page_header, section %}
 {% from "macros/icons.html" import icon %}
 {% from "macros/buttons.html" import danger %}
 
@@ -35,7 +35,7 @@
 {# Statistics Section #}
 {% call section("Statistics", "chart-bar") %}
 <div class="grid gap-4 grid-cols-2 lg:grid-cols-5">
-    {{ stat_card("Total Images", pagination.total_count, icon_name="photo", color="primary") }}
+    {{ stat_card("Total Images", pagination.total, icon_name="photo", color="primary") }}
     {{ stat_card("Storage", total_size_gb ~ " GB", icon_name="server", color="info") }}
     {{ stat_card("Cameras", cameras|length, icon_name="camera", color="success") }}
     {{ stat_card("Dates", available_dates|length, icon_name="calendar", color="warning") }}
@@ -54,11 +54,9 @@
     </div>
 
     <!-- Pagination -->
-    {% if pagination.total_pages > 1 %}
     <div class="mt-4">
-        {{ htmx_pagination(pagination, "image-grid", "/images/partials/grid", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "per_page": pagination.per_page}) }}
+        {{ pagination_controls(pagination, "/images/partials/grid", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "per_page": pagination.per_page}, target="image-grid") }}
     </div>
-    {% endif %}
     {% else %}
     {{ empty_state('photo', 'No images found', 'Try adjusting your filters or wait for captures') }}
     {% endif %}

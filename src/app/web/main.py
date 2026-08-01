@@ -428,10 +428,13 @@ def create_app() -> FastAPI:
     register_filters(templates)
 
     # Add template globals
+    from .template_helpers import paginated_url
+
     templates.env.globals.update(
         {
             "config": config,
             "datetime": datetime,
+            "paginated_url": paginated_url,
             "len": len,
             "enumerate": enumerate,
             "range": range,

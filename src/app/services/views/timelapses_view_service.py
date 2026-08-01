@@ -5,6 +5,7 @@ from pathlib import Path
 
 from logging_config import get_logger
 from protect_client import ProtectClient
+from schemas.pagination_schema import build_pagination
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.core.camera_core_service import CameraCoreService
@@ -664,9 +665,6 @@ class TimelapsesViewService:
         running_jobs = [j for j in active_jobs if j.status == "running"]
         pending_jobs = [j for j in active_jobs if j.status == "pending"]
 
-        # Calculate pagination
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
         return {
             "timelapses": timelapses,
             "cameras": cameras,
@@ -683,14 +681,7 @@ class TimelapsesViewService:
                 "interval": interval,
                 "status": status,
             },
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
     async def get_jobs_context(self) -> dict:
@@ -756,7 +747,7 @@ class TimelapsesViewService:
             return {
                 "camera": None,
                 "timelapses": [],
-                "pagination": {"page": 1, "total_pages": 1, "total_count": 0},
+                "pagination": build_pagination(page=1, per_page=per_page, total=0),
             }
 
         # Use camera_id for queries
@@ -774,17 +765,8 @@ class TimelapsesViewService:
             limit=per_page,
         )
 
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
         return {
             "camera": camera,
             "timelapses": timelapses,
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }

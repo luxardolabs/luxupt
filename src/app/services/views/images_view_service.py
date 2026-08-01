@@ -3,6 +3,8 @@
 from datetime import date
 from pathlib import Path
 
+from schemas.pagination_schema import build_pagination
+
 from services.core.camera_core_service import CameraCoreService
 from services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from services.core.capture_core_service import CaptureCoreService
@@ -140,9 +142,6 @@ class ImagesViewService:
         capture_stats = await self.capture_service.get_capture_stats()
         total_size_gb = round(capture_stats.total_file_size / 1024 / 1024 / 1024, 2)
 
-        # Calculate pagination
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
         return {
             "images": images,
             "cameras": cameras,
@@ -154,14 +153,7 @@ class ImagesViewService:
                 "date": capture_date,
                 "interval": interval,
             },
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
     async def get_image_grid_context(
@@ -196,8 +188,6 @@ class ImagesViewService:
             limit=per_page,
         )
 
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
         return {
             "images": images,
             "filters": {
@@ -205,14 +195,7 @@ class ImagesViewService:
                 "date": capture_date,
                 "interval": interval,
             },
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
     async def get_camera_images_context(
@@ -234,7 +217,7 @@ class ImagesViewService:
             return {
                 "camera": None,
                 "images": [],
-                "pagination": {"page": 1, "total_pages": 1, "total_count": 0},
+                "pagination": build_pagination(page=1, per_page=per_page, total=0),
             }
 
         # Use camera_id for queries
@@ -264,8 +247,6 @@ class ImagesViewService:
             camera=camera_id
         )
 
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
         return {
             "camera": camera,
             "images": images,
@@ -275,14 +256,7 @@ class ImagesViewService:
                 "date": capture_date,
                 "interval": interval,
             },
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
     async def get_latest_images_context(self) -> dict:

@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 import config
 from db.connection import DATABASE_PATH
 from models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
+from schemas.pagination_schema import build_pagination
 
 from services.core.activity_core_service import ActivityCoreService
 from services.core.camera_core_service import CameraCoreService
@@ -291,7 +292,6 @@ class SystemViewService:
             hours=hours if hours is not None else 24 * 3660
         )
         cameras = await self.camera_service.get_active()
-        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
 
         # Filter options derived from the enum (single source of truth — can't drift).
         # web_request is an internal request log, not a user-facing event.
@@ -319,14 +319,7 @@ class SystemViewService:
                 "period": period,
                 "camera_id": camera_id,
             },
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_pages": total_pages,
-                "total_count": total,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-            },
+            "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
     async def get_about_context(self, uptime_seconds: float = 0) -> dict:
