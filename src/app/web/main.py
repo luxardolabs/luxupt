@@ -41,6 +41,7 @@ from .middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
+from .template_helpers import paginated_url
 
 # Module logger
 logger = get_logger(__name__)
@@ -428,8 +429,6 @@ def create_app() -> FastAPI:
     register_filters(templates)
 
     # Add template globals
-    from .template_helpers import paginated_url
-
     templates.env.globals.update(
         {
             "config": config,
