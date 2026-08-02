@@ -169,7 +169,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /repo/.gitleaks.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.8.3
+LUXLINT_VERSION ?= 0.8.4
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Lean base for the mypy tail (tools installed FRESH each run, never inherited from :dev —
 # FLEET-BUILD-DEPLOY-STANDARD "Lint & test images"). Pytest deps come from the lock via Dockerfile.test.
