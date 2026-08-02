@@ -3,7 +3,7 @@
 # The canonical ruff.toml / mypy.ini live byte-identical in the image.
 
 [source]
-paths = ["src/app"]   # the app package — lint + format-check + mypy target
+paths = ["app"]   # the app package — lint + format-check + mypy target
 
 [python]
 target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:3.13-slim (Dockerfile).

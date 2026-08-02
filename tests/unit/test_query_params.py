@@ -6,9 +6,9 @@ validation — a bare optional enum param would 422 on it (see LUXUPT enum sweep
 """
 
 import pytest
-from models.enum_model import ActivityType, TimelapseStatus
+from app.models.enum_model import ActivityType, TimelapseStatus
 from pydantic import TypeAdapter, ValidationError
-from web.query_params import (
+from app.web.query_params import (
     ActivityTypeFilter,
     IntFilter,
     ThumbnailSizeFilter,

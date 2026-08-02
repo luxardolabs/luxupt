@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Multimedia :: Video",
     "Topic :: System :: Monitoring"
 ]
-packages = [{include = "app", from = "src"}]
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.13"
@@ -66,11 +66,11 @@ build-backend = "poetry.core.masonry.api"
 # pytest config intentionally removed — owned by luxlint (fleet test standard,
 # byte-identical in the image; test.no_local_pytest_config flags a local one). `make test`
 # runs the canonical config as a tail: `luxlint --emit-config pytest` then `pytest -c <it>`,
-# with PYTHONPATH=src/app for the flat-import root (there's no app/ package). See the
+# `make test` runs pytest in Docker (Dockerfile.test) with the app package on the path. See the
 # test-suite playbook: `luxlint --playbook test-suite`.
 
 [tool.coverage.run]
-source = ["src/app"]
+source = ["app"]
 omit = ["*/tests/*", "*/test_*", "*/__pycache__/*"]
 
 [tool.coverage.report]

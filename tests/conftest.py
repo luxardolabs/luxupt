@@ -3,7 +3,7 @@
 Follows the luxtaste conftest pattern, adapted for luxupt: sqlite instead of
 postgres, and an HTML app (render pages) instead of a JSON API.
 
-Env is set BEFORE importing anything under ``src/app``: ``db/connection.py``
+Env is set BEFORE importing anything under ``app``: ``db/connection.py``
 builds its engine from ``DATABASE_DIR`` at import time, so setting it here points
 the whole app at a throwaway temp sqlite. ``WEB_USERNAME``/``WEB_PASSWORD`` enable
 env-auth so the client can log in without seeding DB users.
@@ -26,11 +26,11 @@ os.environ.setdefault("WEB_SESSION_SECRET", "test-only-session-secret-not-for-pr
 os.environ.setdefault("WEB_USERNAME", "testadmin")
 os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 
-from db.base import Base  # noqa: E402
-from db.connection import async_session, engine  # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.db.connection import async_session, engine  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
-from web.main import app  # noqa: E402
+from app.web.main import app  # noqa: E402
 
 TEST_USERNAME = os.environ["WEB_USERNAME"]
 TEST_PASSWORD = os.environ["WEB_PASSWORD"]

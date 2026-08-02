@@ -7,7 +7,7 @@ no wall-clock (timeago takes an explicit `now`).
 
 from datetime import datetime, timedelta
 
-from web.template_filters import (
+from app.web.template_filters import (
     duration,
     file_size_filter,
     number_format,

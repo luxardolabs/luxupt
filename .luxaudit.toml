@@ -7,4 +7,4 @@ id = "CVE-2024-23342"   # alias of PYSEC-2026-1325 — ecdsa Minerva P-256 timin
 reason = """No fix released upstream (python-ecdsa has no patched version), AND not reachable in \
 luxupt: ecdsa is transitive via python-jose[cryptography]; the vulnerable ecdsa.SigningKey.sign_digest() \
 ECDSA-signing path is only used for ES256/384/512, but luxupt's JWT is HS256 (symmetric HMAC — \
-src/app/web/auth.py:50), so it is never exercised. Drain when upstream ships a fix. Tracked: LUXUPT-66."""
+app/web/auth.py:50), so it is never exercised. Drain when upstream ships a fix. Tracked: LUXUPT-66."""

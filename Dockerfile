@@ -26,8 +26,8 @@ COPY pyproject.toml poetry.lock* ./
 # Install dependencies
 RUN poetry install --only main --no-root --no-directory
 
-# Copy source code
-COPY src ./src
+# Copy source code (app/ package at the repo root — fleet layout standard)
+COPY app ./app
 COPY README.md ./
 
 # Install the project
@@ -39,7 +39,7 @@ FROM python:3.13-slim
 # Static environment variables (don't change between builds)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app/luxupt
 
 # Install runtime dependencies (cacheable - no ARGs yet)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -63,8 +63,9 @@ WORKDIR /app/luxupt
 # Copy virtual environment from builder
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
-# Copy application code
-COPY --from=builder --chown=appuser:appuser /app/src/app ./
+# Copy the app/ package (imported as `app.*`; PYTHONPATH=/app/luxupt) + the entrypoint
+COPY --from=builder --chown=appuser:appuser /app/app ./app
+COPY --chown=appuser:appuser entrypoint.sh ./
 
 # Create output directories
 RUN mkdir -p output/images output/videos && \
@@ -91,5 +92,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 ENV WEB_PORT=8080
 
 # Run via entrypoint script which builds uvicorn command from env vars
-# CLI commands available via: docker exec <container> python main.py <command>
+# CLI commands available via: docker exec <container> python -m app.main <command>
 ENTRYPOINT ["./entrypoint.sh"]

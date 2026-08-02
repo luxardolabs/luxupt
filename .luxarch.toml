@@ -1,6 +1,6 @@
 [[target]]
 kind = "fastapi-web"
-app = "src/app"
+app = "app"
 
 [enums]
 declared = [
