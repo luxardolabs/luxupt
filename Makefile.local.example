@@ -1,0 +1,12 @@
+# Copy to Makefile.local (gitignored) and set your private registry hosts.
+# This keeps internal hostnames out of the committed (public) Makefile
+# (FLEET-BUILD-DEPLOY-STANDARD — repo.build_config_committed).
+#
+#   cp Makefile.local.example Makefile.local   # then edit the hosts below
+#
+# LUXARCH_REGISTRY — where the luxarch / luxlint / luxaudit guard images live.
+#   Unset on a clean public clone: the guards + guard-version-check skip cleanly.
+LUXARCH_REGISTRY ?= docker.<your-private-registry>:5000
+#
+# LOCAL_REGISTRY — your private registry for the app image (make docker-push-local).
+LOCAL_REGISTRY   ?= <your-local-registry>:5000

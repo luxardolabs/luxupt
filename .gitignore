@@ -1,0 +1,63 @@
+# ── Secrets — NEVER commit. Only .env.example templates are allowed. ──
+.env
+.env.*
+!.env.example
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+
+# ── Tool caches ──
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Node ──
+node_modules/
+
+# ── App runtime output ── (dev uses project-local ./output-<site>)
+output/
+output-*/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Local-only: deploy infra & tooling not part of the public source subset ──
+VERSION
+CLAUDE.md
+compose*.yaml
+compose*.yml
+docker-compose*.yml
+nginx/
+prod/
+scratch/
+package-lock.json
+poetry.lock
+eslint.config.js
+RELEASE.md
+CHANGELOG.md
+README.md.archived
+.dockerignore
+
+# Archived/scratch content (publish.py skips these)
+**/_archive/
+_archive/
+
+# Private registry hosts (build config committed; only the host stays local)
+Makefile.local
