@@ -48,8 +48,6 @@ nginx/
 prod/
 scratch/
 package-lock.json
-poetry.lock
-eslint.config.js
 RELEASE.md
 CHANGELOG.md
 README.md.archived

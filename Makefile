@@ -52,6 +52,8 @@ GHCR_TOKEN ?= $(error GHCR_TOKEN not set — add to .env or export it)
 
 # Build settings
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+# Git revision for OCI image provenance (repo.oci_image_labels)
+REVISION := $(shell git -c safe.directory=$(CURRENT_DIR) rev-parse HEAD 2>/dev/null || echo unknown)
 # For quick local development builds - amd64 only (faster iteration)
 PLATFORM_DEV := linux/amd64
 # For release builds - multi-arch (amd64 + arm64)
@@ -356,6 +358,7 @@ docker-build-local: validate-version validate-structure docker-setup docker-pull
 		--cache-from $(LOCAL_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \
@@ -374,6 +377,7 @@ build-dev: validate-version validate-structure ## Build the local luxupt:dev ima
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build \
 		--build-arg VERSION=$(VERSION)-dev \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		-t luxupt:dev \
 		.
 	@echo '$(GREEN)Built luxupt:dev — dev overlays run this image. Re-run after code changes.$(NC)'
@@ -387,6 +391,7 @@ docker-push-local: validate-version validate-structure docker-setup docker-pull-
 		--cache-from $(LOCAL_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \
@@ -410,6 +415,7 @@ docker-push-hub: validate-version validate-structure docker-setup docker-login-h
 		--cache-from $(DOCKER_HUB_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \
@@ -431,6 +437,7 @@ docker-push-ghcr: validate-version validate-structure docker-setup docker-login-
 		--cache-to type=registry,ref=$(GHCR_IMAGE):cache,mode=max \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \
@@ -462,6 +469,7 @@ docker-tag-latest-hub: docker-login-hub ## Tag current version as latest (Docker
 		--cache-from $(DOCKER_HUB_IMAGE):$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \
@@ -483,6 +491,7 @@ docker-tag-latest-ghcr: docker-login-ghcr ## Tag current version as latest (GHCR
 		--cache-from $(GHCR_IMAGE):$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg REVISION=$(REVISION) \
 		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
 		--label "org.opencontainers.image.title=LuxUPT" \

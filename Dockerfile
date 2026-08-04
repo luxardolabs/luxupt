@@ -54,8 +54,16 @@ RUN groupadd -g 1000 appuser && \
 # Add build arguments AFTER static layers (these change each build)
 ARG VERSION="1.1.0"
 ARG BUILD_DATE="1970-01-01T00:00:00Z"
+ARG REVISION="unknown"
 ENV LUXUPT_VERSION=$VERSION \
     LUXUPT_BUILD_DATE=$BUILD_DATE
+
+# OCI provenance labels (repo.oci_image_labels) — portable keys; .created is RFC-3339 UTC.
+LABEL org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.created="$BUILD_DATE" \
+      org.opencontainers.image.revision="$REVISION" \
+      org.opencontainers.image.source="https://github.com/luxardolabs/luxupt" \
+      org.opencontainers.image.title="luxupt"
 
 # Set working directory
 WORKDIR /app/luxupt
