@@ -152,23 +152,29 @@ poetry-install: ## Verify deps resolve + install from lock in a throwaway contai
 	@echo '$(BLUE)poetry install (in docker)...$(NC)'
 	$(call poetry_docker,install --no-root --only main)
 
-# --- Secret scanning (gitleaks in Docker) ---
+# --- Secret scanning (gitleaks in Docker; CANONICAL fleet denylist, no local config) ---
+# The gitleaks config is the fleet's, EMITTED at scan time (luxlint --emit-config gitleaks) to
+# /tmp and mounted — NEVER committed (its denylist names the strings we keep out of repos;
+# secret.no_local_gitleaks_config flags a local .gitleaks.toml, same as a local ruff.toml).
 GITLEAKS_IMG := ghcr.io/gitleaks/gitleaks:latest
+GITLEAKS_CFG := /tmp/luxlint.gitleaks.toml
 # Trust the mounted repo regardless of container uid vs NFS file owner (avoids git's
 # "dubious ownership" check) via git's GIT_CONFIG_* env overrides.
 GITLEAKS_RUN := docker run --rm \
 	-e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
-	-v $(PWD):/repo -w /repo $(GITLEAKS_IMG)
+	-v $(PWD):/repo -w /repo -v $(GITLEAKS_CFG):/cfg.toml:ro $(GITLEAKS_IMG)
 
 .PHONY: gitleaks
 gitleaks: ## Scan committed history for secrets (run before pushing)
 	@echo '$(BLUE)Scanning committed history for secrets...$(NC)'
-	$(GITLEAKS_RUN) git /repo -c /repo/.gitleaks.toml --redact --no-banner -v
+	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config gitleaks > $(GITLEAKS_CFG)
+	$(GITLEAKS_RUN) git /repo -c /cfg.toml --redact --no-banner -v
 
 .PHONY: gitleaks-staged
 gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	@echo '$(BLUE)Scanning staged changes for secrets...$(NC)'
-	$(GITLEAKS_RUN) git /repo -c /repo/.gitleaks.toml --staged --redact --no-banner -v
+	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config gitleaks > $(GITLEAKS_CFG)
+	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
 LUXLINT_VERSION ?= 0.11.1
