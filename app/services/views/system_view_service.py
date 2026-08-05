@@ -365,3 +365,98 @@ class SystemViewService:
                 return f"{size_bytes:.1f} {unit}"
             size_bytes /= 1024
         return f"{size_bytes:.1f} TB"
+
+    def get_components_context(self) -> dict[str, object]:
+        """Sample domain objects for the dev-only component showcase.
+
+        The showcase must *render* every data-bound macro (camera_card, the job
+        cards, timelapse_card, image_card, pagination_controls), not just import
+        it — that is the point of a component library. These macros take live
+        domain objects + custom filters, so the fixtures are built here (real
+        datetimes, real Pagination DTO) and passed into the template. Never
+        hand-roll pagination state in the template (fw.template_pagination)."""
+        now = datetime.now()
+        today = now.strftime("%Y-%m-%d")
+
+        return {
+            "demo_camera": {
+                "safe_name": "front_door",
+                "camera_id": "demo-cam-1",
+                "name": "Front Door",
+                "is_connected": True,
+            },
+            "demo_latest_capture": {
+                "timestamp": int(now.timestamp()),
+                "interval": 60,
+                "capture_date": today,
+                "capture_datetime": now - timedelta(minutes=3),
+            },
+            "demo_camera_stats": {
+                "total_captures": 18432,
+                "success_rate": 98.6,
+                "timelapse_count": 42,
+                "capture_days": 31,
+                "captures_today": 1287,
+                "today_summary": {
+                    "success": 1287,
+                    "failed": 3,
+                    "expected": 1440,
+                    "rate": 89,
+                },
+                "interval_stats": {
+                    60: {"success": 1287, "failed": 3, "expected": 1440, "rate": 89},
+                    300: {"success": 288, "failed": 0, "expected": 288, "rate": 100},
+                },
+            },
+            "demo_capture": {
+                "interval": 60,
+                "camera_safe_name": "front_door",
+                "timestamp": int(now.timestamp()),
+                "capture_date": today,
+                "capture_datetime": now - timedelta(minutes=3),
+            },
+            "demo_running_job": {
+                "job_id": "demo-job-run",
+                "camera_safe_name": "front_door",
+                "interval": 60,
+                "target_date": today,
+                "current_image": None,
+                "progress": 63,
+                "message": "Encoding frames…",
+            },
+            "demo_pending_job": {
+                "job_id": "demo-job-pend",
+                "camera_safe_name": "back_yard",
+                "interval": 300,
+                "target_date": today,
+                "image_count": 288,
+            },
+            "demo_completed_job": {
+                "job_id": "demo-job-done",
+                "status": "completed",
+                "camera_safe_name": "front_door",
+                "target_date": (now - timedelta(days=1)).strftime("%Y-%m-%d"),
+                "interval": 60,
+                "total_frames": 1440,
+                "started_at": now - timedelta(minutes=8),
+                "completed_at": now - timedelta(minutes=6),
+                "created_at": now - timedelta(minutes=9),
+                "message": None,
+                "error": None,
+            },
+            "demo_timelapse": {
+                "id": "demo-tl-1",
+                "status": "completed",
+                "file_path": "/demo.mp4",
+                "camera_safe_name": "front_door",
+                "timelapse_date": now.date(),
+                "end_date": None,
+                "interval": 60,
+                "file_name": "front_door.mp4",
+                "frame_count": 1440,
+                "duration_seconds": 48.0,
+                "resolution": "1920x1080",
+                "file_size": 734003200,
+            },
+            "demo_pagination": build_pagination(page=2, per_page=20, total=97),
+        }

@@ -1,0 +1,52 @@
+{# =========================================================================
+   DATA DISPLAY - data_row(), data_row_stacked(), data_row_status(),
+                  section_title(), info_grid(), progress_bar(), divider()
+   ========================================================================= #}
+{% from "macros/data.html" import data_row, data_row_stacked, data_row_status, section_title, info_grid, progress_bar, divider %}
+
+<div id="data" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Data Display</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Key-value rows, status rows, info grids and progress bars for system &amp; detail pages.
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-6">
+        <div class="grid gap-6 lg:grid-cols-2">
+            <div>
+                {{ section_title('Key / value rows', icon_name='list-bullet') }}
+                {{ data_row('Camera', 'Front Door') }}
+                {{ data_row('MAC address', 'AA:BB:CC:DD:EE:FF', mono=true) }}
+                {{ data_row_stacked('API endpoint', 'https://protect.example.com/proxy/protect/api', mono=true) }}
+                {{ divider() }}
+                {{ data_row_status('Scheduler', true) }}
+                {{ data_row_status('Debug logging', false) }}
+            </div>
+            <div>
+                {{ section_title('Info grid', icon_name='squares-2x2') }}
+                {{ info_grid([
+                    {'label': 'Version', 'value': '1.1.1'},
+                    {'label': 'Uptime', 'value': '3d 4h'},
+                    {'label': 'Cameras', 'value': '6'},
+                    {'label': 'Build', 'value': 'abc1234', 'mono': true},
+                ]) }}
+                {{ divider() }}
+                {{ section_title('Progress', icon_name='chart-bar') }}
+                <div class="space-y-3">
+                    {{ progress_bar(28, label='Disk', value_text='28%') }}
+                    {{ progress_bar(76, label='Today', value_text='76%', color='warning') }}
+                    {{ progress_bar(96, label='Success rate', value_text='96%', color='auto') }}
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import &amp; Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/data.html" import data_row, data_row_status, info_grid, progress_bar %}
+
+{{ data_row('Camera', 'Front Door') }}
+{{ data_row_status('Scheduler', true) }}
+{{ info_grid([{'label': 'Version', 'value': '1.1.1'}]) }}
+{{ progress_bar(76, label='Today', value_text='76%', color='warning') }}{% endraw %}</code></pre>
+        </div>
+    </div>
+</div>

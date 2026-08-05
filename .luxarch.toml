@@ -35,3 +35,9 @@ non_request_files = [
   "app/services/core/historical_fetch_core_service.py",  # background job: historical frame fetch
   "app/web/main.py",                                     # lifespan startup/shutdown, pre-request
 ]
+
+# Component-macro registry (fw.component_registry, ADR-002): every PUBLIC macro in
+# web/templates/macros/ must be catalogued in the showcase so the branded library stays
+# discoverable and agents stop reinventing components. macros_dir defaults to <templates>/macros.
+[components]
+index = "pages/components"

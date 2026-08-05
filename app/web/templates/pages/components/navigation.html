@@ -1,0 +1,87 @@
+{# =========================================================================
+   NAVIGATION - page_header(), breadcrumb(), tab_nav(), collapsible_section(),
+                pagination_controls(), and the top nav bar (nav_* macros)
+   ========================================================================= #}
+{% from "macros/navigation.html" import page_header, breadcrumb, tab_nav, collapsible_section, pagination_controls %}
+{% from "macros/nav.html" import nav_logo, nav_link, nav_status, nav_action, nav_user %}
+{% from "macros/buttons.html" import primary, secondary %}
+
+<div id="navigation" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Navigation</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Page headers, breadcrumbs, tabs, the top nav bar and canonical pagination.
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== PAGE HEADER (action buttons via caller) ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">page_header</p>
+            {% call page_header('Timelapses', 'Browse and create time-lapse videos', icon_name='film') %}
+            {{ secondary('Refresh', icon_name='arrow-path') }}
+            {{ primary('Create', icon_name='plus') }}
+            {% endcall %}
+        </div>
+
+        {# ===== BREADCRUMB ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">breadcrumb</p>
+            {{ breadcrumb([
+                {'label': 'Home', 'href': '/'},
+                {'label': 'Timelapses', 'href': '/timelapses'},
+                {'label': 'Front Door'},
+            ]) }}
+        </div>
+
+        {# ===== TAB NAV ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">tab_nav</p>
+            {{ tab_nav([
+                {'id': 'status', 'label': 'Status', 'href': '#', 'icon_name': 'server'},
+                {'id': 'users', 'label': 'Users', 'href': '#', 'icon_name': 'users'},
+                {'id': 'components', 'label': 'Components', 'href': '#', 'icon_name': 'swatch'},
+            ], 'components') }}
+        </div>
+
+        {# ===== TOP NAV BAR ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">nav bar — nav_logo / nav_link / nav_status / nav_action / nav_user</p>
+            <div class="flex flex-wrap items-center gap-4 rounded-lg bg-surface-900/60 px-4 py-2">
+                {{ nav_logo('#') }}
+                {{ nav_link('#', 'Cameras', is_active=true, icon_name='camera') }}
+                {{ nav_link('#', 'Timelapses', icon_name='film') }}
+                {{ nav_status('Running', is_active=true) }}
+                {{ nav_action('#', 'New', icon_name='plus') }}
+                {{ nav_user('admin') }}
+            </div>
+        </div>
+
+        {# ===== COLLAPSIBLE SECTION ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">collapsible_section</p>
+            {% call collapsible_section('Advanced options', 'demo_collapsible', icon_name='cog-6-tooth') %}
+            <p class="text-sm text-surface-200">Content whose open/closed state persists in localStorage.</p>
+            {% endcall %}
+        </div>
+
+        {# ===== PAGINATION =====
+           Fed the build_pagination() DTO from the view service (demo_pagination) — never a
+           hand-rolled pagination dict in the template (fw.template_pagination). Every link
+           routes through the paginated_url global so filters ride along. #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">pagination_controls</p>
+            {{ pagination_controls(demo_pagination, '/system/components', query_params={}) }}
+        </div>
+
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import &amp; Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/navigation.html" import page_header, breadcrumb, tab_nav, pagination_controls %}
+
+{% call page_header('Timelapses', 'Browse videos', icon_name='film') %}
+    {{ primary('Create', icon_name='plus') }}
+{% endcall %}
+
+{{ pagination_controls(pagination, '/timelapses', query_params=request.query_params, target='content') }}{% endraw %}</code></pre>
+        </div>
+    </div>
+</div>

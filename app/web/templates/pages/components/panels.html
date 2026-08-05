@@ -4,6 +4,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/buttons.html" import primary, secondary, icon_button %}
 {% from "macros/cards.html" import section_card %}
+{% from "macros/panels.html" import panel_trigger, panel_shell, panel_section, panel_actions, panel_backdrop, panel_drawer, panel_header, panel_footer %}
 
 <div id="panels" class="scroll-mt-20">
     <h2 class="text-lg font-bold text-white mb-1">Panels</h2>
@@ -12,6 +13,41 @@
     </p>
 
     <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== PANEL BUILDING BLOCKS ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Live triggers — panel_trigger() → HTMX → fixed-overlay panels</p>
+            <div class="flex flex-wrap gap-3">
+                {{ panel_trigger('/system/components/panel-demo?variant=drawer', text='Open drawer panel', icon='☰') }}
+                {{ panel_trigger('/system/components/panel-demo?variant=shell', text='Open shell panel', icon='▦') }}
+            </div>
+            <p class="text-xs text-surface-300 mt-2">
+                The drawer trigger composes panel_backdrop + panel_drawer + panel_header + panel_footer;
+                the shell trigger uses the all-in-one panel_shell. Both close via the global Panel.close().
+            </p>
+
+            <p class="text-xs font-medium text-surface-200 uppercase mt-5 mb-3">Static anatomy — panel_header() / panel_section() / panel_actions() / panel_footer()</p>
+            <div class="relative overflow-hidden rounded-lg border border-surface-400/30 bg-surface-800">
+                {{ panel_header('Camera settings', 'Front Door') }}
+                <div class="p-6">
+                    {% call panel_section('Details') %}
+                    <p class="text-sm text-surface-200">Section body content goes here.</p>
+                    {% endcall %}
+                    {% call panel_actions() %}
+                    {{ secondary('Cancel') }}
+                    {{ primary('Save') }}
+                    {% endcall %}
+                </div>
+                {% call panel_footer() %}
+                {{ secondary('Close') }}
+                {{ primary('Apply') }}
+                {% endcall %}
+            </div>
+            <p class="text-xs text-surface-300 mt-2">
+                The header/section/actions/footer macros render inline here (non-fixed); open the
+                live triggers above to see the full fixed-overlay behavior.
+            </p>
+        </div>
 
         {# ===== PANEL STRUCTURE ===== #}
         <div>

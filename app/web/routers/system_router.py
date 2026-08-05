@@ -130,6 +130,7 @@ async def activity_feed_partial(
 async def components_page(
     request: Request,
     templates: TemplatesDep,
+    view_service: SystemViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the component library page (dev mode only)."""
@@ -139,7 +140,28 @@ async def components_page(
     return templates.TemplateResponse(
         request,
         "pages/components.html",
-        {"user": user},
+        {"user": user, **view_service.get_components_context()},
+    )
+
+
+@router.get("/components/panel-demo", response_class=HTMLResponse)
+async def components_panel_demo(
+    request: Request,
+    templates: TemplatesDep,
+    variant: str = "drawer",
+    user: str = Depends(get_current_user),
+) -> Response:
+    """Demo panel for the component showcase (dev mode only).
+
+    Loaded via HTMX by panel_trigger so the fixed-overlay panel macros
+    (panel_shell / panel_backdrop / panel_drawer) are exercised for real."""
+    if config.LOGGING_LEVEL != "DEBUG":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    return templates.TemplateResponse(
+        request,
+        "partials/system/components_panel_demo.html",
+        {"user": user, "variant": variant},
     )
 
 

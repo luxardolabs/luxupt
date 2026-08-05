@@ -2,6 +2,9 @@
    CARDS - stat_card(), card(), section_card(), empty_state()
    ========================================================================= #}
 {% from "macros/cards.html" import stat_card, card, section_card, empty_state %}
+{# Data-bound cards — catalogued here (registered in the component index), demoed in-situ on
+   their real pages since each takes a live domain object + custom filters. #}
+{% from "macros/cards.html" import camera_card, image_card, running_job_card, pending_job_card, completed_job_card, timelapse_card %}
 {% from "macros/icons.html" import icon %}
 {% from "macros/buttons.html" import primary %}
 
@@ -12,6 +15,24 @@
     </p>
 
     <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== DATA-BOUND CARDS (rendered from sample objects in the view service) ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Data-bound cards</p>
+            <p class="text-sm text-surface-200 mb-4">
+                Each takes a live domain object (camera / capture / job / timelapse); the sample
+                objects come from <code class="text-primary-300">SystemViewService.get_components_context()</code>.
+                Job cards self-poll via HTMX, exactly as on their real pages.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {{ camera_card(demo_camera, latest_capture=demo_latest_capture, stats=demo_camera_stats) }}
+                {{ timelapse_card(demo_timelapse) }}
+                {{ running_job_card(demo_running_job) }}
+                {{ pending_job_card(demo_pending_job) }}
+                {{ completed_job_card(demo_completed_job) }}
+                {{ image_card(demo_capture) }}
+            </div>
+        </div>
 
         {# ===== STAT CARDS ===== #}
         <div>

@@ -1,7 +1,7 @@
 {# =========================================================================
    ICONS - icon(), icon_box(), live_ping()
    ========================================================================= #}
-{% from "macros/icons.html" import icon, icon_box, live_ping %}
+{% from "macros/icons.html" import icon, icon_box, live_ping, icon_btn, icon_view, icon_play, icon_download, icon_delete %}
 
 <div id="icons" class="scroll-mt-20">
     <h2 class="text-lg font-bold text-white mb-1">Icons</h2>
@@ -11,6 +11,25 @@
     </p>
 
     <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== ACTION ICON BUTTONS ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">Action icon buttons — icon_btn()</p>
+            <div class="flex flex-wrap items-center gap-2">
+                {{ icon_btn('eye', 'primary', href='#', title='View') }}
+                {{ icon_btn('arrow-down-tray', 'success', href='#', title='Download', download='file.mp4') }}
+                {{ icon_btn('trash', 'danger', title='Delete') }}
+                {{ icon_btn('pencil-square', 'warning', href='#', title='Edit') }}
+                {{ icon_btn('eye', 'muted', title='Disabled', disabled=true) }}
+            </div>
+            <p class="text-xs font-medium text-surface-200 uppercase mt-4 mb-3">Convenience wrappers — icon_view / icon_play / icon_download / icon_delete</p>
+            <div class="flex flex-wrap items-center gap-2">
+                {{ icon_view(href='#') }}
+                {{ icon_play(href='#') }}
+                {{ icon_download(href='#', download='clip.mp4') }}
+                {{ icon_delete(hx_delete='#') }}
+            </div>
+        </div>
 
         {# ===== ICON BASICS ===== #}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

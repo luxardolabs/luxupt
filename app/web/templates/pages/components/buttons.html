@@ -1,7 +1,7 @@
 {# =========================================================================
    BUTTONS - primary(), secondary(), success(), danger(), warning(), ghost()
    ========================================================================= #}
-{% from "macros/buttons.html" import primary, primary_loading, secondary, success, danger, warning, ghost, icon_button %}
+{% from "macros/buttons.html" import primary, primary_loading, secondary, success, danger, warning, ghost, icon_button, button_group, danger_confirm %}
 {% from "macros/icons.html" import icon, delete_icon_button %}
 
 <div id="buttons" class="scroll-mt-20">
@@ -11,6 +11,17 @@
     </p>
 
     <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-8">
+
+        {# ===== BUTTON GROUP & ARM-THEN-FIRE CONFIRM ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">button_group() — group related buttons</p>
+            {% call button_group() %}
+            {{ secondary('Cancel') }}
+            {{ primary('Save', icon_name='check') }}
+            {% endcall %}
+            <p class="text-xs font-medium text-surface-200 uppercase mt-4 mb-3">danger_confirm() — arm-then-fire (no browser dialog)</p>
+            {{ danger_confirm('Delete camera', hx_delete='#', icon_name='trash') }}
+        </div>
 
         {# ===== BUTTON SHOWCASE ===== #}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

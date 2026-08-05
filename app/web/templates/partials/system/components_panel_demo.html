@@ -1,0 +1,34 @@
+{# Dev-only demo panel for the component showcase — loaded via HTMX into #panel-container
+   by panel_trigger, closed via the global Panel.close(). Exercises the fixed-overlay panel
+   macros exactly as the real camera/timelapse panels do. #}
+{% from "macros/panels.html" import panel_shell, panel_backdrop, panel_drawer, panel_header, panel_section, panel_actions, panel_footer %}
+{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/data.html" import data_row %}
+
+{% if variant == 'shell' %}
+{% call panel_shell('Panel shell', 'panel_shell() — backdrop + drawer + header in one macro') %}
+    {% call panel_section('Details') %}
+        {{ data_row('Composition', 'panel_shell → panel_section → panel_actions') }}
+        {{ data_row('Width', 'max-w-2xl') }}
+    {% endcall %}
+    {% call panel_actions() %}
+        {{ ghost('Cancel') }}
+        {{ primary('Save') }}
+    {% endcall %}
+{% endcall %}
+{% else %}
+{{ panel_backdrop() }}
+{% call panel_drawer('max-w-xl') %}
+    {{ panel_header('Panel drawer', 'panel_backdrop() + panel_drawer() + panel_header() + panel_footer()') }}
+    <div class="flex-1 min-h-0 overflow-y-auto p-6">
+        {% call panel_section('Details') %}
+            {{ data_row('Composition', 'panel_backdrop + panel_drawer + panel_header + panel_footer') }}
+            {{ data_row('Width', 'max-w-xl') }}
+        {% endcall %}
+    </div>
+    {% call panel_footer() %}
+        {{ ghost('Cancel') }}
+        {{ primary('Save') }}
+    {% endcall %}
+{% endcall %}
+{% endif %}

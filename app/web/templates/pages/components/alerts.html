@@ -1,0 +1,40 @@
+{# =========================================================================
+   ALERTS - alert(), alert_block()
+   ========================================================================= #}
+{% from "macros/alerts.html" import alert, alert_block %}
+
+<div id="alerts" class="scroll-mt-20">
+    <h2 class="text-lg font-bold text-white mb-1">Alerts</h2>
+    <p class="text-sm text-surface-200 mb-4">
+        Notices, warnings and messages —
+        <code class="bg-surface-700/50 px-1.5 py-0.5 rounded text-xs text-primary-300">{% raw %}{{ alert('message', type='info') }}{% endraw %}</code>
+    </p>
+
+    <div class="rounded-xl border border-surface-400/30 bg-surface-500/50 p-6 space-y-4">
+        {{ alert('A neutral, informational message.', type='info', title='Heads up') }}
+        {{ alert('Everything completed successfully.', type='success', title='Done') }}
+        {{ alert('This action needs your attention.', type='warning', title='Careful') }}
+        {{ alert('Something went wrong.', type='danger', title='Error') }}
+
+        {# Block content variant — richer body via caller() #}
+        {% call alert_block(type='info', title='With rich content') %}
+        <p>Use <code class="text-info-100">alert_block</code> when the body needs markup:</p>
+        <ul class="list-disc list-inside mt-1">
+            <li>bullet one</li>
+            <li>bullet two</li>
+        </ul>
+        {% endcall %}
+
+        {# Code example #}
+        <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">
+            <p class="text-xs text-surface-200 mb-2">Import &amp; Usage:</p>
+            <pre class="text-xs text-surface-200 font-mono overflow-x-auto"><code>{% raw %}{% from "macros/alerts.html" import alert, alert_block %}
+
+{{ alert('Saved', type='success', title='Done') }}
+
+{% call alert_block(type='warning', title='Note') %}
+    <p>Rich <strong>markup</strong> body</p>
+{% endcall %}{% endraw %}</code></pre>
+        </div>
+    </div>
+</div>
