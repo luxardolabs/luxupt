@@ -14,11 +14,11 @@ This guide walks you through setting up LuxUPT from scratch.
 LuxUPT connects to UniFi Protect through its REST API. You'll need to generate an API key:
 
 1. Log in to your UniFi Protect web interface
-2. Go to **Settings** (gear icon)
-3. Navigate to **Control Plane** → **Integrations** → **Your API Keys**
-4. Click **Generate API Key**
-5. Give it a descriptive name (e.g., "LuxUPT Timelapse")
-6. Copy the generated API key — you won't be able to see it again
+1. Go to **Settings** (gear icon)
+1. Navigate to **Control Plane** → **Integrations** → **Your API Keys**
+1. Click **Generate API Key**
+1. Give it a descriptive name (e.g., "LuxUPT Timelapse")
+1. Copy the generated API key — you won't be able to see it again
 
 Keep this key secure. Anyone with the key can access your camera feeds.
 
@@ -50,14 +50,14 @@ docker compose up -d
 
 ### What Each Setting Does
 
-| Setting | Purpose |
-|---------|---------|
-| `image` | The LuxUPT Docker image from GHCR |
-| `container_name` | Name for your container (used in commands like `docker logs luxupt`) |
-| `restart: always` | Automatically restart if the container stops or system reboots |
-| `ports` | Maps port 8080 inside the container to your host |
-| `volumes` | Where images, videos, and the database are stored |
-| `TZ` | Your timezone — used for scheduling and file timestamps |
+| Setting           | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `image`           | The LuxUPT Docker image from GHCR                                    |
+| `container_name`  | Name for your container (used in commands like `docker logs luxupt`) |
+| `restart: always` | Automatically restart if the container stops or system reboots       |
+| `ports`           | Maps port 8080 inside the container to your host                     |
+| `volumes`         | Where images, videos, and the database are stored                    |
+| `TZ`              | Your timezone — used for scheduling and file timestamps              |
 
 ### Volume Mount
 
@@ -69,6 +69,7 @@ The volume mount (`./output:/app/luxupt/output`) is critical. This is where LuxU
 - SQLite database
 
 Make sure this directory:
+
 - Has enough storage space for your needs
 - Is backed up if you want to preserve your timelapses
 - Has appropriate permissions for Docker to write
@@ -84,9 +85,9 @@ When you first access LuxUPT at `http://your-server:8080`, you'll go through a s
 If you haven't set `WEB_USERNAME` and `WEB_PASSWORD` in your compose file, you'll see the setup wizard:
 
 1. Enter your desired username
-2. Enter a password (minimum 8 characters recommended)
-3. Confirm the password
-4. Click **Create Account**
+1. Enter a password (minimum 8 characters recommended)
+1. Confirm the password
+1. Click **Create Account**
 
 You'll be redirected to the login page.
 
@@ -99,19 +100,20 @@ Enter the credentials you just created.
 After login, you'll land on the **Cameras** page. Since no API connection is configured yet, you'll see a prompt to set it up:
 
 1. Click **Capture Settings**
-2. In the **API Connection** section:
+1. In the **API Connection** section:
    - **Base URL**: Your UniFi Protect API endpoint
      - Format: `https://[IP-or-hostname]/proxy/protect/integration/v1`
      - Example: `https://192.168.1.1/proxy/protect/integration/v1`
    - **API Key**: Paste the key you generated earlier
    - **Verify SSL**: Disable if using self-signed certificates (common for local UniFi installations)
-3. Click **Save**
+1. Click **Save**
 
 ### Step 4: Camera Discovery
 
 Once connected, LuxUPT automatically discovers all cameras from your UniFi Protect system. Within a few seconds, you should see camera cards appear on the dashboard.
 
 LuxUPT will also test each camera to detect its capabilities:
+
 - API snapshot resolution
 - RTSP stream resolution
 - Recommended capture method
@@ -123,12 +125,13 @@ Capture is enabled by default. Once cameras are discovered and the API connectio
 You'll see the statistics update as images are captured. If you want to adjust settings:
 
 1. Click **Capture Settings**
-2. Adjust **Capture Intervals** (e.g., 60 seconds, 180 seconds)
-3. Click **Save**
+1. Adjust **Capture Intervals** (e.g., 60 seconds, 180 seconds)
+1. Click **Save**
 
 ### Step 6: Scheduler (Optional Adjustments)
 
 The scheduler is enabled by default:
+
 - **Run Time**: 1:00 AM
 - **Cameras**: All cameras
 - **Intervals**: 60 seconds
@@ -138,9 +141,9 @@ Tomorrow at 1 AM, LuxUPT will automatically create timelapse videos from the pre
 To adjust these defaults:
 
 1. Go to **Timelapses** page
-2. Click **Scheduler**
-3. Change run time, cameras, or intervals as needed
-4. Click **Save**
+1. Click **Scheduler**
+1. Change run time, cameras, or intervals as needed
+1. Click **Save**
 
 ## Skipping the Setup Wizard
 
@@ -163,13 +166,13 @@ With these set, you can log in immediately and cameras will be discovered automa
 After setup, verify everything is working:
 
 1. **Cameras page**: All your cameras should appear with "Connected" status
-2. **Statistics**: The "Captures" count should increase every interval
-3. **Recent Failures**: Should be empty or show only transient errors
-4. **Images page**: Browse to see captured images appearing
+1. **Statistics**: The "Captures" count should increase every interval
+1. **Recent Failures**: Should be empty or show only transient errors
+1. **Images page**: Browse to see captured images appearing
 
 If you see issues, check the [Troubleshooting Guide](troubleshooting.md).
 
----
+______________________________________________________________________
 
 ## Documentation
 

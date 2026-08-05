@@ -20,10 +20,10 @@ services:
       TZ: America/Chicago
 ```
 
-| Setting | Required | Description |
-|---------|----------|-------------|
-| `TZ` | Yes | Your timezone (e.g., `America/Chicago`, `Europe/London`) |
-| Volume mount | Yes | Where images, videos, and database are stored |
+| Setting      | Required | Description                                              |
+| ------------ | -------- | -------------------------------------------------------- |
+| `TZ`         | Yes      | Your timezone (e.g., `America/Chicago`, `Europe/London`) |
+| Volume mount | Yes      | Where images, videos, and database are stored            |
 
 ## Full Configuration Example
 
@@ -50,72 +50,72 @@ services:
       UNIFI_PROTECT_VERIFY_SSL: "false"
 ```
 
----
+______________________________________________________________________
 
 ## Environment Variables Reference
 
 ### Authentication
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `WEB_USERNAME` | Admin username — if set, skips setup wizard | — |
-| `WEB_PASSWORD` | Admin password — if set, skips setup wizard | — |
-| `WEB_SESSION_SECRET` | Session encryption key — auto-generated if not set | Random |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Session duration in minutes | `10080` (7 days) |
-| `WEB_LOGIN_RATE_LIMIT` | Maximum login attempts before rate limiting | `5` |
-| `WEB_LOGIN_RATE_WINDOW_SECONDS` | Rate limit window in seconds | `60` |
+| Variable                        | Description                                        | Default          |
+| ------------------------------- | -------------------------------------------------- | ---------------- |
+| `WEB_USERNAME`                  | Admin username — if set, skips setup wizard        | —                |
+| `WEB_PASSWORD`                  | Admin password — if set, skips setup wizard        | —                |
+| `WEB_SESSION_SECRET`            | Session encryption key — auto-generated if not set | Random           |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`   | Session duration in minutes                        | `10080` (7 days) |
+| `WEB_LOGIN_RATE_LIMIT`          | Maximum login attempts before rate limiting        | `5`              |
+| `WEB_LOGIN_RATE_WINDOW_SECONDS` | Rate limit window in seconds                       | `60`             |
 
 ### UniFi Protect Connection
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `UNIFI_PROTECT_BASE_URL` | API endpoint (e.g., `https://192.168.1.1/proxy/protect/integration/v1`) | — |
-| `UNIFI_PROTECT_API_KEY` | Your generated API key | — |
-| `UNIFI_PROTECT_VERIFY_SSL` | Verify SSL certificates (`true` or `false`) | `false` |
+| Variable                   | Description                                                             | Default |
+| -------------------------- | ----------------------------------------------------------------------- | ------- |
+| `UNIFI_PROTECT_BASE_URL`   | API endpoint (e.g., `https://192.168.1.1/proxy/protect/integration/v1`) | —       |
+| `UNIFI_PROTECT_API_KEY`    | Your generated API key                                                  | —       |
+| `UNIFI_PROTECT_VERIFY_SSL` | Verify SSL certificates (`true` or `false`)                             | `false` |
 
 ### Storage Paths
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `IMAGE_OUTPUT_PATH` | Where captured images are stored | `output/images` |
-| `VIDEO_OUTPUT_PATH` | Where timelapse videos are stored | `output/videos` |
-| `THUMBNAIL_CACHE_PATH` | Where thumbnail cache is stored | `output/thumbnails` |
-| `DATABASE_DIR` | Directory for the SQLite database file | Same as `OUTPUT_DIR` |
+| Variable               | Description                            | Default              |
+| ---------------------- | -------------------------------------- | -------------------- |
+| `IMAGE_OUTPUT_PATH`    | Where captured images are stored       | `output/images`      |
+| `VIDEO_OUTPUT_PATH`    | Where timelapse videos are stored      | `output/videos`      |
+| `THUMBNAIL_CACHE_PATH` | Where thumbnail cache is stored        | `output/thumbnails`  |
+| `DATABASE_DIR`         | Directory for the SQLite database file | Same as `OUTPUT_DIR` |
 
 ### Web Server
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `WEB_PORT` | Port for the web interface | `8080` |
-| `WEB_CORS_ORIGINS` | Allowed CORS origins (comma-separated) | — |
-| `WEB_TRUST_PROXY_HEADERS` | Trust X-Forwarded-* headers from reverse proxy | `true` |
-| `WEB_COOKIE_SECURE_MODE` | Cookie security: `auto`, `always`, or `never` | `auto` |
+| Variable                  | Description                                     | Default |
+| ------------------------- | ----------------------------------------------- | ------- |
+| `WEB_PORT`                | Port for the web interface                      | `8080`  |
+| `WEB_CORS_ORIGINS`        | Allowed CORS origins (comma-separated)          | —       |
+| `WEB_TRUST_PROXY_HEADERS` | Trust X-Forwarded-\* headers from reverse proxy | `true`  |
+| `WEB_COOKIE_SECURE_MODE`  | Cookie security: `auto`, `always`, or `never`   | `auto`  |
 
 ### Logging
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LOGGING_LEVEL` | Log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` | `INFO` |
-| `LOGGING_FORMAT` | Log format: `json` or `text` | `json` |
+| Variable         | Description                                        | Default |
+| ---------------- | -------------------------------------------------- | ------- |
+| `LOGGING_LEVEL`  | Log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` | `INFO`  |
+| `LOGGING_FORMAT` | Log format: `json` or `text`                       | `json`  |
 
 ### Performance
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_TIMEOUT` | Database connection timeout in seconds | `30` |
-| `DATABASE_BUSY_TIMEOUT` | SQLite busy timeout in milliseconds | `30000` |
-| `THUMBNAIL_WORKERS` | Parallel workers for thumbnail generation | `4` |
-| `SETTINGS_RELOAD_INTERVAL` | How often to reload settings from database (seconds) | `15` |
+| Variable                   | Description                                          | Default |
+| -------------------------- | ---------------------------------------------------- | ------- |
+| `DATABASE_TIMEOUT`         | Database connection timeout in seconds               | `30`    |
+| `DATABASE_BUSY_TIMEOUT`    | SQLite busy timeout in milliseconds                  | `30000` |
+| `THUMBNAIL_WORKERS`        | Parallel workers for thumbnail generation            | `4`     |
+| `SETTINGS_RELOAD_INTERVAL` | How often to reload settings from database (seconds) | `15`    |
 
 ### Pagination
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DEFAULT_PAGE_SIZE` | Default items per page | `100` |
-| `MAX_PAGE_SIZE` | Maximum items per page | `1000` |
-| `RECENT_ITEMS_LIMIT` | Items shown in "recent" lists | `10` |
+| Variable             | Description                   | Default |
+| -------------------- | ----------------------------- | ------- |
+| `DEFAULT_PAGE_SIZE`  | Default items per page        | `100`   |
+| `MAX_PAGE_SIZE`      | Maximum items per page        | `1000`  |
+| `RECENT_ITEMS_LIMIT` | Items shown in "recent" lists | `10`    |
 
----
+______________________________________________________________________
 
 ## Multiple UniFi Protect Systems
 
@@ -159,13 +159,14 @@ services:
 ```
 
 Each instance needs:
+
 - Different container name
 - Different port mapping
 - Different output directory (volume mount)
 - Its own API credentials
 - **Different `WEB_PORT` value** — Session cookies include the port number (`access_token_{WEB_PORT}`), so each instance must have a unique port to prevent login conflicts when accessing multiple instances from the same browser
 
----
+______________________________________________________________________
 
 ## HTTPS with Reverse Proxy
 
@@ -175,21 +176,21 @@ LuxUPT works behind any reverse proxy (Nginx, Traefik, Caddy, etc.) for SSL term
 
 LuxUPT automatically detects HTTPS when running behind a proxy by reading standard headers:
 
-| Header | Purpose |
-|--------|---------|
+| Header              | Purpose                               |
+| ------------------- | ------------------------------------- |
 | `X-Forwarded-Proto` | Detects if original request was HTTPS |
-| `X-Forwarded-For` | Gets real client IP |
-| `X-Real-IP` | Alternative for client IP |
+| `X-Forwarded-For`   | Gets real client IP                   |
+| `X-Real-IP`         | Alternative for client IP             |
 
 ### Cookie Security Modes
 
 The `WEB_COOKIE_SECURE_MODE` setting controls how session cookies are secured:
 
-| Mode | Behavior |
-|------|----------|
-| `auto` | Secure cookies when proxy indicates HTTPS (recommended) |
-| `always` | Always use secure cookies — requires HTTPS |
-| `never` | Never use secure cookies — not recommended for production |
+| Mode     | Behavior                                                  |
+| -------- | --------------------------------------------------------- |
+| `auto`   | Secure cookies when proxy indicates HTTPS (recommended)   |
+| `always` | Always use secure cookies — requires HTTPS                |
+| `never`  | Never use secure cookies — not recommended for production |
 
 ### Nginx Configuration
 
@@ -247,7 +248,7 @@ timelapse.example.com {
 
 Caddy automatically provisions SSL certificates via Let's Encrypt.
 
----
+______________________________________________________________________
 
 ## Storage Structure
 
@@ -321,12 +322,12 @@ NVMe (fast, ephemeral)              HDD/NAS (bulk, archival)
 
 **Why this helps:**
 
-| Data | I/O Pattern | Best Storage |
-|------|-------------|-------------|
-| **Images** | High-volume writes (hundreds of GB/day with many cameras), deleted after compilation | NVMe — fast scratch space, reduces wear on archival drives |
-| **Thumbnails** | Random reads for web UI, burst writes on generation | NVMe — faster page loads |
-| **Videos** | Large sequential writes (once), sequential reads (streaming) | HDD/NAS — capacity matters more than speed |
-| **Database** | Small random reads/writes with fsync | NVMe — lower latency for web UI responsiveness |
+| Data           | I/O Pattern                                                                          | Best Storage                                               |
+| -------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| **Images**     | High-volume writes (hundreds of GB/day with many cameras), deleted after compilation | NVMe — fast scratch space, reduces wear on archival drives |
+| **Thumbnails** | Random reads for web UI, burst writes on generation                                  | NVMe — faster page loads                                   |
+| **Videos**     | Large sequential writes (once), sequential reads (streaming)                         | HDD/NAS — capacity matters more than speed                 |
+| **Database**   | Small random reads/writes with fsync                                                 | NVMe — lower latency for web UI responsiveness             |
 
 **Single mount (default — all data on one disk):**
 
@@ -378,6 +379,7 @@ Each path is independently configurable — mount each to whatever storage tier 
 **Setup steps:**
 
 1. Create the directories on each storage tier:
+
    ```bash
    # NVMe storage
    mkdir -p /mnt/nvme/luxupt/data
@@ -388,13 +390,14 @@ Each path is independently configurable — mount each to whatever storage tier 
    mkdir -p /mnt/nas/luxupt/videos
    ```
 
-2. Set ownership to uid 1000 (the container runs as `appuser` with uid 1000):
+1. Set ownership to uid 1000 (the container runs as `appuser` with uid 1000):
+
    ```bash
    chown -R 1000:1000 /mnt/nvme/luxupt
    chown -R 1000:1000 /mnt/nas/luxupt
    ```
 
-3. Update your compose file with the volume mounts and environment variables (as shown above) and start the container.
+1. Update your compose file with the volume mounts and environment variables (as shown above) and start the container.
 
 **NAS-specific notes:**
 
@@ -402,7 +405,7 @@ Each path is independently configurable — mount each to whatever storage tier 
 - **ZFS users**: If your NAS has a ZFS SLOG (ZIL on NVMe), synchronous NFS write latency is already improved. Tiered storage still helps by reducing write volume on spinning disks.
 - **NVMe sizing**: Images are ephemeral (deleted after compilation), so NVMe capacity only needs to hold 1-2 days of captures. A 256GB-1TB NVMe is sufficient for most setups.
 
----
+______________________________________________________________________
 
 ## CLI Commands
 
@@ -426,11 +429,12 @@ docker exec luxupt python3 main.py timelapse
 ```
 
 These are useful for:
+
 - Testing configuration before enabling automatic operation
 - Running one-off timelapse creation
 - Debugging connectivity issues
 
----
+______________________________________________________________________
 
 ## Database Management
 
@@ -440,11 +444,11 @@ LuxUPT uses SQLite for metadata storage. The database file is at `output/timelap
 
 LuxUPT includes a built-in database backup system that runs automatically. Configure it from the web UI under **System → Backup Settings**.
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Retention** | Number of backups to keep. Set to 0 to disable automatic backups. | 0 (disabled) |
-| **Interval** | Seconds between backups | 3600 (1 hour) |
-| **Backup Directory** | Subdirectory within the output volume for backup files | `backups` |
+| Setting              | Description                                                       | Default       |
+| -------------------- | ----------------------------------------------------------------- | ------------- |
+| **Retention**        | Number of backups to keep. Set to 0 to disable automatic backups. | 0 (disabled)  |
+| **Interval**         | Seconds between backups                                           | 3600 (1 hour) |
+| **Backup Directory** | Subdirectory within the output volume for backup files            | `backups`     |
 
 Backups use SQLite's native hot-backup API — they run safely while the application is active with no downtime required. Old backups are automatically pruned based on the retention count.
 
@@ -495,7 +499,7 @@ conn.close()
 "
 ```
 
----
+______________________________________________________________________
 
 ## Health Checks
 
@@ -507,7 +511,7 @@ docker inspect --format='{{.State.Health.Status}}' luxupt
 
 For orchestration tools, the health endpoint is available at `/health`.
 
----
+______________________________________________________________________
 
 ## Documentation
 

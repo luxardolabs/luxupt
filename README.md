@@ -2,8 +2,7 @@
 
 **Automatic timelapse videos from your UniFi Protect cameras.**
 
-![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
-![GHCR](https://img.shields.io/badge/ghcr.io-luxardolabs%2Fluxupt-blue?logo=github)
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg) ![GHCR](https://img.shields.io/badge/ghcr.io-luxardolabs%2Fluxupt-blue?logo=github)
 
 You've invested in UniFi Protect. LuxUPT turns that investment into something more—capturing snapshots around the clock and compiling them into timelapse videos automatically. Watch your construction site progress, your garden grow through the seasons, or simply see what happened while you were away.
 
@@ -55,14 +54,15 @@ Tomorrow morning, you'll have timelapse videos.
 
 Some UniFi cameras—particularly G5 models—return reduced resolution through the snapshot API. LuxUPT solves this by offering two capture methods:
 
-| Method | How it works | Resolution |
-|--------|--------------|------------|
-| **API Snapshot** | Requests image from UniFi Protect API | Varies by camera |
-| **RTSP Stream** | Captures frame from live video stream | Full camera resolution |
+| Method           | How it works                          | Resolution             |
+| ---------------- | ------------------------------------- | ---------------------- |
+| **API Snapshot** | Requests image from UniFi Protect API | Varies by camera       |
+| **RTSP Stream**  | Captures frame from live video stream | Full camera resolution |
 
 LuxUPT tests each camera and recommends the best method. For cameras where API resolution is limited, RTSP capture delivers full resolution—the same quality you see in the UniFi Protect app.
 
 **Cameras that benefit from RTSP capture:**
+
 - G5 Bullet, G5 Pro, G5 Turret Ultra, G5 Dome
 - G3 Instant
 
@@ -74,12 +74,12 @@ Everything runs through the browser. No SSH, no YAML editing after setup, no res
 
 <!-- Screenshot: Camera page overview -->
 
-| Page | What you do there |
-|------|-------------------|
-| **Cameras** | View all cameras, configure capture settings, monitor success rates |
-| **Timelapses** | Browse videos, create on-demand, configure the scheduler |
-| **Images** | Browse captured snapshots, view full resolution, manage storage |
-| **System** | Monitor health, manage users, view configuration |
+| Page           | What you do there                                                   |
+| -------------- | ------------------------------------------------------------------- |
+| **Cameras**    | View all cameras, configure capture settings, monitor success rates |
+| **Timelapses** | Browse videos, create on-demand, configure the scheduler            |
+| **Images**     | Browse captured snapshots, view full resolution, manage storage     |
+| **System**     | Monitor health, manage users, view configuration                    |
 
 ## Documentation
 
@@ -104,6 +104,6 @@ No cloud services. No data collection. No subscriptions. Just software that runs
 
 Found a bug? Have a feature idea? [Open an issue](https://github.com/luxardolabs/luxupt/issues). Pull requests welcome.
 
----
+______________________________________________________________________
 
 *Built with Python, FastAPI, and FFmpeg.*

@@ -2,7 +2,7 @@
 
 Common issues and solutions for LuxUPT.
 
----
+______________________________________________________________________
 
 ## Camera Issues
 
@@ -15,25 +15,27 @@ Common issues and solutions for LuxUPT.
 **Solution:**
 
 1. Open the camera's settings panel (click the camera card on the Cameras page)
-2. Click **Re-detect** to test both capture methods
-3. Compare the resolutions:
+1. Click **Re-detect** to test both capture methods
+1. Compare the resolutions:
    - **API Snapshot**: Shows what the API returns
    - **RTSP Stream**: Shows your camera's true resolution
-4. If RTSP shows higher resolution, change **Capture Method** to "RTSP Stream"
-5. Click **Save**
+1. If RTSP shows higher resolution, change **Capture Method** to "RTSP Stream"
+1. Click **Save**
 
 **Cameras typically affected:**
+
 - G5 Bullet, G5 Pro, G5 Turret Ultra, G5 Dome
 - G3 Instant
 
 **Cameras typically unaffected:**
+
 - G3 Flex
 - G4 Doorbell, G4 PTZ
 - G6 cameras
 
 For technical background, see this [community discussion](https://community.ui.com/questions/G5-camera-snapshot-resolution/cb0063d0-b534-4320-a96b-ac2e9a546eaf).
 
----
+______________________________________________________________________
 
 ### No Cameras Discovered
 
@@ -42,19 +44,23 @@ For technical background, see this [community discussion](https://community.ui.c
 **Possible Causes:**
 
 1. **Incorrect API key**
+
    - Regenerate the API key in UniFi Protect
    - Make sure you copied the entire key
 
-2. **Incorrect Base URL**
+1. **Incorrect Base URL**
+
    - Format should be: `https://[IP]/proxy/protect/integration/v1`
    - Try using the IP address instead of hostname
    - Verify you can reach the URL from the Docker host
 
-3. **Network issues**
+1. **Network issues**
+
    - Container can't reach the UniFi Protect host
    - Try: `docker exec luxupt curl -k https://your-protect-ip/`
 
-4. **SSL certificate issues**
+1. **SSL certificate issues**
+
    - Set `UNIFI_PROTECT_VERIFY_SSL: "false"` in your compose file
    - Or configure it in Capture Settings → API Connection → Verify SSL
 
@@ -66,23 +72,25 @@ Check the container logs for error messages:
 docker logs luxupt | grep -i "error\|failed\|camera"
 ```
 
----
+______________________________________________________________________
 
 ### Camera Shows "Disconnected"
 
 **Symptom:** Camera appears in LuxUPT but shows "Disconnected" status.
 
 **Causes:**
+
 - Camera is offline in UniFi Protect
 - Camera was removed from UniFi Protect
 - Network connectivity issues between camera and NVR
 
 **Solution:**
-1. Check the camera status in UniFi Protect directly
-2. If the camera is online in Protect but shows disconnected in LuxUPT, click the camera and use **Re-detect** to refresh
-3. Wait for the next camera refresh (default: 5 minutes) or restart the container
 
----
+1. Check the camera status in UniFi Protect directly
+1. If the camera is online in Protect but shows disconnected in LuxUPT, click the camera and use **Re-detect** to refresh
+1. Wait for the next camera refresh (default: 5 minutes) or restart the container
+
+______________________________________________________________________
 
 ### RTSP Capture Failing
 
@@ -91,24 +99,28 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Possible Causes:**
 
 1. **Camera set to Enhanced encoding (most common)**
+
    - Enhanced encoding uses H.265/HEVC, which does not provide compatible RTSP streams
    - In UniFi Protect: Device Settings → Video → Encoding → set to **Standard** (H.264)
    - This is a UniFi Protect platform requirement that affects all third-party RTSP integrations (Home Assistant, Frigate, etc.)
    - See [FAQ: Why do some cameras show "RTSP Stream Not Tested"?](#why-do-some-cameras-show-rtsp-stream-not-tested) below
 
-2. **RTSP not enabled on camera**
+1. **RTSP not enabled on camera**
+
    - In UniFi Protect: Device Settings → Advanced → Enable RTSP
    - Make sure to enable the quality level you want (High, Medium, or Low)
 
-3. **RTSP timeout too short**
+1. **RTSP timeout too short**
+
    - Increase **RTSP Timeout** in Capture Settings
    - Default is reasonable, but slow networks may need more
 
-4. **FFmpeg issues**
+1. **FFmpeg issues**
+
    - Check logs: `docker logs luxupt | grep -i ffmpeg`
    - RTSP capture requires FFmpeg, which is included in the container
 
----
+______________________________________________________________________
 
 ## Capture Issues
 
@@ -121,23 +133,27 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Solutions:**
 
 1. **Increase camera distribution offset**
+
    - Capture Settings → Camera Distribution
    - Increase Min Offset and Max Offset
    - This staggers captures across time
 
-2. **Reduce capture frequency**
+1. **Reduce capture frequency**
+
    - Use longer intervals (e.g., 120s instead of 60s)
    - Remove intervals you don't need
 
-3. **Lower the rate limit buffer**
+1. **Lower the rate limit buffer**
+
    - Capture Settings → Performance → Buffer
    - Lower values (e.g., 0.6) are more conservative
 
-4. **Reduce concurrent cameras**
+1. **Reduce concurrent cameras**
+
    - If you have many cameras, the system may be hitting limits
    - Disable capture on less important cameras
 
----
+______________________________________________________________________
 
 ### High Failure Rate
 
@@ -146,20 +162,20 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Debugging:**
 
 1. Check the **Activity Feed** on the dashboard — capture failures are logged with the camera name, interval, and error message
-2. Check **Recent Failures** section on Cameras page for error messages
-3. Check container logs: `docker logs luxupt --tail 100`
-4. Click individual cameras to see per-camera success rates
+1. Check **Recent Failures** section on Cameras page for error messages
+1. Check container logs: `docker logs luxupt --tail 100`
+1. Click individual cameras to see per-camera success rates
 
 **Common causes and solutions:**
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Connection timeout | Slow network or camera | Increase Timeout in Capture Settings |
-| Camera disconnected | Camera offline | Check camera in UniFi Protect |
-| Rate limited | Too many requests | See "Rate Limit Errors" above |
-| Bad request | Unsupported quality | Try different capture method or quality |
+| Error               | Cause                  | Solution                                |
+| ------------------- | ---------------------- | --------------------------------------- |
+| Connection timeout  | Slow network or camera | Increase Timeout in Capture Settings    |
+| Camera disconnected | Camera offline         | Check camera in UniFi Protect           |
+| Rate limited        | Too many requests      | See "Rate Limit Errors" above           |
+| Bad request         | Unsupported quality    | Try different capture method or quality |
 
----
+______________________________________________________________________
 
 ### Missing Captures / Low Capture Rate
 
@@ -168,25 +184,29 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Possible Causes:**
 
 1. **Capture cycles falling behind**
+
    - Check the **Activity Feed** for "Capture cycle skipped" errors
    - This means the previous capture cycle was still running when the next one was scheduled
    - The system allows up to 2 concurrent cycles per interval before skipping to prevent resource exhaustion
 
-2. **Individual camera timeouts**
+1. **Individual camera timeouts**
+
    - Check the **Activity Feed** for "Failed to capture" errors for specific cameras
    - RTSP captures can timeout if the camera or network is slow
    - Increase RTSP Timeout in Capture Settings if needed
 
-3. **Camera disabled or disconnected**
+1. **Camera disabled or disconnected**
+
    - Check if the camera is active (Camera Settings → Camera Active)
    - Check if the camera is connected in UniFi Protect
 
 **Solutions:**
+
 - If cycles are being skipped: Check if RTSP capture times are too long. Consider switching slow cameras to API capture or reducing the number of cameras on short intervals.
 - If individual cameras fail: Check Recent Failures on the Cameras page for specific error messages.
 - Verify camera distribution is working: Check container logs for `"distributed": true` in capture cycle messages.
 
----
+______________________________________________________________________
 
 ### Captures Stop Working
 
@@ -195,23 +215,27 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Check:**
 
 1. **Is capture enabled?**
+
    - Capture Settings → Capture Enabled should be ON
 
-2. **Did the API key expire or get revoked?**
+1. **Did the API key expire or get revoked?**
+
    - Check UniFi Protect → Your API Keys
    - Regenerate if needed
 
-3. **Is the container healthy?**
+1. **Is the container healthy?**
+
    ```bash
    docker ps
    docker logs luxupt --tail 50
    ```
 
-4. **Is the disk full?**
+1. **Is the disk full?**
+
    - Check System page → Storage
    - Or: `df -h` on the Docker host
 
----
+______________________________________________________________________
 
 ## Video Creation Issues
 
@@ -224,29 +248,34 @@ docker logs luxupt | grep -i "error\|failed\|camera"
 **Common causes:**
 
 1. **Not enough images**
+
    - Need at least 2 images to create a video
    - Check if capture was working on that date
 
-2. **Disk full**
+1. **Disk full**
+
    - Check available space: System page → Storage
    - Delete old images or videos to free space
 
-3. **Out of memory**
+1. **Out of memory**
+
    - FFmpeg memory usage scales with video resolution and number of source images
    - If FFmpeg is killed by the OS (OOM), the error will show "FFmpeg process killed (no output)"
    - Common in LXC containers or memory-constrained environments
    - **Solution:** Increase container/host memory — 16GB is a safe target for many high-resolution cameras
    - Manual creation may succeed while scheduled runs fail if other processes are competing for memory at the scheduled time
 
-4. **FFmpeg timeout**
+1. **FFmpeg timeout**
+
    - Large timelapses (thousands of images) may exceed the timeout
    - Increase Timeout in Scheduler → Video Encoding
 
-5. **Corrupted images**
+1. **Corrupted images**
+
    - Some images may be corrupted
    - Check the source images in the Images browser
 
----
+______________________________________________________________________
 
 ### Videos Are Too Short or Long
 
@@ -259,12 +288,13 @@ Video duration = (Number of images) / (Frame rate)
 Example: 1,440 images at 30 fps = 48 seconds of video
 
 **Adjustments:**
+
 - **Longer video**: Lower the frame rate (e.g., 15 fps instead of 30)
 - **Shorter video**: Higher the frame rate (e.g., 60 fps)
 
 Configure in Scheduler → Video Encoding → Frame Rate.
 
----
+______________________________________________________________________
 
 ### Poor Video Quality
 
@@ -273,20 +303,23 @@ Configure in Scheduler → Video Encoding → Frame Rate.
 **Solutions:**
 
 1. **Lower the CRF value** (better quality)
+
    - Scheduler → Video Encoding → Quality (CRF)
    - Try 18-20 for high quality
    - Lower numbers = better quality, larger files
 
-2. **Use a slower preset** (better compression)
+1. **Use a slower preset** (better compression)
+
    - Scheduler → Video Encoding → Preset
    - "slow" or "slower" produce better quality
    - Trade-off: encoding takes longer
 
-3. **Check source image quality**
+1. **Check source image quality**
+
    - If source images are low resolution, video will be too
    - See "Low Resolution / Tiny Images" above
 
----
+______________________________________________________________________
 
 ### Scheduler Not Running
 
@@ -295,21 +328,25 @@ Configure in Scheduler → Video Encoding → Frame Rate.
 **Check:**
 
 1. **Is scheduler enabled?**
+
    - Timelapses page → Scheduler → Enable Scheduler should be ON
 
-2. **Are cameras selected?**
+1. **Are cameras selected?**
+
    - Scheduler → Cameras & Intervals
    - At least one camera and one interval must be checked
 
-3. **Is the run time in the past today?**
+1. **Is the run time in the past today?**
+
    - If you set it to 01:00 and it's now 14:00, it won't run until tomorrow
 
-4. **Check container logs at the scheduled time:**
+1. **Check container logs at the scheduled time:**
+
    ```bash
    docker logs luxupt | grep -i scheduler
    ```
 
----
+______________________________________________________________________
 
 ## Connection Issues
 
@@ -330,7 +367,7 @@ Or configure in the UI: Capture Settings → API Connection → Verify SSL → O
 
 This is common with local UniFi installations that use self-signed certificates.
 
----
+______________________________________________________________________
 
 ### Can't Access Web Interface
 
@@ -339,32 +376,37 @@ This is common with local UniFi installations that use self-signed certificates.
 **Check:**
 
 1. **Is the container running?**
+
    ```bash
    docker ps | grep luxupt
    ```
 
-2. **Is the port mapped correctly?**
+1. **Is the port mapped correctly?**
+
    ```bash
    docker port luxupt
    ```
 
-3. **Is something else using port 8080?**
+1. **Is something else using port 8080?**
+
    ```bash
    sudo lsof -i :8080
    ```
 
-4. **Firewall blocking the port?**
+1. **Firewall blocking the port?**
+
    ```bash
    sudo ufw status  # Ubuntu
    sudo firewall-cmd --list-ports  # CentOS/RHEL
    ```
 
-5. **Check container logs:**
+1. **Check container logs:**
+
    ```bash
    docker logs luxupt
    ```
 
----
+______________________________________________________________________
 
 ## Authentication Issues
 
@@ -373,14 +415,17 @@ This is common with local UniFi installations that use self-signed certificates.
 **Symptom:** Can't log in, don't remember password.
 
 **If you set credentials in compose file:**
+
 - Check your compose.yaml for `WEB_USERNAME` and `WEB_PASSWORD`
 
 **If you created credentials in setup wizard:**
+
 - You'll need to reset the database or add credentials to compose file
 
 **Reset by adding env vars:**
 
 Add to your compose.yaml:
+
 ```yaml
 environment:
   WEB_USERNAME: admin
@@ -389,7 +434,7 @@ environment:
 
 Restart the container. The env var credentials take priority.
 
----
+______________________________________________________________________
 
 ### Login Rate Limited
 
@@ -401,18 +446,20 @@ Restart the container. The env var credentials take priority.
 
 1. **Wait** — Rate limit resets after 60 seconds (default)
 
-2. **Restart container** — Clears rate limit state
+1. **Restart container** — Clears rate limit state
+
    ```bash
    docker compose restart luxupt
    ```
 
-3. **Adjust rate limit** (if you have many users):
+1. **Adjust rate limit** (if you have many users):
+
    ```yaml
    environment:
      WEB_LOGIN_RATE_LIMIT: "10"  # Default is 5
    ```
 
----
+______________________________________________________________________
 
 ### Session Expires Too Quickly
 
@@ -429,7 +476,7 @@ environment:
 
 Default is 10080 minutes (7 days).
 
----
+______________________________________________________________________
 
 ## Storage Issues
 
@@ -441,7 +488,7 @@ Default is 10080 minutes (7 days).
 
 **Solution:** Move the database to local storage using the `DATABASE_DIR` environment variable. See [Separating Database from Output Storage](configuration.md#separating-database-from-output-storage-nfs) in the Configuration guide.
 
----
+______________________________________________________________________
 
 ### Permission Denied / Read-Only Database After Migration
 
@@ -459,7 +506,7 @@ chown -R 1000:1000 /path/to/data/directory
 
 All volume mounts that the container writes to must be writable by uid 1000.
 
----
+______________________________________________________________________
 
 ### Disk Full
 
@@ -468,20 +515,24 @@ All volume mounts that the container writes to must be writable by uid 1000.
 **Solutions:**
 
 1. **Delete old images**
+
    - Images page → Delete button
    - Filter by old dates and delete
 
-2. **Delete old videos**
+1. **Delete old videos**
+
    - Timelapses page → Delete unwanted videos
 
-3. **Enable automatic cleanup**
+1. **Enable automatic cleanup**
+
    - Scheduler → Keep Source Images → OFF
    - Images are deleted after successful video creation
 
-4. **Add more storage**
+1. **Add more storage**
+
    - Change the volume mount to a larger disk
 
----
+______________________________________________________________________
 
 ### Images Not Appearing in Browser
 
@@ -490,10 +541,10 @@ All volume mounts that the container writes to must be writable by uid 1000.
 **Possible causes:**
 
 1. **Filter mismatch** — Check your filters (camera, date, interval)
-2. **Images on disk but not in database** — Rare, but can happen if database was reset
-3. **Thumbnail generation failing** — Check logs for thumbnail errors
+1. **Images on disk but not in database** — Rare, but can happen if database was reset
+1. **Thumbnail generation failing** — Check logs for thumbnail errors
 
----
+______________________________________________________________________
 
 ## FAQ
 
@@ -511,47 +562,49 @@ This is not specific to LuxUPT. Home Assistant, Frigate, Homebridge, go2rtc, and
 **Fix:**
 
 1. Open UniFi Protect
-2. Go to each affected camera's Settings → Video
-3. Change Encoding from **Enhanced** to **Standard**
-4. In LuxUPT, click **Re-detect** on the camera to re-test RTSP
+1. Go to each affected camera's Settings → Video
+1. Change Encoding from **Enhanced** to **Standard**
+1. In LuxUPT, click **Re-detect** on the camera to re-test RTSP
 
 After switching to Standard, the RTSP stream test should succeed and show the camera's full resolution.
 
 **Note:** You may have cameras with identical models and settings where some work and some don't. Double-check that encoding is set to Standard on every camera individually — this setting is per-camera, not global.
 
----
+______________________________________________________________________
 
 ### Can I use Enhanced encoding for recording and Standard for RTSP?
 
 No. UniFi Protect applies the encoding setting to both recording and RTSP streams. If you need RTSP access (for LuxUPT or any other integration), the camera must use Standard encoding.
 
----
+______________________________________________________________________
 
 ### Does this affect API snapshot capture?
 
 No. The API snapshot endpoint works regardless of encoding setting. Only RTSP stream capture is affected. If you don't need the higher resolution that RTSP provides, you can use API capture method instead and keep Enhanced encoding.
 
----
+______________________________________________________________________
 
 ## Getting Help
 
 If you can't resolve an issue:
 
 1. **Check the logs:**
+
    ```bash
    docker logs luxupt --tail 200
    ```
 
-2. **Include in your bug report:**
+1. **Include in your bug report:**
+
    - LuxUPT version (System page → Version)
    - UniFi Protect version
    - Camera models affected
    - Error messages from logs
    - Steps to reproduce
 
-3. **Open an issue:** [GitHub Issues](https://github.com/luxardolabs/luxupt/issues)
+1. **Open an issue:** [GitHub Issues](https://github.com/luxardolabs/luxupt/issues)
 
----
+______________________________________________________________________
 
 ## Documentation
 
