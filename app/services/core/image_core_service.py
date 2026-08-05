@@ -10,6 +10,7 @@ Thumbnail storage structure (mirrors image storage):
 """
 
 import asyncio
+import contextlib
 from datetime import date
 from pathlib import Path
 
@@ -51,10 +52,8 @@ class ImageCoreService:
         self._running = False
         for task in self._worker_tasks:
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         self._worker_tasks = []
         logger.info("Image service stopped")
 

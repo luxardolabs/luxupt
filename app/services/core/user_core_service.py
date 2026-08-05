@@ -72,9 +72,7 @@ class UserCoreService:
         user = await self.get_by_username(username)
         if user is None:
             return False
-        if exclude_id is not None and user.id == exclude_id:
-            return False
-        return True
+        return not (exclude_id is not None and user.id == exclude_id)
 
     def has_env_auth(self) -> bool:
         """Check if environment authentication is configured."""

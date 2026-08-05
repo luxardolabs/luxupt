@@ -63,7 +63,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             .where(Job.status.in_([JobStatus.RUNNING, JobStatus.PENDING]))
             .values(status=JobStatus.FAILED, error=error, pid=None)
         )
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        return result.rowcount  # type: ignore[no-any-return]
 
     async def get_completed(
         self,

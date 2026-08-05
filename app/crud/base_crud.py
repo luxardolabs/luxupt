@@ -1,6 +1,6 @@
 """Base CRUD class with generic operations."""
 
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, cast
 
 from pydantic import BaseModel
 from sqlalchemy import Column, func, select
@@ -9,12 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import config
 from app.db.base import Base
 
-ModelType = TypeVar("ModelType", bound=Base)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
-
-class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: BaseModel]:
     """Base class for CRUD operations."""
 
     def __init__(self, model: type[ModelType]) -> None:
@@ -23,7 +19,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         """Get a single record by ID."""
-        id_column = cast(Column[Any], self.model.id)  # type: ignore[attr-defined]
+        id_column = cast(Column[Any], self.model.id)
         result = await db.execute(select(self.model).where(id_column == id))
         return result.scalar_one_or_none()
 
@@ -91,6 +87,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def exists(self, db: AsyncSession, id: Any) -> bool:
         """Check if a record exists by ID."""
-        id_column = cast(Column[Any], self.model.id)  # type: ignore[attr-defined]
+        id_column = cast(Column[Any], self.model.id)
         result = await db.execute(select(id_column).where(id_column == id).limit(1))
         return result.scalar_one_or_none() is not None

@@ -221,7 +221,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             delete(Capture).where(Capture.capture_date < before_date)
         )
         await db.flush()
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        return result.rowcount  # type: ignore[no-any-return]
 
     async def delete_by_camera_date_interval(
         self,
@@ -240,7 +240,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             )
         )
         await db.flush()
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        return result.rowcount  # type: ignore[no-any-return]
 
     async def get_recent_failures(
         self,
@@ -739,7 +739,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
 
         result = await db.execute(query)
         await db.flush()
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        return result.rowcount  # type: ignore[no-any-return]
 
 
 capture_crud = CRUDCapture(Capture)

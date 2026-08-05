@@ -150,13 +150,12 @@ def setup_logging() -> None:
     use_json = config.LOGGING_FORMAT.lower() == "json"
 
     # Create appropriate formatter
-    if use_json:
-        if not JSON_LOGGING_AVAILABLE:
-            logging.warning(
-                "JSON logging requested but pythonjsonlogger not installed. Falling back to text format. "
-                "Install with: pip install python-json-logger"
-            )
-            use_json = False
+    if use_json and not JSON_LOGGING_AVAILABLE:
+        logging.warning(
+            "JSON logging requested but pythonjsonlogger not installed. Falling back to text format. "
+            "Install with: pip install python-json-logger"
+        )
+        use_json = False
 
     formatter: logging.Formatter
     if use_json:

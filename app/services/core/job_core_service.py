@@ -1,6 +1,7 @@
 """Job service for timelapse job management and processing."""
 
 import asyncio
+import contextlib
 import json as json_module
 import os
 import signal
@@ -565,10 +566,8 @@ class JobProcessor:
                     extra={"job_id": job_id, "output": str(output_path)},
                 )
                 # Delete the corrupt file and any partial thumbnail
-                try:
+                with contextlib.suppress(Exception):
                     await async_fs.path_unlink(output_path, missing_ok=True)
-                except Exception:
-                    pass
                 async with async_session() as db:
                     await job_crud.fail_job(
                         db,

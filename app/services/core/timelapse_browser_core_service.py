@@ -1,6 +1,7 @@
 """Timelapse browser service for timelapse viewing operations."""
 
 import asyncio
+import contextlib
 from datetime import date
 from pathlib import Path
 
@@ -190,17 +191,13 @@ class TimelapseBrowserCoreService:
         if timelapse.file_path:
             p = Path(timelapse.file_path)
             if p.exists():
-                try:
+                with contextlib.suppress(Exception):
                     p.unlink()
-                except Exception:
-                    pass
         if timelapse.thumbnail_path:
             p = Path(timelapse.thumbnail_path)
             if p.exists():
-                try:
+                with contextlib.suppress(Exception):
                     p.unlink()
-                except Exception:
-                    pass
 
     async def delete_timelapse(self, timelapse_id: int) -> bool:
         """Delete a timelapse - removes database record and files.

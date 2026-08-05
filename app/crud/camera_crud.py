@@ -29,14 +29,14 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
     async def get_active(self, db: AsyncSession) -> list[Camera]:
         """Get all active cameras."""
         result = await db.execute(
-            select(Camera).where(Camera.is_active == True).order_by(Camera.name)
+            select(Camera).where(Camera.is_active.is_(True)).order_by(Camera.name)
         )
         return list(result.scalars().all())
 
     async def get_inactive(self, db: AsyncSession) -> list[Camera]:
         """Get all inactive (disabled) cameras."""
         result = await db.execute(
-            select(Camera).where(Camera.is_active == False).order_by(Camera.name)
+            select(Camera).where(Camera.is_active.is_(False)).order_by(Camera.name)
         )
         return list(result.scalars().all())
 
@@ -44,7 +44,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         """Get all connected cameras."""
         result = await db.execute(
             select(Camera)
-            .where(Camera.is_active == True, Camera.is_connected == True)  # noqa: E712
+            .where(Camera.is_active.is_(True), Camera.is_connected == True)  # noqa: E712
             .order_by(Camera.name)
         )
         return list(result.scalars().all())
@@ -317,7 +317,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         - the interval is in the enabled_intervals list
         """
         result = await db.execute(
-            select(Camera).where(Camera.is_active == True).order_by(Camera.name)
+            select(Camera).where(Camera.is_active.is_(True)).order_by(Camera.name)
         )
         cameras = list(result.scalars().all())
 

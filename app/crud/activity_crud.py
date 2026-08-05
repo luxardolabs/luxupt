@@ -288,7 +288,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         cutoff = datetime.now() - timedelta(days=days)
         result = await db.execute(delete(Activity).where(Activity.timestamp < cutoff))
         await db.flush()
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        return result.rowcount  # type: ignore[no-any-return]
 
 
 activity_crud = CRUDActivity(Activity)
