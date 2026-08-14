@@ -5,6 +5,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.post_commit import after_commit
 from app.logging_config import get_logger
 from app.protect_client import ProtectClient
 from app.schemas.pagination_schema import build_pagination
@@ -307,13 +308,21 @@ class TimelapsesViewService:
             target_date=date.fromisoformat(date_str),
             interval=interval,
         )
-        # Commit before kickoff: the JobProcessor task reads the job row from its own session
-        await self.db.commit()
-        get_job_processor().start_job(job.job_id, date_str, camera_safe_name, interval)
+        # The JobProcessor reads the job row from its OWN session, so it must see a committed
+        # row (§5e cross-process read). Instead of committing this handed session, defer the
+        # kickoff to after get_db commits (ADR-003 after_commit): the worker then reads a durable
+        # row, and this service stays transaction-agnostic (fw.no_redundant_commit).
+        job_id = job.job_id
+        after_commit(
+            self.db,
+            lambda: get_job_processor().start_job(
+                job_id, date_str, camera_safe_name, interval
+            ),
+        )
 
         return {
             "success": True,
-            "job_id": job.job_id,
+            "job_id": job_id,
             "camera": camera_safe_name,
             "date": date_str,
             "interval": interval,
