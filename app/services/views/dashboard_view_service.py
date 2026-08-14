@@ -1,5 +1,7 @@
 """Dashboard view service for preparing dashboard template data."""
 
+from typing import Any
+
 from app.services.core.activity_core_service import ActivityCoreService
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
@@ -31,7 +33,7 @@ class DashboardViewService:
         self.activity_service = activity_service
         self.settings_service = settings_service
 
-    async def get_dashboard_context(self) -> dict:
+    async def get_dashboard_context(self) -> dict[str, Any]:
         """Get all data needed for the main dashboard page."""
         # Get camera data
         cameras = await self.camera_service.get_active()
@@ -68,7 +70,7 @@ class DashboardViewService:
             "activity_summary": activity_summary,
         }
 
-    async def get_camera_cards_context(self) -> dict:
+    async def get_camera_cards_context(self) -> dict[str, Any]:
         """Get data for camera cards partial."""
         cameras = await self.camera_service.get_active()
         latest_captures = await self.capture_service.get_latest_captures_all()
@@ -103,7 +105,7 @@ class DashboardViewService:
             "recent_failures": recent_failures,
         }
 
-    async def get_activity_feed_context(self, limit: int = 20) -> dict:
+    async def get_activity_feed_context(self, limit: int = 20) -> dict[str, Any]:
         """Get data for activity feed partial."""
         activities = await self.activity_service.get_recent(limit=limit)
         summary = await self.activity_service.get_summary(hours=24)
@@ -113,7 +115,7 @@ class DashboardViewService:
             "summary": summary,
         }
 
-    async def get_stats_cards_context(self) -> dict:
+    async def get_stats_cards_context(self) -> dict[str, Any]:
         """Get data for statistics cards partial."""
         capture_stats = await self.capture_stats_service.get_stats()
         timelapse_stats = await self.timelapse_service.get_stats()

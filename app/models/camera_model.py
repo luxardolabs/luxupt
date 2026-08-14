@@ -1,7 +1,7 @@
 """Camera SQLAlchemy model."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.dialects.sqlite import JSON
@@ -92,7 +92,7 @@ class Camera(Base, TimestampMixin):
         return f"<Camera(id={self.id}, name={self.name}, safe_name={self.safe_name})>"
 
     @classmethod
-    def from_api_response(cls, camera_data: dict) -> "Camera":
+    def from_api_response(cls, camera_data: dict[str, Any]) -> "Camera":
         """Create a Camera instance from UniFi Protect API response."""
         name = camera_data.get("name", "Unknown")
         safe_name = "".join(

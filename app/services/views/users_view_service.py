@@ -1,5 +1,7 @@
 """Users view service for preparing user management template data."""
 
+from typing import Any
+
 from app.logging_config import get_logger
 from app.services.core.user_core_service import UserCoreService
 
@@ -13,7 +15,7 @@ class UsersViewService:
         """Initialize with core user service."""
         self.user_service = user_service
 
-    async def get_users_context(self) -> dict:
+    async def get_users_context(self) -> dict[str, Any]:
         """Get context for users list page.
 
         All users (both env and database) are stored in the users table.
@@ -25,14 +27,14 @@ class UsersViewService:
         users = await self.user_service.get_all()
         return {"users": users}
 
-    async def get_user_form_context(self, user_id: int | None = None) -> dict:
+    async def get_user_form_context(self, user_id: int | None = None) -> dict[str, Any]:
         """Get context for user create/edit form."""
         edit_user = None
         if user_id:
             edit_user = await self.user_service.get_by_id(user_id)
         return {"edit_user": edit_user}
 
-    async def get_delete_confirm_context(self, user_id: int) -> dict:
+    async def get_delete_confirm_context(self, user_id: int) -> dict[str, Any]:
         """Get context for delete confirmation panel."""
         delete_user = await self.user_service.get_by_id(user_id)
         user_count = await self.user_service.count()

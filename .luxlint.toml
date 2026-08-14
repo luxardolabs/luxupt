@@ -9,14 +9,15 @@ paths = ["app"]   # the app package — lint + format-check + mypy target
 target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:3.13-slim (Dockerfile).
                       # Sets what ruff/mypy check against; the rule SET stays fleet-identical.
 
-# Mypy ratchet (luxlint 0.22.0) — a fleet-owned, monotonic-DOWN floor for the mypy tail.
-# luxupt has ZERO crash-class errors (per --playbook mypy-sweep ranking); the 227 are pure
-# type-completeness — ~80 unfixable FastAPI untyped-decorator + bare dict/list type-arg (no
-# bugs). The ratchet tracks + prevents regression; drain opportunistically, never raise it.
+# Mypy ratchet (luxlint 0.22.0) — a monotonic-DOWN floor, now at ZERO. The mypy tail is fully GREEN:
+# the honest env (real deps) drives `mypy app` to 0 with CLEAN fixes only (no cast / no type:ignore,
+# mypy-sweep §4). The type-arg debt was drained to dict[str, Any]; the SQLAlchemy Result.rowcount and
+# generic ModelType.id typing gaps were fixed properly (app/db/dml.execute_rowcount; a TYPE_CHECKING
+# id on Base). The ratchet stays wired at 0 so any regression goes RED. LUXUPT-64 DONE.
 [mypy]
-baseline = 227   # LUXUPT-64. `make lint` pipes mypy through `luxlint --mypy-ratchet`.
+baseline = 0   # LUXUPT-64 complete — mypy tail is 0/green. `make lint` pipes through `luxlint --mypy-ratchet`.
 
 # Mypy-tail honesty attestations (luxlint --preflight). Same currency as [rules.deferred]:
 # a written before→after that proves the tail resolves the real code, not phantoms.
 [mypy.tail]
-pydantic = "make lint tail installs pydantic + pydantic-settings; luxlint --emit-config mypy injects plugins=pydantic.mypy; without it mypy crashed at plugin load (1 error, checking aborted) → 234 honest across 47 files (LUXUPT-64)"
+pydantic = "make lint tail runs in the TEST_DEPS image (deps from poetry.lock) so pydantic + its mypy plugin load AND fastapi/sqlalchemy resolve with real types. Before: a pydantic-only lean base manufactured ~105 phantom untyped-decorator errors → 227. After (real deps, mypy-sweep §0): 122 honest across 32 files (LUXUPT-64)."

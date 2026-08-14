@@ -1,6 +1,7 @@
 """CRUD operations for Activity model."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import case, delete, func, select
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud.base_crud import CRUDBase
+from app.db.dml import execute_rowcount
 from app.models.activity_model import Activity
 from app.models.enum_model import ActivityType
 from app.schemas.activity_schema import ActivityCreate, ActivitySummary
@@ -87,7 +89,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         camera_id: str | None = None,
         camera_safe_name: str | None = None,
         interval: int | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> Activity:
         """Log a new activity event."""
         activity = Activity(
@@ -286,9 +288,11 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
     ) -> int:
         """Delete activities older than N days. Returns count of deleted records."""
         cutoff = datetime.now() - timedelta(days=days)
-        result = await db.execute(delete(Activity).where(Activity.timestamp < cutoff))
+        count = await execute_rowcount(
+            db, delete(Activity).where(Activity.timestamp < cutoff)
+        )
         await db.flush()
-        return result.rowcount  # type: ignore[no-any-return]
+        return count
 
 
 activity_crud = CRUDActivity(Activity)

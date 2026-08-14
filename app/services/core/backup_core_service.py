@@ -18,7 +18,7 @@ class BackupCoreService:
 
     def __init__(self) -> None:
         self.running = False
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         logger.info("BackupCoreService initialized")
 
     async def start(self) -> None:

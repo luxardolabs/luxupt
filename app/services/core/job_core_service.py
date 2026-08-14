@@ -8,6 +8,7 @@ import signal
 import subprocess
 from datetime import date, datetime, time
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -143,7 +144,7 @@ class JobCoreService:
         job_id: str,
         *,
         output_file: str | None = None,
-        result_details: dict | None = None,
+        result_details: dict[str, Any] | None = None,
         total_frames: int | None = None,
     ) -> Job | None:
         """Mark a job as completed."""
@@ -223,7 +224,7 @@ class JobCoreService:
             self.db, error="Marked as stale by user"
         )
 
-    async def get_summary(self) -> dict:
+    async def get_summary(self) -> dict[str, Any]:
         """Get job summary statistics."""
         return await job_crud.get_summary(self.db)
 
@@ -691,7 +692,7 @@ class JobProcessor:
         resolution = None
         frame_count = 0
 
-        def run_ffprobe() -> subprocess.CompletedProcess:
+        def run_ffprobe() -> subprocess.CompletedProcess[str]:
             """Run ffprobe to extract duration, resolution, and frame count from the video."""
             return subprocess.run(
                 [
@@ -742,7 +743,7 @@ class JobProcessor:
 
         seek_time = min(1.0, duration_seconds * 0.1) if duration_seconds > 0 else 0
 
-        def run_ffmpeg_thumb() -> subprocess.CompletedProcess:
+        def run_ffmpeg_thumb() -> subprocess.CompletedProcess[str]:
             """Run ffmpeg to extract a single frame as a JPEG thumbnail."""
             return subprocess.run(
                 [

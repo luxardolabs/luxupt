@@ -21,7 +21,7 @@ import secrets
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from time import time
-from typing import cast
+from typing import Any, cast
 
 import jwt
 from fastapi import Form, HTTPException, Request, Response, status
@@ -216,7 +216,9 @@ class AuthService:
         return False, None
 
     @staticmethod
-    def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    def create_access_token(
+        data: dict[str, Any], expires_delta: timedelta | None = None
+    ) -> str:
         """Create JWT access token."""
         to_encode = data.copy()
 
@@ -228,8 +230,7 @@ class AuthService:
             )
 
         to_encode.update({"exp": expire})
-        # PyJWT is untyped in the mypy tail (app deps aren't installed there) -> cast.
-        return cast(str, jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
+        return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     @staticmethod
     def verify_token(token: str) -> str | None:
@@ -275,7 +276,7 @@ async def login_form(request: Request) -> Response:
                 return RedirectResponse(url="/setup", status_code=302)
 
     templates = request.app.state.templates
-    context: dict = {}
+    context: dict[str, Any] = {}
 
     # Show success message if redirected from setup
     if request.query_params.get("setup_complete") == "1":

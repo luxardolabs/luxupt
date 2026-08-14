@@ -43,7 +43,7 @@ class Activity(Base):
     def __repr__(self) -> str:
         return f"<Activity(id={self.id}, type={self.activity_type}, timestamp={self.timestamp})>"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert activity to dictionary."""
         return {
             "id": self.id,

@@ -51,7 +51,7 @@ class FetchService:
 
     def __init__(self) -> None:
         self.camera_manager: CameraManager
-        self.interval_tasks: dict[int, asyncio.Task] = {}  # interval -> task
+        self.interval_tasks: dict[int, asyncio.Task[None]] = {}  # interval -> task
         self.running = False
         self.intervals: list[int] = []  # Global intervals from DB
 
@@ -643,7 +643,7 @@ class FetchService:
             await asyncio.sleep(sleep_time)
 
         # Track in-flight capture cycles to prevent unbounded task growth
-        in_flight: set[asyncio.Task] = set()
+        in_flight: set[asyncio.Task[None]] = set()
         max_in_flight = 2  # Allow current + 1 overlap, skip if further behind
 
         # Track last enabled check time to avoid checking on every iteration
@@ -885,7 +885,7 @@ class FetchService:
         )
 
         # Fire each group at its designated offset without blocking
-        tasks: list[asyncio.Task] = []
+        tasks: list[asyncio.Task[dict[str, CaptureResult]]] = []
         start_time = asyncio.get_event_loop().time()
 
         for offset, group_cameras in sorted(camera_groups.items()):

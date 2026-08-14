@@ -1,6 +1,7 @@
 """Pydantic schemas for Activity operations."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,7 +17,7 @@ class ActivityBase(BaseModel):
     camera_id: str | None = Field(default=None, max_length=64)
     camera_safe_name: str | None = Field(default=None, max_length=255)
     interval: int | None = None
-    details: dict | None = None
+    details: dict[str, Any] | None = None
 
 
 class ActivityCreate(ActivityBase):

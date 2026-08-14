@@ -6,6 +6,7 @@ import platform
 import shutil
 import time
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from app import config
 from app.db.connection import DATABASE_PATH
@@ -36,7 +37,7 @@ class SystemViewService:
         self.activity_service = activity_service
         self.settings_service = settings_service
 
-    async def get_system_context(self) -> dict:
+    async def get_system_context(self) -> dict[str, Any]:
         """Get all data needed for system page."""
         # Non-DB operations can run in parallel
         system_info, disk_info = await asyncio.gather(
@@ -87,7 +88,7 @@ class SystemViewService:
             "version_info": version_info,
         }
 
-    async def get_settings_context(self) -> dict:
+    async def get_settings_context(self) -> dict[str, Any]:
         """Get data for settings page."""
         config_summary = await self._get_config_summary()
         cameras = await self.camera_service.get_active()
@@ -97,7 +98,7 @@ class SystemViewService:
             "cameras": cameras,
         }
 
-    async def _get_system_info(self) -> dict:
+    async def _get_system_info(self) -> dict[str, Any]:
         """Get system information (platform only, host metrics from external tools)."""
         return {
             "hostname": platform.node(),
@@ -107,11 +108,11 @@ class SystemViewService:
             "cpu_count": os.cpu_count() or 0,
         }
 
-    async def _get_disk_info(self) -> dict:
+    async def _get_disk_info(self) -> dict[str, Any]:
         """Get disk usage info."""
         output_path = config.IMAGE_OUTPUT_PATH.parent
 
-        def _get_disk() -> dict:
+        def _get_disk() -> dict[str, Any]:
             """Read disk usage stats for the output volume."""
             if output_path.exists():
                 disk_usage = shutil.disk_usage(output_path)
@@ -130,7 +131,7 @@ class SystemViewService:
 
         return await asyncio.to_thread(_get_disk)
 
-    async def _get_service_status(self) -> dict:
+    async def _get_service_status(self) -> dict[str, Any]:
         """Get service status information from database settings."""
         fetch_settings = await self.settings_service.get_fetch_settings()
         scheduler_settings = await self.settings_service.get_scheduler_settings()
@@ -146,7 +147,7 @@ class SystemViewService:
             "fetch_intervals": fetch_settings.get_intervals(),
         }
 
-    async def get_backup_settings_context(self) -> dict:
+    async def get_backup_settings_context(self) -> dict[str, Any]:
         """Get data for backup settings panel."""
         backup_settings = await self.settings_service.get_backup_settings()
 
@@ -158,7 +159,7 @@ class SystemViewService:
             "interval_hours": interval_hours,
         }
 
-    async def _get_config_summary(self) -> dict:
+    async def _get_config_summary(self) -> dict[str, Any]:
         """Get configuration summary from database and config."""
         fetch_settings = await self.settings_service.get_fetch_settings()
         scheduler_settings = await self.settings_service.get_scheduler_settings()
@@ -196,7 +197,7 @@ class SystemViewService:
             "video_output_path": str(config.VIDEO_OUTPUT_PATH),
         }
 
-    def _get_version_info(self) -> dict:
+    def _get_version_info(self) -> dict[str, Any]:
         """Get version information from environment variables."""
         # Get timezone - try TZ env var first, then system timezone
         tz_name = os.getenv("TZ") or time.tzname[0]
@@ -236,7 +237,7 @@ class SystemViewService:
         camera_id: str | None = None,
         page: int = 1,
         per_page: int = 50,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get activity log data — paginated and grouped by day for the feed.
 
         `show`: 'problems' (default: failures + errors), 'all', or a specific
@@ -277,7 +278,7 @@ class SystemViewService:
                 return "Yesterday"
             return d.strftime("%A, %B ") + str(d.day)  # e.g. "Friday, July 18"
 
-        activity_groups: list[dict] = []
+        activity_groups: list[dict[str, Any]] = []
         for a in activities:
             day = a.timestamp.date()
             if not activity_groups or activity_groups[-1]["date"] != day:
@@ -321,7 +322,7 @@ class SystemViewService:
             "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
-    async def get_about_context(self, uptime_seconds: float = 0) -> dict:
+    async def get_about_context(self, uptime_seconds: float = 0) -> dict[str, Any]:
         """Get data for about page."""
         # Get statistics and config from database
         capture_stats = await self.capture_stats_service.get_stats()

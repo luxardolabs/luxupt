@@ -1,5 +1,7 @@
 """Capture statistics service for analytics and statistics."""
 
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import capture_crud
@@ -21,7 +23,7 @@ class CaptureStatsCoreService:
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         bucket_seconds: int = 3600,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get time series data for capture duration and file size."""
         return await capture_crud.get_time_series_stats(
             self.db,
@@ -39,7 +41,7 @@ class CaptureStatsCoreService:
         interval: int | None = None,
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get success/failure counts and percentages."""
         return await capture_crud.get_success_failure_stats(
             self.db,
@@ -57,7 +59,7 @@ class CaptureStatsCoreService:
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         bucket_seconds: int = 3600,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get success/failure counts over time in buckets."""
         return await capture_crud.get_success_failure_timeseries(
             self.db,
@@ -75,7 +77,7 @@ class CaptureStatsCoreService:
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         limit: int = 20,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get capture count breakdown by camera."""
         return await capture_crud.get_camera_breakdown(
             self.db,
@@ -92,7 +94,7 @@ class CaptureStatsCoreService:
         interval: int | None = None,
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get average duration and file size for captures."""
         return await capture_crud.get_avg_stats(
             self.db,

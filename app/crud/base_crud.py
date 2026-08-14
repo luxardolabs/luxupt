@@ -1,9 +1,9 @@
 """Base CRUD class with generic operations."""
 
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel
-from sqlalchemy import Column, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
@@ -23,8 +23,7 @@ class CRUDBase[
 
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         """Get a single record by ID."""
-        id_column = cast(Column[Any], self.model.id)
-        result = await db.execute(select(self.model).where(id_column == id))
+        result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
 
     async def get_multi(
@@ -46,7 +45,9 @@ class CRUDBase[
         await db.refresh(db_obj)
         return db_obj
 
-    async def create_from_dict(self, db: AsyncSession, *, data: dict) -> ModelType:
+    async def create_from_dict(
+        self, db: AsyncSession, *, data: dict[str, Any]
+    ) -> ModelType:
         """Create a new record from a dictionary."""
         db_obj = self.model(**data)
         db.add(db_obj)
@@ -59,7 +60,7 @@ class CRUDBase[
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: UpdateSchemaType | dict,
+        obj_in: UpdateSchemaType | dict[str, Any],
     ) -> ModelType:
         """Update an existing record."""
         if isinstance(obj_in, dict):
@@ -91,6 +92,7 @@ class CRUDBase[
 
     async def exists(self, db: AsyncSession, id: Any) -> bool:
         """Check if a record exists by ID."""
-        id_column = cast(Column[Any], self.model.id)
-        result = await db.execute(select(id_column).where(id_column == id).limit(1))
+        result = await db.execute(
+            select(self.model.id).where(self.model.id == id).limit(1)
+        )
         return result.scalar_one_or_none() is not None

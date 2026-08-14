@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import date
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +28,7 @@ class CaptureCleanupCoreService:
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Delete captures matching filters including files, thumbnails, and DB records.
 
         DB deletion is synchronous (fast bulk SQL DELETE). File and thumbnail cleanup
@@ -95,7 +96,7 @@ class CaptureCleanupCoreService:
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get preview of what would be deleted.
 
         Returns dict with preview list, total_count, and total_size.

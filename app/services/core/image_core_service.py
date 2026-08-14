@@ -13,6 +13,7 @@ import asyncio
 import contextlib
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from PIL import Image
 
@@ -26,7 +27,7 @@ class ImageCoreService:
     """Manages images and thumbnails asynchronously."""
 
     def __init__(self) -> None:
-        self.thumbnail_queue: asyncio.Queue[dict] = asyncio.Queue()
+        self.thumbnail_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self._running = False
         self._worker_tasks: list[asyncio.Task[None]] = []
 

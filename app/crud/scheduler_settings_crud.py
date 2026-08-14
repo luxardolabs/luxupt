@@ -1,6 +1,7 @@
 """CRUD operations for SchedulerSettings model."""
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ class CRUDSchedulerSettings:
         self,
         db: AsyncSession,
         *,
-        obj_in: SchedulerSettingsUpdate | dict,
+        obj_in: SchedulerSettingsUpdate | dict[str, Any],
     ) -> SchedulerSettings:
         """Update scheduler settings."""
         settings = await self.get_settings(db)

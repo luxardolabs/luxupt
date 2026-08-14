@@ -109,7 +109,7 @@ class Job(Base):
     def __repr__(self) -> str:
         return f"<Job(job_id={self.job_id}, camera={self.camera_safe_name}, status={self.status})>"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert job to dictionary for API responses."""
         return {
             "id": self.job_id,

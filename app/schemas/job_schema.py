@@ -1,6 +1,7 @@
 """Pydantic schemas for Job operations."""
 
 from datetime import date, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,7 +34,7 @@ class JobUpdate(BaseModel):
     completed_at: datetime | None = None
     error: str | None = None
     output_file: str | None = Field(default=None, max_length=512)
-    result_details: dict | None = None
+    result_details: dict[str, Any] | None = None
 
 
 class JobRead(JobBase):
@@ -56,7 +57,7 @@ class JobRead(JobBase):
     completed_at: datetime | None = None
     error: str | None = None
     output_file: str | None = Field(default=None, max_length=512)
-    result_details: dict | None = None
+    result_details: dict[str, Any] | None = None
 
 
 class JobSummary(BaseModel):

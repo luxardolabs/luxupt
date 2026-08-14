@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,7 +52,7 @@ class TimelapsesViewService:
             return min(candidate, now_local - timedelta(seconds=lag_seconds))
         return candidate
 
-    async def get_camera_info(self, camera_id: str) -> dict | None:
+    async def get_camera_info(self, camera_id: str) -> dict[str, Any] | None:
         """Look up camera by ID to get safe_name and other info.
 
         Args:
@@ -69,7 +70,7 @@ class TimelapsesViewService:
             "name": camera.name,
         }
 
-    async def get_stats_context(self) -> dict:
+    async def get_stats_context(self) -> dict[str, Any]:
         """Get timelapse and job statistics for the stats cards."""
         raw_stats = await self.timelapse_service.get_stats()
         job_summary = await self.job_service.get_summary()
@@ -84,7 +85,7 @@ class TimelapsesViewService:
             "job_stats": job_summary,
         }
 
-    async def get_dates_context(self, camera: str | None = None) -> dict:
+    async def get_dates_context(self, camera: str | None = None) -> dict[str, Any]:
         """Get available dates for timelapse creation."""
         if camera:
             available_dates = await self.capture_service.get_available_dates(
@@ -98,7 +99,7 @@ class TimelapsesViewService:
         self,
         camera: str | None = None,
         date_str: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get available intervals for timelapse creation."""
         capture_date = date.fromisoformat(date_str) if date_str else None
         if camera:
@@ -115,7 +116,7 @@ class TimelapsesViewService:
         camera: str | None = None,
         date_str: str | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get preview context for timelapse creation."""
         capture_date = date.fromisoformat(date_str) if date_str else None
         if camera and capture_date and interval:
@@ -137,7 +138,7 @@ class TimelapsesViewService:
             "interval": interval,
         }
 
-    async def get_job_context(self, job_id: str) -> dict:
+    async def get_job_context(self, job_id: str) -> dict[str, Any]:
         """Get context for a single job.
 
         Returns job and action to take:
@@ -174,7 +175,7 @@ class TimelapsesViewService:
         """Mark all stale running/pending jobs as failed. Returns count."""
         return await self.job_service.mark_stale_jobs_failed()
 
-    async def get_scheduler_context(self) -> dict:
+    async def get_scheduler_context(self) -> dict[str, Any]:
         """Get context for scheduler settings panel."""
         settings = await self.settings_service.get_scheduler_settings()
         cameras = await self.camera_service.get_all()
@@ -187,7 +188,7 @@ class TimelapsesViewService:
             "intervals": intervals,
         }
 
-    async def update_scheduler_settings(self, update_data: dict) -> None:
+    async def update_scheduler_settings(self, update_data: dict[str, Any]) -> None:
         """Update scheduler settings."""
         await self.settings_service.update_scheduler_settings(update_data)
 
@@ -207,7 +208,7 @@ class TimelapsesViewService:
         preset: str | None,
         pixel_format: str | None,
         ffmpeg_timeout: int | None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Build the scheduler payload from raw form values and save.
 
         Returns context for scheduler_result.html.
@@ -242,7 +243,7 @@ class TimelapsesViewService:
             "run_time": update_data["run_time"],
         }
 
-    async def get_lightbox_context(self, timelapse_id: int) -> dict:
+    async def get_lightbox_context(self, timelapse_id: int) -> dict[str, Any]:
         """Get lightbox context for video viewing."""
         timelapse = await self.timelapse_service.get_by_id(timelapse_id)
         return {"timelapse": timelapse}
@@ -297,7 +298,7 @@ class TimelapsesViewService:
 
     async def create_and_start_job(
         self, *, camera_id: str, date_str: str, interval: int
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create a single timelapse job and kick off processing.
 
         Returns context for create_result.html.
@@ -334,7 +335,7 @@ class TimelapsesViewService:
             "interval": interval,
         }
 
-    async def get_historical_panel_context(self) -> dict:
+    async def get_historical_panel_context(self) -> dict[str, Any]:
         """Context for the historical-timelapse creation panel.
 
         One bootstrap call to Protect populates the recording ranges for ALL
@@ -432,7 +433,7 @@ class TimelapsesViewService:
         output_mode: str,
         keep_images: str | None,
         recreate_existing: str | None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Validate raw form input and create historical timelapse job(s).
 
         output_mode='per_day' fans out one job per day in the range; 'combined'
@@ -628,7 +629,7 @@ class TimelapsesViewService:
         status: str | None = None,
         page: int = 1,
         per_page: int = 50,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get all data needed for timelapses browser page."""
         # Get filter options first (needed to determine default date)
         cameras = await self.camera_service.get_active()
@@ -701,7 +702,7 @@ class TimelapsesViewService:
             "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
-    async def get_jobs_context(self) -> dict:
+    async def get_jobs_context(self) -> dict[str, Any]:
         """Get data for jobs panel."""
         active_jobs = await self.job_service.get_active()
         completed_jobs = await self.job_service.get_completed(limit=8)
@@ -727,7 +728,7 @@ class TimelapsesViewService:
         self,
         *,
         camera: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get data for timelapse creation form."""
         cameras = await self.camera_service.get_active()
 
@@ -756,7 +757,7 @@ class TimelapsesViewService:
         *,
         page: int = 1,
         per_page: int = 20,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get timelapses for a specific camera."""
         camera = await self.camera_service.get_by_safe_name(camera_safe_name)
 

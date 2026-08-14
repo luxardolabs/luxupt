@@ -2,6 +2,7 @@
 
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.camera_core_service import CameraCoreService
@@ -59,7 +60,7 @@ class ImagesViewService:
         camera_safe_name: str,
         interval: int,
         timestamp: int,
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """Get capture info for thumbnail generation.
 
         Args:
@@ -106,7 +107,7 @@ class ImagesViewService:
         interval: int | None = None,
         page: int = 1,
         per_page: int = 100,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get all data needed for images browser page."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
@@ -163,7 +164,7 @@ class ImagesViewService:
         interval: int | None = None,
         page: int = 1,
         per_page: int = 100,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get data for image grid partial (HTMX)."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
@@ -205,7 +206,7 @@ class ImagesViewService:
         interval: int | None = None,
         page: int = 1,
         per_page: int = 50,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get images for a specific camera."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
@@ -258,7 +259,7 @@ class ImagesViewService:
             "pagination": build_pagination(page=page, per_page=per_page, total=total),
         }
 
-    async def get_latest_images_context(self) -> dict:
+    async def get_latest_images_context(self) -> dict[str, Any]:
         """Get latest images for each camera."""
         latest_captures = await self.capture_service.get_latest_captures_all()
         cameras = await self.camera_service.get_active()
@@ -276,7 +277,7 @@ class ImagesViewService:
         filter_camera: str | None = None,
         date_str: str | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get lightbox context with current image and prev/next for navigation."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
@@ -325,7 +326,7 @@ class ImagesViewService:
             "next_image": next_image,
         }
 
-    async def get_delete_panel_context(self) -> dict:
+    async def get_delete_panel_context(self) -> dict[str, Any]:
         """Get context for the image deletion panel including initial preview."""
         camera_ids = await self.capture_service.get_available_cameras()
         dates = await self.capture_service.get_available_dates()
@@ -366,7 +367,7 @@ class ImagesViewService:
         camera: str | None = None,
         date_str: str | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get preview of what would be deleted with cascading filter options.
 
         Args:
@@ -425,7 +426,7 @@ class ImagesViewService:
         camera: str | None = None,
         date_str: str | None = None,
         interval: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Delete images matching filters including files, thumbnails, and DB records."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None

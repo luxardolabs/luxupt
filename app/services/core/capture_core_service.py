@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,9 @@ from app.models.enum_model import CaptureMethod, CaptureStatus
 from app.schemas.capture_schema import CaptureCreate, CaptureStats
 from app.services.core._path_security import validate_image_path
 from app.utils import async_fs
+
+if TYPE_CHECKING:
+    from app.camera_manager import Camera as ApiCamera
 
 
 class CaptureCoreService:
@@ -145,7 +149,7 @@ class CaptureCoreService:
         """Get overall capture statistics."""
         return await capture_crud.get_stats(self.db)
 
-    async def sync_cameras_from_api(self, cameras: list) -> None:
+    async def sync_cameras_from_api(self, cameras: list["ApiCamera"]) -> None:
         """Sync camera list from API to database."""
         for cam in cameras:
             # Build camera data dict
@@ -310,7 +314,7 @@ class CaptureCoreService:
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get summary of captures that would be deleted."""
         return await capture_crud.get_deletion_preview(
             self.db,

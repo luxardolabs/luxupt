@@ -1,5 +1,7 @@
 """CRUD operations for FetchSettings model."""
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +33,7 @@ class CRUDFetchSettings:
         self,
         db: AsyncSession,
         *,
-        obj_in: FetchSettingsUpdate | dict,
+        obj_in: FetchSettingsUpdate | dict[str, Any],
     ) -> FetchSettings:
         """Update fetch settings."""
         settings = await self.get_settings(db)

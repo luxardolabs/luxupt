@@ -1,6 +1,7 @@
 """Path security utilities to prevent path traversal attacks."""
 
 from pathlib import Path
+from typing import Any
 
 from app import config
 from app.logging_config import get_logger
@@ -44,7 +45,7 @@ def _is_safe_path(file_path: str, allowed_base: Path) -> bool:
 
 
 def validate_image_path(
-    file_path: str | None, context: dict | None = None
+    file_path: str | None, context: dict[str, Any] | None = None
 ) -> str | None:
     """Validate an image path and return it if safe, None otherwise."""
     if not file_path:
@@ -61,7 +62,7 @@ def validate_image_path(
 
 
 def validate_video_path(
-    file_path: str | None, context: dict | None = None
+    file_path: str | None, context: dict[str, Any] | None = None
 ) -> str | None:
     """Validate a video path and return it if safe, None otherwise."""
     if not file_path:
@@ -78,7 +79,7 @@ def validate_video_path(
 
 
 def validate_thumbnail_path(
-    file_path: str | None, context: dict | None = None
+    file_path: str | None, context: dict[str, Any] | None = None
 ) -> str | None:
     """Validate a thumbnail path and return it if safe, None otherwise."""
     if not file_path:

@@ -2,6 +2,7 @@
 
 import time
 from datetime import datetime, timedelta
+from typing import Any
 from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +48,7 @@ class CamerasViewService:
         self.capture_stats_service = capture_stats_service
         self.settings_service = settings_service
 
-    async def get_camera_card_context(self, safe_name: str) -> dict:
+    async def get_camera_card_context(self, safe_name: str) -> dict[str, Any]:
         """Get data for a single camera card."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
@@ -63,7 +64,7 @@ class CamerasViewService:
             "has_thumbnail": latest_capture is not None,
         }
 
-    async def get_fetch_settings_context(self) -> dict:
+    async def get_fetch_settings_context(self) -> dict[str, Any]:
         """Get data for fetch settings panel."""
         settings = await self.settings_service.get_fetch_settings()
 
@@ -96,7 +97,7 @@ class CamerasViewService:
         except Exception:
             return "configured"
 
-    async def get_camera_settings_context(self, camera_id: str) -> dict:
+    async def get_camera_settings_context(self, camera_id: str) -> dict[str, Any]:
         """Get data for camera settings panel."""
         camera = await self.camera_service.get_by_id(camera_id)
         if not camera:
@@ -110,7 +111,7 @@ class CamerasViewService:
             "intervals": intervals,
         }
 
-    async def get_capture_stats_context(self) -> dict:
+    async def get_capture_stats_context(self) -> dict[str, Any]:
         """Get data for capture statistics panel."""
         cameras = await self.camera_service.get_active()
         intervals = await self.capture_service.get_available_intervals()
@@ -127,7 +128,7 @@ class CamerasViewService:
         interval: int | None = None,
         period: str = "24h",
         offset: int = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get data for capture statistics charts."""
         # Period configuration: seconds and max history windows
         period_config = {
@@ -260,7 +261,7 @@ class CamerasViewService:
             "can_navigate_forward": can_navigate_forward,
         }
 
-    async def get_camera_panel_context(self, safe_name: str) -> dict:
+    async def get_camera_panel_context(self, safe_name: str) -> dict[str, Any]:
         """Get data for camera detail panel."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
@@ -281,7 +282,7 @@ class CamerasViewService:
             "stats": stats,
         }
 
-    async def get_camera_detail_context(self, safe_name: str) -> dict:
+    async def get_camera_detail_context(self, safe_name: str) -> dict[str, Any]:
         """Get data for camera detail page."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
@@ -332,7 +333,7 @@ class CamerasViewService:
 
         Returns (success, message, cameras_synced, reactivated).
         """
-        update_data: dict = {
+        update_data: dict[str, Any] = {
             "enabled": enabled == "true",
             "default_capture_method": default_capture_method,
             "default_rtsp_quality": default_rtsp_quality,
@@ -414,7 +415,7 @@ class CamerasViewService:
         is_active: str | None,
     ) -> tuple[bool, str]:
         """Build the per-camera settings payload from raw form values and save."""
-        update_data: dict = {
+        update_data: dict[str, Any] = {
             "capture_method": capture_method,
             "rtsp_quality": rtsp_quality,
             "is_active": is_active == "true",
@@ -429,7 +430,7 @@ class CamerasViewService:
             )
         return success, message
 
-    async def test_protect_connection(self) -> dict:
+    async def test_protect_connection(self) -> dict[str, Any]:
         """Verify the configured Protect username/password by pulling one recent snapshot.
 
         Returns template context: {"ok": bool, "message"/"error": str}.
@@ -494,7 +495,7 @@ class CamerasViewService:
             return {"ok": False, "error": f"Error ({type(e).__name__}): {str(e)[:200]}"}
 
     async def update_fetch_settings(
-        self, update_data: dict
+        self, update_data: dict[str, Any]
     ) -> tuple[bool, str, int | None]:
         """Update fetch settings and sync cameras if API configured.
 
@@ -530,7 +531,7 @@ class CamerasViewService:
             return False, str(e), None
 
     async def update_camera_settings(
-        self, camera_id: str, update_data: dict
+        self, camera_id: str, update_data: dict[str, Any]
     ) -> tuple[bool, str]:
         """Update camera settings."""
         try:
@@ -547,7 +548,7 @@ class CamerasViewService:
             )
             return False, str(e)
 
-    async def run_capability_detection(self, camera_id: str) -> dict | None:
+    async def run_capability_detection(self, camera_id: str) -> dict[str, Any] | None:
         """Load CameraManager settings and run capability detection for a camera."""
         cm_settings = await self.settings_service.get_camera_manager_settings()
         async with CameraManager(cm_settings) as manager:
@@ -561,7 +562,7 @@ class CamerasViewService:
 
     async def detect_camera_capabilities(
         self, camera_id: str, camera_manager: CameraManager
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """Run capability detection for a camera."""
         camera = await self.camera_service.get_by_id(camera_id)
         if not camera:

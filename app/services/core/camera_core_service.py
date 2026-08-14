@@ -42,7 +42,7 @@ class CameraCoreService:
 
     async def get_stats(
         self, camera_id: str, *, global_intervals: list[int] | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get statistics for a camera."""
         return await camera_crud.get_camera_stats(
             self.db, camera_id, global_intervals=global_intervals

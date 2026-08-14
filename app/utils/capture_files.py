@@ -8,6 +8,7 @@ files. Runs in a worker thread — never inline on the request path.
 
 import shutil
 from pathlib import Path
+from typing import Any
 
 from app import config
 from app.logging_config import get_logger
@@ -15,7 +16,7 @@ from app.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-def delete_capture_files(file_info: list[dict]) -> tuple[int, int]:
+def delete_capture_files(file_info: list[dict[str, Any]]) -> tuple[int, int]:
     """Delete image files and their thumbnail directories for deleted captures.
 
     Each item carries camera (safe_name), date, interval, file_path. Returns
@@ -38,7 +39,7 @@ def delete_capture_files(file_info: list[dict]) -> tuple[int, int]:
     return files_deleted, _delete_thumbnail_dirs(file_info)
 
 
-def _delete_thumbnail_dirs(file_info: list[dict]) -> int:
+def _delete_thumbnail_dirs(file_info: list[dict[str, Any]]) -> int:
     """Delete each capture's thumbnail directory once (deduplicated)."""
     deleted: set[Path] = set()
     for item in file_info:

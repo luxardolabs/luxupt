@@ -56,7 +56,9 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
             return await self.update(db, db_obj=existing, obj_in=obj_in.model_dump())
         return await self.create(db, obj_in=obj_in)
 
-    async def upsert_from_dict(self, db: AsyncSession, *, data: dict) -> Camera:
+    async def upsert_from_dict(
+        self, db: AsyncSession, *, data: dict[str, Any]
+    ) -> Camera:
         """Create or update a camera from a dictionary."""
         camera_id = data.get("camera_id")
         if not camera_id:
@@ -123,7 +125,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         camera_id: str,
         *,
         global_intervals: list[int] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get statistics for a camera."""
         camera = await self.get_by_camera_id(db, camera_id)
         if not camera:
@@ -190,7 +192,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         now_ts = int(datetime.now().timestamp())
 
         # Build interval_stats dict from query results
-        interval_stats: dict[int, dict] = {}
+        interval_stats: dict[int, dict[str, Any]] = {}
         for row in rows:
             if row.first_capture_ts and row.interval > 0:
                 elapsed = max(0, now_ts - int(row.first_capture_ts))
@@ -267,7 +269,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         if not camera:
             return None
 
-        update_data: dict = {}
+        update_data: dict[str, Any] = {}
         if capture_method is not None:
             update_data["capture_method"] = capture_method
         if rtsp_quality is not None:
@@ -293,7 +295,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         if not camera:
             return None
 
-        update_data: dict = {}
+        update_data: dict[str, Any] = {}
         if api_max_resolution is not None:
             update_data["api_max_resolution"] = api_max_resolution
         if rtsp_max_resolution is not None:

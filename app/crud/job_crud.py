@@ -1,12 +1,14 @@
 """CRUD operations for Job model."""
 
 from datetime import date, datetime, time
+from typing import Any
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud.base_crud import CRUDBase
+from app.db.dml import execute_rowcount
 from app.models.enum_model import JobStatus
 from app.models.job_model import Job
 from app.schemas.job_schema import JobCreate, JobUpdate
@@ -58,12 +60,12 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
 
     async def mark_stale_failed(self, db: AsyncSession, error: str) -> int:
         """Mark all running/pending jobs as failed and clear PIDs. Returns count."""
-        result = await db.execute(
+        return await execute_rowcount(
+            db,
             update(Job)
             .where(Job.status.in_([JobStatus.RUNNING, JobStatus.PENDING]))
-            .values(status=JobStatus.FAILED, error=error, pid=None)
+            .values(status=JobStatus.FAILED, error=error, pid=None),
         )
-        return result.rowcount  # type: ignore[no-any-return]
 
     async def get_completed(
         self,
@@ -176,7 +178,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         job_id: str,
         *,
         output_file: str | None = None,
-        result_details: dict | None = None,
+        result_details: dict[str, Any] | None = None,
         total_frames: int | None = None,
     ) -> Job | None:
         """Mark a job as completed."""
@@ -316,7 +318,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         )
         return result.scalar_one_or_none()
 
-    async def get_summary(self, db: AsyncSession) -> dict:
+    async def get_summary(self, db: AsyncSession) -> dict[str, Any]:
         """Get job summary statistics."""
         active = await self.get_active(db)
         pending = [j for j in active if j.status == JobStatus.PENDING]

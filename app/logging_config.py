@@ -10,19 +10,26 @@ Provides:
 
 import logging
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app import config
 
-# Optional JSON logging support
-try:
-    from pythonjsonlogger import json as jsonlogger
+# Optional JSON logging support. Under TYPE_CHECKING we import the concrete base so mypy can check
+# the StructuredJsonFormatter subclass; at runtime we fall back to logging.Formatter if the optional
+# dependency is missing.
+if TYPE_CHECKING:
+    from pythonjsonlogger.json import JsonFormatter as _JsonFormatterBase
 
     JSON_LOGGING_AVAILABLE = True
-    _JsonFormatterBase: type = jsonlogger.JsonFormatter
-except ImportError:
-    JSON_LOGGING_AVAILABLE = False
-    _JsonFormatterBase = logging.Formatter
+else:
+    try:
+        from pythonjsonlogger import json as jsonlogger
+
+        JSON_LOGGING_AVAILABLE = True
+        _JsonFormatterBase = jsonlogger.JsonFormatter
+    except ImportError:
+        JSON_LOGGING_AVAILABLE = False
+        _JsonFormatterBase = logging.Formatter
 
 
 class StructuredJsonFormatter(_JsonFormatterBase):

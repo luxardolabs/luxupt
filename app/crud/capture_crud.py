@@ -1,6 +1,7 @@
 """CRUD operations for Capture model."""
 
 from datetime import date
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import Integer, and_, case, delete, func, or_, select
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud.base_crud import CRUDBase
+from app.db.dml import execute_rowcount
 from app.models.capture_model import Capture
 from app.schemas.capture_schema import CaptureCreate, CaptureStats
 
@@ -217,11 +219,11 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         before_date: date,
     ) -> int:
         """Delete captures older than a date. Returns count of deleted records."""
-        result = await db.execute(
-            delete(Capture).where(Capture.capture_date < before_date)
+        count = await execute_rowcount(
+            db, delete(Capture).where(Capture.capture_date < before_date)
         )
         await db.flush()
-        return result.rowcount  # type: ignore[no-any-return]
+        return count
 
     async def delete_by_camera_date_interval(
         self,
@@ -232,15 +234,16 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         interval: int,
     ) -> int:
         """Delete captures for a specific camera/date/interval. Returns count deleted."""
-        result = await db.execute(
+        count = await execute_rowcount(
+            db,
             delete(Capture).where(
                 Capture.camera_id == camera,
                 Capture.capture_date == capture_date,
                 Capture.interval == interval,
-            )
+            ),
         )
         await db.flush()
-        return result.rowcount  # type: ignore[no-any-return]
+        return count
 
     async def get_recent_failures(
         self,
@@ -350,7 +353,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         bucket_seconds: int = 3600,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get time series data for capture duration and file size, bucketed by time.
 
         Returns list of dicts with timestamp, avg_duration_ms, avg_file_size, count,
@@ -388,7 +391,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         rows = result.all()
 
         # Aggregate by bucket with camera breakdown
-        buckets: dict[int, dict] = {}
+        buckets: dict[int, dict[str, Any]] = {}
         for row in rows:
             bucket_ts = int(row.bucket) * 1000  # Convert to JS milliseconds
             if bucket_ts not in buckets:
@@ -440,7 +443,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         interval: int | None = None,
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get average duration and file size for captures."""
         query = select(
             func.avg(Capture.capture_duration_ms).label("avg_duration"),
@@ -472,7 +475,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         limit: int = 20,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get capture count breakdown by camera.
 
         Returns list of dicts with camera (safe_name for display), camera_id, count.
@@ -518,7 +521,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         interval: int | None = None,
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get success/failure counts and percentages for captures."""
         filters = []
         if camera:
@@ -567,7 +570,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         since_timestamp: int | None = None,
         until_timestamp: int | None = None,
         bucket_seconds: int = 3600,  # 1 hour buckets by default
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get success/failure counts over time in buckets.
 
         Returns list of dicts with timestamp, success_count, failure_count.
@@ -623,7 +626,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get summary of captures that would be deleted, grouped by camera/date/interval.
 
         Args:
@@ -680,7 +683,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get file paths and cleanup metadata for captures matching filters.
 
         Args:
@@ -737,9 +740,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         if interval:
             query = query.where(Capture.interval == interval)
 
-        result = await db.execute(query)
+        count = await execute_rowcount(db, query)
         await db.flush()
-        return result.rowcount  # type: ignore[no-any-return]
+        return count
 
 
 capture_crud = CRUDCapture(Capture)

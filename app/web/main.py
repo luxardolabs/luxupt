@@ -597,7 +597,7 @@ async def start_web_server() -> None:
     )
 
     # Build uvicorn config
-    uvicorn_kwargs: dict = {
+    uvicorn_kwargs: dict[str, Any] = {
         "host": "0.0.0.0",
         "port": config.WEB_PORT,
         "log_level": "info" if config.LOGGING_LEVEL == "DEBUG" else "warning",

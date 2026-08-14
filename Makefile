@@ -194,17 +194,19 @@ format: ## Format Python with luxlint's canonical ruff (format + autofix), byte-
 
 .PHONY: lint
 lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail — ONE recipe; fails if any fails
-	@# HONESTY: the tail installs pydantic so luxlint's auto-injected `plugins = pydantic.mypy`
-	@# loads — WITHOUT it mypy crashes at plugin load and reports a garbage count (luxlint --preflight
-	@# flags this; FLEET-ONBOARDING-STANDARD §"mypy tail is HONEST"). Tools are installed FRESH on a
-	@# lean base each run, never inherited from :dev (FLEET-BUILD-DEPLOY-STANDARD).
-	@# Layout: app/ package at the repo root (fleet standard) — mypy targets `app` from /repo
-	@# with the repo root on the path (no MYPYPATH crutch; the src/app migration is done, LUXUPT-65).
+	@# HONESTY (mypy-sweep §0 "the env must resolve the real code — or the count is a lie"): the tail
+	@# runs in the TEST_DEPS image, whose deps come from poetry.lock (Dockerfile.test) — so fastapi,
+	@# sqlalchemy, pydantic et al. resolve with their real types. A lean pydantic-only base manufactured
+	@# ~105 PHANTOM `untyped-decorator` errors (FastAPI route decorators seen as Any) — a lie the ratchet
+	@# then enshrined. With real deps the count is honest (LUXUPT-64). mypy itself is still installed
+	@# FRESH each run (never baked/inherited); only the resolvable dep surface comes from the lock.
+	@# Layout: app/ package at the repo root (fleet standard) — mypy targets `app` from /repo.
 	@set +e; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE); ruff=$$?; \
+	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null || { echo "test-deps image build failed"; exit 1; }; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config mypy > /tmp/luxlint.mypy.ini; \
-	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.mypy.ini:/cfg/mypy.ini:ro -w /repo $(LUXLINT_MYPY_IMAGE) \
-	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" pydantic pydantic-settings && mypy --config-file /cfg/mypy.ini app' 2>&1 \
+	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.mypy.ini:/cfg/mypy.ini:ro -w /repo $(TEST_DEPS_IMAGE) \
+	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" && PYTHONPATH=/repo mypy --config-file /cfg/mypy.ini app' 2>&1 \
 	  | docker run --rm -i -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy-ratchet; mypy=$$?; \
 	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ]; then \
 	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy)"; exit 1; \

@@ -1,5 +1,7 @@
 """CRUD operations for BackupSettings model."""
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +29,7 @@ class CRUDBackupSettings:
         self,
         db: AsyncSession,
         *,
-        obj_in: dict,
+        obj_in: dict[str, Any],
     ) -> BackupSettings:
         """Update backup settings."""
         settings = await self.get_settings(db)
