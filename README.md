@@ -89,6 +89,7 @@ Full documentation for every feature, setting, and panel:
 - **[Web Interface Guide](docs/web-interface.md)** — Every page and panel explained
 - **[Configuration](docs/configuration.md)** — Environment variables, multi-site setup, reverse proxy
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues and solutions
+- **[Release Notes](docs/release_notes/)** — What's new in each release
 
 ## License
 
