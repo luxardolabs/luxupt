@@ -10,6 +10,7 @@ env-auth so the client can log in without seeding DB users.
 """
 
 import os
+import shutil
 import tempfile
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -29,7 +30,11 @@ os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 from app.db.base import Base  # noqa: E402
 from app.db.connection import async_session, engine  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from app.web.main import app  # noqa: E402
 
 TEST_USERNAME = os.environ["WEB_USERNAME"]
@@ -57,6 +62,34 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
             yield session
         finally:
             await session.rollback()
+
+
+@pytest_asyncio.fixture
+async def durable_db() -> AsyncGenerator[async_sessionmaker[AsyncSession]]:
+    """Isolated, COMMITTING DB for durability locks (db-mutations playbook §7).
+
+    ``db_session`` rolls back for isolation — useless for proving a write *survives* its
+    transaction. This fixture is a fresh per-test sqlite file with its own engine, so a
+    test can own a transaction, commit it, then read the row back from a SEPARATE
+    connection — only committed data is cross-connection visible, which is the bite that
+    proves durability. Open the owner and the reader as two ``maker()`` sessions.
+
+    Mirrors the app maker (``expire_on_commit=False``, ``autoflush=False``) so a service
+    method behaves exactly as in production (flush is explicit; the owner commits). The
+    temp file is discarded after the test, so real commits never leak across tests.
+    """
+    tmp = Path(tempfile.mkdtemp(prefix="luxupt-durable-"))
+    test_engine = create_async_engine(f"sqlite+aiosqlite:///{tmp / 'durable.db'}")
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    maker = async_sessionmaker(
+        test_engine, expire_on_commit=False, autoflush=False
+    )
+    try:
+        yield maker
+    finally:
+        await test_engine.dispose()
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 @pytest_asyncio.fixture
