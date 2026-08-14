@@ -33,7 +33,7 @@ non_request_files = [
   "app/timelapse_service.py",                            # worker loop: ffmpeg render pipeline
   "app/services/core/job_core_service.py",               # JobProcessor: background job state machine
   "app/services/core/historical_fetch_core_service.py",  # background job: historical frame fetch
-  "app/services/core/fetch_settings_durable.py",         # §5e owned-session: commits settings so the FetchService worker (separate session) reads them; mints its own async_session
+  "app/services/core/_fetch_settings_durable.py",        # §5e owned-session helper: commits settings so the FetchService worker (separate session) reads them; mints its own async_session
   "app/web/main.py",                                     # lifespan startup/shutdown, pre-request
   "app/services/core/backup_core_service.py",            # scheduler-driven backup loop: no request session (no self.db); prunes untracked .dump files by retention count — no DB row to orphan (side_effects_after_commit non-request case, luxarch 0.38.2)
 ]

@@ -12,6 +12,9 @@ from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.models.backup_settings_model import BackupSettings
 from app.models.fetch_settings_model import FetchSettings
 from app.models.scheduler_settings_model import SchedulerSettings
+from app.services.core._fetch_settings_durable import (
+    save_fetch_settings_durable as _save_fetch_settings_durable,
+)
 
 
 class SettingsCoreService:
@@ -99,6 +102,12 @@ class SettingsCoreService:
     async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettings:
         """Update fetch settings."""
         return await fetch_settings_crud.update_settings(self.db, obj_in=settings)
+
+    async def save_fetch_settings_durable(self, settings: dict[str, Any]) -> None:
+        """Save fetch settings in an OWNED, committed transaction so the FetchService worker
+        (a separate session) reads them before sync_cameras() runs (§5e cross-process read).
+        Delegates to the owned-session helper; does NOT use this service's handed session."""
+        await _save_fetch_settings_durable(settings)
 
     async def get_fetch_intervals(self) -> list[int]:
         """Get configured fetch intervals."""
