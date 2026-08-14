@@ -54,17 +54,19 @@ RUN groupadd -g 1000 appuser && \
 # Add build arguments AFTER static layers (these change each build).
 # The real version (CalVer YYYY.0M.MICRO) is stamped by the Makefile from the VERSION file
 # via --build-arg VERSION=$(VERSION); this default is only a bare-`docker build` fallback.
+# Canonical build stamps (FLEET-BUILD-DEPLOY-STANDARD): VERSION, CREATED (RFC-3339 UTC),
+# BUILD_COMMIT (short git SHA — same value as the OCI revision label AND the app's cache-bust token).
 ARG VERSION="0000.00.0"
-ARG BUILD_DATE="1970-01-01T00:00:00Z"
-ARG REVISION="unknown"
+ARG CREATED="1970-01-01T00:00:00Z"
+ARG BUILD_COMMIT="unknown"
 ENV LUXUPT_VERSION=$VERSION \
-    LUXUPT_BUILD_DATE=$BUILD_DATE \
-    LUXUPT_REVISION=$REVISION
+    LUXUPT_BUILD_DATE=$CREATED \
+    BUILD_COMMIT=$BUILD_COMMIT
 
 # OCI provenance labels (repo.oci_image_labels) — portable keys; .created is RFC-3339 UTC.
 LABEL org.opencontainers.image.version="$VERSION" \
-      org.opencontainers.image.created="$BUILD_DATE" \
-      org.opencontainers.image.revision="$REVISION" \
+      org.opencontainers.image.created="$CREATED" \
+      org.opencontainers.image.revision="$BUILD_COMMIT" \
       org.opencontainers.image.source="https://github.com/luxardolabs/luxupt" \
       org.opencontainers.image.title="luxupt"
 

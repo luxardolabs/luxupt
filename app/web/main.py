@@ -446,8 +446,9 @@ def create_app() -> FastAPI:
             "datetime": datetime,
             "paginated_url": paginated_url,
             # Cache-bust token for first-party static assets (fw.static_assets_cache_busted):
-            # the OCI revision (git short SHA), stamped as LUXUPT_REVISION in the image.
-            "static_version": os.getenv("LUXUPT_REVISION", "dev"),
+            # the OCI revision (short git SHA), stamped as BUILD_COMMIT in the image
+            # (cache-busting playbook — one value shared with org.opencontainers.image.revision).
+            "static_version": os.getenv("BUILD_COMMIT", "dev"),
             "len": len,
             "enumerate": enumerate,
             "range": range,

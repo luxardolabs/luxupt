@@ -51,9 +51,9 @@ endif
 GHCR_TOKEN ?= $(error GHCR_TOKEN not set — add to .env or export it)
 
 # Build settings
-BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+CREATED := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Git revision for OCI image provenance (repo.oci_image_labels)
-REVISION := $(shell git -c safe.directory=$(CURRENT_DIR) rev-parse HEAD 2>/dev/null || echo unknown)
+BUILD_COMMIT := $(shell git -c safe.directory=$(CURRENT_DIR) rev-parse --short HEAD 2>/dev/null || echo unknown)
 # For quick local development builds - amd64 only (faster iteration)
 PLATFORM_DEV := linux/amd64
 # For release builds - multi-arch (amd64 + arm64)
@@ -359,15 +359,14 @@ docker-build-local: validate-version validate-structure docker-setup docker-pull
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(LOCAL_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(LOCAL_IMAGE):$(VERSION) \
 		--load \
 		.
@@ -378,8 +377,8 @@ build-dev: validate-version validate-structure ## Build the local luxupt:dev ima
 	@echo '$(BLUE)Building luxupt:dev from current source...$(NC)'
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build \
 		--build-arg VERSION=$(VERSION)-dev \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t luxupt:dev \
 		.
 	@echo '$(GREEN)Built luxupt:dev — dev overlays run this image. Re-run after code changes.$(NC)'
@@ -392,15 +391,14 @@ docker-push-local: validate-version validate-structure docker-setup docker-pull-
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(LOCAL_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(LOCAL_IMAGE):$(VERSION) \
 		--push \
 		.
@@ -416,15 +414,14 @@ docker-push-hub: validate-version validate-structure docker-setup docker-login-h
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(DOCKER_HUB_IMAGE):latest \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(DOCKER_HUB_IMAGE):$(VERSION) \
 		--push \
 		.
@@ -438,15 +435,14 @@ docker-push-ghcr: validate-version validate-structure docker-setup docker-login-
 		--cache-from type=registry,ref=$(GHCR_IMAGE):cache \
 		--cache-to type=registry,ref=$(GHCR_IMAGE):cache,mode=max \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(GHCR_IMAGE):$(VERSION) \
 		--push \
 		.
@@ -470,15 +466,14 @@ docker-tag-latest-hub: docker-login-hub ## Tag current version as latest (Docker
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(DOCKER_HUB_IMAGE):$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(DOCKER_HUB_IMAGE):latest \
 		--push \
 		.
@@ -492,15 +487,14 @@ docker-tag-latest-ghcr: docker-login-ghcr ## Tag current version as latest (GHCR
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(GHCR_IMAGE):$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg REVISION=$(REVISION) \
-		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=LuxUPT" \
+		--label "org.opencontainers.image.title=luxupt" \
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.authors=luxardolabs" \
 		-t $(GHCR_IMAGE):latest \
 		--push \
 		.
@@ -601,7 +595,7 @@ info: validate-version ## Show project information
 	@echo '  Name: $(PROJECT_NAME)'
 	@echo '  Version: $(VERSION)'
 	@echo '  Directory: $(CURRENT_DIR)'
-	@echo '  Build Date: $(BUILD_DATE)'
+	@echo '  Build Date: $(CREATED)'
 	@echo '  Platform: $(PLATFORM)'
 	@echo ''
 	@echo '$(BLUE)Registry Information:$(NC)'
