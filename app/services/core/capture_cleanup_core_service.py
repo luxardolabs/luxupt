@@ -1,16 +1,15 @@
 """Capture cleanup service for deleting images, thumbnails, and DB records."""
 
 import asyncio
-import shutil
 from datetime import date
-from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
 from app.crud import capture_crud
 from app.db import maintenance as db_maintenance
+from app.db.post_commit import after_commit
 from app.logging_config import get_logger
+from app.utils.capture_files import delete_capture_files
 
 logger = get_logger(__name__)
 
@@ -62,9 +61,16 @@ class CaptureCleanupCoreService:
         if count > 0:
             await db_maintenance.incremental_vacuum(self.db)
 
-        # Phase 3: Background file + thumbnail cleanup
+        # Phase 3: file + thumbnail cleanup, deferred to AFTER get_db commits (ADR-003 /
+        # fw.side_effects_after_commit) — a rollback then never leaves capture rows pointing
+        # at deleted files. Runs in a worker thread so the response still returns immediately.
         if file_info:
-            asyncio.create_task(self._cleanup_files_background(file_info))
+            after_commit(
+                self.db,
+                lambda: asyncio.create_task(
+                    asyncio.to_thread(delete_capture_files, file_info)
+                ),
+            )
 
         logger.info(
             "Capture DB cleanup completed, file cleanup running in background",
@@ -82,101 +88,6 @@ class CaptureCleanupCoreService:
             "files_to_clean": len([f for f in file_info if f["file_path"]]),
             "background_cleanup": True,
         }
-
-    async def _cleanup_files_background(self, file_info: list[dict]) -> None:
-        """Delete image files and thumbnail dirs in a thread pool (non-blocking)."""
-        files_deleted, thumb_dirs_deleted = await asyncio.to_thread(
-            self._cleanup_files_sync, file_info
-        )
-
-        logger.info(
-            "Background file cleanup completed",
-            extra={
-                "files_deleted": files_deleted,
-                "thumb_dirs": thumb_dirs_deleted,
-            },
-        )
-
-    def _cleanup_files_sync(self, file_info: list[dict]) -> tuple[int, int]:
-        """Delete image files and thumbnail dirs. Runs in thread pool."""
-        files_deleted = 0
-        for item in file_info:
-            if item["file_path"]:
-                try:
-                    file_path = Path(item["file_path"])
-                    if file_path.exists():
-                        file_path.unlink()
-                        files_deleted += 1
-                except Exception as e:
-                    logger.warning(
-                        "Failed to delete image file",
-                        extra={"path": item["file_path"], "error": str(e)},
-                    )
-
-        thumb_dirs_deleted = self._delete_thumbnail_dirs(file_info)
-        return files_deleted, thumb_dirs_deleted
-
-    def delete_thumbnail_dir(
-        self,
-        camera: str,
-        capture_date: date,
-        interval: int,
-    ) -> bool:
-        """Delete thumbnail directory for a specific camera/date/interval.
-
-        Returns True if directory was deleted, False otherwise.
-        """
-        thumb_dir = (
-            config.THUMBNAIL_CACHE_PATH
-            / camera
-            / f"{interval}s"
-            / capture_date.strftime("%Y")
-            / capture_date.strftime("%m")
-            / capture_date.strftime("%d")
-        )
-
-        if thumb_dir.exists():
-            try:
-                shutil.rmtree(thumb_dir)
-                logger.debug(
-                    "Deleted thumbnail directory", extra={"path": str(thumb_dir)}
-                )
-                return True
-            except Exception as e:
-                logger.warning(
-                    "Failed to delete thumbnail directory",
-                    extra={"path": str(thumb_dir), "error": str(e)},
-                )
-        return False
-
-    def _delete_thumbnail_dirs(self, deleted_info: list[dict]) -> int:
-        """Delete thumbnail directories for deleted captures.
-
-        Returns count of directories deleted.
-        """
-        deleted_dirs: set[Path] = set()
-
-        for item in deleted_info:
-            thumb_dir = (
-                config.THUMBNAIL_CACHE_PATH
-                / item["camera"]
-                / f"{item['interval']}s"
-                / item["date"].strftime("%Y")
-                / item["date"].strftime("%m")
-                / item["date"].strftime("%d")
-            )
-
-            if thumb_dir not in deleted_dirs and thumb_dir.exists():
-                try:
-                    shutil.rmtree(thumb_dir)
-                    deleted_dirs.add(thumb_dir)
-                except Exception as e:
-                    logger.warning(
-                        "Failed to delete thumbnail directory",
-                        extra={"path": str(thumb_dir), "error": str(e)},
-                    )
-
-        return len(deleted_dirs)
 
     async def get_deletion_preview(
         self,

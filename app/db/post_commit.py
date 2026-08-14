@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 
-def after_commit(session: AsyncSession | Session, fn: Callable[[], None]) -> None:
+def after_commit(session: AsyncSession | Session, fn: Callable[[], object]) -> None:
     """Queue ``fn`` to run once THIS session's current transaction durably commits.
 
     On rollback it never runs: the event fires only on commit, and both transaction
