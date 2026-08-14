@@ -1,6 +1,6 @@
 # Change Log Writing Guide (INTERNAL)
 
-The **internal, technical** change log — for you, future-you, and anyone debugging "what changed in 2026.08.1." One markdown file per release, named by version (CalVer `YYYY.0M.MICRO`), stamped with its date. Plain docs — not served by the app.
+The **internal, technical** change log — for you, future-you, and anyone debugging "what changed in 2026.08.0." One markdown file per release, named by version (CalVer `YYYY.0M.MICRO`), stamped with its date. Plain docs — not served by the app.
 
 For the customer-facing version, see `docs/release_notes/`.
 

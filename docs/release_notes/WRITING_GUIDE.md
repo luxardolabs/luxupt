@@ -1,6 +1,6 @@
 # Release Notes Writing Guide
 
-The **customer-facing** release notes — what a LuxUPT user reads to know what changed. One markdown file per release, named by version (CalVer `YYYY.0M.MICRO`, e.g. `2026.08.1.md`), stamped with its release date. Plain docs — not served by the app.
+The **customer-facing** release notes — what a LuxUPT user reads to know what changed. One markdown file per release, named by version (CalVer `YYYY.0M.MICRO`, e.g. `2026.08.0.md`), stamped with its release date. Plain docs — not served by the app.
 
 For the internal, technical change log, see `docs/change_logs/`.
 
