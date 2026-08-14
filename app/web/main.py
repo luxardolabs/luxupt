@@ -429,8 +429,9 @@ def create_app() -> FastAPI:
     static_path = Path(__file__).parent.parent / "static"
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
-    # Templates
-    templates_path = Path(__file__).parent / "templates"
+    # Templates live at the fleet-canonical app/templates/web/ (app-wide, a sibling of static/;
+    # email/llm would be peer subdirs). __file__ is app/web/main.py, so go up to app/.
+    templates_path = Path(__file__).parent.parent / "templates" / "web"
     templates = Jinja2Templates(directory=str(templates_path))
 
     # Register custom template filters
