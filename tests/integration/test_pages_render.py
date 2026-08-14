@@ -41,7 +41,15 @@ class TestAuthenticatedPages:
 
     @pytest.mark.parametrize(
         "path",
-        ["/", "/cameras", "/timelapses", "/images", "/system"],
+        [
+            "/",
+            "/cameras",
+            "/timelapses",
+            "/timelapses/jobs",  # jobs router (domain split)
+            "/timelapses/scheduler",  # scheduler router (domain split)
+            "/images",
+            "/system",
+        ],
     )
     async def test_page_renders_for_authed_user(
         self, auth_client: AsyncClient, path: str

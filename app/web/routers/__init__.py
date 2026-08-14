@@ -5,6 +5,10 @@ from app.web.routers.images_router import router as images_router
 from app.web.routers.pages_router import router as pages_router
 from app.web.routers.setup_router import router as setup_router
 from app.web.routers.system_router import router as system_router
+from app.web.routers.timelapse_jobs_router import router as timelapse_jobs_router
+from app.web.routers.timelapse_scheduler_router import (
+    router as timelapse_scheduler_router,
+)
 from app.web.routers.timelapses_router import router as timelapses_router
 
 __all__ = [
@@ -13,5 +17,7 @@ __all__ = [
     "pages_router",
     "setup_router",
     "system_router",
+    "timelapse_jobs_router",
+    "timelapse_scheduler_router",
     "timelapses_router",
 ]

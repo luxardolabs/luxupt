@@ -461,6 +461,8 @@ def create_app() -> FastAPI:
         pages_router,
         setup_router,
         system_router,
+        timelapse_jobs_router,
+        timelapse_scheduler_router,
         timelapses_router,
     )
 
@@ -471,6 +473,13 @@ def create_app() -> FastAPI:
     # Feature routers
     app.include_router(cameras_router, prefix="/cameras", tags=["cameras"])
     app.include_router(images_router, prefix="/images", tags=["images"])
+    # Jobs + scheduler routers first: their specific paths register before the artifact
+    # router's int-typed /{timelapse_id} catch-all (belt-and-suspenders; int typing already
+    # prevents a collision).
+    app.include_router(timelapse_jobs_router, prefix="/timelapses", tags=["timelapses"])
+    app.include_router(
+        timelapse_scheduler_router, prefix="/timelapses", tags=["timelapses"]
+    )
     app.include_router(timelapses_router, prefix="/timelapses", tags=["timelapses"])
     app.include_router(system_router, prefix="/system", tags=["system"])
 
