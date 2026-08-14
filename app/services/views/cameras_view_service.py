@@ -14,6 +14,7 @@ from app.protect_client import ProtectAuthError, ProtectClient, ProtectRequestEr
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
+from app.services.core.fetch_settings_durable import save_fetch_settings_durable
 from app.services.core.settings_core_service import SettingsCoreService
 
 logger = get_logger(__name__)
@@ -502,9 +503,10 @@ class CamerasViewService:
         cameras_synced is None if no API settings, -1 on connection error, or count on success.
         """
         try:
-            # Save settings and commit so FetchService can read them
-            await self.settings_service.update_fetch_settings(update_data)
-            await self.db.commit()
+            # Persist settings in their OWN committed transaction so the FetchService worker
+            # (a separate session) reads the new values before sync_cameras() runs (§5e
+            # cross-process read). This view stays transaction-agnostic (fw.no_redundant_commit).
+            await save_fetch_settings_durable(update_data)
 
             # Check if we have API settings to test (core service handles env var priority)
             api_config = await self.settings_service.get_effective_api_config()
