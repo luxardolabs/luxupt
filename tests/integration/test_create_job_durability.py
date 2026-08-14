@@ -84,3 +84,41 @@ async def test_job_not_committed_until_owner_and_kickoff_deferred(
     # After the owner commits: the job is durable and the kickoff fired (post-commit).
     assert await _job_count(durable_db) == 1
     assert len(calls) == 1
+
+
+async def test_historical_combined_not_committed_until_owner(
+    durable_db: Maker, monkeypatch
+) -> None:
+    calls: list[tuple] = []
+    monkeypatch.setattr(
+        tvs_mod,
+        "get_job_processor",
+        lambda: types.SimpleNamespace(start_job=lambda *a, **k: calls.append(a)),
+    )
+
+    async with durable_db() as owner:
+        await _seed_camera(owner)
+        await owner.commit()
+
+    async with durable_db() as owner:
+        svc = _svc(owner)
+        # A past date range so the recording-lag/future checks pass; combined = one job.
+        result = await svc.create_historical_jobs(
+            camera_id="cam-1",
+            start_date="2026-01-01",
+            end_date="2026-01-01",
+            start_time="00:00",
+            end_time="12:00",
+            interval="60",
+            output_mode="combined",
+            keep_images="true",
+            recreate_existing=None,
+        )
+        assert result["success"] is True
+        # The method did NOT commit the handed session, and the kickoff is deferred.
+        assert await _job_count(durable_db) == 0
+        assert calls == []
+        await owner.commit()
+
+    assert await _job_count(durable_db) == 1
+    assert len(calls) == 1

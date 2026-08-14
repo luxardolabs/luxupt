@@ -281,6 +281,20 @@ class TimelapsesViewService:
         )
         return existing_job is not None
 
+    def _schedule_kickoff(
+        self, job_id: str, date_str: str, camera_safe_name: str, interval: int
+    ) -> None:
+        """Kick off the JobProcessor for a job only AFTER the request transaction commits, so the
+        worker (its own session) reads a durable row (§5e cross-process read). Keeps this view
+        transaction-agnostic (fw.no_redundant_commit). Loop-safe: the args are captured per-call,
+        not by loop-variable closure."""
+        after_commit(
+            self.db,
+            lambda: get_job_processor().start_job(
+                job_id, date_str, camera_safe_name, interval
+            ),
+        )
+
     async def create_and_start_job(
         self, *, camera_id: str, date_str: str, interval: int
     ) -> dict:
@@ -308,21 +322,13 @@ class TimelapsesViewService:
             target_date=date.fromisoformat(date_str),
             interval=interval,
         )
-        # The JobProcessor reads the job row from its OWN session, so it must see a committed
-        # row (§5e cross-process read). Instead of committing this handed session, defer the
-        # kickoff to after get_db commits (ADR-003 after_commit): the worker then reads a durable
-        # row, and this service stays transaction-agnostic (fw.no_redundant_commit).
-        job_id = job.job_id
-        after_commit(
-            self.db,
-            lambda: get_job_processor().start_job(
-                job_id, date_str, camera_safe_name, interval
-            ),
-        )
+        # Kick off the worker only after get_db commits (§5e): it reads the job from its own
+        # session, so the row must be durable; deferring keeps this view transaction-agnostic.
+        self._schedule_kickoff(job.job_id, date_str, camera_safe_name, interval)
 
         return {
             "success": True,
-            "job_id": job_id,
+            "job_id": job.job_id,
             "camera": camera_safe_name,
             "date": date_str,
             "interval": interval,
@@ -502,10 +508,14 @@ class TimelapsesViewService:
                                 f"(id {existing.job_id[:8]}). Toggle 'Recreate existing' to replace it."
                             ),
                         }
-                    # Recreate: cancel + delete the existing job before creating the new one
+                    # Recreate: cancel (kills FFmpeg) + delete the existing job before creating
+                    # the new one. Folded into the request transaction (flush, get_db commits) —
+                    # no handed-session commit (fw.no_redundant_commit). A rollback after the
+                    # os.kill leaves a stale row the startup stale-job sweep reconciles, and a
+                    # retry re-kills the dead pid harmlessly; there is no unique (camera,date,
+                    # interval) constraint, so the same-txn delete-then-insert can't conflict.
                     await self.job_service.cancel_job(existing.job_id)
                     await self.job_service.delete_job(existing.job_id)
-                    await self.db.commit()
                     recreated_jobs.append(existing.job_id)
 
                 # One job spanning the full range
@@ -524,10 +534,8 @@ class TimelapsesViewService:
                     daily_window_start=start_t,
                     daily_window_end=end_t,
                 )
-                # Commit before kickoff: the JobProcessor task reads the job row from its own session
-                await self.db.commit()
                 created_jobs.append(job.job_id)
-                get_job_processor().start_job(
+                self._schedule_kickoff(
                     job.job_id, start_d.isoformat(), camera_safe_name, interval_int
                 )
             else:
@@ -547,9 +555,11 @@ class TimelapsesViewService:
                             camera_safe_name, day, interval_int
                         )
                         if existing_job is not None:
+                            # Cancel (kills FFmpeg) + delete, folded into the request transaction
+                            # — no handed-session commit (fw.no_redundant_commit); see the combined
+                            # path above for why a rollback here is recoverable.
                             await self.job_service.cancel_job(existing_job.job_id)
                             await self.job_service.delete_job(existing_job.job_id)
-                            await self.db.commit()
                             recreated_jobs.append(existing_job.job_id)
                     start_at = datetime.combine(day, start_t).astimezone()
                     end_at = self.end_at_for(day, end_t, now_local)
@@ -571,10 +581,8 @@ class TimelapsesViewService:
                         daily_window_start=start_t,
                         daily_window_end=end_t,
                     )
-                    # Commit before kickoff: the JobProcessor task reads the job row from its own session
-                    await self.db.commit()
                     created_jobs.append(job.job_id)
-                    get_job_processor().start_job(
+                    self._schedule_kickoff(
                         job.job_id, date_str, camera_safe_name, interval_int
                     )
                     day += timedelta(days=1)
