@@ -39,7 +39,7 @@ output-*/
 Thumbs.db
 
 # ── Local-only: deploy infra & tooling not part of the public source subset ──
-VERSION
+# NOTE: VERSION is committed (source of truth for clean-clone builds; repo.app_version_calver).
 CLAUDE.md
 compose*.yaml
 compose*.yml

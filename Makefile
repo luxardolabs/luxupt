@@ -219,7 +219,7 @@ lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.49.0
+LUXARCH_VERSION  ?= 0.50.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -358,8 +358,8 @@ docker-build-local: validate-version validate-structure docker-setup docker-pull
 		--platform $(PLATFORM_DEV) \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(LOCAL_IMAGE):latest \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
@@ -376,8 +376,8 @@ docker-build-local: validate-version validate-structure docker-setup docker-pull
 build-dev: validate-version validate-structure ## Build the local luxupt:dev image from current source (for dev overlays)
 	@echo '$(BLUE)Building luxupt:dev from current source...$(NC)'
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build \
-		--build-arg VERSION=$(VERSION)-dev \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION)-dev \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t luxupt:dev \
 		.
@@ -390,8 +390,8 @@ docker-push-local: validate-version validate-structure docker-setup docker-pull-
 		--platform $(PLATFORM) \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(LOCAL_IMAGE):latest \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
@@ -413,8 +413,8 @@ docker-push-hub: validate-version validate-structure docker-setup docker-login-h
 		--platform $(PLATFORM) \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(DOCKER_HUB_IMAGE):latest \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
@@ -434,8 +434,8 @@ docker-push-ghcr: validate-version validate-structure docker-setup docker-login-
 		--platform $(PLATFORM) \
 		--cache-from type=registry,ref=$(GHCR_IMAGE):cache \
 		--cache-to type=registry,ref=$(GHCR_IMAGE):cache,mode=max \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
@@ -465,8 +465,8 @@ docker-tag-latest-hub: docker-login-hub ## Tag current version as latest (Docker
 		--platform $(PLATFORM) \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(DOCKER_HUB_IMAGE):$(VERSION) \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \
@@ -486,8 +486,8 @@ docker-tag-latest-ghcr: docker-login-ghcr ## Tag current version as latest (GHCR
 		--platform $(PLATFORM) \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(GHCR_IMAGE):$(VERSION) \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg CREATED=$(CREATED) \
+		--build-arg BUILD_VERSION=$(VERSION) \
+		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--label "org.opencontainers.image.created=$(CREATED)" \
 		--label "org.opencontainers.image.version=$(VERSION)" \

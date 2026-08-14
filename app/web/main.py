@@ -337,7 +337,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LuxUPT",
         description="Web interface for monitoring and managing time-lapse operations",
-        version=os.getenv("LUXUPT_VERSION", "dev"),
+        version=os.getenv("BUILD_VERSION", "dev"),
         lifespan=lifespan,
         docs_url="/docs" if config.LOGGING_LEVEL == "DEBUG" else None,
         redoc_url="/redoc" if config.LOGGING_LEVEL == "DEBUG" else None,

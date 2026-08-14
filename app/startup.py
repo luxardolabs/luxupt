@@ -24,8 +24,8 @@ def print_banner() -> None:
     """
 
     # Get version info from environment variables set during Docker build
-    version = os.environ.get("LUXUPT_VERSION", "dev")
-    build_date = os.environ.get("LUXUPT_BUILD_DATE", "unknown")
+    version = os.environ.get("BUILD_VERSION", "dev")
+    build_date = os.environ.get("BUILD_TIMESTAMP", "unknown")
 
     # Use logging instead of print
     for line in banner.split("\n"):

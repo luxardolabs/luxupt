@@ -208,8 +208,8 @@ class SystemViewService:
         )
 
         return {
-            "version": os.getenv("LUXUPT_VERSION", "dev"),
-            "build_date": os.getenv("LUXUPT_BUILD_DATE", "unknown"),
+            "version": os.getenv("BUILD_VERSION", "dev"),
+            "build_date": os.getenv("BUILD_TIMESTAMP", "unknown"),
             "python_version": platform.python_version(),
             "platform": f"{platform.system()} {platform.release()}",
             "architecture": platform.machine(),

@@ -184,7 +184,7 @@ class HealthCoreService:
         return {
             "status": overall_status,
             "timestamp": datetime.now().isoformat(),
-            "version": os.getenv("LUXUPT_VERSION", "dev"),
+            "version": os.getenv("BUILD_VERSION", "dev"),
             "uptime_seconds": int(uptime_seconds),
             "checks": checks,
         }
