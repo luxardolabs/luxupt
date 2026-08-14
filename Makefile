@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.16.1
+LUXLINT_VERSION ?= 0.21.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Lean base for the mypy tail (tools installed FRESH each run, never inherited from :dev —
 # FLEET-BUILD-DEPLOY-STANDARD "Lint & test images"). Pytest deps come from the lock via Dockerfile.test.
@@ -193,7 +193,7 @@ format: ## Format Python with luxlint's canonical ruff (format + autofix), byte-
 	-docker run --rm -v $(PWD):/repo -v /tmp/luxlint.ruff.toml:/cfg/ruff.toml:ro --entrypoint ruff $(LUXLINT_IMAGE) check --config /cfg/ruff.toml --fix app
 
 .PHONY: lint
-lint: guard-version-check ## luxlint (ruff, mount-only) + the mypy tail + JS eslint — ONE recipe; fails if any fails
+lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail — ONE recipe; fails if any fails
 	@# HONESTY: the tail installs pydantic so luxlint's auto-injected `plugins = pydantic.mypy`
 	@# loads — WITHOUT it mypy crashes at plugin load and reports a garbage count (luxlint --preflight
 	@# flags this; FLEET-ONBOARDING-STANDARD §"mypy tail is HONEST"). Tools are installed FRESH on a
@@ -205,25 +205,18 @@ lint: guard-version-check ## luxlint (ruff, mount-only) + the mypy tail + JS esl
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config mypy > /tmp/luxlint.mypy.ini; \
 	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.mypy.ini:/cfg/mypy.ini:ro -w /repo $(LUXLINT_MYPY_IMAGE) \
 	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" pydantic pydantic-settings && mypy --config-file /cfg/mypy.ini app'; mypy=$$?; \
-	$(MAKE) --no-print-directory lint-js; eslint=$$?; \
-	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ] || [ $$eslint -ne 0 ]; then \
-	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy eslint=$$eslint)"; exit 1; \
+	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ]; then \
+	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy)"; exit 1; \
 	fi
 
-.PHONY: lint-js
-lint-js: ## Run JavaScript linting checks
-	@echo '$(BLUE)Running JavaScript linting checks...$(NC)'
-	npm run lint:js
-
-.PHONY: lint-js-fix
-lint-js-fix: ## Fix JavaScript linting issues
-	@echo '$(BLUE)Fixing JavaScript linting issues...$(NC)'
-	npm run lint:js:fix
+# JS linting is the luxlint image's job now (lint.eslint, canonical config). To auto-fix locally:
+#   luxlint --emit-config eslint > .luxlint.eslint.config.mjs   # gitignored
+#   npx eslint --config .luxlint.eslint.config.mjs app/web/static/js/ --fix
 
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.41.0
+LUXARCH_VERSION  ?= 0.45.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -233,7 +226,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION ?= 0.1.11
+LUXAUDIT_VERSION ?= 0.3.0
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit
@@ -262,7 +255,7 @@ onboard-check: ## Prove the repo is onboarded: all three guards ON + HONEST, NOT
 	[ $$fail -eq 0 ] && echo "onboard-check: all three guards on + honest ✓" || { echo "onboard-check FAILED"; exit 1; }
 
 .PHONY: check
-check: ## Run all fleet guards — arch + lint + lint-js + audit + test (each runs; fails at end if any fails)
+check: ## Run all fleet guards — arch + lint + audit + test (each runs; fails at end if any fails)
 	@# One recipe / set +e / fail-at-end (LUXPM-120): arch and lint are red today, so a plain
 	@# prereq list would abort before the later steps ever ran. Capture each, report which broke.
 	@set +e; \
