@@ -179,7 +179,7 @@ async def save_fetch_settings(
         return response
 
     except Exception as e:
-        logger.error("Error saving fetch settings", extra={"error": str(e)})
+        logger.exception("Error saving fetch settings", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",
@@ -318,7 +318,7 @@ async def save_camera_settings(
         return response
 
     except Exception as e:
-        logger.error("Error saving camera settings", extra={"error": str(e)})
+        logger.exception("Error saving camera settings", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",
@@ -363,7 +363,7 @@ async def detect_camera_capabilities(
         return response
 
     except Exception as e:
-        logger.error("Error detecting camera capabilities", extra={"error": str(e)})
+        logger.exception("Error detecting camera capabilities", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",

@@ -79,7 +79,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         if not user:
             return None
         # Env-sourced users have placeholder hash - can't authenticate via DB
-        if user.password_hash == "ENV_MANAGED":
+        if user.password_hash == "ENV_MANAGED":  # noqa: S105  (sentinel, not a credential)
             return None
         if not await self.verify_password(password, user.password_hash):
             return None
@@ -126,7 +126,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         # Create new env user record
         env_user = User(
             username=username,
-            password_hash="ENV_MANAGED",  # Placeholder - not used for auth
+            password_hash="ENV_MANAGED",  # noqa: S106  (sentinel placeholder, not a credential)
             is_admin=True,
             auth_source=User.SOURCE_ENV,
         )

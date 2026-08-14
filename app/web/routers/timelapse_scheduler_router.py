@@ -80,7 +80,7 @@ async def save_scheduler_settings(
             {**context},
         )
     except Exception as e:
-        logger.error("Error saving scheduler settings", extra={"error": str(e)})
+        logger.exception("Error saving scheduler settings", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/timelapses/scheduler_result.html",

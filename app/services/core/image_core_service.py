@@ -130,7 +130,7 @@ class ImageCoreService:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "Thumbnail worker error",
                     extra={"worker_id": worker_id, "error": str(e)},
                 )

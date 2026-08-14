@@ -25,7 +25,7 @@ async def run_fetch_only() -> None:
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:
-        logger.error("Fetch service error", extra={"error": str(e)})
+        logger.exception("Fetch service error", extra={"error": str(e)})
     finally:
         await fetch_service.stop()
 
@@ -39,7 +39,7 @@ async def run_timelapse_only() -> None:
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:
-        logger.error("Timelapse service error", extra={"error": str(e)})
+        logger.exception("Timelapse service error", extra={"error": str(e)})
     finally:
         await timelapse_service.stop()
 
@@ -49,11 +49,11 @@ async def run_web_only() -> None:
     try:
         await start_web_server()
     except ImportError as e:
-        logger.error(
+        logger.exception(
             "Web interface dependencies not available", extra={"error": str(e)}
         )
     except Exception as e:
-        logger.error("Web server error", extra={"error": str(e)})
+        logger.exception("Web server error", extra={"error": str(e)})
 
 
 async def create_timelapse_now() -> None:
@@ -64,7 +64,7 @@ async def create_timelapse_now() -> None:
         await timelapse_service.create_timelapse_now()
         logger.info("Timelapse creation completed")
     except Exception as e:
-        logger.error("Error creating timelapse", extra={"error": str(e)})
+        logger.exception("Error creating timelapse", extra={"error": str(e)})
 
 
 async def test_cameras() -> None:
@@ -97,7 +97,7 @@ async def test_cameras() -> None:
         )
 
     except Exception as e:
-        logger.error("Error testing cameras", extra={"error": str(e)})
+        logger.exception("Error testing cameras", extra={"error": str(e)})
     finally:
         await fetch_service.stop()
 
@@ -206,7 +206,7 @@ async def handle_cli_command(command: str) -> bool:
         try:
             kv = _parse_kv_args(sys.argv[2:])
         except ValueError as e:
-            logger.error("Argument parse error", extra={"error": str(e)})
+            logger.exception("Argument parse error", extra={"error": str(e)})
             return True
         username = kv.get("username")
         password = kv.get("password")

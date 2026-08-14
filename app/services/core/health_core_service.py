@@ -41,7 +41,7 @@ class HealthCoreService:
                 "message": "Database connected",
             }
         except Exception as e:
-            logger.error("Database health check failed", extra={"error": str(e)})
+            logger.exception("Database health check failed", extra={"error": str(e)})
             return {
                 "status": HealthStatus.UNHEALTHY,
                 "message": f"Database error: {str(e)}",
@@ -86,7 +86,9 @@ class HealthCoreService:
                 "cameras_connected": connected_count,
             }
         except Exception as e:
-            logger.error("Camera manager health check failed", extra={"error": str(e)})
+            logger.exception(
+                "Camera manager health check failed", extra={"error": str(e)}
+            )
             return {
                 "status": HealthStatus.UNHEALTHY,
                 "message": f"Camera manager error: {str(e)}",

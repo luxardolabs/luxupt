@@ -344,10 +344,12 @@ class CameraManager:
             return self.cameras
 
         except httpx.RequestError as e:
-            logger.error("Failed to fetch cameras", extra={"error": str(e)})
+            logger.exception("Failed to fetch cameras", extra={"error": str(e)})
             raise
         except Exception as e:
-            logger.error("Unexpected error fetching cameras", extra={"error": str(e)})
+            logger.exception(
+                "Unexpected error fetching cameras", extra={"error": str(e)}
+            )
             raise
 
     async def get_cameras(self, force_refresh: bool = False) -> list[Camera]:
@@ -519,20 +521,20 @@ class CameraManager:
 
         except httpx.TimeoutException:
             error_msg = "Timeout"
-            logger.error(
+            logger.exception(
                 "Capture timeout", extra={"camera": camera.name, "interval": interval}
             )
             return make_result(False, error=error_msg)
         except httpx.RequestError as e:
             error_msg = "Network error"
-            logger.error(
+            logger.exception(
                 "Capture network error",
                 extra={"camera": camera.name, "interval": interval, "error": str(e)},
             )
             return make_result(False, error=error_msg)
         except Exception as e:
             error_msg = "Capture failed"
-            logger.error(
+            logger.exception(
                 "Capture unexpected error",
                 extra={"camera": camera.name, "interval": interval, "error": str(e)},
             )
@@ -605,7 +607,7 @@ class CameraManager:
                 return None
 
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Error getting RTSPS URL",
                 extra={"camera": camera.name, "error": str(e)},
             )
@@ -838,7 +840,7 @@ class CameraManager:
 
             except TimeoutError:
                 error_msg = "Timeout"
-                logger.error(
+                logger.exception(
                     "RTSP capture timeout",
                     extra={
                         "camera": camera.name,
@@ -855,7 +857,7 @@ class CameraManager:
 
         except Exception as e:
             error_msg = "RTSP capture failed"
-            logger.error(
+            logger.exception(
                 "RTSP capture error",
                 extra={"camera": camera.name, "interval": interval, "error": str(e)},
             )

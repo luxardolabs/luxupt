@@ -111,7 +111,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             return response
         except Exception as e:
             process_time = time.time() - start_time
-            logger.error(
+            logger.exception(
                 "HTTP request failed",
                 extra={
                     "method": request.method,
@@ -119,7 +119,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     "error": str(e),
                     "process_time_s": round(process_time, 3),
                 },
-                exc_info=True,
             )
             raise
 

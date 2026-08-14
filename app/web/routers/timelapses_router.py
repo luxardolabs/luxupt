@@ -155,7 +155,7 @@ async def create_timelapse(
             {**context},
         )
     except Exception as e:
-        logger.error("Error creating timelapse", extra={"error": str(e)})
+        logger.exception("Error creating timelapse", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/timelapses/create_result.html",

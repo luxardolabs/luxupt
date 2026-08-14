@@ -487,7 +487,7 @@ class CamerasViewService:
             )
             return {"ok": False, "error": f"Request failed: {str(e)[:200]}"}
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Protect connection test failed",
                 extra={"error": str(e), "type": type(e).__name__},
             )
@@ -526,7 +526,7 @@ class CamerasViewService:
                 return True, "Settings saved, but connection failed.", synced
 
         except Exception as e:
-            logger.error("Error updating fetch settings", extra={"error": str(e)})
+            logger.exception("Error updating fetch settings", extra={"error": str(e)})
             return False, str(e), None
 
     async def update_camera_settings(
@@ -541,7 +541,7 @@ class CamerasViewService:
             await self.camera_service.update_settings(camera_id, update_data)
             return True, f"Settings saved for {camera.name}"
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Error updating camera settings",
                 extra={"camera_id": camera_id, "error": str(e)},
             )
@@ -623,7 +623,7 @@ class CamerasViewService:
             else:
                 return False, "Failed to delete camera"
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Error deleting camera", extra={"camera_id": camera_id, "error": str(e)}
             )
             return False, str(e)

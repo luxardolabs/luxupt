@@ -476,7 +476,7 @@ async def update_backup_settings(
         )
 
     except Exception as e:
-        logger.error("Failed to update backup settings", extra={"error": str(e)})
+        logger.exception("Failed to update backup settings", extra={"error": str(e)})
         return templates.TemplateResponse(
             request,
             "partials/system/backup_form_result.html",

@@ -476,13 +476,15 @@ class JobProcessor:
 
             except Exception as e:
                 error_msg = str(e) if str(e) else type(e).__name__
-                logger.error("Job failed", extra={"job_id": job_id, "error": error_msg})
+                logger.exception(
+                    "Job failed", extra={"job_id": job_id, "error": error_msg}
+                )
                 try:
                     async with async_session() as db:
                         await job_crud.fail_job(db, job_id, error=error_msg)
                         await db.commit()
                 except Exception as db_err:
-                    logger.error(
+                    logger.exception(
                         "Failed to mark job as failed in database (ghost job may remain as 'running')",
                         extra={"job_id": job_id, "error": str(db_err)},
                     )

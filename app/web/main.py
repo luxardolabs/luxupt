@@ -214,7 +214,7 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
                 logger.info("Capability detection complete for new cameras")
 
     except Exception as e:
-        logger.error("Failed to sync cameras to database", extra={"error": str(e)})
+        logger.exception("Failed to sync cameras to database", extra={"error": str(e)})
 
 
 # Configure logging immediately at module load
@@ -383,7 +383,6 @@ def create_app() -> FastAPI:
         logger.error(
             "Internal server error",
             extra={"url": str(request.url), "error": str(exc)},
-            exc_info=True,
         )
         templates_inst: Jinja2Templates | None = getattr(
             request.app.state, "templates", None

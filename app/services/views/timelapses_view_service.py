@@ -613,7 +613,7 @@ class TimelapsesViewService:
                 "recreated_jobs": recreated_jobs,
             }
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Error creating historical timelapse",
                 extra={"error": str(e), "type": type(e).__name__},
             )

@@ -199,10 +199,7 @@ def duration(value: int | float | timedelta | None, style: str = "short") -> str
     if value is None:
         return "--"
 
-    if isinstance(value, timedelta):
-        seconds = int(value.total_seconds())
-    else:
-        seconds = int(value)
+    seconds = int(value.total_seconds()) if isinstance(value, timedelta) else int(value)
     if seconds < 0:
         return "--"
 

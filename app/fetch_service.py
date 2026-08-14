@@ -131,7 +131,7 @@ class FetchService:
                     fetch_settings.camera_refresh_interval
                 )
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Failed to load fetch defaults from database", extra={"error": str(e)}
             )
             raise  # Don't continue without database settings
@@ -328,7 +328,9 @@ class FetchService:
             return len(cameras)
 
         except Exception as e:
-            logger.error("Failed to sync cameras on demand", extra={"error": str(e)})
+            logger.exception(
+                "Failed to sync cameras on demand", extra={"error": str(e)}
+            )
             return -1
 
     async def start(self) -> None:
@@ -598,7 +600,7 @@ class FetchService:
                     # the epoch, so adding/removing intervals never disturbs the others.
 
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "Error monitoring settings changes", extra={"error": str(e)}
                 )
 
@@ -751,7 +753,7 @@ class FetchService:
                 logger.info("Interval task cancelled", extra={"interval": interval})
                 break
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "Error in interval capture",
                     extra={"interval": interval, "error": str(e)},
                 )
@@ -840,7 +842,7 @@ class FetchService:
                 },
             )
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Capture cycle failed", extra={"interval": interval, "error": str(e)}
             )
 
@@ -908,7 +910,7 @@ class FetchService:
                 group_results = await task
                 all_results.update(group_results)
             except Exception as e:
-                logger.error("Capture group failed", extra={"error": str(e)})
+                logger.exception("Capture group failed", extra={"error": str(e)})
 
         return all_results
 
@@ -1197,6 +1199,6 @@ class FetchService:
                 )
 
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Failed to record captures to database", extra={"error": str(e)}
             )

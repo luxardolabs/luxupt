@@ -151,7 +151,7 @@ def setup_logging() -> None:
 
     # Create appropriate formatter
     if use_json and not JSON_LOGGING_AVAILABLE:
-        logging.warning(
+        logging.getLogger(__name__).warning(
             "JSON logging requested but pythonjsonlogger not installed. Falling back to text format. "
             "Install with: pip install python-json-logger"
         )

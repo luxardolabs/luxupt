@@ -45,5 +45,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:
-        logger.error("Unexpected error", extra={"error": str(e)})
+        logger.exception("Unexpected error", extra={"error": str(e)})
         sys.exit(1)

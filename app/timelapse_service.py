@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
     from app.models.scheduler_settings_model import SchedulerSettings
 
+import contextlib
+
 from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
 from app.crud import camera_crud, job_crud, timelapse_crud
@@ -287,10 +289,8 @@ class TimelapseService:
         # Cancel creation task
         if self.creation_task and not self.creation_task.done():
             self.creation_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self.creation_task
-            except asyncio.CancelledError:
-                pass
 
         # Close camera manager
         if hasattr(self, "camera_manager"):
@@ -424,7 +424,7 @@ class TimelapseService:
                             await db.commit()
 
                         except Exception as e:
-                            logger.error(
+                            logger.exception(
                                 "Error during scheduled timelapse creation",
                                 extra={"error": str(e)},
                             )
@@ -459,7 +459,7 @@ class TimelapseService:
                             )
 
             except Exception as e:
-                logger.error("Error in scheduler loop", extra={"error": str(e)})
+                logger.exception("Error in scheduler loop", extra={"error": str(e)})
 
             # Sleep for 60 seconds before checking again
             await asyncio.sleep(60)
@@ -783,7 +783,7 @@ class TimelapseService:
                         },
                     )
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "Failed to cleanup after video creation",
                     extra={
                         "camera": camera_name,
@@ -963,7 +963,7 @@ class TimelapseService:
                 )
             except TimeoutError:
                 # FFmpeg hung - kill the process
-                logger.error(
+                logger.exception(
                     "FFmpeg timeout - killing process",
                     extra={
                         "camera": camera_name,
@@ -1069,7 +1069,7 @@ class TimelapseService:
         except Exception as e:
             error_msg = f"Video creation error: {str(e)}"
             await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
-            logger.error(
+            logger.exception(
                 "Error creating video",
                 extra={"camera": camera_name, "interval": interval, "error": str(e)},
             )
@@ -1082,10 +1082,8 @@ class TimelapseService:
         finally:
             # Concat file is a per-run side artifact; delete on any exit path.
             if concat_file is not None:
-                try:
+                with contextlib.suppress(Exception):
                     await async_fs.path_unlink(concat_file, missing_ok=True)
-                except Exception:
-                    pass
 
     async def create_combined_timelapse_for_range(
         self,
@@ -1236,7 +1234,7 @@ class TimelapseService:
             # Normal when process completes
             pass
         except Exception as e:
-            logger.error("Error tracking FFmpeg progress", extra={"error": str(e)})
+            logger.exception("Error tracking FFmpeg progress", extra={"error": str(e)})
 
     async def _update_progress(
         self,
@@ -1271,7 +1269,9 @@ class TimelapseService:
                     self._current_job_id, progress, status, message, current_image
                 )
             except Exception as e:
-                logger.error("Failed to update job progress", extra={"error": str(e)})
+                logger.exception(
+                    "Failed to update job progress", extra={"error": str(e)}
+                )
 
     async def _store_process_pid(self, job_key: str, pid: int | None) -> None:
         """Store the FFmpeg process PID in the database for process management."""

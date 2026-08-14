@@ -51,7 +51,7 @@ class BackupCoreService:
                 logger.info("BackupCoreService cancelled")
                 break
             except Exception as e:
-                logger.error("BackupCoreService error", extra={"error": str(e)})
+                logger.exception("BackupCoreService error", extra={"error": str(e)})
                 # Wait before retrying on error
                 await asyncio.sleep(60)
 
@@ -94,7 +94,7 @@ class BackupCoreService:
             return backup_file
 
         except Exception as e:
-            logger.error("Database backup failed", extra={"error": str(e)})
+            logger.exception("Database backup failed", extra={"error": str(e)})
             return None
 
     def _backup_sync(self, source_path: str, dest_path: str) -> None:
