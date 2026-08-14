@@ -23,9 +23,9 @@ from datetime import UTC, datetime, timedelta
 from time import time
 from typing import cast
 
+import jwt
 from fastapi import Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
-from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -228,8 +228,8 @@ class AuthService:
             )
 
         to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        return cast(str, encoded_jwt)
+        # PyJWT is untyped in the mypy tail (app deps aren't installed there) -> cast.
+        return cast(str, jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
     @staticmethod
     def verify_token(token: str) -> str | None:
@@ -240,7 +240,7 @@ class AuthService:
             if username is None:
                 return None
             return username
-        except JWTError:
+        except jwt.PyJWTError:
             return None
 
 

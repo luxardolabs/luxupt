@@ -30,7 +30,7 @@ fastapi = "^0.140.0"  # >=0.140 admits starlette 1.x (fixes the starlette CVEs; 
 uvicorn = {version = "^0.40.0", extras = ["standard"]}
 jinja2 = "^3.1.6"
 python-multipart = ">=0.0.31,<0.1.0"  # 0.0.31 clears the multipart DoS CVEs (^0.0.22 pinned it exactly)
-python-jose = {version = "^3.5.0", extras = ["cryptography"]}
+pyjwt = "^2.10.1"  # replaces unmaintained python-jose (dropped cryptography-PKCS7 CVE + ecdsa dep); HS256 uses stdlib hmac
 passlib = {version = "^1.7.4", extras = ["argon2"]}
 aiofiles = "^25.1.0"
 pillow = "^12.1.0"
