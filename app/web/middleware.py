@@ -172,7 +172,9 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
             return False
 
         # Check database for users
-        from app.db.connection import async_session
+        from app.db.connection import (  # noqa: PLC0415
+            async_session,
+        )
 
         async with async_session() as db:
             return await needs_setup(db)

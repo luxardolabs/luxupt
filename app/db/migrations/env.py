@@ -113,7 +113,7 @@ def run_migrations_online() -> None:
     else:
         # Already in an async context - create a new thread to run migrations
         # This avoids the "cannot call asyncio.run() while another loop is running" error
-        import concurrent.futures
+        import concurrent.futures  # noqa: PLC0415 (lazy: only the already-in-a-loop branch needs it)
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(asyncio.run, run_async_migrations())

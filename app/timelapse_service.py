@@ -574,7 +574,9 @@ class TimelapseService:
         Uses the shared JobProcessor to ensure consistent behavior between
         scheduled and manual timelapse creation.
         """
-        from app.services.core.job_core_service import get_job_processor
+        from app.services.core.job_core_service import (  # noqa: PLC0415
+            get_job_processor,
+        )
 
         date_str = target_date.strftime("%Y-%m-%d")
         title = f"{camera_name}_{date_str}_{interval}s"

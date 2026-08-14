@@ -111,21 +111,25 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
         # Alembic's env.py calls fileConfig(alembic.ini) which replaces the root logger
         # with a WARN-level stderr handler and disables all existing app loggers.
         # Re-initialize our logging to restore the JSON/text handler on stdout at INFO level.
-        from app.logging_config import setup_logging
+        from app.logging_config import (  # noqa: PLC0415
+            setup_logging,
+        )
 
         setup_logging()
 
 
 async def init_db() -> None:
     """Initialize database tables."""
-    from app.logging_config import get_logger
+    from app.logging_config import get_logger  # noqa: PLC0415 (lazy, migration path)
 
     logger = get_logger(__name__)
 
     # Import all models to register them with SQLAlchemy metadata
     # This ensures all tables are created
-    from app.db.base import Base
-    from app.models import (  # noqa: F401
+    from app.db.base import (  # noqa: PLC0415
+        Base,
+    )
+    from app.models import (  # noqa: F401, PLC0415
         Activity,
         BackupSettings,
         Camera,

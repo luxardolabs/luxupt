@@ -76,8 +76,9 @@ def _create_monitored_task(coro: Any, name: str) -> "asyncio.Task[Any]":
 
 async def log_database_settings() -> None:
     """Log consolidated database settings after initialization."""
-    from app.crud.fetch_settings_crud import fetch_settings_crud
-    from app.crud.scheduler_settings_crud import scheduler_settings_crud
+    from app.crud.scheduler_settings_crud import (  # noqa: PLC0415
+        scheduler_settings_crud,
+    )
 
     async for db in get_db():
         try:
@@ -112,7 +113,7 @@ async def log_database_settings() -> None:
 
 async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
     """Sync cameras from UniFi Protect API to database and run capability detection for new cameras."""
-    from datetime import datetime as dt
+    from datetime import datetime as dt  # noqa: PLC0415 (lazy alias, sync loop)
 
     try:
         logger.info("Syncing cameras to database")
@@ -224,9 +225,15 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifespan."""
-    from app.fetch_service import FetchService
-    from app.services.core.backup_core_service import BackupCoreService
-    from app.timelapse_service import TimelapseService
+    from app.fetch_service import (  # noqa: PLC0415
+        FetchService,
+    )
+    from app.services.core.backup_core_service import (  # noqa: PLC0415
+        BackupCoreService,
+    )
+    from app.timelapse_service import (  # noqa: PLC0415
+        TimelapseService,
+    )
 
     # Startup
     logger.info("Starting web interface")
@@ -425,7 +432,7 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory=str(templates_path))
 
     # Register custom template filters
-    from .template_filters import register_filters
+    from .template_filters import register_filters  # noqa: PLC0415 (lazy, app-factory)
 
     register_filters(templates)
 
@@ -454,7 +461,7 @@ def create_app() -> FastAPI:
     app.state.templates = templates
 
     # Import and include HTMX routers (SQLite + view services architecture)
-    from .routers import (
+    from .routers import (  # noqa: PLC0415 (lazy router import avoids the app-factory import cycle)
         cameras_router,
         images_router,
         pages_router,
@@ -600,7 +607,6 @@ async def start_web_server() -> None:
         uvicorn_kwargs["app"] = "web.main:app"
         uvicorn_kwargs["reload"] = True
         # Watch the entire app directory for changes - use absolute path
-        import os
 
         app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         uvicorn_kwargs["reload_dirs"] = [app_dir]
