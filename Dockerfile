@@ -56,7 +56,8 @@ ARG VERSION="1.1.0"
 ARG BUILD_DATE="1970-01-01T00:00:00Z"
 ARG REVISION="unknown"
 ENV LUXUPT_VERSION=$VERSION \
-    LUXUPT_BUILD_DATE=$BUILD_DATE
+    LUXUPT_BUILD_DATE=$BUILD_DATE \
+    LUXUPT_REVISION=$REVISION
 
 # OCI provenance labels (repo.oci_image_labels) — portable keys; .created is RFC-3339 UTC.
 LABEL org.opencontainers.image.version="$VERSION" \

@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.12.0
+LUXLINT_VERSION ?= 0.16.1
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Lean base for the mypy tail (tools installed FRESH each run, never inherited from :dev —
 # FLEET-BUILD-DEPLOY-STANDARD "Lint & test images"). Pytest deps come from the lock via Dockerfile.test.
@@ -223,7 +223,7 @@ lint-js-fix: ## Fix JavaScript linting issues
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.21.3
+LUXARCH_VERSION  ?= 0.38.1
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -233,7 +233,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION ?= 0.1.9
+LUXAUDIT_VERSION ?= 0.1.11
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit

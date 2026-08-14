@@ -6,17 +6,17 @@
     <title>{% block title %}LuxUPT{% endblock %}</title>
 
     <!-- Tailwind CSS (compiled) -->
-    <link href="/static/css/compiled.css" rel="stylesheet">
+    <link href="/static/css/compiled.css?v={{ static_version }}" rel="stylesheet">
 
     <!-- HTMX + Morph extension -->
-    <script src="/static/vendor/htmx.min.js"></script>
-    <script src="/static/vendor/idiomorph-ext.min.js"></script>
+    <script src="/static/vendor/htmx.min.js?v={{ static_version }}"></script>
+    <script src="/static/vendor/idiomorph-ext.min.js?v={{ static_version }}"></script>
 
     <!-- Alpine.js for client-side interactivity -->
-    <script defer src="/static/vendor/alpine/alpine.min.js"></script>
+    <script defer src="/static/vendor/alpine/alpine.min.js?v={{ static_version }}"></script>
 
     <!-- ECharts 5.5.0 for charts -->
-    <script src="/static/vendor/echarts/echarts.min.js"></script>
+    <script src="/static/vendor/echarts/echarts.min.js?v={{ static_version }}"></script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
@@ -41,8 +41,8 @@
     <!-- Panel container for HTMX slide-out panels -->
     <div id="panel-container"></div>
 
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/capture-stats.js"></script>
+    <script src="/static/js/app.js?v={{ static_version }}"></script>
+    <script src="/static/js/capture-stats.js?v={{ static_version }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -63,7 +63,8 @@ def _create_monitored_task(coro: Any, name: str) -> "asyncio.Task[Any]":
         exc = task.exception()
         if exc:
             logger.error(
-                f"Background task '{name}' failed with exception",
+                "Background task '%s' failed with exception",
+                name,
                 extra={"task_name": name, "error": str(exc)},
                 exc_info=exc,
             )
@@ -435,6 +436,9 @@ def create_app() -> FastAPI:
             "config": config,
             "datetime": datetime,
             "paginated_url": paginated_url,
+            # Cache-bust token for first-party static assets (fw.static_assets_cache_busted):
+            # the OCI revision (git short SHA), stamped as LUXUPT_REVISION in the image.
+            "static_version": os.getenv("LUXUPT_REVISION", "dev"),
             "len": len,
             "enumerate": enumerate,
             "range": range,

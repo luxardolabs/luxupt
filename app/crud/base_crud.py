@@ -10,7 +10,11 @@ from app import config
 from app.db.base import Base
 
 
-class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: BaseModel]:
+class CRUDBase[
+    ModelType: Base,
+    CreateSchemaType: BaseModel,
+    UpdateSchemaType: BaseModel,
+]:
     """Base class for CRUD operations."""
 
     def __init__(self, model: type[ModelType]) -> None:
