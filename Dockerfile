@@ -51,8 +51,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -g 1000 appuser && \
     useradd -u 1000 -g appuser -s /bin/bash appuser
 
-# Add build arguments AFTER static layers (these change each build)
-ARG VERSION="1.1.0"
+# Add build arguments AFTER static layers (these change each build).
+# The real version (CalVer YYYY.0M.MICRO) is stamped by the Makefile from the VERSION file
+# via --build-arg VERSION=$(VERSION); this default is only a bare-`docker build` fallback.
+ARG VERSION="0000.00.0"
 ARG BUILD_DATE="1970-01-01T00:00:00Z"
 ARG REVISION="unknown"
 ENV LUXUPT_VERSION=$VERSION \
