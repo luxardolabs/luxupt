@@ -34,6 +34,7 @@ non_request_files = [
   "app/services/core/job_core_service.py",               # JobProcessor: background job state machine
   "app/services/core/historical_fetch_core_service.py",  # background job: historical frame fetch
   "app/web/main.py",                                     # lifespan startup/shutdown, pre-request
+  "app/services/core/backup_core_service.py",            # scheduler-driven backup loop: no request session (no self.db); prunes untracked .dump files by retention count — no DB row to orphan (side_effects_after_commit non-request case, luxarch 0.38.2)
 ]
 
 # Component-macro registry (fw.component_registry, ADR-002): every PUBLIC macro in
