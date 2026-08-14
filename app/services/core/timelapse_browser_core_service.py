@@ -1,7 +1,5 @@
 """Timelapse browser service for timelapse viewing operations."""
 
-import asyncio
-import contextlib
 from datetime import date
 from pathlib import Path
 
@@ -9,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud import timelapse_crud
+from app.db.post_commit import after_commit
 from app.models.timelapse_model import Timelapse
 from app.schemas.timelapse_schema import TimelapseStats
 from app.services.core._path_security import validate_video_path
@@ -185,20 +184,6 @@ class TimelapseBrowserCoreService:
 
         return None
 
-    @staticmethod
-    def _delete_timelapse_files(timelapse: Timelapse) -> None:
-        """Delete timelapse files from disk (sync, for use in thread)."""
-        if timelapse.file_path:
-            p = Path(timelapse.file_path)
-            if p.exists():
-                with contextlib.suppress(Exception):
-                    p.unlink()
-        if timelapse.thumbnail_path:
-            p = Path(timelapse.thumbnail_path)
-            if p.exists():
-                with contextlib.suppress(Exception):
-                    p.unlink()
-
     async def delete_timelapse(self, timelapse_id: int) -> bool:
         """Delete a timelapse - removes database record and files.
 
@@ -208,11 +193,20 @@ class TimelapseBrowserCoreService:
         if not timelapse:
             return False
 
-        # Delete files in a single thread dispatch
-        await asyncio.to_thread(self._delete_timelapse_files, timelapse)
-
-        # Delete database record
+        # Snapshot paths before the row delete (the ORM object expires after). Remove the
+        # DB record FIRST, then unlink the files only after get_db commits (ADR-003 /
+        # fw.side_effects_after_commit): a rollback leaves the row intact rather than
+        # pointing at deleted files (a leaked file is reclaimable garbage; the reverse is
+        # corruption). `missing_ok` makes the post-commit unlink idempotent.
+        video_path = timelapse.file_path
+        thumbnail_path = timelapse.thumbnail_path
         await timelapse_crud.delete(self.db, id=timelapse_id)
+        if video_path is not None:
+            vp = Path(video_path)
+            after_commit(self.db, lambda: vp.unlink(missing_ok=True))
+        if thumbnail_path is not None:
+            tp = Path(thumbnail_path)
+            after_commit(self.db, lambda: tp.unlink(missing_ok=True))
         return True
 
 
