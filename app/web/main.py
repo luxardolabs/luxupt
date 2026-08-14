@@ -424,7 +424,9 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestLoggingMiddleware)
 
     # Static files
-    static_path = Path(__file__).parent / "static"
+    # Static assets live at the fleet-canonical app/static/ (app-wide, a sibling of web/),
+    # served at the /static URL. __file__ is app/web/main.py, so go up to app/.
+    static_path = Path(__file__).parent.parent / "static"
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
     # Templates

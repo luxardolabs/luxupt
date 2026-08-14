@@ -9,6 +9,13 @@ paths = ["app"]   # the app package — lint + format-check + mypy target
 target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:3.13-slim (Dockerfile).
                       # Sets what ruff/mypy check against; the rule SET stays fleet-identical.
 
+# Mypy ratchet (luxlint 0.22.0) — a fleet-owned, monotonic-DOWN floor for the mypy tail.
+# luxupt has ZERO crash-class errors (per --playbook mypy-sweep ranking); the 227 are pure
+# type-completeness — ~80 unfixable FastAPI untyped-decorator + bare dict/list type-arg (no
+# bugs). The ratchet tracks + prevents regression; drain opportunistically, never raise it.
+[mypy]
+baseline = 227   # LUXUPT-64. `make lint` pipes mypy through `luxlint --mypy-ratchet`.
+
 # Mypy-tail honesty attestations (luxlint --preflight). Same currency as [rules.deferred]:
 # a written before→after that proves the tail resolves the real code, not phantoms.
 [mypy.tail]

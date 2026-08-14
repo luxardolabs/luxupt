@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.21.0
+LUXLINT_VERSION ?= 0.22.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Lean base for the mypy tail (tools installed FRESH each run, never inherited from :dev —
 # FLEET-BUILD-DEPLOY-STANDARD "Lint & test images"). Pytest deps come from the lock via Dockerfile.test.
@@ -204,7 +204,8 @@ lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE); ruff=$$?; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config mypy > /tmp/luxlint.mypy.ini; \
 	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.mypy.ini:/cfg/mypy.ini:ro -w /repo $(LUXLINT_MYPY_IMAGE) \
-	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" pydantic pydantic-settings && mypy --config-file /cfg/mypy.ini app'; mypy=$$?; \
+	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" pydantic pydantic-settings && mypy --config-file /cfg/mypy.ini app' 2>&1 \
+	  | docker run --rm -i -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy-ratchet; mypy=$$?; \
 	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ]; then \
 	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy)"; exit 1; \
 	fi
@@ -216,7 +217,7 @@ lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.45.0
+LUXARCH_VERSION  ?= 0.47.1
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -324,7 +325,7 @@ frontend: npm-install css-build ## Install npm deps and build CSS
 .PHONY: docker-setup
 docker-setup: ## Set up Docker buildx
 	@echo '$(BLUE)Setting up Docker buildx...$(NC)'
-	docker buildx create --name $(PROJECT_NAME)-builder --use 2>/dev/null || true
+	docker buildx create --name $(PROJECT_NAME)-builder --buildkitd-config $(HOME)/.docker/buildkitd.toml --use 2>/dev/null || true
 	docker buildx inspect --bootstrap
 
 .PHONY: docker-login-hub

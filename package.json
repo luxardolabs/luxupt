@@ -5,8 +5,8 @@
   "type": "module",
   "description": "LuxUPT - Frontend Assets",
   "scripts": {
-    "dev:css": "tailwindcss -i ./app/web/static/css/tailwind.css -o ./app/web/static/css/compiled.css --watch",
-    "build:css": "NODE_ENV=production tailwindcss -i ./app/web/static/css/tailwind.css -o ./app/web/static/css/compiled.css --minify",
+    "dev:css": "tailwindcss -i ./app/static/css/tailwind.css -o ./app/static/css/compiled.css --watch",
+    "build:css": "NODE_ENV=production tailwindcss -i ./app/static/css/tailwind.css -o ./app/static/css/compiled.css --minify",
     "build": "npm run build:css"
   },
   "devDependencies": {
