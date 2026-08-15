@@ -91,8 +91,6 @@ WEB_CORS_ORIGINS = (
     else []
 )
 
-# Cookie security mode: "auto", "always", "never"
-WEB_COOKIE_SECURE_MODE = os.getenv("WEB_COOKIE_SECURE_MODE", "auto").lower()
 WEB_TRUST_PROXY_HEADERS = os.getenv("WEB_TRUST_PROXY_HEADERS", "True").lower() in [
     "true",
     "1",

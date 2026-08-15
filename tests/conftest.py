@@ -100,8 +100,10 @@ async def client() -> AsyncGenerator[AsyncClient]:
     service / camera manager never start. ``app.state.templates`` is wired in
     ``create_app()`` (not the lifespan), so rendering still works.
     """
+    # HTTPS base URL: the app is served over HTTPS behind nginx and issues Secure
+    # session cookies (fw.secure_cookies), which httpx only sends back over https.
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url="https://test") as ac:
         yield ac
 
 

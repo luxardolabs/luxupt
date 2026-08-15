@@ -83,25 +83,6 @@ def _is_https_request(request: Request) -> bool:
     return request.url.scheme == "https"
 
 
-def _should_set_secure_cookie(request: Request) -> bool:
-    """
-    Determine if cookies should have the 'secure' flag set.
-
-    Modes:
-    - "auto": Set secure=True only when HTTPS is detected (recommended for home users)
-    - "always": Always set secure=True (requires HTTPS, will break on HTTP)
-    - "never": Never set secure=True (for HTTP-only deployments)
-    """
-    mode = config.WEB_COOKIE_SECURE_MODE
-
-    if mode == "always":
-        return True
-    elif mode == "never":
-        return False
-    else:  # "auto" (default)
-        return _is_https_request(request)
-
-
 def _check_rate_limit(ip: str) -> tuple[bool, int]:
     """
     Check if IP has exceeded login rate limit.
@@ -355,18 +336,16 @@ async def login(
         data={"sub": username}, expires_delta=access_token_expires
     )
 
-    # Determine cookie security based on request context
-    use_secure_cookie = _should_set_secure_cookie(request)
-
-    # Redirect to cameras with cookie
+    # Redirect to cameras with the session cookie. Cookie flags are hard literals
+    # (fw.secure_cookies): the app is always served over HTTPS behind nginx.
     response = RedirectResponse(url="/cameras", status_code=302)
     response.set_cookie(
         key=COOKIE_NAME,
         value=access_token,
         max_age=config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         httponly=True,
-        secure=use_secure_cookie,
-        samesite="strict",
+        secure=True,
+        samesite="lax",
     )
 
     return response

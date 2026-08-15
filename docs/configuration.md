@@ -89,7 +89,6 @@ ______________________________________________________________________
 | `WEB_PORT`                | Port for the web interface                      | `8080`  |
 | `WEB_CORS_ORIGINS`        | Allowed CORS origins (comma-separated)          | —       |
 | `WEB_TRUST_PROXY_HEADERS` | Trust X-Forwarded-\* headers from reverse proxy | `true`  |
-| `WEB_COOKIE_SECURE_MODE`  | Cookie security: `auto`, `always`, or `never`   | `auto`  |
 
 ### Logging
 
@@ -182,15 +181,9 @@ LuxUPT automatically detects HTTPS when running behind a proxy by reading standa
 | `X-Forwarded-For`   | Gets real client IP                   |
 | `X-Real-IP`         | Alternative for client IP             |
 
-### Cookie Security Modes
+### Cookie Security
 
-The `WEB_COOKIE_SECURE_MODE` setting controls how session cookies are secured:
-
-| Mode     | Behavior                                                  |
-| -------- | --------------------------------------------------------- |
-| `auto`   | Secure cookies when proxy indicates HTTPS (recommended)   |
-| `always` | Always use secure cookies — requires HTTPS                |
-| `never`  | Never use secure cookies — not recommended for production |
+Session cookies are always issued with `Secure`, `HttpOnly`, and `SameSite=Lax`. LuxUPT is designed to run behind an HTTPS reverse proxy (nginx); serve it over HTTPS.
 
 ### Nginx Configuration
 
