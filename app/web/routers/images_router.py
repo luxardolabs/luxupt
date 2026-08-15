@@ -107,61 +107,6 @@ async def image_filters_partial(
     )
 
 
-@router.get("/camera/{camera_safe_name}", response_class=HTMLResponse)
-async def camera_images_page(
-    camera_safe_name: str,
-    request: Request,
-    templates: TemplatesDep,
-    view_service: ImagesViewDep,
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    user: str = Depends(get_current_user),
-) -> Response:
-    """Render images page for a specific camera."""
-    # Handle empty strings from form
-    interval_int = int(interval) if interval else None
-    date_str = date_str if date_str else None
-
-    context = await view_service.get_camera_images_context(
-        camera_safe_name,
-        date_str=date_str,
-        interval=interval_int,
-        page=page,
-    )
-
-    if context["camera"] is None:
-        return templates.TemplateResponse(
-            request,
-            "pages/404.html",
-            {"message": "Camera not found"},
-            status_code=404,
-        )
-
-    return templates.TemplateResponse(
-        request,
-        "pages/camera_images.html",
-        {"user": user, **context},
-    )
-
-
-@router.get("/latest", response_class=HTMLResponse)
-async def latest_images_page(
-    request: Request,
-    templates: TemplatesDep,
-    view_service: ImagesViewDep,
-    user: str = Depends(get_current_user),
-) -> Response:
-    """Render the latest images page."""
-    context = await view_service.get_latest_images_context()
-
-    return templates.TemplateResponse(
-        request,
-        "pages/latest_images.html",
-        {"user": user, **context},
-    )
-
-
 # =============================================================================
 # Lightbox endpoint
 # =============================================================================

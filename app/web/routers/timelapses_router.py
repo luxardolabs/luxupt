@@ -277,36 +277,6 @@ async def stats_partial(
     )
 
 
-@router.get("/camera/{camera_safe_name}", response_class=HTMLResponse)
-async def camera_timelapses_page(
-    camera_safe_name: str,
-    request: Request,
-    templates: TemplatesDep,
-    view_service: TimelapsesViewDep,
-    page: int = Query(1, ge=1),
-    user: str = Depends(get_current_user),
-) -> Response:
-    """Render timelapses page for a specific camera."""
-    context = await view_service.get_camera_timelapses_context(
-        camera_safe_name,
-        page=page,
-    )
-
-    if context["camera"] is None:
-        return templates.TemplateResponse(
-            request,
-            "pages/404.html",
-            {"message": "Camera not found"},
-            status_code=404,
-        )
-
-    return templates.TemplateResponse(
-        request,
-        "pages/camera_timelapses.html",
-        {"user": user, **context},
-    )
-
-
 @router.get("/{timelapse_id}/lightbox", response_class=HTMLResponse)
 async def timelapse_lightbox(
     timelapse_id: int,

@@ -35,23 +35,6 @@ async def system_page(
     )
 
 
-@router.get("/settings", response_class=HTMLResponse)
-async def settings_page(
-    request: Request,
-    templates: TemplatesDep,
-    view_service: SystemViewDep,
-    user: str = Depends(get_current_user),
-) -> Response:
-    """Render the settings page."""
-    context = await view_service.get_settings_context()
-
-    return templates.TemplateResponse(
-        request,
-        "pages/settings.html",
-        {"user": user, **context},
-    )
-
-
 @router.get("/activity", response_class=HTMLResponse)
 async def activity_log_page(
     request: Request,
@@ -75,23 +58,6 @@ async def activity_log_page(
         request,
         "pages/activity.html",
         {"user": user, **context},
-    )
-
-
-@router.get("/partials/stats", response_class=HTMLResponse)
-async def system_stats_partial(
-    request: Request,
-    templates: TemplatesDep,
-    view_service: SystemViewDep,
-    user: str = Depends(get_current_user),
-) -> Response:
-    """Render system stats partial for HTMX polling."""
-    context = await view_service.get_system_context()
-
-    return templates.TemplateResponse(
-        request,
-        "partials/system/stats.html",
-        {**context},
     )
 
 

@@ -88,16 +88,6 @@ class SystemViewService:
             "version_info": version_info,
         }
 
-    async def get_settings_context(self) -> dict[str, Any]:
-        """Get data for settings page."""
-        config_summary = await self._get_config_summary()
-        cameras = await self.camera_service.get_active()
-
-        return {
-            "config": config_summary,
-            "cameras": cameras,
-        }
-
     async def _get_system_info(self) -> dict[str, Any]:
         """Get system information (platform only, host metrics from external tools)."""
         return {
