@@ -141,7 +141,7 @@ class TestScheduleSourceAvailabilityRule:
     """The availability RULE lives in the core service, not the view."""
 
     @pytest.mark.asyncio
-    async def test_live_needs_api_base_and_active_camera(
+    async def test_live_needs_capture_on_api_base_and_active_camera(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         from app.services.core import settings_core_service as scs
@@ -158,11 +158,23 @@ class TestScheduleSourceAvailabilityRule:
         monkeypatch.setattr(
             scs.camera_crud, "get_active", AsyncMock(return_value=[object()])
         )
+
+        def _fetch(enabled: bool) -> AsyncMock:
+            return AsyncMock(return_value=SimpleNamespace(enabled=enabled))
+
+        # Capture ON + creds + camera -> both sources available.
+        monkeypatch.setattr(scs.fetch_settings_crud, "get_settings", _fetch(True))
         assert await svc.get_available_schedule_sources() == {
             "live": True,
             "historical": True,
         }
 
-        # No active cameras -> live is unavailable even with an API key.
+        # Capture OFF (the Protect-recordings workflow) -> live is no longer offered.
+        monkeypatch.setattr(scs.fetch_settings_crud, "get_settings", _fetch(False))
+        avail = await svc.get_available_schedule_sources()
+        assert avail["live"] is False and avail["historical"] is True
+
+        # Capture ON but no active cameras -> live still unavailable.
+        monkeypatch.setattr(scs.fetch_settings_crud, "get_settings", _fetch(True))
         monkeypatch.setattr(scs.camera_crud, "get_active", AsyncMock(return_value=[]))
         assert (await svc.get_available_schedule_sources())["live"] is False

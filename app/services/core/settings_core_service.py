@@ -73,13 +73,21 @@ class SettingsCoreService:
     async def get_available_schedule_sources(self) -> dict[str, bool]:
         """Which nightly-scheduler frame sources are usable, given current config.
 
-        live       = a capture API key + base URL are set AND at least one active camera
-        historical = Protect username/password + base URL are set (recording-snapshot needs them)
+        live       = live capture is actually ON (fetch enabled) + API key + base URL + an
+                     active camera. If a user switches to Protect recordings they typically turn
+                     capture off, and then live is (correctly) no longer offered as a source.
+        historical = Protect username/password + base URL are set (recording-snapshot needs them).
         """
         cfg = await self.get_effective_api_config()
+        fetch = await fetch_settings_crud.get_settings(self.db)
         active_cameras = await camera_crud.get_active(self.db)
         return {
-            "live": bool(cfg["has_api_key"] and cfg["has_base_url"] and active_cameras),
+            "live": bool(
+                fetch.enabled
+                and cfg["has_api_key"]
+                and cfg["has_base_url"]
+                and active_cameras
+            ),
             "historical": bool(
                 cfg["has_username"] and cfg["has_password"] and cfg["has_base_url"]
             ),
