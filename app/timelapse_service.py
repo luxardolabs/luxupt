@@ -9,6 +9,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from datetime import time as dt_time
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
@@ -27,6 +28,7 @@ from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
 from app.db.connection import async_session
 from app.logging_config import get_logger
+from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.utils import async_fs
@@ -521,12 +523,23 @@ class TimelapseService:
             },
         )
 
-        # Create tasks for each camera and interval combination
+        # Create tasks for each camera and interval combination. The scheduler source
+        # decides how each day's frames are obtained: live captures (default) or an
+        # on-the-fly fetch from Protect's recordings for that day.
+        historical = settings.source == ScheduleSource.HISTORICAL
         tasks = []
         for camera in cameras:
             for interval in intervals_to_process:
-                task = asyncio.create_task(
-                    self._create_timelapse_with_job(
+                if historical:
+                    coro = self._create_historical_job_with_job(
+                        camera.safe_name,
+                        interval,
+                        target_date,
+                        keep_images,
+                        camera_id=camera.id,
+                    )
+                else:
+                    coro = self._create_timelapse_with_job(
                         camera.safe_name,
                         interval,
                         target_date,
@@ -534,8 +547,7 @@ class TimelapseService:
                         encoding_settings,
                         camera_id=camera.id,
                     )
-                )
-                tasks.append(task)
+                tasks.append(asyncio.create_task(coro))
 
         # Execute all creation tasks
         if tasks:
@@ -614,6 +626,73 @@ class TimelapseService:
         await job_processor._process_job(job_id, date_str, camera_name, interval)
 
         # Check the result
+        async with async_session() as db:
+            result_job = await job_crud.get_by_job_id(db, job_id)
+            if result_job and result_job.status == "completed":
+                return True
+            elif result_job and result_job.status == "failed":
+                return False
+            return None
+
+    async def _create_historical_job_with_job(
+        self,
+        camera_name: str,
+        interval: int,
+        target_date: datetime,
+        keep_images: bool,
+        *,
+        camera_id: str = "",
+    ) -> bool | None:
+        """Create and run a historical job for one camera/day (scheduler source=historical).
+
+        Fetches that day's frames from Protect's recordings and renders through the same
+        JobProcessor the on-demand historical UI uses — so the result lands in the browser
+        and jobs list identically to a live_daily run.
+        """
+        from app.services.core.job_core_service import (  # noqa: PLC0415
+            get_job_processor,
+        )
+
+        date_str = target_date.strftime("%Y-%m-%d")
+        title = f"{camera_name}_{date_str}_{interval}s_historical"
+
+        day = target_date.date()
+        # Whole day; the historical fetch clamps any too-recent timestamps (recording lag).
+        start_at = datetime.combine(day, dt_time(0, 0)).astimezone()
+        end_at = datetime.combine(day, dt_time(23, 59)).astimezone()
+
+        async with async_session() as db:
+            existing = await job_crud.get_job_for_camera_date(
+                db,
+                camera=camera_name,
+                target_date=day,
+                interval=interval,
+            )
+            if existing:
+                logger.debug("Job already exists, skipping", extra={"title": title})
+                return None
+
+            job = await job_crud.create_job(
+                db,
+                title=title,
+                camera_safe_name=camera_name,
+                camera_id=camera_id,
+                target_date=day,
+                interval=interval,
+                keep_images=keep_images,
+                job_type="historical",
+                start_at=start_at,
+                end_at=end_at,
+                daily_window_start=dt_time(0, 0),
+                daily_window_end=dt_time(23, 59),
+            )
+            await db.commit()
+            job_id = job.job_id
+
+        # Same processor path as live + on-demand historical; it dispatches on job_type.
+        job_processor = get_job_processor()
+        await job_processor._process_job(job_id, date_str, camera_name, interval)
+
         async with async_session() as db:
             result_job = await job_crud.get_by_job_id(db, job_id)
             if result_job and result_job.status == "completed":

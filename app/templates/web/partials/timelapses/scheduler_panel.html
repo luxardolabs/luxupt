@@ -54,6 +54,33 @@
                         </div>
                     </div>
 
+                    <!-- Frame Source -->
+                    <div class="border-t border-surface-400/20 pt-4">
+                        <label class="block text-xs font-medium text-surface-200 mb-2">Frame Source
+                            <span class="text-surface-400">— where each nightly timelapse gets its frames</span>
+                        </label>
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="flex items-start gap-3 rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 cursor-pointer hover:border-primary-500">
+                                <input type="radio" name="source" value="captured"
+                                       {{ 'checked' if settings.source != 'historical' }}
+                                       class="mt-1 text-primary-500 focus:ring-primary-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-white">Live capture</span>
+                                    <span class="block text-xs text-surface-300">Use the snapshots LuxUPT captured through the day. Requires capture to be running.</span>
+                                </span>
+                            </label>
+                            <label class="flex items-start gap-3 rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 cursor-pointer hover:border-primary-500">
+                                <input type="radio" name="source" value="historical"
+                                       {{ 'checked' if settings.source == 'historical' }}
+                                       class="mt-1 text-primary-500 focus:ring-primary-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-white">Protect recordings</span>
+                                    <span class="block text-xs text-surface-300">Each night, pull that day's frames from the camera's recordings. No continuous capture needed; limited to your NVR's retention.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Keep Images & Recreate Existing -->
                     <div class="border-t border-surface-400/20 pt-4 grid grid-cols-2 gap-4">
                         <label class="flex items-center justify-between cursor-pointer">

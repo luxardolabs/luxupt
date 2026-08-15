@@ -7,6 +7,7 @@ from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
+from app.models.enum_model import ScheduleSource, str_enum
 
 
 class SchedulerSettings(Base, TimestampMixin):
@@ -25,6 +26,13 @@ class SchedulerSettings(Base, TimestampMixin):
 
     # Days back to process (default 1 = yesterday)
     days_ago: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    # Where each nightly timelapse gets its frames:
+    #   captured   = compile from images LuxUPT captured live (needs capture running)
+    #   historical = fetch the day's frames from Protect's recordings each night
+    source: Mapped[ScheduleSource] = mapped_column(
+        str_enum(ScheduleSource), default=ScheduleSource.CAPTURED, nullable=False
+    )
 
     # List of camera_safe_names to process (null = all cameras)
     enabled_cameras: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)

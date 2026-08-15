@@ -51,6 +51,17 @@ class JobType(StrEnum):
     HISTORICAL_COMBINED = "historical_combined"
 
 
+class ScheduleSource(StrEnum):
+    """Where the scheduler's nightly timelapse gets its frames."""
+
+    CAPTURED = (
+        "captured"  # compile from images LuxUPT captured live (needs capture running)
+    )
+    HISTORICAL = (
+        "historical"  # fetch the day's frames from Protect's recordings each night
+    )
+
+
 class JobStatus(StrEnum):
     """Lifecycle of a timelapse job."""
 

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.post_commit import after_commit
 from app.logging_config import get_logger
+from app.models.enum_model import ScheduleSource
 from app.protect_client import ProtectClient
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.camera_core_service import CameraCoreService
@@ -198,6 +199,7 @@ class TimelapsesViewService:
         enabled: str | None,
         run_time: str,
         days_ago: int,
+        source: str,
         concurrent_jobs: int,
         keep_images: str | None,
         recreate_existing: str | None,
@@ -216,11 +218,18 @@ class TimelapsesViewService:
         # Convert checkbox "on" value to bool (checkbox is present = enabled)
         is_enabled = enabled is not None
 
+        # Frame source for the nightly run; unknown values fall back to captured.
+        try:
+            source_choice = ScheduleSource(source)
+        except ValueError:
+            source_choice = ScheduleSource.CAPTURED
+
         update_data = {
             "enabled": is_enabled,
             # Convert run_time string from form to time object
             "run_time": datetime.strptime(run_time, "%H:%M").time(),
             "days_ago": days_ago,
+            "source": source_choice,
             "concurrent_jobs": concurrent_jobs,
             "keep_images": keep_images is not None,
             "recreate_existing": recreate_existing is not None,
