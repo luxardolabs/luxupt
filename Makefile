@@ -177,11 +177,9 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.22.0
+LUXLINT_VERSION ?= 0.24.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
-# Lean base for the mypy tail (tools installed FRESH each run, never inherited from :dev —
-# FLEET-BUILD-DEPLOY-STANDARD "Lint & test images"). Pytest deps come from the lock via Dockerfile.test.
-LUXLINT_MYPY_IMAGE ?= python:3.13-slim
+# Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
 
 .PHONY: format
@@ -193,21 +191,12 @@ format: ## Format Python with luxlint's canonical ruff (format + autofix), byte-
 	-docker run --rm -v $(PWD):/repo -v /tmp/luxlint.ruff.toml:/cfg/ruff.toml:ro --entrypoint ruff $(LUXLINT_IMAGE) check --config /cfg/ruff.toml --fix app
 
 .PHONY: lint
-lint: guard-version-check ## luxlint (ruff + eslint, mount-only) + the mypy tail — ONE recipe; fails if any fails
-	@# HONESTY (mypy-sweep §0 "the env must resolve the real code — or the count is a lie"): the tail
-	@# runs in the TEST_DEPS image, whose deps come from poetry.lock (Dockerfile.test) — so fastapi,
-	@# sqlalchemy, pydantic et al. resolve with their real types. A lean pydantic-only base manufactured
-	@# ~105 PHANTOM `untyped-decorator` errors (FastAPI route decorators seen as Any) — a lie the ratchet
-	@# then enshrined. With real deps the count is honest (LUXUPT-64). mypy itself is still installed
-	@# FRESH each run (never baked/inherited); only the resolvable dep surface comes from the lock.
-	@# Layout: app/ package at the repo root (fleet standard) — mypy targets `app` from /repo.
+lint: guard-version-check ## luxlint ruff + eslint + mypy — all MOUNT-ONLY (0.24.0 bakes the fleet typed deps); ONE recipe, fails if any fails
+	@# mypy is mount-only now (luxlint --mypy): reads [source].paths, auto-injects the pydantic
+	@# plugin, applies the [mypy].baseline ratchet itself. No dev image / --emit-config / pip install.
 	@set +e; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE); ruff=$$?; \
-	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null || { echo "test-deps image build failed"; exit 1; }; \
-	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config mypy > /tmp/luxlint.mypy.ini; \
-	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.mypy.ini:/cfg/mypy.ini:ro -w /repo $(TEST_DEPS_IMAGE) \
-	  sh -c 'pip install -q --disable-pip-version-check "mypy>=2.3.0" && PYTHONPATH=/repo mypy --config-file /cfg/mypy.ini app' 2>&1 \
-	  | docker run --rm -i -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy-ratchet; mypy=$$?; \
+	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy; mypy=$$?; \
 	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ]; then \
 	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy)"; exit 1; \
 	fi

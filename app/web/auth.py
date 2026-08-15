@@ -150,12 +150,12 @@ class AuthService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
-        return cast(bool, pwd_context.verify(plain_password, hashed_password))
+        return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
     def get_password_hash(password: str) -> str:
         """Hash a password."""
-        return cast(str, pwd_context.hash(password))
+        return pwd_context.hash(password)
 
     @staticmethod
     def authenticate_user_env(username: str, password: str) -> bool:

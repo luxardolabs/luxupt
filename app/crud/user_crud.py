@@ -1,7 +1,6 @@
 """CRUD operations for User model."""
 
 from datetime import datetime
-from typing import cast
 
 from passlib.context import CryptContext
 from sqlalchemy import func, select
@@ -32,7 +31,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         self, db: AsyncSession, *, username: str, password: str, is_admin: bool = True
     ) -> User:
         """Create a new user with hashed password."""
-        password_hash = cast(str, pwd_context.hash(password))
+        password_hash = pwd_context.hash(password)
         user = User(
             username=username,
             password_hash=password_hash,
@@ -56,7 +55,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         if username is not None:
             user.username = username
         if password is not None:
-            user.password_hash = cast(str, pwd_context.hash(password))
+            user.password_hash = pwd_context.hash(password)
         if is_admin is not None:
             user.is_admin = is_admin
         db.add(user)
@@ -66,7 +65,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
 
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
-        return cast(bool, pwd_context.verify(plain_password, hashed_password))
+        return pwd_context.verify(plain_password, hashed_password)
 
     async def authenticate(
         self, db: AsyncSession, username: str, password: str
