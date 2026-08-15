@@ -7,6 +7,7 @@ fall back to 'captured' so a malformed POST can never flip the scheduler to an
 undefined source.
 """
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -69,3 +70,99 @@ class TestSchedulerSource:
         await _save(svc, "not-a-real-source")
         payload = update.await_args.args[0]
         assert payload["source"] is ScheduleSource.CAPTURED
+
+
+def _service_for_context(
+    *,
+    live: bool,
+    historical: bool,
+    saved: ScheduleSource,
+) -> TimelapsesViewService:
+    settings_service = MagicMock()
+    settings_service.get_scheduler_settings = AsyncMock(
+        return_value=SimpleNamespace(source=saved)
+    )
+    settings_service.get_available_schedule_sources = AsyncMock(
+        return_value={"live": live, "historical": historical}
+    )
+    settings_service.get_fetch_settings = AsyncMock(
+        return_value=SimpleNamespace(get_intervals=lambda: [60])
+    )
+    camera_service = MagicMock()
+    camera_service.get_all = AsyncMock(return_value=[])
+    return TimelapsesViewService(
+        db=MagicMock(),
+        camera_service=camera_service,
+        capture_service=MagicMock(),
+        timelapse_service=MagicMock(),
+        job_service=MagicMock(),
+        settings_service=settings_service,
+    )
+
+
+class TestSchedulerSourcePresentation:
+    """The VIEW only decides which radio is pre-checked from the core's availability."""
+
+    @pytest.mark.asyncio
+    async def test_both_configured_honors_saved_choice(self) -> None:
+        svc = _service_for_context(
+            live=True, historical=True, saved=ScheduleSource.HISTORICAL
+        )
+        ctx = await svc.get_scheduler_context()
+        assert ctx["live_available"] and ctx["historical_available"]
+        assert ctx["source_selected"] == "historical"
+
+    @pytest.mark.asyncio
+    async def test_no_capture_forces_historical(self) -> None:
+        svc = _service_for_context(
+            live=False, historical=True, saved=ScheduleSource.CAPTURED
+        )
+        ctx = await svc.get_scheduler_context()
+        assert ctx["source_selected"] == "historical"
+
+    @pytest.mark.asyncio
+    async def test_no_protect_creds_forces_captured(self) -> None:
+        svc = _service_for_context(
+            live=True, historical=False, saved=ScheduleSource.HISTORICAL
+        )
+        ctx = await svc.get_scheduler_context()
+        assert ctx["source_selected"] == "captured"
+
+    @pytest.mark.asyncio
+    async def test_nothing_configured_selects_nothing(self) -> None:
+        svc = _service_for_context(
+            live=False, historical=False, saved=ScheduleSource.CAPTURED
+        )
+        ctx = await svc.get_scheduler_context()
+        assert ctx["source_selected"] == ""
+
+
+class TestScheduleSourceAvailabilityRule:
+    """The availability RULE lives in the core service, not the view."""
+
+    @pytest.mark.asyncio
+    async def test_live_needs_api_base_and_active_camera(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.services.core import settings_core_service as scs
+
+        svc = scs.SettingsCoreService(db=MagicMock())
+        svc.get_effective_api_config = AsyncMock(
+            return_value={
+                "has_api_key": True,
+                "has_base_url": True,
+                "has_username": True,
+                "has_password": True,
+            }
+        )
+        monkeypatch.setattr(
+            scs.camera_crud, "get_active", AsyncMock(return_value=[object()])
+        )
+        assert await svc.get_available_schedule_sources() == {
+            "live": True,
+            "historical": True,
+        }
+
+        # No active cameras -> live is unavailable even with an API key.
+        monkeypatch.setattr(scs.camera_crud, "get_active", AsyncMock(return_value=[]))
+        assert (await svc.get_available_schedule_sources())["live"] is False

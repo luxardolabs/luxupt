@@ -183,10 +183,31 @@ class TimelapsesViewService:
         fetch_settings = await self.settings_service.get_fetch_settings()
         intervals = fetch_settings.get_intervals()
 
+        # Availability is a config-readiness rule owned by the core service; the view only
+        # decides how to present it (which radio is enabled/pre-checked).
+        available = await self.settings_service.get_available_schedule_sources()
+        live_available = available["live"]
+        historical_available = available["historical"]
+
+        # Effective selection: honor the saved source when it's usable, else fall back to
+        # whichever source IS usable (empty string when neither is configured).
+        saved = settings.source
+        if saved == ScheduleSource.HISTORICAL and historical_available:
+            source_selected = "historical"
+        elif saved == ScheduleSource.CAPTURED and live_available or live_available:
+            source_selected = "captured"
+        elif historical_available:
+            source_selected = "historical"
+        else:
+            source_selected = ""
+
         return {
             "settings": settings,
             "cameras": cameras,
             "intervals": intervals,
+            "live_available": live_available,
+            "historical_available": historical_available,
+            "source_selected": source_selected,
         }
 
     async def update_scheduler_settings(self, update_data: dict[str, Any]) -> None:

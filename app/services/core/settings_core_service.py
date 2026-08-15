@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import config
 from app.camera_manager import CameraManagerSettings
 from app.crud.backup_settings_crud import backup_settings_crud
+from app.crud.camera_crud import camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.models.backup_settings_model import BackupSettings
@@ -67,6 +68,21 @@ class SettingsCoreService:
             "has_password": bool(effective_password),
             "username_from_env": bool(config.UNIFI_PROTECT_USERNAME),
             "password_from_env": bool(config.UNIFI_PROTECT_PASSWORD),
+        }
+
+    async def get_available_schedule_sources(self) -> dict[str, bool]:
+        """Which nightly-scheduler frame sources are usable, given current config.
+
+        live       = a capture API key + base URL are set AND at least one active camera
+        historical = Protect username/password + base URL are set (recording-snapshot needs them)
+        """
+        cfg = await self.get_effective_api_config()
+        active_cameras = await camera_crud.get_active(self.db)
+        return {
+            "live": bool(cfg["has_api_key"] and cfg["has_base_url"] and active_cameras),
+            "historical": bool(
+                cfg["has_username"] and cfg["has_password"] and cfg["has_base_url"]
+            ),
         }
 
     async def get_camera_manager_settings(self) -> CameraManagerSettings:
