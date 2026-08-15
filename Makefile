@@ -131,7 +131,7 @@ lock: ## Update poetry.lock file
 	$(POETRY) lock --no-update
 
 # --- Poetry in Docker (no local poetry needed; matches the Dockerfile's version) ---
-POETRY_IN_DOCKER_VERSION := 1.7.1
+POETRY_IN_DOCKER_VERSION := 2.4.1
 define poetry_docker
 	docker run --rm -v $(PWD):/app -w /app python:3.13-slim \
 	  sh -c "pip install -q poetry==$(POETRY_IN_DOCKER_VERSION) && poetry $(1)"
@@ -140,7 +140,7 @@ endef
 .PHONY: poetry-lock
 poetry-lock: ## Regenerate poetry.lock in a container (no local poetry needed)
 	@echo '$(BLUE)poetry lock (in docker)...$(NC)'
-	$(call poetry_docker,lock --no-update)
+	$(call poetry_docker,lock)
 
 .PHONY: poetry-update
 poetry-update: ## Update deps to latest allowed + rewrite the lock (in a container)

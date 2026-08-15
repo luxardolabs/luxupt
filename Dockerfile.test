@@ -6,7 +6,7 @@
 # nothing stale is ever inherited from :dev.
 FROM python:3.13-slim
 
-RUN pip install --no-cache-dir "poetry==1.7.1"
+RUN pip install --no-cache-dir "poetry==2.4.1"
 
 WORKDIR /w
 COPY pyproject.toml poetry.lock ./

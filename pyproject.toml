@@ -1,13 +1,18 @@
 [tool.poetry]
 name = "luxupt"
-version = "1.1.6"
+# This repo is an APPLICATION, not a distributable package: every install is
+# `poetry install --no-root` and the artifact is the docker image, not a wheel.
+# package-mode = false lets the version live ONLY in the VERSION file — in package
+# mode poetry demands a version literal here, the exact drift repo.version_single_source
+# stops. The version is read from VERSION by [tool.hatch.version] below.
+package-mode = false
 description = "LuxUPT - Time-lapse videos from UniFi Protect cameras"
 authors = ["Luxardo Labs <info@luxardolabs.com>"]
 license = "AGPL-3.0-only"
 readme = "README.md"
 homepage = "https://github.com/luxardolabs/luxupt"
 repository = "https://github.com/luxardolabs/luxupt"
-documentation = "https://labs.luxardolabs.com/applications/luxupt/"
+documentation = "https://github.com/luxardolabs/luxupt#readme"
 keywords = ["unifi", "protect", "timelapse", "video", "surveillance", "luxupt"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -50,12 +55,22 @@ mypy = "^1.19.1"
 pre-commit = "^4.5.1"
 ruff = "^0.14.14"
 
-[tool.poetry.scripts]
-luxupt = "app.main:main"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The version is read from the repo-root VERSION file — the one home for it
+# (repo.version_single_source). Nothing else restates the number.
+[project]
+name = "luxupt"
+dynamic = ["version"]
+
+[tool.hatch.version]
+path = "VERSION"
+pattern = "^(?P<version>.+)$"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 # black, isort, ruff, and mypy config intentionally removed — the fleet ruff (lint + format)
 # and mypy standard is owned by luxlint, byte-identical in the image. See .luxlint.toml +

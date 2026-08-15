@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-ENV POETRY_VERSION=1.7.1 \
+ENV POETRY_VERSION=2.4.1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1
@@ -26,12 +26,10 @@ COPY pyproject.toml poetry.lock* ./
 # Install dependencies
 RUN poetry install --only main --no-root --no-directory
 
-# Copy source code (app/ package at the repo root — fleet layout standard)
+# Copy source code (app/ package at the repo root — fleet layout standard).
+# package-mode=false: no root wheel is built; the app runs from this source on PYTHONPATH.
 COPY app ./app
 COPY README.md ./
-
-# Install the project
-RUN poetry install --only main
 
 # Stage 2: Runtime stage
 FROM python:3.13-slim
