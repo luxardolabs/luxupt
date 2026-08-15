@@ -1,0 +1,7 @@
+{# Shown by the job-progress HTMX poll (/partials/job/{job_id}) when the job no longer exists. #}
+{% from "macros/alerts.html" import alert_block %}
+
+{% call alert_block(type="warning", title="Job not found") %}
+<p>This timelapse job no longer exists — it may have been deleted.</p>
+<p class="text-xs mt-1 opacity-75">Job ID: {{ job_id }}</p>
+{% endcall %}
