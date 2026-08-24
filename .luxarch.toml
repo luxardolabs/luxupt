@@ -1,6 +1,10 @@
 [[target]]
 kind = "fastapi-web"
 app = "app"
+# HTMX/template surface only -- every router returns a TemplateResponse; there are no
+# JSON/mobile endpoints, so there is no app/api/v*/routers tree to scan. Attested so the
+# "no JSON-API routers scanned" note does not read as a hollow green (LUXHELIX-100).
+web_only = true
 
 [enums]
 declared = [

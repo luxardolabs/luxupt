@@ -177,18 +177,20 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.24.0
+LUXLINT_VERSION ?= 0.30.1
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
 
 .PHONY: format
-format: ## Format Python with luxlint's canonical ruff (format + autofix), byte-identical to the fleet
-	@echo '$(BLUE)Formatting (luxlint ruff)...$(NC)'
-	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config ruff > /tmp/luxlint.ruff.toml
-	docker run --rm -v $(PWD):/repo -v /tmp/luxlint.ruff.toml:/cfg/ruff.toml:ro --entrypoint ruff $(LUXLINT_IMAGE) format --config /cfg/ruff.toml app
-	@# --fix applies the safe autofixes; remaining un-autofixable reds are the burn-down (not a format failure).
-	-docker run --rm -v $(PWD):/repo -v /tmp/luxlint.ruff.toml:/cfg/ruff.toml:ro --entrypoint ruff $(LUXLINT_IMAGE) check --config /cfg/ruff.toml --fix app
+format: ## Apply every canonical formatter in place -- Python (ruff) AND markdown (mdformat-gfm)
+	@echo '$(BLUE)Formatting (luxlint --format)...$(NC)'
+	@# The ONE canonical fixer. Do NOT hand-roll the ruff legs via --entrypoint ruff: that skips
+	@# the MARKDOWN leg entirely (docs.markdown_format then reds with no way to fix it through
+	@# make), and a bare `ruff format` would use ruff's DEFAULT line-length since the repo carries
+	@# no ruff config. Never a bare mdformat either -- without mdformat-gfm it COLLAPSES GFM
+	@# tables. Un-autofixable reds that remain are the burn-down, not a format failure.
+	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --format
 
 .PHONY: lint
 lint: guard-version-check ## luxlint ruff + eslint + mypy — all MOUNT-ONLY (0.24.0 bakes the fleet typed deps); ONE recipe, fails if any fails
@@ -208,7 +210,7 @@ lint: guard-version-check ## luxlint ruff + eslint + mypy — all MOUNT-ONLY (0.
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.52.2
+LUXARCH_VERSION  ?= 0.79.3
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -218,7 +220,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION ?= 0.3.0
+LUXAUDIT_VERSION ?= 0.4.0
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit
@@ -313,10 +315,19 @@ css-dev: ## Watch and rebuild Tailwind CSS on changes
 .PHONY: frontend
 frontend: npm-install css-build ## Install npm deps and build CSS
 
+# ONE shared fleet buildx builder -- never a per-project <repo>-builder. A per-project
+# builder holds a completely separate cache (no base-layer sharing, its own pip/npm cache
+# mounts, unbounded growth); ten repos = ten copies of the same base layers. The shared
+# builder also gives cross-project cache hits. GC-capped via ~/.docker/buildkitd.toml.
+# (FLEET-BUILD-DEPLOY-STANDARD -- repo.shared_buildx_builder / repo.buildx_builder_gc_capped)
+BUILDX_BUILDER ?= luxardo-builder
+
 .PHONY: docker-setup
-docker-setup: ## Set up Docker buildx
-	@echo '$(BLUE)Setting up Docker buildx...$(NC)'
-	docker buildx create --name $(PROJECT_NAME)-builder --buildkitd-config $(HOME)/.docker/buildkitd.toml --use 2>/dev/null || true
+docker-setup: ## Set up the shared fleet Docker buildx builder (create-once, GC-capped)
+	@echo '$(BLUE)Setting up Docker buildx ($(BUILDX_BUILDER))...$(NC)'
+	@docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 || \
+	  docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --buildkitd-config $(HOME)/.docker/buildkitd.toml --use
+	@docker buildx use $(BUILDX_BUILDER)
 	docker buildx inspect --bootstrap
 
 .PHONY: docker-login-hub
