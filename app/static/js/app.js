@@ -23,15 +23,28 @@ class App {
 	}
 
 	/**
-	 * Process elements with data-init attribute for deferred initialization
+	 * Deferred-init actions, keyed by an element's data-init value.
+	 *
+	 * Markup names an ACTION, never executable code -- this dispatch table replaces an
+	 * eval() of the attribute's contents (eslint no-eval). Each handler reads its own
+	 * data-* parameters off the element.
 	 */
-	static processDataInitElements() {
-		document.querySelectorAll('[data-init]').forEach(el => {
+	static INIT_ACTIONS = {
+		'panel-result-close': el => PanelResult.closeAfterDelay(Number(el.dataset.initDelay) || undefined),
+	};
+
+	/**
+	 * Run the deferred-init action named by each data-init element under root.
+	 */
+	static processDataInitElements(root = document) {
+		root.querySelectorAll('[data-init]').forEach(el => {
+			const action = App.INIT_ACTIONS[el.dataset.init];
+			if (!action) {
+				console.error('Unknown data-init action:', el.dataset.init);
+				return;
+			}
 			try {
-				const initCode = el.dataset.init;
-				if (initCode) {
-					eval(initCode);
-				}
+				action(el);
 			} catch (e) {
 				console.error('Error processing data-init:', e);
 			}
@@ -100,16 +113,7 @@ class App {
 			}
 
 			// Process any data-init elements in the swapped content
-			event.target.querySelectorAll('[data-init]').forEach(el => {
-				try {
-					const initCode = el.dataset.init;
-					if (initCode) {
-						eval(initCode);
-					}
-				} catch (e) {
-					console.error('Error processing data-init after HTMX swap:', e);
-				}
-			});
+			App.processDataInitElements(event.target);
 		});
 	}
 

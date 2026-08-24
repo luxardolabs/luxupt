@@ -14,7 +14,7 @@ window.CaptureStats = window.CaptureStats || {};
  * @param {Array} data - Array of {timestamp, value, cameras} or [timestamp, value] pairs
  * @param {Object} options - Chart options
  */
-CaptureStats.initChart = function(el, data, options) {
+window.CaptureStats.initChart = function(el, data, options) {
     options = options || {};
     if (!el || !data || data.length === 0) {
         return;
@@ -228,7 +228,7 @@ CaptureStats.initChart = function(el, data, options) {
  * Auto-initialize charts from data attributes.
  * Usage: <div data-capture-chart='[...]' data-chart-color="rgb(34, 197, 94)"></div>
  */
-CaptureStats.initAllCharts = function(root) {
+window.CaptureStats.initAllCharts = function(root) {
     root = root || document;
 
     // Check if echarts is loaded
@@ -245,13 +245,13 @@ CaptureStats.initAllCharts = function(root) {
         // Wait for browser to paint the element so it has dimensions
         requestAnimationFrame(function() {
             requestAnimationFrame(function() {
-                CaptureStats.initSingleChart(el);
+                window.CaptureStats.initSingleChart(el);
             });
         });
     });
 };
 
-CaptureStats.initSingleChart = function(el, retryCount) {
+window.CaptureStats.initSingleChart = function(el, retryCount) {
     if (el._echartsInstance) return;
     retryCount = retryCount || 0;
 
@@ -259,7 +259,7 @@ CaptureStats.initSingleChart = function(el, retryCount) {
     var rect = el.getBoundingClientRect();
     if (rect.height === 0 && retryCount < 10) {
         requestAnimationFrame(function() {
-            CaptureStats.initSingleChart(el, retryCount + 1);
+            window.CaptureStats.initSingleChart(el, retryCount + 1);
         });
         return;
     }
@@ -287,7 +287,7 @@ CaptureStats.initSingleChart = function(el, retryCount) {
             options.showCameraBreakdown = false;
         }
 
-        CaptureStats.initChart(el, data, options);
+        window.CaptureStats.initChart(el, data, options);
     } catch (e) {
         console.warn('Failed to initialize capture chart:', e);
     }
@@ -295,10 +295,10 @@ CaptureStats.initSingleChart = function(el, retryCount) {
 
 // Auto-initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    CaptureStats.initAllCharts();
+    window.CaptureStats.initAllCharts();
 });
 
 // Re-initialize after HTMX swaps
 document.addEventListener('htmx:afterSettle', function(_event) {
-    CaptureStats.initAllCharts(document);
+    window.CaptureStats.initAllCharts(document);
 });

@@ -18,3 +18,12 @@ target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:
 # regression goes RED; drain DOWN, never raise. LUXUPT-64 DONE.
 [mypy]
 baseline = 0   # luxlint --mypy applies this ratchet itself (mount-only, no piping).
+
+# First-party app JS, wired into the canonical eslint gate. Without this block `lint.eslint`
+# is INERT — it reports green having scanned nothing (luxlint lint.js_declared). `paths`
+# defaults to the canonical app/static/js; vendor libs live in app/static/vendor/ and are
+# not first-party. eslint runs in-image like ruff; the repo installs nothing.
+[js]
+source_type = "script"   # no bundler — plain <script> tags in layouts/base.html
+ecma_version = "2022"
+globals = ["htmx", "echarts"]   # ambient vendor libs, loaded before app.js in base.html
