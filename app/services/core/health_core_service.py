@@ -8,7 +8,10 @@ import os
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app import config
+from app.camera_manager import CameraManager
 from app.db import maintenance as db_maintenance
 from app.logging_config import get_logger
 
@@ -26,11 +29,11 @@ class HealthStatus:
 class HealthCoreService:
     """Service for performing health checks."""
 
-    def __init__(self, camera_manager: Any = None):
+    def __init__(self, camera_manager: CameraManager | None = None):
         self.camera_manager = camera_manager
         self.start_time = datetime.now()
 
-    async def check_database(self, db: Any) -> dict[str, Any]:
+    async def check_database(self, db: AsyncSession) -> dict[str, Any]:
         """Check database connectivity."""
         try:
             # Simple query to verify database is accessible
@@ -135,7 +138,7 @@ class HealthCoreService:
             "services": services,
         }
 
-    async def get_health_status(self, db: Any) -> dict[str, Any]:
+    async def get_health_status(self, db: AsyncSession) -> dict[str, Any]:
         """Get comprehensive health status."""
         checks = {}
         overall_status = HealthStatus.HEALTHY
@@ -196,7 +199,7 @@ class HealthCoreService:
             "timestamp": datetime.now().isoformat(),
         }
 
-    async def get_readiness(self, db: Any) -> dict[str, Any]:
+    async def get_readiness(self, db: AsyncSession) -> dict[str, Any]:
         """Readiness check (is the application ready to serve traffic)."""
         # Check database connectivity
         db_check = await self.check_database(db)

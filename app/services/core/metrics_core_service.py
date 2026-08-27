@@ -7,7 +7,8 @@ Host metrics (CPU, memory, disk) should be collected by dedicated tools like nod
 """
 
 from datetime import datetime
-from typing import Any
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import camera_crud, job_crud
 from app.crud.capture_crud import capture_crud
@@ -97,7 +98,7 @@ class MetricsCoreService:
 
         return "\n\n".join(metrics)
 
-    async def get_camera_metrics(self, db: Any) -> str:
+    async def get_camera_metrics(self, db: AsyncSession) -> str:
         """Get camera metrics."""
         metrics = []
 
@@ -153,7 +154,7 @@ class MetricsCoreService:
 
         return "\n\n".join(metrics) if metrics else ""
 
-    async def get_capture_metrics(self, db: Any) -> str:
+    async def get_capture_metrics(self, db: AsyncSession) -> str:
         """Get capture statistics metrics."""
         metrics = []
 
@@ -213,7 +214,7 @@ class MetricsCoreService:
 
         return "\n\n".join(metrics) if metrics else ""
 
-    async def get_timelapse_metrics(self, db: Any) -> str:
+    async def get_timelapse_metrics(self, db: AsyncSession) -> str:
         """Get timelapse statistics metrics."""
         metrics = []
 
@@ -275,7 +276,7 @@ class MetricsCoreService:
 
         return "\n\n".join(metrics) if metrics else ""
 
-    async def get_job_metrics(self, db: Any) -> str:
+    async def get_job_metrics(self, db: AsyncSession) -> str:
         """Get job queue metrics."""
         metrics = []
 
@@ -329,7 +330,7 @@ class MetricsCoreService:
 
         return "\n\n".join(metrics) if metrics else ""
 
-    async def get_all_metrics(self, db: Any) -> str:
+    async def get_all_metrics(self, db: AsyncSession) -> str:
         """Get all metrics in Prometheus format."""
         sections = []
 
