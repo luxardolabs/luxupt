@@ -17,9 +17,40 @@ from pathlib import Path
 
 import pytest_asyncio
 
-# --- env MUST be set before importing the app (module-level engine reads it) ---
+# --- the dedicated test database (luxlint test.db_isolated) ---------------------------
+# ONE fleet mechanism: the suite sources a dedicated TEST_DATABASE_URL with a throwaway
+# default -- NEVER the app's DATABASE_DIR/DATABASE_URL. `make test` provides it (pointing at
+# the disposable dir it creates and wipes); a bare `pytest` falls back to a fresh temp dir.
+# luxupt ships on sqlite and connection.py fixes the FILENAME (timelapse.db), so it is the throwaway
+# DIRECTORY that carries the test scoping -- which is what the dev-DB guard matches on.
 _TMP = Path(tempfile.mkdtemp(prefix="luxupt-test-"))
-os.environ.setdefault("DATABASE_DIR", str(_TMP))
+TEST_DATABASE_URL = os.environ.setdefault(
+    "TEST_DATABASE_URL", f"sqlite+aiosqlite:///{_TMP / 'timelapse.db'}"
+)
+
+
+def _guard_not_the_dev_database(url: str) -> None:
+    """Refuse to run the suite against anything but a throwaway test database.
+
+    The suite really commits (the durability locks must), so pointing it at the dev database
+    mutates real data -- and a FAILING test skips its cleanup, so a stale row can sit in dev
+    for a week. The URL must be visibly test-scoped.
+    """
+    if "test" not in url.rsplit("/", 1)[-1].lower() and "-test" not in url.lower():
+        raise RuntimeError(
+            f"TEST_DATABASE_URL does not look like a disposable test database: {url!r}. "
+            "The suite must NEVER point at the dev database -- `make test` creates the "
+            "throwaway one (make test-db-up)."
+        )
+
+
+_guard_not_the_dev_database(TEST_DATABASE_URL)
+
+# app/db/connection.py builds its engine from DATABASE_DIR at import time, so point that at the
+# directory the dedicated test URL names -- the test URL stays the single source of truth.
+_TEST_DB_PATH = Path(TEST_DATABASE_URL.split("///", 1)[1])
+_TEST_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+os.environ["DATABASE_DIR"] = str(_TEST_DB_PATH.parent)
 os.environ.setdefault("IMAGE_OUTPUT_PATH", str(_TMP / "images"))
 os.environ.setdefault("VIDEO_OUTPUT_PATH", str(_TMP / "videos"))
 os.environ.setdefault("THUMBNAIL_CACHE_PATH", str(_TMP / "thumbnails"))

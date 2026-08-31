@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.30.1
+LUXLINT_VERSION ?= 0.33.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
@@ -193,15 +193,14 @@ format: ## Apply every canonical formatter in place -- Python (ruff) AND markdow
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --format
 
 .PHONY: lint
-lint: guard-version-check ## luxlint ruff + eslint + mypy — all MOUNT-ONLY (0.24.0 bakes the fleet typed deps); ONE recipe, fails if any fails
-	@# mypy is mount-only now (luxlint --mypy): reads [source].paths, auto-injects the pydantic
-	@# plugin, applies the [mypy].baseline ratchet itself. No dev image / --emit-config / pip install.
-	@set +e; \
-	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE); ruff=$$?; \
-	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy; mypy=$$?; \
-	if [ $$ruff -ne 0 ] || [ $$mypy -ne 0 ]; then \
-	  echo "lint FAILED (luxlint=$$ruff mypy=$$mypy)"; exit 1; \
-	fi
+lint: ## luxlint ruff + eslint — MOUNT-ONLY (FLEET-MAKEFILE-STANDARD: lint and mypy are separate gate steps)
+	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE)
+
+.PHONY: mypy
+mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseline ratchet itself
+	@# No dev image / --emit-config / pip install: luxlint --mypy reads [source].paths and
+	@# auto-injects the pydantic plugin.
+	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --mypy
 
 # JS linting is the luxlint image's job now (lint.eslint, canonical config). To auto-fix locally:
 #   luxlint --emit-config eslint > .luxlint.eslint.config.mjs   # gitignored
@@ -210,7 +209,7 @@ lint: guard-version-check ## luxlint ruff + eslint + mypy — all MOUNT-ONLY (0.
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.88.0
+LUXARCH_VERSION  ?= 0.102.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -228,15 +227,31 @@ audit: ## Scan pinned deps against the live vulnerability feed (luxaudit)
 	docker run --rm -v $(PWD):/repo $(LUXAUDIT_IMAGE)
 
 .PHONY: guard-version-check
-guard-version-check: ## Pull each guard's :latest FIRST, then warn if a pin is behind (FLEET-BUILD-DEPLOY-STANDARD)
-	@for g in "luxarch $(LUXARCH_VERSION)" "luxlint $(LUXLINT_VERSION)" "luxaudit $(LUXAUDIT_VERSION)"; do \
+guard-version-check: ## FATAL: fail the gate if any guard pin is behind the published latest
+	@# Behind is a RED, not a warning (FLEET-MAKEFILE-STANDARD). A warn-only check is how an agent
+	@# sat on a stale guard and worked against rules/conduct it never saw. `make guard-upgrade` clears it.
+	@rc=0; for g in "luxarch $(LUXARCH_VERSION)" "luxlint $(LUXLINT_VERSION)" "luxaudit $(LUXAUDIT_VERSION)"; do \
 	  set -- $$g; name=$$1; pin=$$2; \
 	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest >/dev/null 2>&1 || true; \
 	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest --version 2>/dev/null | awk '{print $$2}'); \
 	  if [ -n "$$latest" ] && [ "$$latest" != "$$pin" ]; then \
-	    printf "⚠ %s pinned %s, latest %s — bump the pin (preview: --new-rules --since %s)\n" "$$name" "$$pin" "$$latest" "$$pin"; \
+	    printf "✗ %s pinned %s, latest %s — BEHIND. Preview: --new-rules --since %s; then make guard-upgrade\n" "$$name" "$$pin" "$$latest" "$$pin"; rc=1; \
 	  else printf "✓ %s %s (current)\n" "$$name" "$$pin"; fi; \
-	done
+	done; exit $$rc
+
+.PHONY: guard-upgrade
+guard-upgrade: ## Bump every guard pin to the published latest (prints what newly bites)
+	@for g in luxarch luxlint luxaudit; do \
+	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest >/dev/null 2>&1 || true; \
+	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest --version 2>/dev/null | awk '{print $$2}'); \
+	  [ -z "$$latest" ] && continue; \
+	  var=$$(echo $$g | tr a-z A-Z)_VERSION; \
+	  old=$$(sed -n "s/^$$var *?= *//p" Makefile); \
+	  sed -i "s|^$$var\( *\)?= .*|$$var\1?= $$latest|" Makefile; \
+	  if [ "$$g" = luxarch ] && [ -n "$$old" ] && [ "$$old" != "$$latest" ]; then \
+	    docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
+	  fi; \
+	done; echo "pins bumped — re-run make check"
 
 .PHONY: onboard-check
 onboard-check: ## Prove the repo is onboarded: all three guards ON + HONEST, NOT green (FLEET-ONBOARDING-STANDARD §5)
@@ -249,30 +264,46 @@ onboard-check: ## Prove the repo is onboarded: all three guards ON + HONEST, NOT
 	[ $$fail -eq 0 ] && echo "onboard-check: all three guards on + honest ✓" || { echo "onboard-check FAILED"; exit 1; }
 
 .PHONY: check
-check: ## Run all fleet guards — arch + lint + audit + test (each runs; fails at end if any fails)
-	@# One recipe / set +e / fail-at-end (LUXPM-120): arch and lint are red today, so a plain
-	@# prereq list would abort before the later steps ever ran. Capture each, report which broke.
-	@set +e; \
-	$(MAKE) --no-print-directory arch;    arch=$$?; \
-	$(MAKE) --no-print-directory lint;    lint=$$?; \
-	$(MAKE) --no-print-directory audit;   audit=$$?; \
-	$(MAKE) --no-print-directory test;    test=$$?; \
-	if [ $$arch -ne 0 ] || [ $$lint -ne 0 ] || [ $$audit -ne 0 ] || [ $$test -ne 0 ]; then \
-	  echo "check FAILED (arch=$$arch lint=$$lint audit=$$audit test=$$test)"; exit 1; \
-	fi
+check: guard-version-check lint mypy test arch audit gitleaks ## THE fleet gate — byte-identical composition
+	@# FLEET-MAKEFILE-STANDARD: ONE gate, this exact step list, in this order (pin drift -> ruff ->
+	@# types -> tests-with-DB -> architecture -> dependency CVEs -> secrets). A gate missing any step
+	@# is a HOLLOW gate: it ships an unchecked class and still says green. Do not re-order or drop.
+	@# `check` is a GATE (prereq list -> stops at the first failure), not a report. For the whole red
+	@# board at once, phase-ordered and file-clustered, run: make plan
+	@echo '$(GREEN)check: all gate steps passed$(NC)'
+
+.PHONY: plan
+plan: ## The full architecture red board at once (phase-ordered) — the burn-down view, not the gate
+	@docker run --rm -v $(PWD):/repo $(LUXARCH_IMAGE) --plan
+
+# The throwaway test database. luxupt ships on SQLITE, so the "disposable container" the
+# standard describes for a Postgres app is a disposable DIRECTORY here — same invariant: `make test`
+# creates it, the suite runs against it, and it is wiped after, so the suite can never touch the dev
+# database and a skipped DB suite can never read as a pass (repo.makefile_test_db_harness).
+TEST_DB_DIR      ?= /tmp/luxupt-test-db
+TEST_DATABASE_URL ?= sqlite+aiosqlite:///$(TEST_DB_DIR)/timelapse.db
+
+.PHONY: test-db-up
+test-db-up: ## Create the disposable test database (wipes any previous one)
+	@rm -rf $(TEST_DB_DIR)
+	@mkdir -p $(TEST_DB_DIR)
+
+.PHONY: test-db-down
+test-db-down: ## Stop + WIPE the disposable test database
+	@rm -rf $(TEST_DB_DIR)
 
 .PHONY: test
-test: ## Run pytest (canonical luxlint config) IN DOCKER — deps from the lock, source over-mounted
+test: test-db-up ## Full pytest incl durability, against the throwaway DB — IN DOCKER
 	@# FLEET-BUILD-DEPLOY-STANDARD "Lint & test images": deps come from the LOCK (Dockerfile.test,
 	@# layer-cached on pyproject/poetry.lock), source is over-mounted (never baked), pytest config is
-	@# emitted by luxlint. Nothing runs on the host venv or is inherited from :dev. luxupt ships on
-	@# sqlite (conftest uses a temp sqlite via DATABASE_DIR) — no external DB to spin up.
+	@# emitted by luxlint. Nothing runs on the host venv or is inherited from :dev.
 	@set +e; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config pytest > /tmp/luxlint.pytest.ini; \
 	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null || { echo "test image build failed"; exit 1; }; \
-	docker run --rm -v $(PWD):/w -w /w -v /tmp/luxlint.pytest.ini:/cfg.ini:ro $(TEST_DEPS_IMAGE) \
-	  sh -c 'PYTHONPATH=/w pytest -c /cfg.ini --rootdir=/w tests'; \
-	exit $$?
+	docker run --rm -v $(PWD):/w -w /w -v /tmp/luxlint.pytest.ini:/cfg.ini:ro \
+	  -v $(TEST_DB_DIR):$(TEST_DB_DIR) --env TEST_DATABASE_URL=$(TEST_DATABASE_URL) \
+	  $(TEST_DEPS_IMAGE) sh -c 'PYTHONPATH=/w pytest -c /cfg.ini --rootdir=/w tests'; \
+	status=$$?; $(MAKE) --no-print-directory test-db-down; exit $$status
 
 .PHONY: test-coverage
 test-coverage: ## Canonical pytest config + coverage IN DOCKER (coverage config stays in pyproject)
