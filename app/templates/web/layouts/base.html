@@ -24,7 +24,7 @@
     {% block head %}{% endblock %}
 </head>
 <body class="h-full bg-surface-900 text-white">
-    {% include "components/nav.html" %}
+    {% include "partials/nav.html" %}
 
     <main class="min-h-screen pt-16">
         <div class="mx-auto max-w-[1800px] px-4 lg:px-6 py-4 space-y-4">
@@ -32,8 +32,8 @@
         </div>
     </main>
 
-    {% include "components/toast.html" %}
-    {% include "components/modal.html" %}
+    {% include "partials/toast.html" %}
+    {% include "partials/modal.html" %}
 
     <!-- Lightbox container for HTMX -->
     <div id="lightbox-container"></div>
