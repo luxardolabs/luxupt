@@ -249,6 +249,10 @@ class JobProcessor:
         self._semaphore: asyncio.Semaphore | None = None
         # Lock to prevent race conditions when initializing the semaphore
         self._semaphore_init_lock = asyncio.Lock()
+        # Strong refs to in-flight background jobs. The event loop only holds a WEAK
+        # reference to a task, so a create_task() whose result is discarded can be
+        # garbage-collected mid-flight and the job vanishes silently (ruff RUF006).
+        self._jobs_in_flight: set[asyncio.Task[None]] = set()
 
     async def _ensure_semaphore(self, concurrent_jobs: int) -> asyncio.Semaphore:
         """Ensure semaphore exists with proper concurrency limit. Thread-safe.
@@ -312,9 +316,11 @@ class JobProcessor:
         keep_images: bool | None = None,
     ) -> None:
         """Queue a job for processing in the background (respects concurrency limit)."""
-        asyncio.create_task(
+        task = asyncio.create_task(
             self._process_job(job_id, date_str, camera, interval, keep_images)
         )
+        self._jobs_in_flight.add(task)
+        task.add_done_callback(self._jobs_in_flight.discard)
 
     async def update_job_progress(
         self,

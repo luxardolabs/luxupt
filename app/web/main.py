@@ -47,6 +47,11 @@ from .template_helpers import paginated_url
 # Module logger
 logger = get_logger(__name__)
 
+# Resolved once at import, not inside the async server entrypoint: os.path.abspath touches
+# the filesystem (getcwd), and a blocking path call in an async def stalls the event loop
+# (ruff ASYNC240). The value is a static package path, so import time is the right home.
+_APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def _create_monitored_task(coro: Any, name: str) -> "asyncio.Task[Any]":
     """Create an asyncio task with exception monitoring.
@@ -612,7 +617,7 @@ async def start_web_server() -> None:
         uvicorn_kwargs["reload"] = True
         # Watch the entire app directory for changes - use absolute path
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        app_dir = _APP_DIR
         uvicorn_kwargs["reload_dirs"] = [app_dir]
         # Include templates and static files
         uvicorn_kwargs["reload_includes"] = ["*.py", "*.html", "*.css", "*.js"]

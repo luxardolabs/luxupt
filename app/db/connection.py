@@ -1,5 +1,6 @@
 """SQLite async database connection and session management."""
 
+import asyncio
 import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -141,7 +142,10 @@ async def init_db() -> None:
         User,
     )
 
-    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+    # Off the event loop: a blocking pathlib call in an async def stalls EVERY concurrent
+    # request on this worker (ruff ASYNC240). asyncio.to_thread is the asyncio fix --
+    # ruff's message suggests trio/anyio, which does not apply to this fleet.
+    await asyncio.to_thread(DATABASE_DIR.mkdir, parents=True, exist_ok=True)
 
     try:
         async with engine.begin() as conn:
