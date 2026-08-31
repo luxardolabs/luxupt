@@ -46,4 +46,4 @@ non_request_files = [
 # templates/web/macros/ must be catalogued in the showcase so the branded library stays
 # discoverable and agents stop reinventing components. macros_dir defaults to <templates>/macros.
 [components]
-index = "pages/components"
+index = "partials/components"
