@@ -1,4 +1,5 @@
 {% from "macros/icons.html" import icon %}
+{% from "macros/data.html" import progress_bar %}
 
 <!-- Time Navigation -->
 <div class="flex items-center justify-between mb-4 pb-4 border-b border-surface-400/30">
@@ -173,9 +174,7 @@
             {% for item in camera_breakdown %}
             <div class="flex items-center gap-3">
                 <span class="text-sm text-surface-100 w-48 truncate">{{ item.camera|replace('_', ' ') }}</span>
-                <div class="flex-1 h-4 bg-surface-700 rounded-full overflow-hidden">
-                    <div class="h-full bg-primary-500 rounded-full" style="width: {{ item.percentage }}%"></div>
-                </div>
+                <div class="flex-1">{{ progress_bar(item.percentage, size='lg') }}</div>
                 <span class="text-sm text-surface-100 w-16 text-right">{{ item.count }}</span>
             </div>
             {% endfor %}
