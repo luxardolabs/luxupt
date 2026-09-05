@@ -19,7 +19,7 @@ from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision: str = "001"
-down_revision: str | None = None
+down_revision: str | None = "a2d380f58938"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

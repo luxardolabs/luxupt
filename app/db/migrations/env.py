@@ -64,6 +64,11 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         render_as_batch=True,  # Required for SQLite ALTER TABLE support
+        # Without these, --autogenerate SILENTLY omits column type and server-default
+        # changes: the generated migration ships EMPTY and the drift never lands
+        # (repo.alembic_autogen_comparisons).
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():
@@ -76,6 +81,11 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         render_as_batch=True,  # Required for SQLite ALTER TABLE support
+        # Without these, --autogenerate SILENTLY omits column type and server-default
+        # changes: the generated migration ships EMPTY and the drift never lands
+        # (repo.alembic_autogen_comparisons).
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():

@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.33.0
+LUXLINT_VERSION ?= 0.41.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
@@ -209,7 +209,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.102.0
+LUXARCH_VERSION  ?= 0.125.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -263,8 +263,54 @@ onboard-check: ## Prove the repo is onboarded: all three guards ON + HONEST, NOT
 	docker run --rm -v $(PWD):/repo $(LUXAUDIT_IMAGE) --version  >/dev/null || { echo "luxaudit not wired"; fail=1; }; \
 	[ $$fail -eq 0 ] && echo "onboard-check: all three guards on + honest ✓" || { echo "onboard-check FAILED"; exit 1; }
 
+# The migration chain must BUILD the schema. `make test` builds its schema from create_all, so it
+# structurally CANNOT catch a broken chain: `alembic upgrade head` could fail on its first revision
+# while the suite stays green for months (LUXTASTE-285). db-verify migrates a FRESH EMPTY database to
+# head for real, then diffs the result against the models and fails on ANY structural diff -- additive
+# included, because here a missing table shows up as `add_table` and a destructive-only check would
+# wave it through. Verifier: scripts/verify_migration_chain.py (luxarch --emit migration-chain).
+VERIFY_DB_DIR      ?= /tmp/luxupt-verify-db
+VERIFY_DATABASE_URL ?= sqlite+aiosqlite:///$(VERIFY_DB_DIR)/timelapse.db
+
+.PHONY: db-verify
+db-verify: ## FRESH EMPTY DB -> alembic upgrade head -> diff vs models (fails on ANY structural diff)
+	@rm -rf $(VERIFY_DB_DIR); mkdir -p $(VERIFY_DB_DIR)
+	@set -e; \
+	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null; \
+	docker run --rm -v $(PWD):/w -w /w -v $(VERIFY_DB_DIR):$(VERIFY_DB_DIR) \
+	  --env DATABASE_DIR=$(VERIFY_DB_DIR) --env VERIFY_DATABASE_URL=$(VERIFY_DATABASE_URL) \
+	  $(TEST_DEPS_IMAGE) sh -c 'cd /w/app && PYTHONPATH=/w alembic upgrade head && cd /w && PYTHONPATH=/w python scripts/verify_migration_chain.py'; \
+	status=$$?; rm -rf $(VERIFY_DB_DIR); exit $$status
+
+.PHONY: honest
+honest: ## A green check must MEAN nothing was silently unchecked (luxarch 0.114.0)
+	@# --assert-scans fails ONLY when a rule family inspected ZERO files (never on reds), and
+	@# --preflight proves the mypy verdict is honest. This lived in onboard-check, which nobody ran,
+	@# so `check` could go green while a guard family was blind. Placed early in `check` so a later
+	@# red step can never skip it. A no-op target named `honest` is itself flagged -- the recipe
+	@# must really invoke --assert-scans.
+	@docker run --rm -v $(PWD):/repo $(LUXARCH_IMAGE) --assert-scans
+	@docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --preflight
+
+# Regenerate the committed guard-status files. The fleet READS these instead of re-running every
+# guard on every repo; freshness is verified against HEAD on read, so a stale file is detected, not
+# trusted. The guards are read-only on /repo (load-bearing: a guard must never mutate what it
+# judges), so --json stays a pure stdout primitive and this recipe does the stamping.
+STAMP = python3 -c 'import json,sys,os; d=json.load(open(sys.argv[1])); d["commit"]=os.environ["SHA"]; d["generated_at"]=os.environ["TS"]; json.dump(d,open(sys.argv[2],"w"),indent=2)'
+
+.PHONY: status
+status: ## Regenerate committed guard-status files (.lux*-status.json) — commit them
+	@# set -e: a failed stamp (empty/invalid --json) ABORTS -- never a false "wrote".
+	@# || true: --json exits non-zero when the repo is RED, and a red repo still has a valid,
+	@# committable status. The verdict lives IN the json.
+	@set -e; export SHA=$$(git rev-parse HEAD) TS=$$(date -u +%FT%TZ); \
+	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE)  --json > /tmp/lux.json || true; $(STAMP) /tmp/lux.json .luxlint-status.json; \
+	docker run --rm -v $(PWD):/repo $(LUXARCH_IMAGE)  --json > /tmp/lux.json || true; $(STAMP) /tmp/lux.json .luxarch-status.json; \
+	docker run --rm -v $(PWD):/repo $(LUXAUDIT_IMAGE) --json > /tmp/lux.json || true; $(STAMP) /tmp/lux.json .luxaudit-status.json; \
+	echo "wrote .lux*-status.json at $$SHA — commit them"
+
 .PHONY: check
-check: guard-version-check lint mypy test arch audit gitleaks ## THE fleet gate — byte-identical composition
+check: guard-version-check honest lint mypy test db-verify arch audit gitleaks ## THE fleet gate — byte-identical composition
 	@# FLEET-MAKEFILE-STANDARD: ONE gate, this exact step list, in this order (pin drift -> ruff ->
 	@# types -> tests-with-DB -> architecture -> dependency CVEs -> secrets). A gate missing any step
 	@# is a HOLLOW gate: it ships an unchecked class and still says green. Do not re-order or drop.
