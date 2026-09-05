@@ -517,16 +517,16 @@ class JobProcessor:
         ):
             start_d = job.start_at.date()
             end_d = job.end_at.date()
-            year = start_d.strftime("%Y")
-            month = start_d.strftime("%m")
+            year = f"{start_d.year:04d}"
+            month = f"{start_d.month:02d}"
             # Include job_id prefix so concurrent jobs with the same range produce different files
             job_short = job.job_id[:8] if job.job_id else "x"
             output_filename = f"{camera}_{start_d.strftime('%Y%m%d')}_to_{end_d.strftime('%Y%m%d')}_{interval}s_{job_short}.mp4"
         else:
-            year = date_obj.strftime("%Y")
-            month = date_obj.strftime("%m")
+            year = f"{date_obj.year:04d}"
+            month = f"{date_obj.month:02d}"
             output_filename = (
-                f"{camera}_{year}{month}{date_obj.strftime('%d')}_{interval}s.mp4"
+                f"{camera}_{year}{month}{date_obj.day:02d}_{interval}s.mp4"
             )
         output_path = (
             config.VIDEO_OUTPUT_PATH
@@ -638,7 +638,7 @@ class JobProcessor:
             "Created timelapse record",
             extra={
                 "camera": camera,
-                "date": date_obj.strftime("%Y-%m-%d"),
+                "date": date_obj.isoformat(),
                 "interval": interval,
             },
         )

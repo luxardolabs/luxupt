@@ -67,9 +67,9 @@ class ImageCoreService:
         size: int,
     ) -> Path:
         """Build hierarchical thumbnail path matching image storage structure."""
-        year = capture_date.strftime("%Y")
-        month = capture_date.strftime("%m")
-        day = capture_date.strftime("%d")
+        year = f"{capture_date.year:04d}"
+        month = f"{capture_date.month:02d}"
+        day = f"{capture_date.day:02d}"
         return (
             config.THUMBNAIL_CACHE_PATH
             / camera_safe_name

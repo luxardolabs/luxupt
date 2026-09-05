@@ -101,9 +101,9 @@ def _frame_path(safe_name: str, interval: int, ts: datetime) -> Path:
         config.IMAGE_OUTPUT_PATH
         / safe_name
         / f"{interval}s"
-        / ts.strftime("%Y")
-        / ts.strftime("%m")
-        / ts.strftime("%d")
+        / f"{ts.year:04d}"
+        / f"{ts.month:02d}"
+        / f"{ts.day:02d}"
         / f"{safe_name}_{int(ts.timestamp())}.jpg"
     )
 

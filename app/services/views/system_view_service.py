@@ -367,7 +367,7 @@ class SystemViewService:
         datetimes, real Pagination DTO) and passed into the template. Never
         hand-roll pagination state in the template (fw.template_pagination)."""
         now = datetime.now()
-        today = now.strftime("%Y-%m-%d")
+        today = now.date().isoformat()
 
         return {
             "demo_camera": {
@@ -426,7 +426,7 @@ class SystemViewService:
                 "job_id": "demo-job-done",
                 "status": "completed",
                 "camera_safe_name": "front_door",
-                "target_date": (now - timedelta(days=1)).strftime("%Y-%m-%d"),
+                "target_date": (now - timedelta(days=1)).date().isoformat(),
                 "interval": 60,
                 "total_frames": 1440,
                 "started_at": now - timedelta(minutes=8),

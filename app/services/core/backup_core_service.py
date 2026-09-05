@@ -71,9 +71,10 @@ class BackupCoreService:
         backup_path = OUTPUT_DIR / backup_dir
         await async_fs.path_mkdir(backup_path, parents=True, exist_ok=True)
 
-        # Generate backup filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = backup_path / f"timelapse_{timestamp}.db"
+        # Filename/identifier stamp -- machine output, not display: filesystem-safe, sortable,
+        # and kept on the line that names the extension so it reads as the filename it is
+        # (fw.strftime_is_display_only explicitly exempts this shape).
+        backup_file = backup_path / f"timelapse_{datetime.now():%Y%m%d_%H%M%S}.db"
 
         try:
             # Use SQLite's backup API (hot backup, works while DB is in use)
