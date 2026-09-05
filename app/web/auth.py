@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud.user_crud import user_crud
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 from app.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -252,7 +252,7 @@ async def login_form(request: Request) -> Response:
     """Display login form, or redirect to setup if no users exist."""
     # Check if setup is needed - redirect to /setup if so
     if not uses_env_auth():
-        async with async_session() as db:
+        async with get_db_context() as db:
             if await needs_setup(db):
                 return RedirectResponse(url="/setup", status_code=302)
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.crud.backup_settings_crud import backup_settings_crud
-from app.db.connection import DATABASE_PATH, OUTPUT_DIR, async_session
+from app.db.connection import DATABASE_PATH, OUTPUT_DIR, get_db_context
 from app.logging_config import get_logger
 from app.utils import async_fs
 
@@ -29,7 +29,7 @@ class BackupCoreService:
         while self.running:
             try:
                 # Load settings from database
-                async with async_session() as session:
+                async with get_db_context() as session:
                     settings = await backup_settings_crud.get_settings(session)
 
                 if not settings.enabled:
@@ -139,7 +139,7 @@ class BackupCoreService:
 
         Returns the backup path on success, None on failure.
         """
-        async with async_session() as session:
+        async with get_db_context() as session:
             settings = await backup_settings_crud.get_settings(session)
 
         backup_path = await self._create_backup(settings.backup_dir)

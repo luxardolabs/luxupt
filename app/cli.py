@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 from app.crud.fetch_settings_crud import CRUDFetchSettings
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 from app.fetch_service import FetchService
 from app.logging_config import get_logger
 from app.startup import print_banner, print_configuration
@@ -109,7 +109,7 @@ async def set_protect_creds(username: str, password: str) -> None:
     (recording-snapshot, video/export). The Setup UI does the same thing.
     """
     crud = CRUDFetchSettings()
-    async with async_session() as db:
+    async with get_db_context() as db:
         await crud.update_settings(
             db, obj_in={"username": username, "password": password}
         )

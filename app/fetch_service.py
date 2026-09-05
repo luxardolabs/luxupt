@@ -16,7 +16,7 @@ from app.camera_manager import (
     calculate_consecutive_offsets,
 )
 from app.crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
-from app.db.connection import async_session, init_db
+from app.db.connection import get_db_context, init_db
 from app.logging_config import get_logger
 from app.models.enum_model import ActivityType, CaptureMethod, CaptureStatus
 from app.schemas.capture_schema import CaptureCreate
@@ -64,7 +64,7 @@ class FetchService:
     async def _load_intervals_from_db(self) -> list[int]:
         """Load all available intervals from database."""
         try:
-            async with async_session() as session:
+            async with get_db_context() as session:
                 settings = await fetch_settings_crud.get_settings(session)
 
                 # If no intervals in DB, use defaults
@@ -93,7 +93,7 @@ class FetchService:
         """Load camera settings from database."""
         settings = {}
         try:
-            async with async_session() as session:
+            async with get_db_context() as session:
                 cameras = await camera_crud.get_active(session)
                 for cam in cameras:
                     settings[cam.camera_id] = {
@@ -113,7 +113,7 @@ class FetchService:
         """Load default capture settings from database."""
         defaults: dict[str, Any] = {}
         try:
-            async with async_session() as session:
+            async with get_db_context() as session:
                 fetch_settings = await fetch_settings_crud.get_settings(session)
                 defaults["default_capture_method"] = (
                     fetch_settings.default_capture_method
@@ -139,7 +139,7 @@ class FetchService:
 
     async def _load_camera_manager_settings(self) -> CameraManagerSettings:
         """Load settings for CameraManager from database."""
-        async with async_session() as session:
+        async with get_db_context() as session:
             fetch_settings = await fetch_settings_crud.get_settings(session)
 
             return CameraManagerSettings(
@@ -168,7 +168,7 @@ class FetchService:
             cameras = await self.camera_manager.get_cameras(force_refresh=True)
             logger.info("Syncing cameras to database...")
 
-            async with async_session() as db:
+            async with get_db_context() as db:
                 new_cameras = []
                 for camera in cameras:
                     existing = await camera_crud.get_by_camera_id(db, camera.id)
@@ -607,7 +607,7 @@ class FetchService:
     async def _check_fetch_enabled(self) -> bool:
         """Check if fetch is globally enabled in database settings."""
         try:
-            async with async_session() as session:
+            async with get_db_context() as session:
                 return await fetch_settings_crud.is_enabled(session)
         except Exception as e:
             logger.warning(
@@ -696,7 +696,7 @@ class FetchService:
                     )
                     # Log to activity feed so users see it in the dashboard
                     try:
-                        async with async_session() as session:
+                        async with get_db_context() as session:
                             await activity_crud.log(
                                 session,
                                 activity_type=ActivityType.ERROR,
@@ -1139,7 +1139,7 @@ class FetchService:
             return
 
         try:
-            async with async_session() as session:
+            async with get_db_context() as session:
                 for _camera_name, result in results.items():
                     # Store local datetime
                     capture_datetime = datetime.fromtimestamp(result.timestamp)

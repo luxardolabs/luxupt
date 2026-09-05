@@ -24,7 +24,7 @@ from app import config
 from app.crud.camera_crud import camera_crud
 from app.crud.capture_crud import capture_crud
 from app.crud.job_crud import job_crud
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 from app.logging_config import get_logger
 from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus
 from app.models.job_model import Job
@@ -110,12 +110,12 @@ def _frame_path(safe_name: str, interval: int, ts: datetime) -> Path:
 
 async def _resolve_protect_creds() -> tuple[str, str, str, bool]:
     """(base_url, username, password, verify_ssl) with env-var precedence over DB."""
-    async with async_session() as session:
+    async with get_db_context() as session:
         return await SettingsCoreService(session).get_protect_credentials()
 
 
 async def _is_canceled(job_id: str) -> bool:
-    async with async_session() as session:
+    async with get_db_context() as session:
         job = await job_crud.get_by_job_id(session, job_id)
     return job is not None and job.status == JobStatus.CANCELLED
 
@@ -156,7 +156,7 @@ class HistoricalFetchCoreService:
             )
 
         # Look up the camera (need camera_id for Protect, camera.id for capture row)
-        async with async_session() as session:
+        async with get_db_context() as session:
             camera = await camera_crud.get_by_safe_name(session, job.camera_safe_name)
         if camera is None:
             raise ValueError(f"camera {job.camera_safe_name!r} not found")
@@ -172,7 +172,7 @@ class HistoricalFetchCoreService:
             raise ValueError(f"historical job {job.job_id} produced 0 timestamps")
 
         # Update the job's frame counts so the UI shows expected total
-        async with async_session() as session:
+        async with get_db_context() as session:
             await job_crud.update_progress(
                 session,
                 job.job_id,
@@ -238,7 +238,7 @@ class HistoricalFetchCoreService:
 
                     # Record capture row
                     try:
-                        async with async_session() as session:
+                        async with get_db_context() as session:
                             await capture_crud.create(
                                 session,
                                 obj_in=CaptureCreate(
@@ -294,7 +294,7 @@ class HistoricalFetchCoreService:
                             if errors:
                                 parts.append(f"{errors} errors")
                             try:
-                                async with async_session() as session:
+                                async with get_db_context() as session:
                                     await job_crud.update_progress(
                                         session,
                                         job.job_id,

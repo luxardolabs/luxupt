@@ -26,7 +26,7 @@ from app.crud import camera_crud, job_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 from app.logging_config import get_logger
 from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse
@@ -241,7 +241,7 @@ class TimelapseService:
 
     async def _load_camera_manager_settings(self) -> CameraManagerSettings:
         """Load settings for CameraManager from database."""
-        async with async_session() as session:
+        async with get_db_context() as session:
             fetch_settings = await fetch_settings_crud.get_settings(session)
 
             return CameraManagerSettings(
@@ -345,7 +345,7 @@ class TimelapseService:
         while self.running:
             try:
                 # Fetch settings from database
-                async with async_session() as db:
+                async with get_db_context() as db:
                     try:
                         settings = await scheduler_settings_crud.get_settings(db)
                         await (
@@ -484,7 +484,7 @@ class TimelapseService:
             encoding_settings: FFmpeg encoding settings from database (default loads from db).
         """
         # Load settings from database if not provided
-        async with async_session() as db:
+        async with get_db_context() as db:
             settings = await scheduler_settings_crud.get_settings(db)
             if encoding_settings is None:
                 encoding_settings = EncodingSettings.from_scheduler_settings(settings)
@@ -509,7 +509,7 @@ class TimelapseService:
             intervals_to_process = enabled_intervals
         else:
             # Load intervals from database
-            async with async_session() as db:
+            async with get_db_context() as db:
                 fetch_settings = await fetch_settings_crud.get_settings(db)
                 intervals_to_process = fetch_settings.get_intervals()
 
@@ -594,7 +594,7 @@ class TimelapseService:
         title = f"{camera_name}_{date_str}_{interval}s"
 
         # Check if job already exists
-        async with async_session() as db:
+        async with get_db_context() as db:
             existing = await job_crud.get_job_for_camera_date(
                 db,
                 camera=camera_name,
@@ -626,7 +626,7 @@ class TimelapseService:
         await job_processor._process_job(job_id, date_str, camera_name, interval)
 
         # Check the result
-        async with async_session() as db:
+        async with get_db_context() as db:
             result_job = await job_crud.get_by_job_id(db, job_id)
             if result_job and result_job.status == "completed":
                 return True
@@ -661,7 +661,7 @@ class TimelapseService:
         start_at = datetime.combine(day, dt_time(0, 0)).astimezone()
         end_at = datetime.combine(day, dt_time(23, 59)).astimezone()
 
-        async with async_session() as db:
+        async with get_db_context() as db:
             existing = await job_crud.get_job_for_camera_date(
                 db,
                 camera=camera_name,
@@ -693,7 +693,7 @@ class TimelapseService:
         job_processor = get_job_processor()
         await job_processor._process_job(job_id, date_str, camera_name, interval)
 
-        async with async_session() as db:
+        async with get_db_context() as db:
             result_job = await job_crud.get_by_job_id(db, job_id)
             if result_job and result_job.status == "completed":
                 return True
@@ -782,7 +782,7 @@ class TimelapseService:
         output_path = videos_path / output_filename
 
         # Check if a completed timelapse record exists in the database
-        async with async_session() as db:
+        async with get_db_context() as db:
             existing = await timelapse_crud.get_by_camera_date_interval(
                 db,
                 camera=camera_name,
@@ -840,7 +840,7 @@ class TimelapseService:
         if success and not keep_images:
             # Delete source images, thumbnails, and database records
             try:
-                async with async_session() as db:
+                async with get_db_context() as db:
                     # Resolve safe_name → camera_id (UUID) for DB queries
                     camera_obj = await camera_crud.get_by_safe_name(db, camera_name)
                     camera_id = camera_obj.camera_id if camera_obj else None
@@ -1365,7 +1365,7 @@ class TimelapseService:
             return
 
         try:
-            async with async_session() as db:
+            async with get_db_context() as db:
                 await job_crud.update_pid(db, job_id, pid)
                 await db.commit()
             logger.debug("Stored FFmpeg PID", extra={"job_id": job_id, "pid": pid})
@@ -1381,7 +1381,7 @@ class TimelapseService:
             return
 
         try:
-            async with async_session() as db:
+            async with get_db_context() as db:
                 await job_crud.clear_pid(db, job_id)
                 await db.commit()
         except Exception as e:

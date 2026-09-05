@@ -30,7 +30,7 @@ from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.connection import async_session, close_db, get_db, init_db
+from app.db.connection import get_db_context, close_db, get_db, init_db
 from app.logging_config import get_logger, setup_logging
 from app.models.enum_model import ActivityType
 from app.services.core.health_core_service import HealthCoreService, HealthStatus
@@ -248,7 +248,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await init_db()
 
     # Load CameraManager settings from database
-    async with async_session() as session:
+    async with get_db_context() as session:
         fetch_settings = await fetch_settings_crud.get_settings(session)
         cm_settings = CameraManagerSettings(
             base_url=config.UNIFI_PROTECT_BASE_URL or fetch_settings.base_url or "",
@@ -294,7 +294,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     tasks.append(_create_monitored_task(backup_service.start(), "backup_service"))
 
     # Record service start in the activity log
-    async with async_session() as session:
+    async with get_db_context() as session:
         await activity_crud.log(
             session,
             activity_type=ActivityType.SERVICE_STARTED,
@@ -309,7 +309,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Record service stop in the activity log
     try:
-        async with async_session() as session:
+        async with get_db_context() as session:
             await activity_crud.log(
                 session,
                 activity_type=ActivityType.SERVICE_STOPPED,

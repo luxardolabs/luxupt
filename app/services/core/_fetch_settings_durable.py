@@ -11,12 +11,12 @@ through ``SettingsCoreService.save_fetch_settings_durable``. Declared in
 from typing import Any
 
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 
 
 async def save_fetch_settings_durable(settings: dict[str, Any]) -> None:
     """Save fetch settings and commit in an owned transaction, so a separate reader
     (the FetchService worker) sees the new values."""
-    async with async_session() as db:
+    async with get_db_context() as db:
         await fetch_settings_crud.update_settings(db, obj_in=settings)
         await db.commit()

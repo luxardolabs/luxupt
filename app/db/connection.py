@@ -2,7 +2,8 @@
 
 import asyncio
 import os
-from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 from typing import Annotated
 
@@ -65,6 +66,28 @@ async_session = async_sessionmaker(
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
     """Dependency that provides a database session with automatic commit/rollback."""
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+@asynccontextmanager
+async def get_db_context() -> AsyncIterator[AsyncSession]:
+    """The NON-request transaction owner: commits on clean exit, rolls back on exception.
+
+    The twin of get_db for code that has no request to hang off -- background jobs, the
+    scheduler, the CLI. These are the ONLY two session owners; everything else (crud,
+    services, routers) is transaction-agnostic and is HANDED a session.
+
+    Never open `async_session()` directly outside this module: a raw factory session in a
+    background path never commits (the work silently rolls back at close) and takes a second
+    pooled connection while the caller may already hold one -- a deadlock under load
+    (fw.session_minted_in_owner).
+    """
     async with async_session() as session:
         try:
             yield session

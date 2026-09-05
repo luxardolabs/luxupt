@@ -16,7 +16,7 @@ from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
 from app.crud import job_crud, scheduler_settings_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.connection import async_session
+from app.db.connection import get_db_context
 from app.logging_config import get_logger
 from app.models.job_model import Job
 from app.services.core.historical_fetch_core_service import (
@@ -288,7 +288,7 @@ class JobProcessor:
 
     async def _load_camera_manager_settings(self) -> CameraManagerSettings:
         """Load settings for CameraManager from database."""
-        async with async_session() as session:
+        async with get_db_context() as session:
             fetch_settings = await fetch_settings_crud.get_settings(session)
 
             return CameraManagerSettings(
@@ -337,7 +337,7 @@ class JobProcessor:
         or exhaust the connection pool.
         """
         try:
-            async with async_session() as db:
+            async with get_db_context() as db:
                 await job_crud.update_progress(
                     db,
                     job_id,
@@ -368,7 +368,7 @@ class JobProcessor:
             write them into the same image tree, then run the live_daily assembly step.
         """
         # Get settings and ensure semaphore exists (thread-safe)
-        async with async_session() as db:
+        async with get_db_context() as db:
             scheduler_settings = await scheduler_settings_crud.get_settings(db)
             job_obj = await job_crud.get_by_job_id(db, job_id)
         semaphore = await self._ensure_semaphore(scheduler_settings.concurrent_jobs)
@@ -381,7 +381,7 @@ class JobProcessor:
         async with semaphore:
             try:
                 # Now mark job as running
-                async with async_session() as db:
+                async with get_db_context() as db:
                     await job_crud.start_job(db, job_id)
                     await db.commit()
 
@@ -397,7 +397,7 @@ class JobProcessor:
                         logger.info("Historical job canceled", extra={"job_id": job_id})
                         return
                     if result.frames_succeeded == 0:
-                        async with async_session() as db:
+                        async with get_db_context() as db:
                             await job_crud.fail_job(
                                 db,
                                 job_id,
@@ -466,7 +466,7 @@ class JobProcessor:
                             job_id, camera, date_obj, interval
                         )
                     else:
-                        async with async_session() as db:
+                        async with get_db_context() as db:
                             await job_crud.fail_job(
                                 db, job_id, error="Timelapse creation failed"
                             )
@@ -487,7 +487,7 @@ class JobProcessor:
                     "Job failed", extra={"job_id": job_id, "error": error_msg}
                 )
                 try:
-                    async with async_session() as db:
+                    async with get_db_context() as db:
                         await job_crud.fail_job(db, job_id, error=error_msg)
                         await db.commit()
                 except Exception as db_err:
@@ -506,7 +506,7 @@ class JobProcessor:
           historical_combined:       {camera}_{YYYYMMDD}_to_{YYYYMMDD}_{interval}s.mp4
         """
         # Pull the job upfront so we can branch on job_type
-        async with async_session() as db:
+        async with get_db_context() as db:
             job = await job_crud.get_by_job_id(db, job_id)
 
         if (
@@ -544,7 +544,7 @@ class JobProcessor:
         file_size = file_size_raw if output_exists else None
 
         # Load encoding settings from database
-        async with async_session() as db:
+        async with get_db_context() as db:
             scheduler_settings = await scheduler_settings_crud.get_settings(db)
             frame_rate = scheduler_settings.frame_rate
             probe_timeout = (
@@ -577,7 +577,7 @@ class JobProcessor:
                 # Delete the corrupt file and any partial thumbnail
                 with contextlib.suppress(Exception):
                     await async_fs.path_unlink(output_path, missing_ok=True)
-                async with async_session() as db:
+                async with get_db_context() as db:
                     await job_crud.fail_job(
                         db,
                         job_id,
@@ -592,7 +592,7 @@ class JobProcessor:
             )
 
         # Save to database
-        async with async_session() as db:
+        async with get_db_context() as db:
             # Get job to retrieve camera_id
             job = await job_crud.get_by_job_id(db, job_id)
             camera_id = job.camera_id if job else ""
