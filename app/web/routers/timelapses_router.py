@@ -324,12 +324,7 @@ async def serve_timelapse_thumbnail(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Serve timelapse thumbnail image."""
-    thumb_path = await view_service.get_thumbnail_path(timelapse_id)
-
-    if not thumb_path:
-        raise HTTPException(status_code=404, detail="Thumbnail not found")
-
-    return FileResponse(thumb_path, media_type="image/jpeg")
+    return await view_service.serve_thumbnail(timelapse_id)
 
 
 @router.delete("/{timelapse_id}", response_class=HTMLResponse)
@@ -341,13 +336,8 @@ async def delete_timelapse(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Delete a timelapse (database record and files)."""
-    success = await view_service.delete_timelapse(timelapse_id)
-
-    if not success:
-        raise HTTPException(status_code=404, detail="Timelapse not found")
-
-    # Return OOB update to refresh the stats cards
-    context = await view_service.get_stats_context()
+    # Deletion + the OOB stats context the fragment re-renders are one view operation.
+    context = await view_service.delete_timelapse_and_build_stats(timelapse_id)
     return templates.TemplateResponse(
         request,
         "partials/timelapses/stats_oob.html",

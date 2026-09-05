@@ -30,7 +30,7 @@ from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.connection import get_db_context, close_db, get_db, init_db
+from app.db.connection import close_db, get_db, get_db_context, init_db
 from app.logging_config import get_logger, setup_logging
 from app.models.enum_model import ActivityType
 from app.services.core.health_core_service import HealthCoreService, HealthStatus

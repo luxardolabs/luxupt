@@ -1,14 +1,18 @@
 """Images view service for preparing image browser template data."""
 
+import asyncio
 from datetime import date
-from pathlib import Path
 from typing import Any
+
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.image_core_service import image_service
+from app.utils import async_fs
 
 
 class ImagesViewService:
@@ -25,12 +29,32 @@ class ImagesViewService:
         self.capture_service = capture_service
         self.cleanup_service = cleanup_service
 
-    def build_thumbnail_path(
+    async def serve_thumbnail(
         self, camera: str, interval: int, capture_date: date, timestamp: int, size: int
-    ) -> Path:
-        """Build the on-disk path for a capture's thumbnail (created at fetch time)."""
-        return image_service.build_thumbnail_path(
+    ) -> FileResponse:
+        """Resolve a capture thumbnail and build the response for it.
+
+        The view owns the RESPONSE (fw.no_passthrough_view_service): it resolves the path
+        via core, tolerates the generation queue still working, and shapes the FileResponse
+        with its cache headers. The router just returns what this hands back.
+        """
+        thumb_path = image_service.build_thumbnail_path(
             camera, interval, capture_date, timestamp, size
+        )
+
+        if not await async_fs.path_exists(thumb_path):
+            # Thumbnail may still be in the generation queue — wait briefly
+            for _ in range(40):
+                await asyncio.sleep(0.05)
+                if await async_fs.path_exists(thumb_path):
+                    break
+            else:
+                raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+        return FileResponse(
+            thumb_path,
+            media_type="image/webp",
+            headers={"Cache-Control": "public, max-age=86400"},
         )
 
     async def get_capture_path(

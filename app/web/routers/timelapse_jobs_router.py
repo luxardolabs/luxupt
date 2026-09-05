@@ -140,12 +140,7 @@ async def cleanup_stale_jobs(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Mark all stale running/pending jobs as failed."""
-    count = await view_service.cleanup_stale_jobs()
-
-    logger.info("Cleaned up stale jobs", extra={"count": count})
-
-    # Return updated job list
-    context = await view_service.get_jobs_context()
+    context = await view_service.cleanup_stale_jobs_and_build_context()
     return templates.TemplateResponse(
         request,
         "partials/timelapses/job_list.html",

@@ -4,6 +4,8 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.post_commit import after_commit
@@ -172,9 +174,16 @@ class TimelapsesViewService:
             await self.job_service.delete_job(job_id)
             return True, "deleted"
 
-    async def cleanup_stale_jobs(self) -> int:
-        """Mark all stale running/pending jobs as failed. Returns count."""
-        return await self.job_service.mark_stale_jobs_failed()
+    async def cleanup_stale_jobs_and_build_context(self) -> dict[str, Any]:
+        """Fail every stale job, then assemble the job-list context that re-renders.
+
+        The view owns the web outcome (fw.no_passthrough_view_service): core does the
+        cleanup, the view logs the operational count and assembles the fragment context, so
+        the router does not re-query after the mutation.
+        """
+        count = await self.job_service.mark_stale_jobs_failed()
+        logger.info("Cleaned up stale jobs", extra={"count": count})
+        return await self.get_jobs_context()
 
     async def get_scheduler_context(self) -> dict[str, Any]:
         """Get context for scheduler settings panel."""
@@ -288,14 +297,30 @@ class TimelapsesViewService:
         filename = await self.timelapse_service.get_video_filename(timelapse_id)
         return video_path, filename or Path(video_path).name
 
-    async def get_thumbnail_path(self, timelapse_id: int) -> str | None:
-        """Get thumbnail path for a timelapse (with path traversal protection)."""
-        # Core service handles path validation
-        return await self.timelapse_service.get_thumbnail_path(timelapse_id)
+    async def serve_thumbnail(self, timelapse_id: int) -> FileResponse:
+        """Resolve a timelapse thumbnail and build the response for it.
 
-    async def delete_timelapse(self, timelapse_id: int) -> bool:
-        """Delete a timelapse (database record and files). Returns True if deleted."""
-        return await self.timelapse_service.delete_timelapse(timelapse_id)
+        The view owns the RESPONSE (fw.no_passthrough_view_service): core validates the path
+        (traversal protection), the view turns "missing" into a 404 and shapes the
+        FileResponse. The router just returns what this hands back.
+        """
+        thumb_path = await self.timelapse_service.get_thumbnail_path(timelapse_id)
+        if not thumb_path:
+            raise HTTPException(status_code=404, detail="Thumbnail not found")
+        return FileResponse(thumb_path, media_type="image/jpeg")
+
+    async def delete_timelapse_and_build_stats(
+        self, timelapse_id: int
+    ) -> dict[str, Any]:
+        """Delete a timelapse, then assemble the stats context the OOB swap re-renders.
+
+        The view owns the web outcome (fw.no_passthrough_view_service): core does the
+        deletion, the view turns "not found" into a 404 and assembles the context the
+        fragment needs, so the router neither branches nor re-queries.
+        """
+        if not await self.timelapse_service.delete_timelapse(timelapse_id):
+            raise HTTPException(status_code=404, detail="Timelapse not found")
+        return await self.get_stats_context()
 
     async def check_job_exists(
         self,

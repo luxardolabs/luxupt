@@ -1,13 +1,11 @@
 """Image browser routes."""
 
-import asyncio
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app import config
-from app.utils import async_fs
 from app.web.auth import get_current_user
 from app.web.deps import ImagesViewDep, TemplatesDep
 from app.web.query_params import ThumbnailSizeFilter
@@ -249,23 +247,8 @@ async def get_image_thumbnail(
     if size is None:
         size = config.THUMBNAIL_SIZE_DEFAULT
 
-    thumb_path = view_service.build_thumbnail_path(
+    return await view_service.serve_thumbnail(
         camera, interval, capture_date, timestamp, size
-    )
-
-    if not await async_fs.path_exists(thumb_path):
-        # Thumbnail may still be in the generation queue — wait briefly
-        for _ in range(40):
-            await asyncio.sleep(0.05)
-            if await async_fs.path_exists(thumb_path):
-                break
-        else:
-            raise HTTPException(status_code=404, detail="Thumbnail not found")
-
-    return FileResponse(
-        thumb_path,
-        media_type="image/webp",
-        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 
