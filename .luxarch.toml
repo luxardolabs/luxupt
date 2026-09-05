@@ -13,6 +13,15 @@ declared = [
 ]
 
 [allowlist]
+# The ONE genuinely-public mutating route (fw.mutating_route_authenticated): first-run
+# bootstrap, the same class as login/register that the rule names. It cannot require auth
+# because no user exists yet, and it CLOSES ITSELF -- setup_router.py:56 re-checks
+# needs_setup(db) inside the handler (race protection) and redirects to /login the moment any
+# user exists. Per-site evidence, not a blanket deferral: the rule stays live everywhere else.
+auth_public = [
+  { function = "create_first_user", evidence = "first-run setup; no user exists yet to authenticate as, and the handler re-checks needs_setup() and redirects to /login once one does (setup_router.py:56)" },
+]
+
 # Vendor pass-through fields (ADR-001 "external identifier" case): these values come
 # verbatim from the UniFi Protect API (camera_data["state"|"videoMode"|"hdrType"]) —
 # Ubiquiti controls the set and can extend it in any firmware release; the app only
@@ -47,3 +56,60 @@ non_request_files = [
 # discoverable and agents stop reinventing components. macros_dir defaults to <templates>/macros.
 [components]
 index = "partials/components"
+
+# ─── AUDIT of inert rules (luxarch --plan §3) ──────────────────────────────────────────
+# "Inert is not a pass." Every rule luxarch reports as N/A is dispositioned here: either
+# turned ON below, or recorded as genuinely not-applicable with the reason. Reviewed against
+# luxarch 0.125.0.
+
+# TURNED ON ─────────────────────────────────────────────────────────────────────────────
+# Every route is a state-changing HTMX form post behind SameSite=Lax; a mutating GET would be
+# CSRF-reachable. There is no reason this app should have one.
+[csrf]
+enabled = true
+
+# The session-ownership burn-down (fw.session_minted_in_owner) is live debt in this repo, and
+# a request handler that opens a SECOND session owner while holding get_db deadlocks on the
+# pool. Turn the static check on so the burn-down cannot reintroduce it.
+[session]
+no_nesting = true
+
+# JWT auth: get_current_user (app/web/auth.py:229) is the single dependency that establishes
+# identity, so every mutating route must carry it.
+[auth]
+deps = ["get_current_user"]
+
+# The ONE genuinely-public mutating route: first-run bootstrap, the same class as
+# login/register that the rule names. It cannot require auth because no user exists yet, and
+# it CLOSES ITSELF -- setup_router.py:56 re-checks `needs_setup(db)` inside the handler (race
+# protection) and redirects to /login the moment any user exists. Per-site evidence, not a
+# blanket deferral: the rule stays live on every other mutating route.
+
+# Templates are the display edge; data-shaping/arithmetic there belongs in the view service.
+[templates]
+lint_logic = true
+
+# CONFIRMED N/A — not config-gated, structurally inapplicable ──────────────────────────
+#   fw.web_routers_single_surface  — web_only = true is attested above; no JSON surface to split to.
+#   fw.no_orphan_pages             — this app renders a page by a COMPUTED template name, so an
+#                                    unreferenced page cannot be proven dead. Structural, not config.
+#   fw.no_orphan_partials          — same computed-name reason. `--sweep orphan-templates` LISTS
+#                                    candidates for review; it is explicitly NOT a clearance.
+#
+# CONFIRMED N/A — the feature does not exist in this app ───────────────────────────────
+#   fw.tenant_scoped / fw.tenant_route_reachability — luxupt is SINGLE-TENANT (one operator, two
+#     single-user deployments). There is no tenant FK to scope by; declaring one would be fiction.
+#   fw.admin_endpoints_rbac        — no role tiers. Auth is one env-credential operator identity;
+#                                    authorization granularity does not exist to enforce.
+#   fw.feature_flag_is_not_authz / fw.feature_keys_declared — no feature-flag system.
+#   fw.import_linter_declared      — layering is enforced by luxarch's AST rules, not import-linter.
+#   fw.restricted_imports / fw.restricted_calls / fw.fields_wired_into_pipeline — no declared
+#                                    package boundaries or field→pipeline specs in this app.
+#
+# DEFERRED WITH A REASON — applicable, not yet wired ──────────────────────────────────
+#   fw.enum_labels        — [enums].labelled needs a display label per member; the enums are
+#                           declared but unlabelled today. Wire with the enum-typing burn-down.
+#   fw.color_mode_tokens  — needs a [color_tokens] token→tailwind map; the palette is defined in
+#                           tailwind.config.js and has not been mapped yet.
+#   fw.route_smoke_wired  — needs [route_smoke].enabled + `luxarch --emit route-smoke` into the
+#                           conftest. Wire with the test-harness work.
