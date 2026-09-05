@@ -3,7 +3,10 @@
 # The canonical ruff.toml / mypy.ini live byte-identical in the image.
 
 [source]
-paths = ["app"]   # the app package — lint + format-check + mypy target
+paths = ["app", "scripts"]   # the app package + repo scripts — lint + format-check + mypy target
+                             # scripts/ holds the EMITTED migration-chain verifier; emitted fleet
+                             # assets are designed lint/mypy-clean, so it is covered, not excluded
+                             # (lint.source_declared: an unscanned .py is a hollow green).
 
 [python]
 target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:3.13-slim (Dockerfile).

@@ -59,7 +59,9 @@ def _load(path: str) -> object:
 
 
 def _metadata(obj: object) -> object:
-    return getattr(obj, "metadata", obj)  # a declarative Base has .metadata; a MetaData is itself
+    return getattr(
+        obj, "metadata", obj
+    )  # a declarative Base has .metadata; a MetaData is itself
 
 
 def _op_name(diff: object) -> str:
@@ -109,10 +111,14 @@ def _diff(url: str, metadata: object) -> list[Any]:
 def main() -> int:
     metadata = _metadata(_load(METADATA_IMPORT))
     url = os.environ[DB_URL_ENV]
-    diffs = [d for d in _diff(url, metadata) if not _op_name(d).startswith("modify_comment")]
+    diffs = [
+        d for d in _diff(url, metadata) if not _op_name(d).startswith("modify_comment")
+    ]
     tables = len(getattr(metadata, "tables", {}))
     print(f"tables in metadata: {tables}")
-    print(f"structural diff after `alembic upgrade head` from empty: {len(diffs)} op(s)")
+    print(
+        f"structural diff after `alembic upgrade head` from empty: {len(diffs)} op(s)"
+    )
     if diffs:
         print("\nThe migrated schema does NOT match the models:")
         for d in diffs:
@@ -123,7 +129,9 @@ def main() -> int:
             "NOT 'fix' this by editing the models to match a schema the chain cannot produce."
         )
         return 1
-    print(f"✓ migrations build exactly what the models describe ({tables} tables, 0 drift)")
+    print(
+        f"✓ migrations build exactly what the models describe ({tables} tables, 0 drift)"
+    )
     return 0
 
 
