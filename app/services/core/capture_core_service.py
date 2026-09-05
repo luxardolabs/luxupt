@@ -119,7 +119,7 @@ class CaptureCoreService:
             camera_id=camera_id,
             camera_safe_name=camera_safe_name,
             interval=interval,
-            error=error_message,
+            error_message=error_message,
         )
 
     async def get_captures_for_date(
@@ -132,7 +132,7 @@ class CaptureCoreService:
         """Get all captures for a specific camera, date, and interval."""
         return await capture_crud.get_captures_for_timelapse(
             self.db,
-            camera=camera_id,
+            camera_id=camera_id,
             capture_date=capture_date,
             interval=interval,
         )

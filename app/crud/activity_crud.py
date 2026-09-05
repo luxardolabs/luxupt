@@ -133,17 +133,17 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         camera_id: str,
         camera_safe_name: str,
         interval: int,
-        error: str,
+        error_message: str,
     ) -> Activity:
         """Log a failed capture."""
         return await self.log(
             db,
             activity_type=ActivityType.CAPTURE_FAILED,
-            message=f"Failed to capture from {camera_safe_name}: {error}",
+            message=f"Failed to capture from {camera_safe_name}: {error_message}",
             camera_id=camera_id,
             camera_safe_name=camera_safe_name,
             interval=interval,
-            details={"error": error},
+            details={"error": error_message},
         )
 
     async def log_timelapse_started(
@@ -190,16 +190,16 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         camera_safe_name: str,
         target_date: str,
         interval: int,
-        error: str,
+        error_message: str,
     ) -> Activity:
         """Log timelapse creation failed."""
         return await self.log(
             db,
             activity_type=ActivityType.TIMELAPSE_FAILED,
-            message=f"Failed timelapse for {camera_safe_name}: {error}",
+            message=f"Failed timelapse for {camera_safe_name}: {error_message}",
             camera_safe_name=camera_safe_name,
             interval=interval,
-            details={"date": target_date, "error": error},
+            details={"date": target_date, "error": error_message},
         )
 
     async def get_summary(

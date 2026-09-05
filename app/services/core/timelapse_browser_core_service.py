@@ -34,7 +34,7 @@ class TimelapseBrowserCoreService:
         """Get a timelapse by camera, date, and interval."""
         return await timelapse_crud.get_by_camera_date_interval(
             self.db,
-            camera=camera,
+            camera_id=camera,
             timelapse_date=timelapse_date,
             interval=interval,
         )

@@ -76,14 +76,14 @@ class CRUDTimelapse(CRUDBase[Timelapse, TimelapseCreate, TimelapseUpdate]):
         self,
         db: AsyncSession,
         *,
-        camera: str,
+        camera_id: str,
         timelapse_date: date,
         interval: int,
     ) -> Timelapse | None:
         """Get a specific timelapse by camera, date, and interval."""
         result = await db.execute(
             select(Timelapse).where(
-                Timelapse.camera_id == camera,
+                Timelapse.camera_id == camera_id,
                 Timelapse.timelapse_date == timelapse_date,
                 Timelapse.interval == interval,
             )
@@ -93,12 +93,12 @@ class CRUDTimelapse(CRUDBase[Timelapse, TimelapseCreate, TimelapseUpdate]):
     async def get_latest_by_camera(
         self,
         db: AsyncSession,
-        camera: str,
+        camera_id: str,
     ) -> Timelapse | None:
         """Get the latest completed timelapse for a camera."""
         result = await db.execute(
             select(Timelapse)
-            .where(Timelapse.camera_id == camera, Timelapse.status == "completed")
+            .where(Timelapse.camera_id == camera_id, Timelapse.status == "completed")
             .order_by(Timelapse.timelapse_date.desc())
             .limit(1)
         )

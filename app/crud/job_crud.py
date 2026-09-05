@@ -279,14 +279,14 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
         self,
         db: AsyncSession,
         *,
-        camera: str,
+        camera_safe_name: str,
         target_date: date,
         interval: int,
     ) -> Job | None:
         """Check if a job already exists for camera/date/interval."""
         result = await db.execute(
             select(Job).where(
-                Job.camera_safe_name == camera,
+                Job.camera_safe_name == camera_safe_name,
                 Job.target_date == target_date,
                 Job.interval == interval,
                 or_(Job.status == JobStatus.PENDING, Job.status == JobStatus.RUNNING),

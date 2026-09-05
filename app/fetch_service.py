@@ -1178,7 +1178,7 @@ class FetchService:
                             camera_id=result.camera_id,
                             camera_safe_name=result.camera_safe_name,
                             interval=result.interval,
-                            error=result.error_message or "Unknown error",
+                            error_message=result.error_message or "Unknown error",
                         )
 
                     # Queue thumbnail generation for successful captures

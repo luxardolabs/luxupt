@@ -324,14 +324,14 @@ class TimelapsesViewService:
 
     async def check_job_exists(
         self,
-        camera: str,
+        camera_safe_name: str,
         date_str: str,
         interval: int,
     ) -> bool:
         """Check if a job already exists for camera/date/interval."""
         target_date = date.fromisoformat(date_str)
         existing_job = await self.job_service.exists_for_camera_date(
-            camera,
+            camera_safe_name,
             target_date,
             interval,
         )

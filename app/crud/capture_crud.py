@@ -195,7 +195,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         self,
         db: AsyncSession,
         *,
-        camera: str,
+        camera_id: str,
         capture_date: date,
         interval: int,
     ) -> list[Capture]:
@@ -203,7 +203,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         result = await db.execute(
             select(Capture)
             .where(
-                Capture.camera_id == camera,
+                Capture.camera_id == camera_id,
                 Capture.capture_date == capture_date,
                 Capture.interval == interval,
                 Capture.status == "success",
@@ -229,7 +229,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         self,
         db: AsyncSession,
         *,
-        camera: str,
+        camera_id: str,
         capture_date: date,
         interval: int,
     ) -> int:
@@ -237,7 +237,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         count = await execute_rowcount(
             db,
             delete(Capture).where(
-                Capture.camera_id == camera,
+                Capture.camera_id == camera_id,
                 Capture.capture_date == capture_date,
                 Capture.interval == interval,
             ),

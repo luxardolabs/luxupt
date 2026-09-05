@@ -78,7 +78,7 @@ class ActivityCoreService:
         camera_id: str,
         camera_safe_name: str,
         interval: int,
-        error: str,
+        error_message: str,
     ) -> Activity:
         """Log a failed capture."""
         return await activity_crud.log_capture_failed(
@@ -86,7 +86,7 @@ class ActivityCoreService:
             camera_id=camera_id,
             camera_safe_name=camera_safe_name,
             interval=interval,
-            error=error,
+            error_message=error_message,
         )
 
     async def log_timelapse_completed(
@@ -112,7 +112,7 @@ class ActivityCoreService:
         camera_safe_name: str,
         target_date: str,
         interval: int,
-        error: str,
+        error_message: str,
     ) -> Activity:
         """Log a failed timelapse creation."""
         return await activity_crud.log_timelapse_failed(
@@ -120,7 +120,7 @@ class ActivityCoreService:
             camera_safe_name=camera_safe_name,
             target_date=target_date,
             interval=interval,
-            error=error,
+            error_message=error_message,
         )
 
 

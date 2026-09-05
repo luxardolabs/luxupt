@@ -42,14 +42,14 @@ class JobCoreService:
 
     async def exists_for_camera_date(
         self,
-        camera: str,
+        camera_safe_name: str,
         target_date: date,
         interval: int,
     ) -> Job | None:
         """Check if a job already exists for camera/date/interval."""
         return await job_crud.get_job_for_camera_date(
             self.db,
-            camera=camera,
+            camera_safe_name=camera_safe_name,
             target_date=target_date,
             interval=interval,
         )

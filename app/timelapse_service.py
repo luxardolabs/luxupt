@@ -84,7 +84,7 @@ class ProgressTracker:
         total_frames: int,
         start_time: float,
         job_key: str,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         service_instance: "TimelapseService",
         image_files: list[Path] | None = None,
@@ -92,7 +92,7 @@ class ProgressTracker:
         self.total_frames = total_frames
         self.start_time = start_time
         self.job_key = job_key
-        self.camera_name = camera_name
+        self.camera_safe_name = camera_safe_name
         self.interval = interval
         self.service_instance = service_instance
         self.last_update: float = 0
@@ -152,7 +152,7 @@ class ProgressTracker:
             logger.debug(
                 "Encoding progress",
                 extra={
-                    "camera": self.camera_name,
+                    "camera": self.camera_safe_name,
                     "interval": self.interval,
                     "progress_msg": message,
                 },
@@ -573,7 +573,7 @@ class TimelapseService:
 
     async def _create_timelapse_with_job(
         self,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         target_date: datetime,
         keep_images: bool,
@@ -591,13 +591,13 @@ class TimelapseService:
         )
 
         date_str = target_date.strftime("%Y-%m-%d")
-        title = f"{camera_name}_{date_str}_{interval}s"
+        title = f"{camera_safe_name}_{date_str}_{interval}s"
 
         # Check if job already exists
         async with get_db_context() as db:
             existing = await job_crud.get_job_for_camera_date(
                 db,
-                camera=camera_name,
+                camera_safe_name=camera_safe_name,
                 target_date=target_date.date(),
                 interval=interval,
             )
@@ -609,7 +609,7 @@ class TimelapseService:
             job = await job_crud.create_job(
                 db,
                 title=title,
-                camera_safe_name=camera_name,
+                camera_safe_name=camera_safe_name,
                 camera_id=camera_id,
                 target_date=target_date.date(),
                 interval=interval,
@@ -623,7 +623,7 @@ class TimelapseService:
 
         # Process the job directly (not in background since we're already async)
         # Don't pass keep_images - let job processor use scheduler setting from database
-        await job_processor._process_job(job_id, date_str, camera_name, interval)
+        await job_processor._process_job(job_id, date_str, camera_safe_name, interval)
 
         # Check the result
         async with get_db_context() as db:
@@ -636,7 +636,7 @@ class TimelapseService:
 
     async def _create_historical_job_with_job(
         self,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         target_date: datetime,
         keep_images: bool,
@@ -654,7 +654,7 @@ class TimelapseService:
         )
 
         date_str = target_date.strftime("%Y-%m-%d")
-        title = f"{camera_name}_{date_str}_{interval}s_historical"
+        title = f"{camera_safe_name}_{date_str}_{interval}s_historical"
 
         day = target_date.date()
         # Whole day; the historical fetch clamps any too-recent timestamps (recording lag).
@@ -664,7 +664,7 @@ class TimelapseService:
         async with get_db_context() as db:
             existing = await job_crud.get_job_for_camera_date(
                 db,
-                camera=camera_name,
+                camera_safe_name=camera_safe_name,
                 target_date=day,
                 interval=interval,
             )
@@ -675,7 +675,7 @@ class TimelapseService:
             job = await job_crud.create_job(
                 db,
                 title=title,
-                camera_safe_name=camera_name,
+                camera_safe_name=camera_safe_name,
                 camera_id=camera_id,
                 target_date=day,
                 interval=interval,
@@ -691,7 +691,7 @@ class TimelapseService:
 
         # Same processor path as live + on-demand historical; it dispatches on job_type.
         job_processor = get_job_processor()
-        await job_processor._process_job(job_id, date_str, camera_name, interval)
+        await job_processor._process_job(job_id, date_str, camera_safe_name, interval)
 
         async with get_db_context() as db:
             result_job = await job_crud.get_by_job_id(db, job_id)
@@ -702,18 +702,18 @@ class TimelapseService:
             return None
 
     def _find_image_files(
-        self, images_path: Path, camera_name: str
+        self, images_path: Path, camera_safe_name: str
     ) -> tuple[list[Path], str]:
         """Find image files for a camera, checking PNG then JPG. Returns (files, format)."""
-        files = list(images_path.glob(f"{camera_name}_*.png"))
+        files = list(images_path.glob(f"{camera_safe_name}_*.png"))
         if files:
             return files, "png"
-        files = list(images_path.glob(f"{camera_name}_*.jpg"))
+        files = list(images_path.glob(f"{camera_safe_name}_*.jpg"))
         return files, "jpg"
 
     async def _create_timelapse_for_camera_interval(
         self,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         target_date: datetime,
         keep_images: bool,
@@ -732,10 +732,15 @@ class TimelapseService:
 
         # Define paths
         images_path = (
-            config.IMAGE_OUTPUT_PATH / camera_name / f"{interval}s" / year / month / day
+            config.IMAGE_OUTPUT_PATH
+            / camera_safe_name
+            / f"{interval}s"
+            / year
+            / month
+            / day
         )
         videos_path = (
-            config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+            config.VIDEO_OUTPUT_PATH / year / month / camera_safe_name / f"{interval}s"
         )
 
         # Check if images directory exists and has images
@@ -743,7 +748,7 @@ class TimelapseService:
             logger.debug(
                 "No images directory",
                 extra={
-                    "camera": camera_name,
+                    "camera": camera_safe_name,
                     "interval": interval,
                     "date": target_date.strftime("%Y-%m-%d"),
                 },
@@ -752,13 +757,13 @@ class TimelapseService:
 
         # Find image files - check both png (RTSP) and jpg (API) formats in one thread dispatch
         image_files, image_format = await asyncio.to_thread(
-            self._find_image_files, images_path, camera_name
+            self._find_image_files, images_path, camera_safe_name
         )
         if not image_files:
             logger.debug(
                 "No images found",
                 extra={
-                    "camera": camera_name,
+                    "camera": camera_safe_name,
                     "interval": interval,
                     "date": target_date.strftime("%Y-%m-%d"),
                 },
@@ -768,7 +773,7 @@ class TimelapseService:
         logger.info(
             "Creating timelapse",
             extra={
-                "camera": camera_name,
+                "camera": camera_safe_name,
                 "interval": interval,
                 "image_count": len(image_files),
             },
@@ -778,14 +783,14 @@ class TimelapseService:
         await async_fs.path_mkdir(videos_path, parents=True, exist_ok=True)
 
         # Define output file
-        output_filename = f"{camera_name}_{year}{month}{day}_{interval}s.mp4"
+        output_filename = f"{camera_safe_name}_{year}{month}{day}_{interval}s.mp4"
         output_path = videos_path / output_filename
 
         # Check if a completed timelapse record exists in the database
         async with get_db_context() as db:
             existing = await timelapse_crud.get_by_camera_date_interval(
                 db,
-                camera=camera_name,
+                camera_id=camera_safe_name,
                 timelapse_date=target_date.date(),
                 interval=interval,
             )
@@ -795,7 +800,7 @@ class TimelapseService:
                     logger.debug(
                         "Recreating existing timelapse",
                         extra={
-                            "camera": camera_name,
+                            "camera": camera_safe_name,
                             "interval": interval,
                             "timelapse_id": existing.id,
                         },
@@ -807,7 +812,7 @@ class TimelapseService:
                 else:
                     logger.debug(
                         "Timelapse already exists in database, skipping",
-                        extra={"camera": camera_name, "interval": interval},
+                        extra={"camera": camera_safe_name, "interval": interval},
                     )
                     return "exists"  # Distinct from None (no images) and True (created)
 
@@ -816,13 +821,13 @@ class TimelapseService:
             if recreate_existing:
                 logger.debug(
                     "Deleting orphaned timelapse file for recreation",
-                    extra={"camera": camera_name, "interval": interval},
+                    extra={"camera": camera_safe_name, "interval": interval},
                 )
                 await async_fs.path_unlink(output_path)
             else:
                 logger.debug(
                     "Timelapse file exists (no DB record), skipping",
-                    extra={"camera": camera_name, "interval": interval},
+                    extra={"camera": camera_safe_name, "interval": interval},
                 )
                 return "exists"
 
@@ -830,7 +835,7 @@ class TimelapseService:
         success = await self._create_video(
             images_path,
             output_path,
-            camera_name,
+            camera_safe_name,
             interval,
             encoding_settings,
             image_format,
@@ -842,7 +847,9 @@ class TimelapseService:
             try:
                 async with get_db_context() as db:
                     # Resolve safe_name → camera_id (UUID) for DB queries
-                    camera_obj = await camera_crud.get_by_safe_name(db, camera_name)
+                    camera_obj = await camera_crud.get_by_safe_name(
+                        db, camera_safe_name
+                    )
                     camera_id = camera_obj.camera_id if camera_obj else None
                     cleanup_service = CaptureCleanupCoreService(db)
                     result = await cleanup_service.delete_by_filters(
@@ -857,7 +864,7 @@ class TimelapseService:
                     logger.info(
                         "Cleanup after successful video creation",
                         extra={
-                            "camera": camera_name,
+                            "camera": camera_safe_name,
                             "interval": interval,
                             "db_records": result["db_records_deleted"],
                             "files_queued": result["files_to_clean"],
@@ -867,7 +874,7 @@ class TimelapseService:
                 logger.exception(
                     "Failed to cleanup after video creation",
                     extra={
-                        "camera": camera_name,
+                        "camera": camera_safe_name,
                         "interval": interval,
                         "error": str(e),
                     },
@@ -879,7 +886,7 @@ class TimelapseService:
         self,
         images_path: Path,
         output_path: Path,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         encoding_settings: EncodingSettings,
         image_format: str = "png",
@@ -889,7 +896,7 @@ class TimelapseService:
         """Create a video using FFmpeg with progress tracking - uses database encoding settings.
 
         Two input modes:
-          - default (frame_files=None): glob `{camera_name}_*.{image_format}` under `images_path`.
+          - default (frame_files=None): glob `{camera_safe_name}_*.{image_format}` under `images_path`.
             Used by live_daily and single-day historical jobs.
           - explicit list (frame_files=[...]): writes an ffconcat file next to the output and
             uses `-f concat -safe 0 -i`. Used for combined-range jobs whose frames live across
@@ -900,7 +907,7 @@ class TimelapseService:
         concat_file: Path | None = None
 
         # Generate job_key and register mapping if job_id provided
-        job_key = f"{camera_name}_{interval}s_{int(time.time())}"
+        job_key = f"{camera_safe_name}_{interval}s_{int(time.time())}"
         if job_id:
             self._job_key_to_id[job_key] = job_id
 
@@ -909,13 +916,14 @@ class TimelapseService:
             image_files = frame_files
         else:
             image_files = await asyncio.to_thread(
-                lambda: sorted(images_path.glob(f"{camera_name}_*.{image_format}"))
+                lambda: sorted(images_path.glob(f"{camera_safe_name}_*.{image_format}"))
             )
         total_frames = len(image_files)
 
         if total_frames == 0:
             logger.error(
-                "No images found", extra={"camera": camera_name, "interval": interval}
+                "No images found",
+                extra={"camera": camera_safe_name, "interval": interval},
             )
             return False
 
@@ -949,7 +957,7 @@ class TimelapseService:
                 str(concat_file),
             ]
         else:
-            input_pattern = str(images_path / f"{camera_name}_*.{image_format}")
+            input_pattern = str(images_path / f"{camera_safe_name}_*.{image_format}")
             input_args = [
                 "-r",
                 str(encoding_settings.frame_rate),
@@ -992,7 +1000,7 @@ class TimelapseService:
         logger.info(
             "Starting timelapse encoding",
             extra={
-                "camera": camera_name,
+                "camera": camera_safe_name,
                 "interval": interval,
                 "total_frames": total_frames,
                 "estimated_video_seconds": round(estimated_video_seconds, 1),
@@ -1020,7 +1028,7 @@ class TimelapseService:
                 total_frames,
                 start_time,
                 job_key,
-                camera_name,
+                camera_safe_name,
                 interval,
                 self,
                 image_files=image_files,
@@ -1047,7 +1055,7 @@ class TimelapseService:
                 logger.exception(
                     "FFmpeg timeout - killing process",
                     extra={
-                        "camera": camera_name,
+                        "camera": camera_safe_name,
                         "interval": interval,
                         "timeout_seconds": encoding_settings.ffmpeg_timeout,
                     },
@@ -1093,7 +1101,7 @@ class TimelapseService:
                     logger.info(
                         "Timelapse completed",
                         extra={
-                            "camera": camera_name,
+                            "camera": camera_safe_name,
                             "interval": interval,
                             "duration": self._format_duration(duration_seconds),
                             "file_size": formatted_size,
@@ -1117,7 +1125,7 @@ class TimelapseService:
                 logger.debug(
                     "FFmpeg timelapse full stderr",
                     extra={
-                        "camera": camera_name,
+                        "camera": camera_safe_name,
                         "interval": interval,
                         "stderr": stderr or "",
                     },
@@ -1135,7 +1143,7 @@ class TimelapseService:
                 logger.error(
                     "FFmpeg failed",
                     extra={
-                        "camera": camera_name,
+                        "camera": camera_safe_name,
                         "interval": interval,
                         "error": error_msg,
                     },
@@ -1152,7 +1160,11 @@ class TimelapseService:
             await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
             logger.exception(
                 "Error creating video",
-                extra={"camera": camera_name, "interval": interval, "error": str(e)},
+                extra={
+                    "camera": camera_safe_name,
+                    "interval": interval,
+                    "error": str(e),
+                },
             )
             await async_fs.path_unlink(
                 output_path, missing_ok=True
@@ -1168,7 +1180,7 @@ class TimelapseService:
 
     async def create_combined_timelapse_for_range(
         self,
-        camera_name: str,
+        camera_safe_name: str,
         interval: int,
         start_date: date,
         end_date: date,
@@ -1193,7 +1205,7 @@ class TimelapseService:
         while cur <= end_date:
             day_dir = (
                 config.IMAGE_OUTPUT_PATH
-                / camera_name
+                / camera_safe_name
                 / f"{interval}s"
                 / cur.strftime("%Y")
                 / cur.strftime("%m")
@@ -1201,7 +1213,7 @@ class TimelapseService:
             )
             if await async_fs.path_exists(day_dir):
                 files, fmt = await asyncio.to_thread(
-                    self._find_image_files, day_dir, camera_name
+                    self._find_image_files, day_dir, camera_safe_name
                 )
                 if files:
                     if image_format is None:
@@ -1213,7 +1225,7 @@ class TimelapseService:
             logger.info(
                 "Combined timelapse: no frames found in range",
                 extra={
-                    "camera": camera_name,
+                    "camera": camera_safe_name,
                     "interval": interval,
                     "start": start_date.isoformat(),
                     "end": end_date.isoformat(),
@@ -1227,7 +1239,7 @@ class TimelapseService:
         year = start_date.strftime("%Y")
         month = start_date.strftime("%m")
         videos_path = (
-            config.VIDEO_OUTPUT_PATH / year / month / camera_name / f"{interval}s"
+            config.VIDEO_OUTPUT_PATH / year / month / camera_safe_name / f"{interval}s"
         )
         await async_fs.path_mkdir(videos_path, parents=True, exist_ok=True)
 
@@ -1237,13 +1249,15 @@ class TimelapseService:
         # Job-id suffix prevents concurrent ffmpeg processes from writing to the same file
         # if a duplicate job slips through the upfront check.
         job_short = job_id[:8] if job_id else "x"
-        output_filename = f"{camera_name}_{range_label}_{interval}s_{job_short}.mp4"
+        output_filename = (
+            f"{camera_safe_name}_{range_label}_{interval}s_{job_short}.mp4"
+        )
         output_path = videos_path / output_filename
 
         logger.info(
             "Encoding combined timelapse",
             extra={
-                "camera": camera_name,
+                "camera": camera_safe_name,
                 "interval": interval,
                 "frames": len(all_frames),
                 "start": start_date.isoformat(),
@@ -1257,7 +1271,7 @@ class TimelapseService:
         return await self._create_video(
             images_path=videos_path,  # unused when frame_files is provided, but type expects it
             output_path=output_path,
-            camera_name=camera_name,
+            camera_safe_name=camera_safe_name,
             interval=interval,
             encoding_settings=encoding_settings,
             image_format=image_format,
@@ -1413,7 +1427,7 @@ class TimelapseService:
     async def _create_timelapse_record(
         self,
         db: "AsyncSession",
-        camera_name: str,
+        camera_safe_name: str,
         target_date: datetime,
         interval: int,
         output_path: Path,
@@ -1444,7 +1458,7 @@ class TimelapseService:
         # Create timelapse record
         timelapse = Timelapse(
             camera_id="",
-            camera_safe_name=camera_name,
+            camera_safe_name=camera_safe_name,
             timelapse_date=target_date.date(),
             interval=interval,
             frame_count=frame_count,
@@ -1463,7 +1477,7 @@ class TimelapseService:
         logger.info(
             "Created timelapse record",
             extra={
-                "camera": camera_name,
+                "camera": camera_safe_name,
                 "date": target_date.strftime("%Y-%m-%d"),
                 "interval": interval,
             },
