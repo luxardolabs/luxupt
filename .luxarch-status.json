@@ -1,0 +1,1354 @@
+{
+  "guard": "luxarch",
+  "guard_version": "0.125.0",
+  "repo": "/repo",
+  "targets": [
+    {
+      "kind": "fastapi-web",
+      "app": "app",
+      "rules": [
+        {
+          "rule": "fw.required_dirs",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_legacy_routers",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.model_naming",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.crud_naming",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.schema_naming",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.router_naming",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.service_naming",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.core_service_dir",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.view_service_dir",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_stray_services",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.core_service_class",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.view_service_class",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_raw_sql_in_services",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_raw_sql_in_routers",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_raw_sql_outside_crud",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_no_cascading_delete",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.core_no_fastapi",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.crud_no_fastapi",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.views_no_sqlalchemy",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.routers_no_sqlalchemy",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_view_imports_crud",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_crud_imports_crud",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_models_in_routers",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_response_models_in_routers",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_dto_in_routers",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_query_params",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_router_composition",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_inline_imports",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_inline_html",
+          "status": "FAIL",
+          "since": "0.1.0",
+          "violations": 2,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.router_size",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.service_size",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_model_exists",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_labels",
+          "status": "INERT",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "list enums that must carry member labels under [enums].labelled to enforce it. See --playbook enum-typing."
+        },
+        {
+          "rule": "fw.uuid_id_typing",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enumish_columns",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.jsonb_shaping",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.hypertable_bounds",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.worker_sessions_commit",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.template_pagination",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.view_pagination",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.template_table",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.selects_accessible",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_redundant_commit",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.js_no_fetch",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.js_no_reload",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.js_no_alert",
+          "status": "PASS",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.import_linter_declared",
+          "status": "INERT",
+          "since": "0.1.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "half the fleet enforces layering via luxarch's AST rules, not import-linter. Set [importlinter].required = true ONLY if this repo also uses import-linter; then this rule verifies the [tool.importlinter] block exists (the run is the in-repo lint-imports tail)."
+        },
+        {
+          "rule": "fw.routers_dont_import_crud",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.views_dont_import_models",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_routers_dont_import_core",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.core_no_outbound_deps",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.crud_dont_import_services",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.routers_no_transaction_control",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_session_mutation_outside_crud",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_routers_no_nested_functions",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_routers_dont_parse_json",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_naive_utcnow",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_private_cross_module_imports",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.paginated_responses_subclass_base",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_browser_confirm_in_templates",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_inline_style_in_pages",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_private_macros_in_pages",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_dto_fields_enum_typed",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.migration_revision_ids_fit",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_reserved_logging_keys",
+          "status": "PASS",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.restricted_imports",
+          "status": "INERT",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare packages + their boundary files under [restricted].imports to enforce them; until then this rule has nothing to check."
+        },
+        {
+          "rule": "fw.restricted_calls",
+          "status": "INERT",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare call patterns + their boundary files under [restricted].calls to enforce them; until then this rule has nothing to check."
+        },
+        {
+          "rule": "fw.admin_endpoints_rbac",
+          "status": "INERT",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [rbac].admin_url_patterns and [rbac].require_names to enforce that admin-tier mutating routes carry an RBAC dependency; until then this rule does not run."
+        },
+        {
+          "rule": "fw.fields_wired_into_pipeline",
+          "status": "INERT",
+          "since": "0.2.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [field_wiring] specs (class + fields + accessors) to enforce that UI/config-driving fields are actually read by the pipeline; until then this rule has nothing to check."
+        },
+        {
+          "rule": "fw.no_aliased_first_party_imports",
+          "status": "PASS",
+          "since": "0.7.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.routers_in_router_dirs",
+          "status": "PASS",
+          "since": "0.9.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.vendored_js_in_vendor",
+          "status": "PASS",
+          "since": "0.9.1",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_hand_rolled_components_in_pages",
+          "status": "FAIL",
+          "since": "0.9.1",
+          "violations": 92,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.optional_query_empty_safe",
+          "status": "PASS",
+          "since": "0.9.2",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.crud_orm_over_text",
+          "status": "PASS",
+          "since": "0.11.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_template_logic",
+          "status": "INERT",
+          "since": "0.12.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "set [templates].lint_logic = true to parse templates for data-shaping/arithmetic/mutation logic that belongs in the view. See --playbook template-logic."
+        },
+        {
+          "rule": "fw.tenant_scoped",
+          "status": "INERT",
+          "since": "0.14.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "set [tenant].column to the tenant FK (e.g. organization_id) to enable per-tenant query scoping; until then this rule does not run. See --playbook tenant-scoped."
+        },
+        {
+          "rule": "fw.component_registry",
+          "status": "PASS",
+          "since": "0.15.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.layout",
+          "status": "PASS",
+          "since": "0.16.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_column_roundtrips",
+          "status": "PASS",
+          "since": "0.26.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_hand_rolled_pagination",
+          "status": "PASS",
+          "since": "0.29.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_dynamic_column_sort",
+          "status": "PASS",
+          "since": "0.29.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enum_persists_value",
+          "status": "PASS",
+          "since": "0.30.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.aware_datetime_columns",
+          "status": "PASS",
+          "since": "0.32.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.side_effects_after_commit",
+          "status": "PASS",
+          "since": "0.33.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.static_assets_cache_busted",
+          "status": "PASS",
+          "since": "0.34.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.commented_enum_columns",
+          "status": "PASS",
+          "since": "0.38.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_templates_at_fleet_path",
+          "status": "PASS",
+          "since": "0.46.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.static_js_at_fleet_path",
+          "status": "PASS",
+          "since": "0.47.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.secure_cookies",
+          "status": "PASS",
+          "since": "0.51.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.template_refs_resolve",
+          "status": "PASS",
+          "since": "0.54.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_orphan_pages",
+          "status": "INERT",
+          "since": "0.54.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "this app renders a page by a computed name (a non-literal TemplateResponse), so an unreferenced page can't be proven dead. Orphan detection runs only when every render uses a literal template name."
+        },
+        {
+          "rule": "fw.tenant_route_reachability",
+          "status": "INERT",
+          "since": "0.55.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [tenant].column and the [tenant.auth] role markers to turn on the static cross-tenant reachability analysis; until then it does not run. See --playbook tenant-scoped."
+        },
+        {
+          "rule": "fw.state_changing_get",
+          "status": "INERT",
+          "since": "0.56.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "set [csrf].enabled = true to turn on the static GET/HEAD-mutation reachability check (the SameSite=Lax CSRF stance); until then it does not run. See --playbook state-changing-get."
+        },
+        {
+          "rule": "fw.enum_not_native_pg",
+          "status": "PASS",
+          "since": "0.63.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.route_smoke_wired",
+          "status": "INERT",
+          "since": "0.64.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "route-smoke catches a dependency deprecation one release before the pin makes it fatal, but it's off here. To turn it ON: set [route_smoke].enabled = true, then `luxarch --emit route-smoke` into tests/conftest.py (this rule then enforces the asserter is committed)."
+        },
+        {
+          "rule": "fw.session_minted_in_owner",
+          "status": "FAIL",
+          "since": "0.65.0",
+          "violations": 46,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.dev_prod_pool_parity",
+          "status": "PASS",
+          "since": "0.65.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.app_dont_import_scripts",
+          "status": "PASS",
+          "since": "0.67.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enums_in_enum_model",
+          "status": "PASS",
+          "since": "0.68.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.enums_declared",
+          "status": "PASS",
+          "since": "0.69.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_threaded_aliasing",
+          "status": "FAIL",
+          "since": "0.75.0",
+          "violations": 11,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_dropped_input",
+          "status": "PASS",
+          "since": "0.75.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_passthrough_view_service",
+          "status": "FAIL",
+          "since": "0.78.0",
+          "violations": 4,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_orphan_partials",
+          "status": "INERT",
+          "since": "0.79.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "this app renders a template by a non-literal TemplateResponse, or includes one by a computed name with no pinnable literal prefix ({% include some_var %}), so an unreferenced partial can't be proven dead. (A computed include WITH a literal prefix \u2014 {% include 'x/' ~ v %}, or a var set to one \u2014 is scoped to that subtree, not a global stand-down.) Run `--sweep orphan-templates` to LIST the no-static-reference partials for review (NOT a clearance)."
+        },
+        {
+          "rule": "fw.mutating_route_authenticated",
+          "status": "INERT",
+          "since": "0.84.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "list this repo's authenticating dependencies in [auth].deps (the fns/factories that ESTABLISH identity \u2014 get_current_user, require_editor, check_subscription_active_hybrid, \u2026) to enforce that every POST/PUT/PATCH/DELETE route is authenticated. Security schemes (HTTPBearer/OAuth2/APIKey), Annotated aliases, router-level deps and in-body 401/403 resolve automatically; carve out public/webhook/login routes in [allowlist].auth_public with evidence."
+        },
+        {
+          "rule": "fw.annotated_dep_is_depends",
+          "status": "PASS",
+          "since": "0.85.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.feature_flag_is_not_authz",
+          "status": "INERT",
+          "since": "0.86.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "list the feature-gate dependency factories in [features].gate_names (e.g. require_feature) to flag a state-changing route whose ONLY authorization is a feature flag (feature-enabled is not permission \u2014 a mutating route needs a role gate or an ownership scope). See --playbook route-auth."
+        },
+        {
+          "rule": "fw.feature_keys_declared",
+          "status": "INERT",
+          "since": "0.86.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "set [features].registry = 'app.core.features:Feature' \u2014 the canonical closed set \u2014 to enforce that every feature-key literal is a declared member (a typo silently locks everyone out of a surface, or hides a page). ADR-001 for feature keys. See --playbook route-auth."
+        },
+        {
+          "rule": "fw.no_any_typed_service_boundary",
+          "status": "PASS",
+          "since": "0.88.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.strftime_is_display_only",
+          "status": "FAIL",
+          "since": "0.89.0",
+          "violations": 19,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.crud_paginated_signature",
+          "status": "PASS",
+          "since": "0.90.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.template_role_placement",
+          "status": "PASS",
+          "since": "0.99.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.api_routers_dont_import_views",
+          "status": "PASS",
+          "since": "0.100.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.web_routers_single_surface",
+          "status": "INERT",
+          "since": "0.100.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "target is web_only (no JSON-API surface) \u2014 nothing to split to"
+        },
+        {
+          "rule": "fw.json_routes_typed",
+          "status": "PASS",
+          "since": "0.100.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.js_in_files",
+          "status": "FAIL",
+          "since": "0.105.0",
+          "violations": 2,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.injected_models_dont_cross_the_seam",
+          "status": "PASS",
+          "since": "0.106.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.templates_compile",
+          "status": "PASS",
+          "since": "0.107.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.color_mode_tokens",
+          "status": "INERT",
+          "since": "0.107.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "no [color_tokens] palette declared \u2014 declare it (token \u2192 tailwind color) to enforce that a hand-rolled light/dark pair uses the token; off until then"
+        },
+        {
+          "rule": "fw.no_nested_session",
+          "status": "INERT",
+          "since": "0.111.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "opt-in \u2014 declare [session].no_nesting = true to turn on the static nested-session double-lock check (off until then)"
+        },
+        {
+          "rule": "fw.jinja_strict_undefined",
+          "status": "FAIL",
+          "since": "0.112.0",
+          "violations": 1,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_orm_dict_across_seam",
+          "status": "PASS",
+          "since": "0.113.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_naive_datetime_default",
+          "status": "PASS",
+          "since": "0.122.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.auth_fails_closed",
+          "status": "PASS",
+          "since": "0.124.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        }
+      ],
+      "summary": {
+        "PASS": 98,
+        "FAIL": 8,
+        "XFAIL": 0,
+        "XPASS": 0,
+        "INERT": 19
+      }
+    }
+  ],
+  "shared": {
+    "rules": [
+      {
+        "rule": "repo.build_config_committed",
+        "status": "PASS",
+        "since": "0.17.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.guards_wired",
+        "status": "PASS",
+        "since": "0.104.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.no_public_ci",
+        "status": "PASS",
+        "since": "0.20.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.oci_image_labels",
+        "status": "PASS",
+        "since": "0.21.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.components_declared",
+        "status": "PASS",
+        "since": "0.23.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.no_piped_installer",
+        "status": "PASS",
+        "since": "0.25.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.makefile_canonical",
+        "status": "PASS",
+        "since": "0.96.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.makefile_test_db_harness",
+        "status": "PASS",
+        "since": "0.102.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.migrations_build_schema",
+        "status": "PASS",
+        "since": "0.120.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.compose_conventions",
+        "status": "PASS",
+        "since": "0.37.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.shared_buildx_builder",
+        "status": "PASS",
+        "since": "0.42.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.compose_project_name",
+        "status": "PASS",
+        "since": "0.72.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.compose_db_ephemeral_volume",
+        "status": "PASS",
+        "since": "0.72.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.alembic_path_separator",
+        "status": "PASS",
+        "since": "0.71.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.alembic_autogen_comparisons",
+        "status": "PASS",
+        "since": "0.123.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.buildx_builder_gc_capped",
+        "status": "PASS",
+        "since": "0.46.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.version_single_source",
+        "status": "PASS",
+        "since": "0.52.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.hatchling_build_backend",
+        "status": "PASS",
+        "since": "0.62.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.app_version_calver",
+        "status": "PASS",
+        "since": "0.50.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.dockerfile_provenance_args",
+        "status": "PASS",
+        "since": "0.50.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.entrypoint_execs",
+        "status": "PASS",
+        "since": "0.27.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      }
+    ],
+    "summary": {
+      "PASS": 21,
+      "FAIL": 0,
+      "XFAIL": 0,
+      "XPASS": 0,
+      "INERT": 0
+    }
+  },
+  "summary": {
+    "PASS": 119,
+    "FAIL": 8,
+    "XFAIL": 0,
+    "XPASS": 0,
+    "INERT": 19
+  },
+  "commit": "8019e06ec009cbb2907e1c40b672ff26eb297b8b",
+  "generated_at": "2026-09-05T22:37:35Z"
+}
