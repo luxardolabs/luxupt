@@ -684,12 +684,12 @@
         },
         {
           "rule": "fw.no_template_logic",
-          "status": "INERT",
+          "status": "FAIL",
           "since": "0.12.0",
-          "violations": 0,
+          "violations": 28,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "set [templates].lint_logic = true to parse templates for data-shaping/arithmetic/mutation logic that belongs in the view. See --playbook template-logic."
+          "inert": false,
+          "inert_reason": ""
         },
         {
           "rule": "fw.tenant_scoped",
@@ -846,12 +846,12 @@
         },
         {
           "rule": "fw.state_changing_get",
-          "status": "INERT",
+          "status": "FAIL",
           "since": "0.56.0",
-          "violations": 0,
+          "violations": 13,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "set [csrf].enabled = true to turn on the static GET/HEAD-mutation reachability check (the SameSite=Lax CSRF stance); until then it does not run. See --playbook state-changing-get."
+          "inert": false,
+          "inert_reason": ""
         },
         {
           "rule": "fw.enum_not_native_pg",
@@ -954,12 +954,12 @@
         },
         {
           "rule": "fw.mutating_route_authenticated",
-          "status": "INERT",
+          "status": "PASS",
           "since": "0.84.0",
           "violations": 0,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "list this repo's authenticating dependencies in [auth].deps (the fns/factories that ESTABLISH identity \u2014 get_current_user, require_editor, check_subscription_active_hybrid, \u2026) to enforce that every POST/PUT/PATCH/DELETE route is authenticated. Security schemes (HTTPBearer/OAuth2/APIKey), Annotated aliases, router-level deps and in-body 401/403 resolve automatically; carve out public/webhook/login routes in [allowlist].auth_public with evidence."
+          "inert": false,
+          "inert_reason": ""
         },
         {
           "rule": "fw.annotated_dep_is_depends",
@@ -1089,12 +1089,12 @@
         },
         {
           "rule": "fw.no_nested_session",
-          "status": "INERT",
+          "status": "PASS",
           "since": "0.111.0",
           "violations": 0,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "opt-in \u2014 declare [session].no_nesting = true to turn on the static nested-session double-lock check (off until then)"
+          "inert": false,
+          "inert_reason": ""
         },
         {
           "rule": "fw.jinja_strict_undefined",
@@ -1134,11 +1134,11 @@
         }
       ],
       "summary": {
-        "PASS": 98,
-        "FAIL": 8,
+        "PASS": 100,
+        "FAIL": 10,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 19
+        "INERT": 15
       }
     }
   ],
@@ -1343,12 +1343,12 @@
     }
   },
   "summary": {
-    "PASS": 119,
-    "FAIL": 8,
+    "PASS": 121,
+    "FAIL": 10,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 19
+    "INERT": 15
   },
-  "commit": "8019e06ec009cbb2907e1c40b672ff26eb297b8b",
-  "generated_at": "2026-09-05T22:37:35Z"
+  "commit": "df7ddd85bffc0ae8b9be4abcb5954fb5c06395c5",
+  "generated_at": "2026-09-05T22:42:36Z"
 }
