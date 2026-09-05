@@ -873,9 +873,9 @@
         },
         {
           "rule": "fw.session_minted_in_owner",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.65.0",
-          "violations": 46,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -920,7 +920,7 @@
           "rule": "fw.no_threaded_aliasing",
           "status": "FAIL",
           "since": "0.75.0",
-          "violations": 11,
+          "violations": 6,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -936,9 +936,9 @@
         },
         {
           "rule": "fw.no_passthrough_view_service",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.78.0",
-          "violations": 4,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1001,7 +1001,7 @@
           "rule": "fw.strftime_is_display_only",
           "status": "FAIL",
           "since": "0.89.0",
-          "violations": 19,
+          "violations": 4,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1134,8 +1134,8 @@
         }
       ],
       "summary": {
-        "PASS": 100,
-        "FAIL": 10,
+        "PASS": 102,
+        "FAIL": 8,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 15
@@ -1343,12 +1343,12 @@
     }
   },
   "summary": {
-    "PASS": 121,
-    "FAIL": 10,
+    "PASS": 123,
+    "FAIL": 8,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "df7ddd85bffc0ae8b9be4abcb5954fb5c06395c5",
-  "generated_at": "2026-09-05T22:42:36Z"
+  "commit": "f813d9d177666a247ec4b5805a20ff0c75438c3e",
+  "generated_at": "2026-09-05T23:14:10Z"
 }
