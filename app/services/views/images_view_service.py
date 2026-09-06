@@ -12,6 +12,7 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.image_core_service import image_service
+from app.services.views._camera_options import build_camera_options
 from app.utils import async_fs
 
 
@@ -169,6 +170,7 @@ class ImagesViewService:
         return {
             "images": images,
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
             "available_intervals": available_intervals,
             "total_size_gb": total_size_gb,

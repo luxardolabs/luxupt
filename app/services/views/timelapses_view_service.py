@@ -18,6 +18,7 @@ from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.job_core_service import JobCoreService, get_job_processor
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
+from app.services.views._camera_options import build_camera_options
 
 logger = get_logger(__name__)
 
@@ -213,6 +214,7 @@ class TimelapsesViewService:
         return {
             "settings": settings,
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "intervals": intervals,
             "live_available": live_available,
             "historical_available": historical_available,
@@ -470,6 +472,7 @@ class TimelapsesViewService:
 
         return {
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "camera_ranges": camera_ranges,
             "range_error": range_error,
             "union_oldest": union_oldest,
@@ -744,6 +747,7 @@ class TimelapsesViewService:
         return {
             "timelapses": timelapses,
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
             "available_intervals": available_intervals,
             "stats": stats,
@@ -804,6 +808,7 @@ class TimelapsesViewService:
 
         return {
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
             "available_intervals": available_intervals,
             "selected_camera": camera,

@@ -17,6 +17,7 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
+from app.services.views._camera_options import build_camera_options
 
 
 class SystemViewService:
@@ -301,6 +302,7 @@ class SystemViewService:
             "summary": summary,
             "summary_label": period_label,
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "activity_type_options": activity_type_options,
             "period_options": period_options,
             "filters": {

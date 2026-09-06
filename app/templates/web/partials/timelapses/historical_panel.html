@@ -3,10 +3,6 @@
 {% from "macros/buttons.html" import primary, ghost %}
 {% from "macros/forms.html" import select %}
 
-{% set camera_options = [] %}
-{% for cam in cameras %}
-    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
-{% endfor %}
 
 {% set interval_presets = [15, 60, 300, 600, 1800, 3600] %}
 

@@ -7,10 +7,6 @@
 
 {% block content %}
 {# Camera options from active cameras (camera_id -> friendly name) #}
-{% set camera_options = [] %}
-{% for cam in cameras %}
-    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
-{% endfor %}
 
 {# Event view: defaults to "Problems" (failures + errors); "All Events" or a
    specific type also selectable. The specific types come from activity_type_options,

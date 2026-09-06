@@ -16,6 +16,7 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
 from app.services.core.settings_core_service import SettingsCoreService
+from app.services.views._camera_options import build_camera_options
 
 logger = get_logger(__name__)
 
@@ -118,6 +119,7 @@ class CamerasViewService:
 
         return {
             "cameras": cameras,
+            "camera_options": build_camera_options(cameras),
             "intervals": intervals,
         }
 

@@ -14,10 +14,6 @@
 
 {% block content %}
 {# Build camera options from all active cameras #}
-{% set camera_options = [] %}
-{% for cam in cameras %}
-    {% set _ = camera_options.append({'value': cam.camera_id, 'label': cam.safe_name|replace('_', ' ')}) %}
-{% endfor %}
 
 {% call page_header("Timelapses", "Browse and create timelapse videos") %}
     <div class="flex flex-wrap items-center gap-3">
