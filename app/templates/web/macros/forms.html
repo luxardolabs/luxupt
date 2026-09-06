@@ -5,7 +5,7 @@
 {% set input_base = "block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-base sm:text-sm text-white placeholder-surface-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed" %}
 {% set label_base = "block text-sm font-medium text-white mb-1.5" %}
 
-{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none, autocomplete=none, error=none, help=none, extra_attrs="") %}
+{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none, autocomplete=none, error=none, help=none, suffix=none, align=none, extra_attrs="") %}
 {# extra_attrs: raw passthrough for anything not a first-class param (autofocus, min/max, …). #}
 <div>
     {% if label %}
@@ -22,11 +22,15 @@
                name="{{ name }}"
                value="{{ value }}"
                placeholder="{{ placeholder }}"
-               class="{{ input_base }} {% if icon_name %}pl-10{% endif %}"
+               class="{{ input_base }} {% if icon_name %}pl-10{% endif %}{% if suffix %} pr-10{% endif %}{% if align == 'center' %} text-center{% endif %}"
                {{ 'required' if required }}
                {{ 'disabled' if disabled }}
                {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
                {{ extra_attrs|safe }}>
+        {% if suffix %}
+        {#- a unit label (fps, s, %) sitting inside the field -#}
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">{{ suffix }}</span>
+        {% endif %}
     </div>
     {% if error %}<p class="text-xs text-danger-400 mt-1">{{ error }}</p>{% elif help %}<p class="text-xs text-surface-300 mt-1">{{ help }}</p>{% endif %}
 </div>
@@ -109,6 +113,27 @@
         <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
     </div>
     <span class="text-sm text-white group-hover:text-surface-200 transition-colors">{{ label }}</span>
+</label>
+{% endmacro %}
+
+{% macro toggle_row(name, title, description=none, checked=false, value="true") %}
+{# A settings ROW: title (+ optional description) on the left, toggle switch on the right.
+   Distinct from `toggle`, which is an inline switch with its label beside it. Three panels
+   were hand-rolling this exact block (fw.no_hand_rolled_components_in_pages). #}
+<label class="flex items-center justify-between cursor-pointer">
+    <div>
+        <span class="text-sm font-medium text-white">{{ title }}</span>
+        {% if description %}<p class="text-xs text-surface-200">{{ description }}</p>{% endif %}
+    </div>
+    <div class="relative">
+        <input type="checkbox"
+               name="{{ name }}"
+               value="{{ value }}"
+               class="peer sr-only"
+               {{ 'checked' if checked }}>
+        <div class="h-6 w-11 rounded-full bg-surface-600 transition-colors peer-checked:bg-primary-500 peer-focus:ring-2 peer-focus:ring-primary-500/20"></div>
+        <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+    </div>
 </label>
 {% endmacro %}
 

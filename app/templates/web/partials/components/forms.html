@@ -1,7 +1,7 @@
 {# =========================================================================
-   FORMS - text_input(), select(), checkbox(), toggle(), etc.
+   FORMS - text_input(), select(), checkbox(), toggle(), toggle_row(), etc.
    ========================================================================= #}
-{% from "macros/forms.html" import text_input, select, filter_select, checkbox, toggle, date_input, textarea, form_group %}
+{% from "macros/forms.html" import text_input, select, filter_select, checkbox, toggle, toggle_row, date_input, textarea, form_group %}
 {% from "macros/buttons.html" import primary, secondary %}
 
 <div id="forms" class="scroll-mt-20">
@@ -80,6 +80,15 @@
                     {{ toggle('enabled', 'Capture Enabled', checked=true) }}
                     {{ toggle('verify_ssl', 'Verify SSL Certificates') }}
                     {{ toggle('debug', 'Debug Mode', checked=true) }}
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs font-medium text-primary-400 uppercase mb-3">toggle_row</p>
+                <p class="text-sm text-surface-200 mb-4">A settings row: title (+ description) left, switch right</p>
+                <div class="space-y-4">
+                    {{ toggle_row('enabled', 'Enable Scheduler', description='Automatically create timelapses daily', checked=true) }}
+                    {{ toggle_row('recreate_existing', 'Recreate Existing', description='Replace if already exists') }}
                 </div>
             </div>
         </div>

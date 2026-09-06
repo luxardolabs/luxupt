@@ -3,7 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/cards.html" import section_card %}
 {% from "macros/buttons.html" import primary, ghost %}
-{% from "macros/forms.html" import select, filter_select %}
+{% from "macros/forms.html" import select, filter_select, text_input, toggle_row %}
 
 {{ panel_backdrop() }}
 
@@ -22,36 +22,13 @@
                 {% call section_card('Schedule') %}
                 <div class="space-y-4">
                     <!-- Enable Toggle -->
-                    <label class="flex items-center justify-between cursor-pointer">
-                        <div>
-                            <span class="text-sm font-medium text-white">Enable Scheduler</span>
-                            <p class="text-xs text-surface-200">Automatically create timelapses daily</p>
-                        </div>
-                        <div class="relative">
-                            <input type="checkbox" name="enabled" value="true" class="peer sr-only"
-                                   {{ 'checked' if settings.enabled }}>
-                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                        </div>
-                    </label>
+                    {{ toggle_row("enabled", "Enable Scheduler", description="Automatically create timelapses daily", checked=settings.enabled) }}
 
                     <!-- Schedule Settings Row -->
                     <div class="border-t border-surface-400/20 pt-4 grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Run Time</label>
-                            <input type="time" name="run_time" value="{{ settings.run_time | time('24h') }}"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Days Back</label>
-                            <input type="number" name="days_ago" value="{{ settings.days_ago }}" min="1" max="30"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Concurrent</label>
-                            <input type="number" name="concurrent_jobs" value="{{ settings.concurrent_jobs }}" min="1" max="8"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                        </div>
+                        {{ text_input("run_time", label="Run Time", type="time", value=settings.run_time|time('24h')) }}
+                        {{ text_input("days_ago", label="Days Back", type="number", value=settings.days_ago, align="center", extra_attrs='min="1" max="30"') }}
+                        {{ text_input("concurrent_jobs", label="Concurrent", type="number", value=settings.concurrent_jobs, align="center", extra_attrs='min="1" max="8"') }}
                     </div>
 
                     <!-- Frame Source -->
@@ -94,30 +71,8 @@
 
                     <!-- Keep Images & Recreate Existing -->
                     <div class="border-t border-surface-400/20 pt-4 grid grid-cols-2 gap-4">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-sm font-medium text-white">Keep Source Images</span>
-                                <p class="text-xs text-surface-200">Retain images after creation</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" name="keep_images" value="true" class="peer sr-only"
-                                       {{ 'checked' if settings.keep_images }}>
-                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                            </div>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-sm font-medium text-white">Recreate Existing</span>
-                                <p class="text-xs text-surface-200">Replace if already exists</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" name="recreate_existing" value="true" class="peer sr-only"
-                                       {{ 'checked' if settings.recreate_existing }}>
-                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                            </div>
-                        </label>
+                        {{ toggle_row("keep_images", "Keep Source Images", description="Retain images after creation", checked=settings.keep_images) }}
+                        {{ toggle_row("recreate_existing", "Recreate Existing", description="Replace if already exists", checked=settings.recreate_existing) }}
                     </div>
 
                     <!-- Last Run -->
@@ -177,33 +132,9 @@
                 {% call section_card('Video Encoding') %}
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Frame Rate</label>
-                            <div class="relative">
-                                <input type="number" name="frame_rate"
-                                       value="{{ settings.frame_rate }}"
-                                       min="1" max="120"
-                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">fps</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Quality (CRF)</label>
-                            <input type="number" name="crf"
-                                   value="{{ settings.crf }}"
-                                   min="0" max="51"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-surface-200 mb-1">Timeout</label>
-                            <div class="relative">
-                                <input type="number" name="ffmpeg_timeout"
-                                       value="{{ settings.ffmpeg_timeout }}"
-                                       min="300" max="86400"
-                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
-                            </div>
-                        </div>
+                        {{ text_input("frame_rate", label="Frame Rate", type="number", value=settings.frame_rate, align="center", suffix="fps", extra_attrs='min="1" max="120"') }}
+                        {{ text_input("crf", label="Quality (CRF)", type="number", value=settings.crf, align="center", extra_attrs='min="0" max="51"') }}
+                        {{ text_input("ffmpeg_timeout", label="Timeout", type="number", value=settings.ffmpeg_timeout, align="center", suffix="s", extra_attrs='min="300" max="86400"') }}
                         <div>
                             <label for="scheduler-pixel-format" class="block text-xs font-medium text-surface-200 mb-1">Pixel Format</label>
                             <select id="scheduler-pixel-format" name="pixel_format"
