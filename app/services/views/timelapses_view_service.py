@@ -18,7 +18,10 @@ from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.job_core_service import JobCoreService, get_job_processor
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
-from app.services.views._camera_options import build_camera_options
+from app.services.views._camera_options import (
+    build_camera_options,
+    build_date_options,
+)
 
 logger = get_logger(__name__)
 
@@ -97,7 +100,11 @@ class TimelapsesViewService:
             )
         else:
             available_dates = []
-        return {"available_dates": available_dates}
+        return {
+            "available_dates": available_dates,
+            "available_date_options": build_date_options(available_dates),
+            "available_date_options": build_date_options(available_dates),
+        }
 
     async def get_intervals_context(
         self,
@@ -749,6 +756,7 @@ class TimelapsesViewService:
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
+            "available_date_options": build_date_options(available_dates),
             "available_intervals": available_intervals,
             "stats": stats,
             "job_stats": job_stats,
@@ -810,6 +818,7 @@ class TimelapsesViewService:
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
+            "available_date_options": build_date_options(available_dates),
             "available_intervals": available_intervals,
             "selected_camera": camera,
         }

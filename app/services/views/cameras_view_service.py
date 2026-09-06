@@ -110,6 +110,8 @@ class CamerasViewService:
         return {
             "camera": camera,
             "intervals": intervals,
+            # The view assembles URLs; the template renders them (fw.no_template_logic).
+            "camera_delete_url": f"/cameras/{camera.camera_id}",
         }
 
     async def get_capture_stats_context(self) -> dict[str, Any]:
@@ -282,6 +284,11 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "stats": stats,
+            # The view assembles URLs; the template renders them (fw.no_template_logic).
+            "images_url": f"/images?camera={camera.safe_name}",
+            "timelapses_url": f"/timelapses?camera={camera.safe_name}",
+            "camera_settings_url": f"/cameras/{camera.camera_id}/settings",
+            "camera_delete_url": f"/cameras/{camera.camera_id}",
         }
 
     async def get_camera_detail_context(self, safe_name: str) -> dict[str, Any]:

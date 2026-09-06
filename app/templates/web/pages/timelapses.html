@@ -25,7 +25,7 @@
               class="flex flex-wrap items-center gap-3"
               onchange="updateUrlFromFilters(this)">
             {{ filter_select("camera", camera_options, selected=filters.camera, placeholder="All Cameras") }}
-            {{ filter_select("date", available_dates|map('string')|list, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
+            {{ filter_select("date", available_date_options, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("status", [{"value": "completed", "label": "Completed"}, {"value": "pending", "label": "Pending"}, {"value": "failed", "label": "Failed"}], selected=filters.status, placeholder="All Status") }}
         </form>

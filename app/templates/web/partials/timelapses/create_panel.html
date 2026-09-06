@@ -23,7 +23,7 @@
 
             <!-- Date Selection -->
             <div id="date-field">
-                {{ select("date", available_dates|map('string')|list, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera"}) }}
+                {{ select("date", available_date_options, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera"}) }}
             </div>
 
             <!-- Interval Selection -->

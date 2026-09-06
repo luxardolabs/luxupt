@@ -37,7 +37,16 @@ class UsersViewService:
         """Get context for delete confirmation panel."""
         delete_user = await self.user_service.get_by_id(user_id)
         user_count = await self.user_service.count()
-        return {"delete_user": delete_user, "user_count": user_count}
+        return {
+            "delete_user": delete_user,
+            "user_count": user_count,
+            # The view assembles URLs (fw.no_template_logic). None when the user is gone —
+            # the template already branches on delete_user, and mypy caught that this was
+            # not guarded: a deleted/unknown id would have raised here.
+            "user_delete_url": f"/system/users/{delete_user.id}"
+            if delete_user
+            else None,
+        }
 
     async def validate_user_create(
         self,

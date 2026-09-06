@@ -244,7 +244,7 @@
                             <h4 class="text-sm font-medium text-white">Delete Camera</h4>
                             <p class="text-xs text-surface-200 mt-0.5">Remove from database. Files on disk are kept.</p>
                         </div>
-                        {{ danger_confirm('Delete', confirm_text='Click to confirm', size='sm', icon_name='trash', hx_delete='/cameras/' ~ camera.camera_id, hx_target='#camera-settings-result', hx_swap='innerHTML') }}
+                        {{ danger_confirm('Delete', confirm_text='Click to confirm', size='sm', icon_name='trash', hx_delete=camera_delete_url, hx_target='#camera-settings-result', hx_swap='innerHTML') }}
                     </div>
                 </div>
             </div>

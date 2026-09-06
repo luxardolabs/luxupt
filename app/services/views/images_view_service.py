@@ -3,6 +3,7 @@
 import asyncio
 from datetime import date
 from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
@@ -12,7 +13,10 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.image_core_service import image_service
-from app.services.views._camera_options import build_camera_options
+from app.services.views._camera_options import (
+    build_camera_options,
+    build_date_options,
+)
 from app.utils import async_fs
 
 
@@ -172,6 +176,7 @@ class ImagesViewService:
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
+            "available_date_options": build_date_options(available_dates),
             "available_intervals": available_intervals,
             "total_size_gb": total_size_gb,
             "filters": {
@@ -308,6 +313,7 @@ class ImagesViewService:
         return {
             "cameras": camera_options,
             "available_dates": dates,
+            "available_date_options": build_date_options(dates),
             "available_intervals": intervals,
             # Initial preview data
             "preview": preview_data.get("preview", []),
@@ -367,12 +373,28 @@ class ImagesViewService:
             **result,
             "cameras": camera_options,
             "available_dates": dates,
+            "available_date_options": build_date_options(dates),
             "available_intervals": intervals,
             "filters": {
                 "camera": camera,
                 "date": capture_date,
                 "interval": interval,
             },
+            # The template was hand-assembling this query string with chained `~` and
+            # inline conditionals — real logic in the render layer (fw.no_template_logic).
+            # urlencode also escapes the values, which the concatenation did not.
+            "delete_url": "/images/delete?"
+            + urlencode(
+                {
+                    key: value
+                    for key, value in (
+                        ("camera", camera),
+                        ("date", capture_date),
+                        ("interval", interval),
+                    )
+                    if value
+                }
+            ),
         }
 
     async def delete_images(

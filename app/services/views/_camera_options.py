@@ -1,4 +1,4 @@
-"""Shape a camera list into the value/label pairs a `<select>` renders.
+"""Shape domain lists into the option values a `<select>` renders.
 
 Seven templates were each building this with the same
 ``{% set _ = camera_options.append({...}) %}`` loop — data shaping in the render layer
@@ -32,3 +32,13 @@ def build_camera_options(
         {"value": camera.camera_id, "label": camera.safe_name.replace("_", " ")}
         for camera in cameras
     ]
+
+
+def build_date_options(available_dates: "Sequence[object]") -> list[str]:
+    """Return the dates as strings, which is what a `<select>` option value is.
+
+    Five templates each wrote ``available_dates|map('string')|list`` — the same conversion,
+    in the render layer (fw.no_template_logic). The list of real dates stays in the context
+    for anything that needs it (a count, a comparison); this is the display-ready form.
+    """
+    return [str(day) for day in available_dates]

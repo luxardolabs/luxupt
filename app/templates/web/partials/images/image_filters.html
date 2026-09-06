@@ -3,5 +3,5 @@
 {# Camera dropdown uses camera_id as value for queries #}
 
 {{ filter_select("camera", camera_options, selected=filters.camera, placeholder="All Cameras") }}
-{{ filter_select("date", available_dates|map('string')|list, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
+{{ filter_select("date", available_date_options, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
 {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}

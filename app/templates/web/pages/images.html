@@ -20,7 +20,7 @@
               class="flex flex-wrap items-center gap-3"
               onchange="updateUrlFromFilters(this)">
             {{ filter_select("camera", camera_options, selected=filters.camera, placeholder="All Cameras") }}
-            {{ filter_select("date", available_dates|map('string')|list, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
+            {{ filter_select("date", available_date_options, selected=filters.date|string if filters.date else none, placeholder="All Dates") }}
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("per_page", [{"value": "36", "label": "36"}, {"value": "72", "label": "72"}, {"value": "108", "label": "108"}], selected=pagination.per_page|string, placeholder="Per Page") }}
         </form>

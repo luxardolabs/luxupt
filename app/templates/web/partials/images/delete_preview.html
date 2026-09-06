@@ -8,7 +8,7 @@
 
 {# OOB: Update date dropdown based on camera selection #}
 <div id="date-field" hx-swap-oob="innerHTML:#date-field">
-    {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates", selected=filters.date|string if filters.date else none) }}
+    {{ select("date", available_date_options, label="Date", placeholder="All Dates", selected=filters.date|string if filters.date else none) }}
 </div>
 
 {# OOB: Update interval dropdown based on camera+date selection #}
@@ -46,7 +46,7 @@
         {{ danger_confirm(
             "Delete " ~ total_count ~ " Images",
             icon_name="trash",
-            hx_delete="/images/delete?" ~ ("camera=" ~ filters.camera ~ "&" if filters.camera else "") ~ ("date=" ~ filters.date ~ "&" if filters.date else "") ~ ("interval=" ~ filters.interval if filters.interval else ""),
+            hx_delete=delete_url,
             hx_target="#delete-preview"
         ) }}
     </div>

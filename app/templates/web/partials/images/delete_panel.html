@@ -23,7 +23,7 @@
                     {{ select("camera", cameras, label="Camera", placeholder="All Cameras") }}
                 </div>
                 <div id="delete-date-field">
-                    {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates") }}
+                    {{ select("date", available_date_options, label="Date", placeholder="All Dates") }}
                 </div>
                 <div id="delete-interval-field">
                     {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals") }}

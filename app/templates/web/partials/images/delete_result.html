@@ -25,7 +25,7 @@
     <div class="grid grid-cols-[2fr_1fr_1fr] gap-4">
         {{ select("camera", cameras, label="Camera", placeholder="All Cameras") }}
         <div id="date-field">
-            {{ select("date", available_dates|map('string')|list, label="Date", placeholder="All Dates") }}
+            {{ select("date", available_date_options, label="Date", placeholder="All Dates") }}
         </div>
         <div id="interval-field">
             {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals") }}

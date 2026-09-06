@@ -65,7 +65,7 @@
         {{ ghost('Cancel', hx_attrs={'onclick': 'Panel.close()'}) }}
         {% if delete_user and user_count > 1 %}
         {{ danger('Delete User', icon_name='trash', hx_attrs={
-            'hx-delete': '/system/users/' ~ delete_user.id,
+            'hx-delete': user_delete_url,
             'hx-target': '#user-form-result',
             'hx-swap': 'innerHTML'
         }) }}

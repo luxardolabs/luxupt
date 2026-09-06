@@ -127,9 +127,9 @@
 
 <!-- Actions -->
 <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-surface-600/50">
-    {{ primary("View Images", href="/images?camera=" ~ camera.safe_name, icon_name="photo") }}
-    {{ secondary("Timelapses", href="/timelapses?camera=" ~ camera.safe_name, icon_name="film") }}
-    {{ secondary("Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": "/cameras/" ~ camera.camera_id ~ "/settings", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ primary("View Images", href=images_url, icon_name="photo") }}
+    {{ secondary("Timelapses", href=timelapses_url, icon_name="film") }}
+    {{ secondary("Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": camera_settings_url, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
 </div>
 
     </div>
