@@ -367,8 +367,11 @@ def create_app() -> FastAPI:
             request.app.state, "templates", None
         )
         if templates_inst is None:
-            return HTMLResponse(
-                content=f"<h1>{exc.status_code}</h1><p>{exc.detail}</p>",
+            # Last resort: the template engine itself is unavailable, so a template cannot
+            # be the answer here. Plain text keeps markup out of Python entirely
+            # (fw.no_inline_html) and is perfectly adequate for an already-degraded state.
+            return PlainTextResponse(
+                f"{exc.status_code} {exc.detail}",
                 status_code=exc.status_code,
             )
 
@@ -411,9 +414,8 @@ def create_app() -> FastAPI:
             request.app.state, "templates", None
         )
         if templates_inst is None:
-            return HTMLResponse(
-                content="<h1>500</h1><p>Internal server error</p>", status_code=500
-            )
+            # Last resort, as above: no template engine, so no template.
+            return PlainTextResponse("500 Internal server error", status_code=500)
 
         return templates_inst.TemplateResponse(
             request,

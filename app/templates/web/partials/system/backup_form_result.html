@@ -6,14 +6,7 @@
     {{ alert(message, type="success") }}
     <p class="text-xs text-success-400/70 mt-2">Settings saved. Changes take effect immediately.</p>
 </div>
-<script>
-    // Close panel after success
-    setTimeout(function() {
-        if (typeof Panel !== 'undefined') {
-            Panel.close();
-        }
-    }, 1500);
-</script>
+<div data-init="panel-result-close" data-init-delay="1500" class="hidden"></div>
 {% else %}
 {% call alert_block(type="danger", title="Error") %}
     <ul class="list-disc list-inside space-y-0.5">
