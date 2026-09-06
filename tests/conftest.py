@@ -59,7 +59,7 @@ os.environ.setdefault("WEB_USERNAME", "testadmin")
 os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 
 from app.db.base import Base  # noqa: E402
-from app.db.connection import _seed_singleton_settings, async_session, engine  # noqa: E402
+from app.db.connection import seed_singleton_settings, async_session, engine  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import (  # noqa: E402
     AsyncSession,
@@ -80,7 +80,7 @@ async def _schema() -> AsyncGenerator[None]:
     # Seed the singleton settings rows exactly as init_db() does in production. The read path
     # deliberately does NOT create them (a GET must not write -- fw.state_changing_get), so a
     # suite that skipped seeding would exercise a shape production never has.
-    await _seed_singleton_settings()
+    await seed_singleton_settings()
     yield
     await engine.dispose()
 

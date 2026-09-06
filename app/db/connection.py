@@ -195,7 +195,7 @@ async def init_db() -> None:
         # This handles upgrades for existing databases
         _run_migrations(logger)
 
-        await _seed_singleton_settings()
+        await seed_singleton_settings()
     except Exception as e:
         # Handle race condition where another process might have created tables
         if "already exists" in str(e).lower():
@@ -207,7 +207,7 @@ async def init_db() -> None:
             raise
 
 
-async def _seed_singleton_settings() -> None:
+async def seed_singleton_settings() -> None:
     """Create the singleton settings rows once, at startup, if they are absent.
 
     The settings tables each hold exactly one row (id=1). Creating it lazily on READ meant
