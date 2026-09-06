@@ -190,7 +190,7 @@ class ProtectClient:
     async def historical_snapshot(self, camera_id: str, ts: datetime) -> bytes:
         """Pull a JPEG from the recording stream at the given timestamp.
 
-        Snaps to nearest GOP keyframe (~5s on most Site cameras). Returned
+        Snaps to nearest GOP keyframe (~5s on most UniFi Protect cameras). Returned
         bytes are byte-identical for the same `ts` (deterministic).
         """
         path = f"/proxy/protect/api/cameras/{camera_id}/recording-snapshot"

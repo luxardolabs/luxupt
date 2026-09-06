@@ -10,3 +10,9 @@ LUXARCH_REGISTRY ?= docker.<your-private-registry>:5000
 #
 # LOCAL_REGISTRY — your private registry for the app image (make docker-push-local).
 LOCAL_REGISTRY   ?= <your-local-registry>:5000
+
+# Production topology (public repo: the real values live here, gitignored).
+PROD_NODE       ?= <ssh-host>
+PROD_SITE       ?= <site-name>
+PROD_DATA_ROOT  ?= /mnt/docker/luxupt
+PROD_VIDEO_ROOT ?= /mnt/<nas-host>/video/Timelapse

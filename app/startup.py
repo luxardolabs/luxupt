@@ -38,7 +38,7 @@ def print_banner() -> None:
         extra={
             "version": version,
             "build_date": build_date,
-            "author": "luxardolabs (luxardolabs)",
+            "author": "luxardolabs",
             "repository": "https://github.com/luxardolabs/luxupt",
         },
     )

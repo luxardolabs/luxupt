@@ -683,38 +683,45 @@ info: validate-version ## Show project information
 	@$(POETRY) --version || echo "Poetry not installed"
 
 # =============================================================================
-# Production deploy — Site on ll01 (remote over SSH)
+# Production deploy (remote over SSH)
 # -----------------------------------------------------------------------------
 # repo prod/ is the SOURCE OF TRUTH; prod-sync pushes it, prod-deploy runs it.
-# Prod keeps its OWN tiered storage (NVMe /mnt/docker + NAS videos) — NEVER the
-# dev NFS. BB prod lives on a different server and is out of scope here.
+# Prod keeps its OWN tiered storage (local NVMe + NAS videos) — NEVER the dev NFS.
 # Release flow:  make docker-push-ghcr  ->  (bump prod/compose.yaml default tag)
 #                ->  make prod-sync  ->  make prod-deploy
+#
+# This Makefile is COMMITTED to a PUBLIC repo, so it is environment-agnostic: every
+# site value below is a variable with a placeholder default, and the real topology
+# (node, site name, storage roots) lives in the gitignored Makefile.local.
+# (FLEET-BUILD-DEPLOY-STANDARD — "Versioning your ops config: secrets vs topology".)
 # =============================================================================
-PROD_NODE ?= ll01
-PROD_DIR  ?= /opt/luxupt
-PROD_PORT ?= 8888
+PROD_NODE     ?= prod-node
+PROD_SITE     ?= site
+PROD_DIR      ?= /opt/luxupt
+PROD_PORT     ?= 8888
+PROD_DATA_ROOT ?= /mnt/docker/luxupt
+PROD_VIDEO_ROOT ?= /mnt/video/Timelapse
 PROD_SSH  := ssh -o BatchMode=yes $(PROD_NODE)
 
 .PHONY: prod-init
-prod-init: ## [PROD] One-time: create tiered storage dirs (uid 1000) + network + $(PROD_DIR) on ll01
+prod-init: ## [PROD] One-time: create tiered storage dirs (uid 1000) + network + $(PROD_DIR) on $(PROD_NODE)
 	@echo '$(BLUE)Preparing $(PROD_NODE)...$(NC)'
 	@$(PROD_SSH) 'set -e; \
-	  install -d -o 1000 -g 1000 /mnt/docker/luxupt/site/data /mnt/docker/luxupt/site/images /mnt/docker/luxupt/site/thumbnails; \
-	  install -d -o 1000 -g 1000 /mnt/nas.internal/video/Timelapse/site; \
+	  install -d -o 1000 -g 1000 $(PROD_DATA_ROOT)/$(PROD_SITE)/data $(PROD_DATA_ROOT)/$(PROD_SITE)/images $(PROD_DATA_ROOT)/$(PROD_SITE)/thumbnails; \
+	  install -d -o 1000 -g 1000 $(PROD_VIDEO_ROOT)/$(PROD_SITE); \
 	  docker network inspect luxupt-network >/dev/null 2>&1 || docker network create luxupt-network; \
 	  mkdir -p $(PROD_DIR)'
 	@echo '$(GREEN)Prod host ready.$(NC)'
 
 .PHONY: prod-sync
-prod-sync: ## [PROD] Push repo prod/ (compose + nginx) to ll01:$(PROD_DIR) (repo is source of truth)
+prod-sync: ## [PROD] Push repo prod/ (compose + nginx) to $(PROD_NODE):$(PROD_DIR) (repo is source of truth)
 	@echo '$(BLUE)Syncing prod/ -> $(PROD_NODE):$(PROD_DIR)...$(NC)'
 	rsync -az --delete --exclude data --exclude backups prod/ $(PROD_NODE):$(PROD_DIR)/
 	@echo '$(GREEN)Synced.$(NC)'
 
 .PHONY: prod-deploy
-prod-deploy: ## [PROD] Pull image + (re)start on ll01; optional TAG=x.y.z (migrations run on start)
-	@echo '$(BLUE)Deploying site on $(PROD_NODE) (tag: $(or $(TAG),default))...$(NC)'
+prod-deploy: ## [PROD] Pull image + (re)start on $(PROD_NODE); optional TAG=x.y.z (migrations run on start)
+	@echo '$(BLUE)Deploying $(PROD_SITE) on $(PROD_NODE) (tag: $(or $(TAG),default))...$(NC)'
 	@$(PROD_SSH) 'cd $(PROD_DIR) && LUXUPT_TAG=$(TAG) docker compose pull && LUXUPT_TAG=$(TAG) docker compose up -d'
 	@echo '$(GREEN)Deployed. Verify: make prod-health$(NC)'
 
@@ -724,22 +731,22 @@ prod-rollback: ## [PROD] Redeploy a specific tag: make prod-rollback TAG=1.1.4
 	@$(MAKE) --no-print-directory prod-deploy TAG=$(TAG)
 
 .PHONY: prod-status
-prod-status: ## [PROD] Show prod containers on ll01
+prod-status: ## [PROD] Show prod containers on $(PROD_NODE)
 	@$(PROD_SSH) 'cd $(PROD_DIR) && docker compose ps'
 
 .PHONY: prod-logs
-prod-logs: ## [PROD] Follow prod logs on ll01
+prod-logs: ## [PROD] Follow prod logs on $(PROD_NODE)
 	@$(PROD_SSH) 'cd $(PROD_DIR) && docker compose logs -f --tail=100'
 
 .PHONY: prod-health
-prod-health: ## [PROD] Hit site /health/live via nginx on ll01
-	@$(PROD_SSH) 'curl -sk -o /dev/null -w "site :$(PROD_PORT) -> HTTP %{http_code}\n" https://localhost:$(PROD_PORT)/health/live'
+prod-health: ## [PROD] Hit $(PROD_SITE) /health/live via nginx on $(PROD_NODE)
+	@$(PROD_SSH) 'curl -sk -o /dev/null -w "$(PROD_SITE) :$(PROD_PORT) -> HTTP %{http_code}\n" https://localhost:$(PROD_PORT)/health/live'
 
 .PHONY: prod-backup
-prod-backup: ## [PROD] SQLite online-backup of the site DB on ll01 -> $(PROD_DIR)/backups/YYYY/MM/DD/
-	@echo '$(BLUE)Backing up site DB on $(PROD_NODE)...$(NC)'
+prod-backup: ## [PROD] SQLite online-backup of the $(PROD_SITE) DB on $(PROD_NODE) -> $(PROD_DIR)/backups/YYYY/MM/DD/
+	@echo '$(BLUE)Backing up $(PROD_SITE) DB on $(PROD_NODE)...$(NC)'
 	@$(PROD_SSH) 'set -e; ts=$$(date +%Y%m%d-%H%M%S); dir=$(PROD_DIR)/backups/$$(date +%Y/%m/%d); mkdir -p $$dir; \
-	  docker exec luxupt-site python -c "import sqlite3,sys; s=sqlite3.connect(\"/app/luxupt/output/timelapse.db\"); d=sqlite3.connect(\"/app/luxupt/output/.backup-$$ts.db\"); s.backup(d); d.close(); s.close()"; \
-	  mv /mnt/docker/luxupt/site/data/.backup-$$ts.db $$dir/site_$$ts.db; \
-	  ls -lh $$dir/site_$$ts.db'
+	  docker exec luxupt-$(PROD_SITE) python -c "import sqlite3,sys; s=sqlite3.connect(\"/app/luxupt/output/timelapse.db\"); d=sqlite3.connect(\"/app/luxupt/output/.backup-$$ts.db\"); s.backup(d); d.close(); s.close()"; \
+	  mv $(PROD_DATA_ROOT)/$(PROD_SITE)/data/.backup-$$ts.db $$dir/$(PROD_SITE)_$$ts.db; \
+	  ls -lh $$dir/$(PROD_SITE)_$$ts.db'
 	@echo '$(GREEN)Backup complete.$(NC)'
