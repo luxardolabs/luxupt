@@ -438,8 +438,11 @@ class TimelapsesViewService:
                                 # Full datetime so the form can show users the actual hour/minute
                                 # bounds — Protect's recordingStart isn't midnight; pretending it
                                 # was the whole day let users pick ranges that hit 404 storms.
-                                "oldest_full": oldest.strftime("%Y-%m-%d %H:%M"),
-                                "newest_full": newest.strftime("%Y-%m-%d %H:%M"),
+                                # Sent as ISO (machine output) and rendered by the client's
+                                # fmtDateTime — formatting here would weld in a format AND the
+                                # server's zone (fw.strftime_is_display_only).
+                                "oldest_full": oldest.isoformat(),
+                                "newest_full": newest.isoformat(),
                                 "default": default_d.isoformat(),
                                 "days": (newest_d - oldest_d).days,
                             }

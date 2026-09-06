@@ -597,6 +597,25 @@ class PanelResult {
 	}
 }
 
+
+/**
+ * Render an ISO-8601 datetime as "YYYY-MM-DD HH:MM" in the VIEWER's local zone.
+ *
+ * The server sends ISO instants and formatting happens here, at the display edge — a
+ * server-side strftime would bake in both the format and the server's timezone for
+ * everyone. Bound to window because templates invoke it from Alpine x-text, where eslint
+ * cannot see the call site.
+ */
+function fmtDateTime(iso) {
+	if (!iso) return '';
+	const d = new Date(iso);
+	if (isNaN(d.getTime())) return iso;
+	const pad = n => String(n).padStart(2, '0');
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+		`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+window.fmtDateTime = fmtDateTime;
+
 // Global utilities
 window.App = App;
 window.Toast = Toast;

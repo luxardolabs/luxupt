@@ -33,7 +33,7 @@ DURATION ({{ seconds | duration }}):
     "2h 15m", "3d 5h"
 """
 
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -305,6 +305,24 @@ def file_size_filter(bytes_value: int | float | None) -> str:
         return f"{int(bytes_value)} B"
 
 
+def day_label(d: date | datetime | None) -> str:
+    """Label a calendar day relative to today: "Today", "Yesterday", else "Friday, July 18".
+
+    Display formatting lives at the edge, not in a service (fw.strftime_is_display_only): a
+    service that baked this string in would freeze both the wording and the zone for every
+    viewer. The template passes the date; this decides how it reads.
+    """
+    if d is None:
+        return "--"
+    day = d.date() if isinstance(d, datetime) else d
+    today = datetime.now().date()
+    if day == today:
+        return "Today"
+    if day == today - timedelta(days=1):
+        return "Yesterday"
+    return f"{day:%A, %B} {day.day}"
+
+
 def register_filters(templates: "Jinja2Templates") -> None:
     """Register all custom filters with a Jinja2Templates instance.
 
@@ -319,6 +337,7 @@ def register_filters(templates: "Jinja2Templates") -> None:
     # Date/time filters
     templates.env.filters["format_datetime"] = format_datetime
     templates.env.filters["date"] = format_date
+    templates.env.filters["day_label"] = day_label
     templates.env.filters["time"] = format_time
     templates.env.filters["timeago"] = timeago
     templates.env.filters["duration"] = duration

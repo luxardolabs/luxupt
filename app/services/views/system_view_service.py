@@ -5,7 +5,7 @@ import os
 import platform
 import shutil
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from app import config
@@ -191,11 +191,15 @@ class SystemViewService:
         """Get version information from environment variables."""
         # Get timezone - try TZ env var first, then system timezone
         tz_name = os.getenv("TZ") or time.tzname[0]
-        # Get UTC offset
-        utc_offset = datetime.now().astimezone().strftime("%z")
-        utc_offset_formatted = (
-            f"UTC{utc_offset[:3]}:{utc_offset[3:]}" if utc_offset else ""
-        )
+        # The server's own UTC offset, computed from the offset itself rather than by
+        # slicing a strftime("%z") string (fw.strftime_is_display_only; the slicing was also
+        # fragile — it assumed a fixed-width ±HHMM and silently produced junk otherwise).
+        # This reports a configuration FACT about the host, not a timestamp for a viewer.
+        offset = datetime.now().astimezone().utcoffset() or timedelta(0)
+        total_minutes = int(offset.total_seconds()) // 60
+        sign = "+" if total_minutes >= 0 else "-"
+        hours, minutes = divmod(abs(total_minutes), 60)
+        utc_offset_formatted = f"UTC{sign}{hours:02d}:{minutes:02d}"
 
         return {
             "version": os.getenv("BUILD_VERSION", "dev"),
@@ -257,24 +261,13 @@ class SystemViewService:
             since=since,
         )
 
-        # Group this page's rows by calendar day (list preserves newest-first order)
-        today = datetime.now().date()
-        yesterday = today - timedelta(days=1)
-
-        def _day_label(d: date) -> str:
-            if d == today:
-                return "Today"
-            if d == yesterday:
-                return "Yesterday"
-            return d.strftime("%A, %B ") + str(d.day)  # e.g. "Friday, July 18"
-
+        # Group this page's rows by calendar day (list preserves newest-first order).
+        # The day's LABEL is the template's job (the day_label filter) -- grouping is not.
         activity_groups: list[dict[str, Any]] = []
         for a in activities:
             day = a.timestamp.date()
             if not activity_groups or activity_groups[-1]["date"] != day:
-                activity_groups.append(
-                    {"date": day, "label": _day_label(day), "items": []}
-                )
+                activity_groups.append({"date": day, "items": []})
             activity_groups[-1]["items"].append(a)
 
         # Summary counts the same window as the feed ("all" -> effectively unbounded)

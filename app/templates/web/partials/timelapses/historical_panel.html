@@ -51,9 +51,9 @@
                 {% else %}
                     <p class="text-xs text-surface-200 mt-1" x-show="range">
                         Recordings:
-                        <span class="text-white" x-text="range?.oldest_full"></span>
+                        <span class="text-white" x-text="fmtDateTime(range?.oldest_full)"></span>
                         →
-                        <span class="text-white" x-text="range?.newest_full"></span>
+                        <span class="text-white" x-text="fmtDateTime(range?.newest_full)"></span>
                         (<span x-text="range?.days"></span> days)
                     </p>
                     <p class="text-xs text-surface-200 mt-0.5" x-show="range">
