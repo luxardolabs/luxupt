@@ -5,7 +5,7 @@ import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -194,6 +194,8 @@ async def init_db() -> None:
         # Run Alembic migrations to apply any schema changes
         # This handles upgrades for existing databases
         _run_migrations(logger)
+
+        await _seed_singleton_settings()
     except Exception as e:
         # Handle race condition where another process might have created tables
         if "already exists" in str(e).lower():
@@ -203,6 +205,29 @@ async def init_db() -> None:
             )
         else:
             raise
+
+
+async def _seed_singleton_settings() -> None:
+    """Create the singleton settings rows once, at startup, if they are absent.
+
+    The settings tables each hold exactly one row (id=1). Creating it lazily on READ meant
+    every page render reached a DB write, which under SameSite=Lax is CSRF-reachable
+    (fw.state_changing_get): a link the victim clicks arrives with the session cookie
+    attached. Seeding here keeps the read path genuinely read-only -- the writer owns the
+    write. Idempotent: an existing row is left untouched.
+    """
+    from app.models import BackupSettings, FetchSettings, SchedulerSettings  # noqa: PLC0415
+
+    defaults: list[Any] = [
+        FetchSettings(id=1, intervals=[15, 30, 60, 120, 300]),
+        SchedulerSettings(id=1),
+        BackupSettings(id=1),
+    ]
+    async with get_db_context() as db:
+        for row in defaults:
+            existing = await db.get(type(row), 1)
+            if existing is None:
+                db.add(row)
 
 
 async def close_db() -> None:

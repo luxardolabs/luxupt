@@ -29,7 +29,19 @@ def test_expired_token_rejected() -> None:
 
 def test_tampered_token_rejected() -> None:
     token = AuthService.create_access_token({"sub": "carol"})
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+
+    # Tamper the FIRST character of the signature, not the last. A 32-byte HMAC-SHA256
+    # signature is 256 bits and base64url packs 6 bits per character, so the FINAL character
+    # carries only 256 - 42*6 = 4 significant bits — its low 2 bits are padding. Rewriting
+    # that last character to "A" therefore decodes to the SAME signature bytes whenever the
+    # original was B, C or D (3/64 of tokens ~ 4.7%), the token stays valid, and this test
+    # fails intermittently for reasons that look like flake. The first character carries a
+    # full 6 significant bits, so changing it always changes the signature.
+    header, payload, signature = token.split(".")
+    flipped = ("A" if signature[0] != "A" else "B") + signature[1:]
+    assert flipped != signature
+    tampered = f"{header}.{payload}.{flipped}"
+
     assert AuthService.verify_token(tampered) is None
 
 

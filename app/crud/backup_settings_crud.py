@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.base import with_column_defaults
 from app.models.backup_settings_model import BackupSettings
 
 
@@ -17,11 +18,11 @@ class CRUDBackupSettings:
         settings: BackupSettings | None = result.scalar_one_or_none()
 
         if settings is None:
-            # Create default settings - model provides all defaults
-            settings = BackupSettings(id=1)
-            db.add(settings)
-            await db.flush()
-            await db.refresh(settings)
+            # NOT persisted here. A GET page render reaches this read, and a GET that writes is
+            # CSRF-reachable under SameSite=Lax (fw.state_changing_get). The real row is seeded
+            # once at startup by init_db(); this returns transient defaults so a read before
+            # seeding still renders. Persisting is the writer's job, never the reader's.
+            settings = with_column_defaults(BackupSettings(id=1))
 
         return settings
 
