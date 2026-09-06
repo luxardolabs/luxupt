@@ -60,7 +60,7 @@
       "rule": "lint.ruff",
       "status": "FAIL",
       "since": "0.1.0",
-      "violations": 79,
+      "violations": 80,
       "deferred": false
     },
     {
@@ -162,6 +162,6 @@
     "XPASS": 0
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "5d47d43ab3dabb740e27cf9ad4d12c809690f0d5",
-  "generated_at": "2026-09-06T04:03:09Z"
+  "commit": "6ba23fbcbd1cf8dc02227c8beaa22e2a066b4ac4",
+  "generated_at": "2026-09-06T19:22:27Z"
 }
