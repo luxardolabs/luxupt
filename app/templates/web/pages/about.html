@@ -41,8 +41,7 @@
     <!-- Camera Configuration -->
     {% call card("Camera Configuration", icon_name="camera", color="primary") %}
     <div class="divide-y divide-surface-400/20">
-        {{ data_row("Selection Mode", config.camera_selection) }}
-        {{ data_row("Distribution", config.distribution_enabled) }}
+        {{ data_row("Capture Offsets", config.min_offset_seconds ~ "-" ~ config.max_offset_seconds ~ "s") }}
         {{ data_row("Fetch Intervals", config.fetch_intervals|join(', ') ~ "s") }}
     </div>
     {% endcall %}

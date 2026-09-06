@@ -14,8 +14,11 @@
     <thead>
         <tr class="border-b border-surface-400/30 text-xs font-medium uppercase tracking-wider {{ head_tone }}">
             {%- for col in columns %}
-            {%- set align = 'text-right' if col.align == 'right' else ('text-center' if col.align == 'center' else 'text-left') -%}
-            <th scope="col" class="px-4 py-2 {{ align }}{% if col.class %} {{ col.class }}{% endif %}">{{ col.label }}</th>
+            {#- `align` is an OPTIONAL column key; its default belongs here, in the macro that owns
+    the contract, not guarded at every call site (--playbook jinja-strict-undefined) -#}
+            {%- set col_align = col.get('align') -%}
+            {%- set align = 'text-right' if col_align == 'right' else ('text-center' if col_align == 'center' else 'text-left') -%}
+            <th scope="col" class="px-4 py-2 {{ align }}{% if col.get('class') %} {{ col.get('class') }}{% endif %}">{{ col.label }}</th>
             {%- endfor %}
         </tr>
     </thead>

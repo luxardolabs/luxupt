@@ -174,6 +174,12 @@ class SystemViewService:
             "rate_limit_buffer_percent": int(fetch_settings.rate_limit_buffer * 100),
             "effective_rate_limit": effective_rate,
             # Timelapse/FFmpeg settings from database
+            # Rendered by pages/about.html. Absent until now, so under Jinja's default
+            # Undefined the About page showed BLANK values instead of failing
+            # (fw.jinja_strict_undefined).
+            "concurrent_limit": scheduler_settings.concurrent_jobs,
+            "min_offset_seconds": fetch_settings.min_offset_seconds,
+            "max_offset_seconds": fetch_settings.max_offset_seconds,
             "timelapse_frame_rate": scheduler_settings.frame_rate,
             "timelapse_crf": scheduler_settings.crf,
             "timelapse_preset": scheduler_settings.preset,

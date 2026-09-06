@@ -257,7 +257,10 @@ async def login_form(request: Request) -> Response:
                 return RedirectResponse(url="/setup", status_code=302)
 
     templates = request.app.state.templates
-    context: dict[str, Any] = {}
+    # Declared, not omitted: the template reads both, so the route OWNS providing them.
+    # Leaving them out rendered empty under Jinja's default Undefined and raises under
+    # StrictUndefined -- the context is the contract (fw.jinja_strict_undefined).
+    context: dict[str, Any] = {"success": None, "error": None}
 
     # Show success message if redirected from setup
     if request.query_params.get("setup_complete") == "1":

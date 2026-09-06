@@ -73,7 +73,7 @@
             {% if not loop.first %}
 {{ icon('chevron-right-solid', 'mr-2 h-4 w-4 text-surface-200') }}
             {% endif %}
-            {% if item.href %}
+            {% if item.get('href') %}
             <a href="{{ item.href }}" class="text-surface-200 hover:text-surface-100">{{ item.label }}</a>
             {% else %}
             <span class="text-surface-100">{{ item.label }}</span>

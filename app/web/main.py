@@ -25,6 +25,7 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import StrictUndefined
 
 from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
@@ -447,12 +448,21 @@ def create_app() -> FastAPI:
     # Templates live at the fleet-canonical app/templates/web/ (app-wide, a sibling of static/;
     # email/llm would be peer subdirs). __file__ is app/web/main.py, so go up to app/.
     templates_path = Path(__file__).parent.parent / "templates" / "web"
+    # StrictUndefined: a missing/renamed/typo'd template variable RAISES instead of rendering
+    # an empty string. Jinja's default silently renders "" -- a dropped view->template value or
+    # a stale context key then looks fine and busts nothing (fw.jinja_strict_undefined).
     templates = Jinja2Templates(directory=str(templates_path))
+    templates.env.undefined = StrictUndefined
 
     # Register custom template filters
     from .template_filters import register_filters  # noqa: PLC0415 (lazy, app-factory)
 
     register_filters(templates)
+
+    # partials/nav.html reads `user` on every page that extends the base layout, so it is
+    # a GLOBAL, not a per-route key. Declaring the default here clears it everywhere at
+    # once; a route with a real user overrides it via its own context.
+    templates.env.globals["user"] = None
 
     # Add template globals
     templates.env.globals.update(
