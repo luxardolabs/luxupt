@@ -21,9 +21,8 @@ class UsersViewService:
         All users (both env and database) are stored in the users table.
         The auth_source field indicates where credentials come from.
         """
-        # Sync env user to ensure it exists in database if configured
-        await self.user_service.sync_env_user()
-
+        # No sync here: the env user is synced ONCE at startup (web/main lifespan). Doing it
+        # on render made this GET write to the database (fw.state_changing_get).
         users = await self.user_service.get_all()
         return {"users": users}
 

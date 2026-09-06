@@ -236,6 +236,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     from app.services.core.backup_core_service import (  # noqa: PLC0415
         BackupCoreService,
     )
+    from app.services.core.user_core_service import (  # noqa: PLC0415
+        UserCoreService,
+    )
     from app.timelapse_service import (  # noqa: PLC0415
         TimelapseService,
     )
@@ -246,6 +249,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Initialize database
     logger.info("Initializing database")
     await init_db()
+
+    # Sync the env-managed user ONCE at startup. It used to happen on every users-page
+    # render, which made a GET write to the database -- CSRF-reachable under SameSite=Lax
+    # (fw.state_changing_get). The env credentials only change on restart, so startup is
+    # where this belongs; the page render is now a pure read.
+    async with get_db_context() as session:
+        await UserCoreService(session).sync_env_user()
 
     # Load CameraManager settings from database
     async with get_db_context() as session:
