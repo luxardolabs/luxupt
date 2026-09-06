@@ -285,8 +285,12 @@ class CamerasViewService:
             "latest_capture": latest_capture,
             "stats": stats,
             # The view assembles URLs; the template renders them (fw.no_template_logic).
-            "images_url": f"/images?camera={camera.safe_name}",
-            "timelapses_url": f"/timelapses?camera={camera.safe_name}",
+            # camera_id (the Protect UUID), NOT safe_name: every browse filter queries
+            # Capture.camera_id / Timelapse.camera_id, and the filter dropdowns already send
+            # the UUID. Sending safe_name here matched zero rows, so both links returned an
+            # empty list. safe_name is not unique and changes on a rename; the UUID does not.
+            "images_url": f"/images?camera={camera.camera_id}",
+            "timelapses_url": f"/timelapses?camera={camera.camera_id}",
             "camera_settings_url": f"/cameras/{camera.camera_id}/settings",
             "camera_delete_url": f"/cameras/{camera.camera_id}",
         }

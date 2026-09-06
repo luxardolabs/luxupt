@@ -788,9 +788,13 @@ class TimelapseService:
 
         # Check if a completed timelapse record exists in the database
         async with get_db_context() as db:
+            # Resolve safe_name -> camera_id (UUID) first: the column holds the UUID, so
+            # querying it with a safe name silently matched nothing and the "already exists"
+            # check never fired. Same resolution the cleanup path above already does.
+            camera_obj = await camera_crud.get_by_safe_name(db, camera_safe_name)
             existing = await timelapse_crud.get_by_camera_date_interval(
                 db,
-                camera_id=camera_safe_name,
+                camera_id=camera_obj.camera_id if camera_obj else "",
                 timelapse_date=target_date.date(),
                 interval=interval,
             )

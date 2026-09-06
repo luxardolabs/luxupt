@@ -90,7 +90,7 @@ async def create_historical_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    camera: str = Form(...),  # camera_id
+    camera_id: str = Form(...),
     start_date: str = Form(...),
     end_date: str = Form(...),
     start_time: str = Form(...),
@@ -111,7 +111,7 @@ async def create_historical_timelapse(
     across all day directories.
     """
     context = await view_service.create_historical_jobs(
-        camera_id=camera,
+        camera_id=camera_id,
         start_date=start_date,
         end_date=end_date,
         start_time=start_time,
@@ -133,7 +133,7 @@ async def create_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    camera: str = Form(...),  # This is now camera_id from the dropdown
+    camera_id: str = Form(...),
     date_str: str = Form(..., alias="date"),
     interval: str = Form(...),
     user: str = Depends(get_current_user),
@@ -145,7 +145,7 @@ async def create_timelapse(
     """
     try:
         context = await view_service.create_and_start_job(
-            camera_id=camera,
+            camera_id=camera_id,
             date_str=date_str,
             interval=int(interval),
         )

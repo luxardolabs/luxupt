@@ -19,16 +19,16 @@
               class="space-y-6">
 
             <!-- Camera Selection (sends camera_id, display shows name) -->
-            {{ select("camera", camera_options, label="Camera", placeholder="Select a camera...", required=true, hx_attrs={"hx-get": "/timelapses/partials/dates", "hx-target": "#date-field", "hx-swap": "innerHTML", "hx-trigger": "change"}) }}
+            {{ select("camera_id", camera_options, label="Camera", placeholder="Select a camera...", required=true, hx_attrs={"hx-get": "/timelapses/partials/dates", "hx-target": "#date-field", "hx-swap": "innerHTML", "hx-trigger": "change"}) }}
 
             <!-- Date Selection -->
             <div id="date-field">
-                {{ select("date", available_date_options, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera"}) }}
+                {{ select("date", available_date_options, label="Date", placeholder="Select a date...", required=true, hx_attrs={"hx-get": "/timelapses/partials/intervals", "hx-target": "#interval-field", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera_id"}) }}
             </div>
 
             <!-- Interval Selection -->
             <div id="interval-field">
-                {{ select("interval", available_intervals, label="Interval", placeholder="Select interval...", required=true, hx_attrs={"hx-get": "/timelapses/partials/preview", "hx-target": "#preview-area", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera, #date"}) }}
+                {{ select("interval", available_intervals, label="Interval", placeholder="Select interval...", required=true, hx_attrs={"hx-get": "/timelapses/partials/preview", "hx-target": "#preview-area", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#camera_id, #date"}) }}
             </div>
 
             <!-- Preview Area -->

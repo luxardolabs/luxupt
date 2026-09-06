@@ -35,8 +35,8 @@
               class="space-y-6">
 
             <div>
-                <label for="camera" class="block text-sm font-medium text-white mb-1.5">Camera</label>
-                <select id="camera" name="camera" required x-model="selected"
+                <label for="camera_id" class="block text-sm font-medium text-white mb-1.5">Camera</label>
+                <select id="camera_id" name="camera_id" required x-model="selected"
                         class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white cursor-pointer focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     {% for opt in camera_options %}
                     <option value="{{ opt.value }}">{{ opt.label }}</option>
