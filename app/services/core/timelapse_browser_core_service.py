@@ -27,14 +27,14 @@ class TimelapseBrowserCoreService:
 
     async def get_by_camera_date_interval(
         self,
-        camera: str,
+        camera_id: str,
         timelapse_date: date,
         interval: int,
     ) -> Timelapse | None:
         """Get a timelapse by camera, date, and interval."""
         return await timelapse_crud.get_by_camera_date_interval(
             self.db,
-            camera_id=camera,
+            camera_id=camera_id,
             timelapse_date=timelapse_date,
             interval=interval,
         )

@@ -110,9 +110,9 @@ async def image_filters_partial(
 # =============================================================================
 
 
-@router.get("/lightbox/{camera}/{timestamp}", response_class=HTMLResponse)
+@router.get("/lightbox/{camera_safe_name}/{timestamp}", response_class=HTMLResponse)
 async def image_lightbox(
-    camera: str,
+    camera_safe_name: str,
     timestamp: int,
     request: Request,
     templates: TemplatesDep,
@@ -129,7 +129,7 @@ async def image_lightbox(
     date_str = date_str if date_str else None
 
     context = await view_service.get_lightbox_context(
-        camera_safe_name=camera,
+        camera_safe_name=camera_safe_name,
         timestamp=timestamp,
         filter_camera=filter_camera,
         date_str=date_str,
@@ -156,9 +156,11 @@ async def image_lightbox(
     )
 
 
-@router.get("/lightbox/{camera}/{timestamp}/content", response_class=HTMLResponse)
+@router.get(
+    "/lightbox/{camera_safe_name}/{timestamp}/content", response_class=HTMLResponse
+)
 async def image_lightbox_content(
-    camera: str,
+    camera_safe_name: str,
     timestamp: int,
     request: Request,
     templates: TemplatesDep,
@@ -174,7 +176,7 @@ async def image_lightbox_content(
     date_str = date_str if date_str else None
 
     context = await view_service.get_lightbox_context(
-        camera_safe_name=camera,
+        camera_safe_name=camera_safe_name,
         timestamp=timestamp,
         filter_camera=filter_camera,
         date_str=date_str,
