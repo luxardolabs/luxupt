@@ -116,7 +116,7 @@
 </label>
 {% endmacro %}
 
-{% macro toggle_row(name, title, description=none, checked=false, value="true") %}
+{% macro toggle_row(name, title, description=none, checked=false, value="true", model=none) %}
 {# A settings ROW: title (+ optional description) on the left, toggle switch on the right.
    Distinct from `toggle`, which is an inline switch with its label beside it. Three panels
    were hand-rolling this exact block (fw.no_hand_rolled_components_in_pages). #}
@@ -130,6 +130,7 @@
                name="{{ name }}"
                value="{{ value }}"
                class="peer sr-only"
+               {% if model %}x-model="{{ model }}"{% endif %}
                {{ 'checked' if checked }}>
         <div class="h-6 w-11 rounded-full bg-surface-600 transition-colors peer-checked:bg-primary-500 peer-focus:ring-2 peer-focus:ring-primary-500/20"></div>
         <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>

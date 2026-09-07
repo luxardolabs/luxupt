@@ -2,6 +2,7 @@
 {% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
 {% from "macros/buttons.html" import primary_loading, ghost %}
 {% from "macros/icons.html" import icon %}
+{% from "macros/forms.html" import text_input, toggle_row %}
 
 {{ panel_backdrop() }}
 
@@ -20,35 +21,17 @@
               x-data="{ enabled: {{ 'true' if backup_settings.enabled else 'false' }} }">
 
             <!-- Enable Toggle -->
-            <label class="flex items-center justify-between cursor-pointer rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
-                <div>
-                    <span class="text-sm font-medium text-white">Enable Backups</span>
-                    <p class="text-xs text-surface-200">Automatically backup the database on a schedule</p>
-                </div>
-                <div class="relative">
-                    <input type="checkbox" name="enabled" value="true" class="peer sr-only"
-                           x-model="enabled"
-                           {{ 'checked' if backup_settings.enabled }}>
-                    <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                    <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                </div>
-            </label>
+            <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
+                {{ toggle_row("enabled", "Enable Backups",
+                              description="Automatically backup the database on a schedule",
+                              checked=backup_settings.enabled, model="enabled") }}
+            </div>
 
             <!-- Settings (shown when enabled) -->
             <div x-show="enabled" x-transition class="space-y-5">
                 <!-- Retention -->
                 <div>
-                    <label for="retention" class="block text-sm font-medium text-white mb-2">
-                        Backups to Keep
-                    </label>
-                    <input id="retention"
-                           name="retention"
-                           type="number"
-                           min="1"
-                           max="100"
-                           value="{{ backup_settings.retention if backup_settings.retention > 0 else 5 }}"
-                           placeholder="5"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    {{ text_input("retention", label="Backups to Keep", type="number", value=backup_settings.retention if backup_settings.retention > 0 else 5, placeholder="5", extra_attrs='min="1" max="100"') }}
                     <p class="mt-1 text-xs text-surface-200">
                         Number of recent backups to retain. Older backups are automatically deleted.
                     </p>
@@ -56,18 +39,7 @@
 
                 <!-- Interval -->
                 <div>
-                    <label for="interval_hours" class="block text-sm font-medium text-white mb-2">
-                        Backup Interval
-                        <span class="text-surface-200 font-normal">(hours)</span>
-                    </label>
-                    <input id="interval_hours"
-                           name="interval_hours"
-                           type="number"
-                           min="1"
-                           max="168"
-                           value="{{ interval_hours }}"
-                           placeholder="1"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+                    {{ text_input("interval_hours", label="Backup Interval (hours)", type="number", value=interval_hours, placeholder="1", extra_attrs='min="1" max="168"') }}
                     <p class="mt-1 text-xs text-surface-200">
                         How often to create a backup (1-168 hours).
                     </p>
@@ -75,16 +47,7 @@
 
                 <!-- Backup Directory -->
                 <div>
-                    <label for="backup_dir" class="block text-sm font-medium text-white mb-2">
-                        Backup Directory
-                    </label>
-                    <input id="backup_dir"
-                           name="backup_dir"
-                           type="text"
-                           maxlength="256"
-                           value="{{ backup_settings.backup_dir }}"
-                           placeholder="backups"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-4 py-2.5 text-white placeholder:text-surface-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm font-mono">
+                    {{ text_input("backup_dir", label="Backup Directory", type="text", value=backup_settings.backup_dir, placeholder="backups", extra_attrs='maxlength="256"') }}
                     <p class="mt-1 text-xs text-surface-200">
                         Directory name relative to output path.
                     </p>
