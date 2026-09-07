@@ -1,5 +1,6 @@
 {# Lightbox content - swapped on navigation #}
 {% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import icon_button %}
 
 {# Build navigation URLs with each image's own interval to avoid ambiguity #}
 {% set prev_params = (filter_params ~ '&interval=' ~ prev_image.interval) if filter_params else ('interval=' ~ prev_image.interval) if prev_image else '' %}
@@ -7,12 +8,12 @@
 
 <!-- Previous button -->
 {% if prev_image %}
-<button hx-get="/images/lightbox/{{ prev_image.camera_safe_name }}/{{ prev_image.timestamp }}/content?{{ prev_params }}"
-        hx-target="#lightbox-content"
-        hx-swap="morph:innerHTML"
-        class="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white transition-colors z-10">
-    {{ icon('chevron-left', 'w-10 h-10') }}
-</button>
+<div class="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+    {{ icon_button("chevron-left", "Previous image", size="lg",
+                   hx_attrs={"hx-get": "/images/lightbox/" ~ prev_image.camera_safe_name ~ "/" ~ prev_image.timestamp ~ "/content?" ~ prev_params,
+                             "hx-target": "#lightbox-content",
+                             "hx-swap": "morph:innerHTML"}) }}
+</div>
 {% else %}
 <div class="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white/20 z-10">
     {{ icon('chevron-left', 'w-10 h-10') }}
@@ -22,10 +23,9 @@
 <!-- Image container -->
 <div class="relative max-w-[90vw] max-h-[85vh] flex flex-col items-center">
     <!-- Close button (outside top-right corner) -->
-    <button onclick="Lightbox.close()"
-            class="absolute -top-10 -right-10 p-2 text-white/70 hover:text-white transition-colors z-10">
-        {{ icon('x-mark', 'w-8 h-8') }}
-    </button>
+    <div class="absolute -top-10 -right-10 z-10">
+        {{ icon_button("x-mark", "Close", hx_attrs={"onclick": "Lightbox.close()"}) }}
+    </div>
 
     <img src="/images/file/{{ image.camera_safe_name }}/{{ image.interval }}/{{ image.timestamp }}"
          alt="{{ image.camera_safe_name }}"
@@ -43,12 +43,12 @@
 
 <!-- Next button -->
 {% if next_image %}
-<button hx-get="/images/lightbox/{{ next_image.camera_safe_name }}/{{ next_image.timestamp }}/content?{{ next_params }}"
-        hx-target="#lightbox-content"
-        hx-swap="morph:innerHTML"
-        class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white transition-colors z-10">
-    {{ icon('chevron-right', 'w-10 h-10') }}
-</button>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+    {{ icon_button("chevron-right", "Next image", size="lg",
+                   hx_attrs={"hx-get": "/images/lightbox/" ~ next_image.camera_safe_name ~ "/" ~ next_image.timestamp ~ "/content?" ~ next_params,
+                             "hx-target": "#lightbox-content",
+                             "hx-swap": "morph:innerHTML"}) }}
+</div>
 {% else %}
 <div class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/20 z-10">
     {{ icon('chevron-right', 'w-10 h-10') }}
