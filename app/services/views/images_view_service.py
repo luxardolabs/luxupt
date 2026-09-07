@@ -245,7 +245,13 @@ class ImagesViewService:
         # Lookup camera to get camera_id for queries
         camera = await self.camera_service.get_by_safe_name(camera_safe_name)
         if not camera:
-            return {"image": None, "prev_image": None, "next_image": None}
+            return {
+                "image": None,
+                "prev_image": None,
+                "next_image": None,
+                "prev_url": None,
+                "next_url": None,
+            }
 
         camera_id = camera.camera_id
 
@@ -257,7 +263,13 @@ class ImagesViewService:
         )
 
         if not image:
-            return {"image": None, "prev_image": None, "next_image": None}
+            return {
+                "image": None,
+                "prev_image": None,
+                "next_image": None,
+                "prev_url": None,
+                "next_url": None,
+            }
 
         # Get prev/next images respecting filters
         prev_image = await self.capture_service.get_adjacent_image(
@@ -280,10 +292,46 @@ class ImagesViewService:
             interval=interval,
         )
 
+        # The view assembles the navigation URLs; the template renders them
+        # (fw.no_template_logic). Each URL carries the image's OWN interval so navigation is
+        # unambiguous, plus whatever filters are active. urlencode escapes the values, which
+        # the previous string concatenation in the template did not.
+        def _nav_url(safe_name: str, timestamp: int, target_interval: int) -> str:
+            query = urlencode(
+                {
+                    key: value
+                    for key, value in (
+                        ("camera", filter_camera),
+                        ("date", date_str),
+                        ("interval", target_interval),
+                    )
+                    if value
+                }
+            )
+            return f"/images/lightbox/{safe_name}/{timestamp}/content?{query}"
+
         return {
             "image": image,
             "prev_image": prev_image,
             "next_image": next_image,
+            "prev_url": (
+                _nav_url(
+                    prev_image.camera_safe_name,
+                    prev_image.timestamp,
+                    prev_image.interval,
+                )
+                if prev_image
+                else None
+            ),
+            "next_url": (
+                _nav_url(
+                    next_image.camera_safe_name,
+                    next_image.timestamp,
+                    next_image.interval,
+                )
+                if next_image
+                else None
+            ),
         }
 
     async def get_delete_panel_context(self) -> dict[str, Any]:

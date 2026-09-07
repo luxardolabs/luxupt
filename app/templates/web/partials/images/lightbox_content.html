@@ -2,15 +2,14 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/buttons.html" import icon_button %}
 
-{# Build navigation URLs with each image's own interval to avoid ambiguity #}
-{% set prev_params = (filter_params ~ '&interval=' ~ prev_image.interval) if filter_params else ('interval=' ~ prev_image.interval) if prev_image else '' %}
-{% set next_params = (filter_params ~ '&interval=' ~ next_image.interval) if filter_params else ('interval=' ~ next_image.interval) if next_image else '' %}
+{# Navigation URLs are assembled by the view service (fw.no_template_logic); each carries
+   the target image's OWN interval so navigation is unambiguous. #}
 
 <!-- Previous button -->
 {% if prev_image %}
 <div class="absolute left-4 top-1/2 -translate-y-1/2 z-10">
     {{ icon_button("chevron-left", "Previous image", size="lg",
-                   hx_attrs={"hx-get": "/images/lightbox/" ~ prev_image.camera_safe_name ~ "/" ~ prev_image.timestamp ~ "/content?" ~ prev_params,
+                   hx_attrs={"hx-get": prev_url,
                              "hx-target": "#lightbox-content",
                              "hx-swap": "morph:innerHTML"}) }}
 </div>
@@ -45,7 +44,7 @@
 {% if next_image %}
 <div class="absolute right-4 top-1/2 -translate-y-1/2 z-10">
     {{ icon_button("chevron-right", "Next image", size="lg",
-                   hx_attrs={"hx-get": "/images/lightbox/" ~ next_image.camera_safe_name ~ "/" ~ next_image.timestamp ~ "/content?" ~ next_params,
+                   hx_attrs={"hx-get": next_url,
                              "hx-target": "#lightbox-content",
                              "hx-swap": "morph:innerHTML"}) }}
 </div>
