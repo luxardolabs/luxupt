@@ -1,7 +1,7 @@
 {# Historical timelapse panel — pulls frames from Protect's recording stream #}
 {% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
 {% from "macros/buttons.html" import primary, ghost %}
-{% from "macros/forms.html" import select, text_input, radio_card %}
+{% from "macros/forms.html" import select, text_input, radio_card, toggle_row %}
 
 
 {% set interval_presets = [15, 60, 300, 600, 1800, 3600] %}
@@ -35,13 +35,8 @@
               class="space-y-6">
 
             <div>
-                <label for="camera_id" class="block text-sm font-medium text-white mb-1.5">Camera</label>
-                <select id="camera_id" name="camera_id" required x-model="selected"
-                        class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white cursor-pointer focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                    {% for opt in camera_options %}
-                    <option value="{{ opt.value }}">{{ opt.label }}</option>
-                    {% endfor %}
-                </select>
+                {{ select("camera_id", camera_options, label="Camera", required=true,
+                          placeholder=none, hx_attrs={"x-model": "selected"}) }}
                 {% if range_error %}
                     <p class="text-xs text-warning-400 mt-1">{{ range_error }}</p>
                 {% else %}
@@ -149,31 +144,15 @@
                 <p class="text-xs text-surface-200 mt-1.5">Frames snap to ~5s keyframes.</p>
             </div>
 
-            <label class="flex items-center justify-between cursor-pointer border-t border-surface-400/20 pt-4">
-                <div>
-                    <span class="text-sm font-medium text-white">Keep frames after assembly</span>
-                    <p class="text-xs text-surface-200">Saves frames in the image tree; appears in image browser.</p>
-                </div>
-                <div class="relative">
-                    <input type="checkbox" name="keep_images" value="true" class="peer sr-only" checked>
-                    <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                    <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                </div>
-            </label>
+            <div class="border-t border-surface-400/20 pt-4">
+                {{ toggle_row("keep_images", "Keep frames after assembly",
+                              description="Saves frames in the image tree; appears in image browser.",
+                              checked=true) }}
+            </div>
 
             <div x-data='{ recreate: {{ "true" if global_recreate else "false" }}, globalRecreate: {{ "true" if global_recreate else "false" }} }'
                  class="border-t border-surface-400/20 pt-4">
-                <label class="flex items-center justify-between cursor-pointer">
-                    <div>
-                        <span class="text-sm font-medium text-white">Recreate existing</span>
-                        <p class="text-xs text-surface-200">If a job for the same day/range exists, delete it and run fresh. Off = skip silently and continue with the rest.</p>
-                    </div>
-                    <div class="relative">
-                        <input type="checkbox" name="recreate_existing" value="true" x-model="recreate" class="peer sr-only">
-                        <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                        <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                    </div>
-                </label>
+                {{ toggle_row("recreate_existing", "Recreate existing", description="If a job for the same day/range exists, delete it and run fresh. Off = skip silently and continue with the rest.", model="recreate") }}
                 <p class="text-xs text-warning-400 mt-2" x-show="recreate !== globalRecreate">
                     Differs from the scheduler default (<span x-text="globalRecreate ? 'on' : 'off'"></span>). Just for this run.
                 </p>
