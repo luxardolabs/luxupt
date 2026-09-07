@@ -3,7 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/cards.html" import section_card %}
 {% from "macros/buttons.html" import primary, primary_loading, ghost %}
-{% from "macros/forms.html" import select %}
+{% from "macros/forms.html" import select, text_input %}
 
 {{ panel_backdrop() }}
 
@@ -263,29 +263,9 @@
                 {% call section_card('Camera Distribution', 'Stagger camera captures to reduce API load') %}
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Min Offset -->
-                    <div>
-                        <label class="block text-sm font-medium text-white mb-1.5">Min Offset</label>
-                        <div class="relative">
-                            <input type="number" name="min_offset_seconds"
-                                   value="{{ settings.min_offset_seconds }}"
-                                   min="1" max="60"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">seconds</span>
-                        </div>
-                        <p class="text-xs text-surface-200 mt-1">Minimum time between camera captures</p>
-                    </div>
+                    {{ text_input("min_offset_seconds", label="Min Offset", type="number", value=settings.min_offset_seconds, suffix="seconds", help="Minimum time between camera captures", extra_attrs='min="1" max="60"') }}
                     <!-- Max Offset -->
-                    <div>
-                        <label class="block text-sm font-medium text-white mb-1.5">Max Offset</label>
-                        <div class="relative">
-                            <input type="number" name="max_offset_seconds"
-                                   value="{{ settings.max_offset_seconds }}"
-                                   min="1" max="300"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">seconds</span>
-                        </div>
-                        <p class="text-xs text-surface-200 mt-1">Maximum time between camera captures</p>
-                    </div>
+                    {{ text_input("max_offset_seconds", label="Max Offset", type="number", value=settings.max_offset_seconds, suffix="seconds", help="Maximum time between camera captures", extra_attrs='min="1" max="300"') }}
                 </div>
                 {% endcall %}
 
@@ -293,35 +273,11 @@
                 {% call section_card('Performance & Reliability') %}
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     <!-- Timeout -->
-                    <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Timeout</label>
-                        <div class="relative">
-                            <input type="number" name="request_timeout"
-                                   value="{{ settings.request_timeout }}"
-                                   min="5" max="120"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
-                        </div>
-                    </div>
+                    {{ text_input("request_timeout", label="Timeout", type="number", value=settings.request_timeout, align="center", suffix="s", extra_attrs='min="5" max="120"') }}
                     <!-- Max Retries -->
-                    <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Retries</label>
-                        <input type="number" name="max_retries"
-                               value="{{ settings.max_retries }}"
-                               min="0" max="10"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                    </div>
+                    {{ text_input("max_retries", label="Retries", type="number", value=settings.max_retries, align="center", extra_attrs='min="0" max="10"') }}
                     <!-- Retry Delay -->
-                    <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Retry Delay</label>
-                        <div class="relative">
-                            <input type="number" name="retry_delay"
-                                   value="{{ settings.retry_delay }}"
-                                   min="1" max="30"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-surface-200">s</span>
-                        </div>
-                    </div>
+                    {{ text_input("retry_delay", label="Retry Delay", type="number", value=settings.retry_delay, align="center", suffix="s", extra_attrs='min="1" max="30"') }}
                     <!-- Rate Limit -->
                     <div>
                         <label class="block text-xs font-medium text-surface-200 mb-1">Rate Limit</label>
