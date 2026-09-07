@@ -3,7 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/cards.html" import section_card %}
 {% from "macros/buttons.html" import primary, primary_loading, ghost %}
-{% from "macros/forms.html" import select, text_input %}
+{% from "macros/forms.html" import select, text_input, toggle_row %}
 
 {{ panel_backdrop() }}
 
@@ -25,30 +25,8 @@
                 <div class="space-y-4">
                     <!-- Enable & High Quality Toggles -->
                     <div class="grid grid-cols-2 gap-4">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-sm font-medium text-white">Capture Enabled</span>
-                                <p class="text-xs text-surface-200">Enable image capture globally</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" name="enabled" value="true" class="peer sr-only"
-                                       {{ 'checked' if settings.enabled }}>
-                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                            </div>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-sm font-medium text-white">High Quality</span>
-                                <p class="text-xs text-surface-200">Request 1080p+ snapshots</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" name="high_quality_snapshots" value="true" class="peer sr-only"
-                                       {{ 'checked' if settings.high_quality_snapshots }}>
-                                <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                                <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                            </div>
-                        </label>
+                        {{ toggle_row("enabled", "Capture Enabled", description="Enable image capture globally", checked=settings.enabled) }}
+                        {{ toggle_row("high_quality_snapshots", "High Quality", description="Request 1080p+ snapshots", checked=settings.high_quality_snapshots) }}
                     </div>
 
                     <!-- Intervals -->
@@ -138,14 +116,11 @@
                             <span class="truncate">{{ api_config.base_url_display }}</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
-                        <input type="url" id="base_url" name="base_url" value=""
-                               placeholder="Enter to override..."
-                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <div class="mt-2">
+                            {{ text_input("base_url", type="url", placeholder="Enter to override...") }}
+                        </div>
                         {% else %}
-                        <input type="url" id="base_url" name="base_url"
-                               value="{{ settings.base_url or '' }}"
-                               placeholder="https://unifi.local/proxy/protect/integration/v1"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {{ text_input("base_url", type="url", value=settings.base_url or '', placeholder="https://unifi.local/proxy/protect/integration/v1") }}
                         {% endif %}
                     </div>
 
@@ -158,14 +133,11 @@
                             <span>••••••••••••••••</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
-                        <input type="password" id="api_key" name="api_key" value=""
-                               placeholder="Enter to override..."
-                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <div class="mt-2">
+                            {{ text_input("api_key", type="password", placeholder="Enter to override...") }}
+                        </div>
                         {% else %}
-                        <input type="password" id="api_key" name="api_key"
-                               value="{{ settings.api_key or '' }}"
-                               placeholder="Enter API key..."
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {{ text_input("api_key", type="password", value=settings.api_key or '', placeholder="Enter API key...") }}
                         {% endif %}
                     </div>
 
@@ -179,15 +151,11 @@
                             <span class="truncate">{{ api_config.username }}</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
-                        <input type="text" id="username" name="username" value=""
-                               placeholder="Enter to override..."
-                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <div class="mt-2">
+                            {{ text_input("username", type="text", placeholder="Enter to override...") }}
+                        </div>
                         {% else %}
-                        <input type="text" id="username" name="username"
-                               value="{{ settings.username or '' }}"
-                               placeholder="Enter Protect username..."
-                               autocomplete="off"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {{ text_input("username", type="text", value=settings.username or '', placeholder="Enter Protect username...", autocomplete="off") }}
                         {% endif %}
                     </div>
 
@@ -200,15 +168,11 @@
                             <span>••••••••••••••••</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
-                        <input type="password" id="password" name="password" value=""
-                               placeholder="Enter to override..."
-                               class="mt-2 block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <div class="mt-2">
+                            {{ text_input("password", type="password", placeholder="Enter to override...") }}
+                        </div>
                         {% else %}
-                        <input type="password" id="password" name="password"
-                               value="{{ settings.password or '' }}"
-                               placeholder="Enter Protect password..."
-                               autocomplete="new-password"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white placeholder-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {{ text_input("password", type="password", value=settings.password or '', placeholder="Enter Protect password...", autocomplete="new-password") }}
                         {% endif %}
                     </div>
 
