@@ -3,7 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/cards.html" import section_card %}
 {% from "macros/buttons.html" import primary, ghost %}
-{% from "macros/forms.html" import select, filter_select, text_input, toggle_row, radio_card %}
+{% from "macros/forms.html" import select, filter_select, text_input, toggle_row, radio_card, checkbox %}
 
 {{ panel_backdrop() }}
 
@@ -76,17 +76,13 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-medium text-white">Cameras</span>
-                            <button type="button" onclick="FormUtils.toggleAllCheckboxes('camera-checkboxes', true)"
-                                    class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                            {{ ghost("Select All", size="sm",
+                                     hx_attrs={"onclick": "FormUtils.toggleAllCheckboxes('camera-checkboxes', true)"}) }}
                         </div>
                         <div id="camera-checkboxes" class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border border-surface-500 bg-surface-700/50 p-3 max-h-36 overflow-y-auto">
                             {% for camera in cameras %}
-                            <label class="inline-flex items-center gap-2 cursor-pointer group">
-                                <input type="checkbox" name="enabled_cameras" value="{{ camera.safe_name }}"
-                                       class="h-3.5 w-3.5 rounded border-surface-400 bg-surface-600 text-primary-500 focus:ring-primary-500/20"
-                                       {{ 'checked' if not settings.enabled_cameras or camera.safe_name in settings.enabled_cameras }}>
-                                <span class="text-sm text-surface-200 group-hover:text-white truncate">{{ camera.name }}</span>
-                            </label>
+                            {{ checkbox("enabled_cameras", camera.name, value=camera.safe_name,
+                                        checked=(not settings.enabled_cameras or camera.safe_name in settings.enabled_cameras)) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -95,17 +91,13 @@
                     <div class="border-t border-surface-400/20 pt-4">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-medium text-white">Intervals</span>
-                            <button type="button" onclick="FormUtils.toggleAllCheckboxes('interval-checkboxes', true)"
-                                    class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                            {{ ghost("Select All", size="sm",
+                                     hx_attrs={"onclick": "FormUtils.toggleAllCheckboxes('interval-checkboxes', true)"}) }}
                         </div>
                         <div id="interval-checkboxes" class="flex flex-wrap gap-3">
                             {% for interval in intervals %}
-                            <label class="inline-flex items-center gap-1.5 cursor-pointer bg-surface-700/50 rounded-lg px-3 py-1.5 border border-surface-500 hover:border-surface-400 transition-colors">
-                                <input type="checkbox" name="enabled_intervals" value="{{ interval }}"
-                                       class="h-3.5 w-3.5 rounded border-surface-400 bg-surface-600 text-primary-500 focus:ring-primary-500/20"
-                                       {{ 'checked' if not settings.enabled_intervals or interval in settings.enabled_intervals }}>
-                                <span class="text-sm text-surface-200">{{ interval }}s</span>
-                            </label>
+                            {{ checkbox("enabled_intervals", interval ~ "s", value=interval,
+                                        checked=(not settings.enabled_intervals or interval in settings.enabled_intervals)) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -121,28 +113,14 @@
                         {{ text_input("ffmpeg_timeout", label="Timeout", type="number", value=settings.ffmpeg_timeout, align="center", suffix="s", extra_attrs='min="300" max="86400"') }}
                         <div>
                             <label for="scheduler-pixel-format" class="block text-xs font-medium text-surface-200 mb-1">Pixel Format</label>
-                            <select id="scheduler-pixel-format" name="pixel_format"
-                                    class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                <option value="yuv420p" {{ 'selected' if settings.pixel_format == 'yuv420p' }}>yuv420p</option>
-                                <option value="yuv444p" {{ 'selected' if settings.pixel_format == 'yuv444p' }}>yuv444p</option>
-                                <option value="rgb24" {{ 'selected' if settings.pixel_format == 'rgb24' }}>rgb24</option>
-                            </select>
+                            {{ select("pixel_format", pixel_format_options,
+                                      selected=settings.pixel_format, placeholder=none) }}
                         </div>
                     </div>
                     <div>
                         <label for="scheduler-preset" class="block text-xs font-medium text-surface-200 mb-1">Preset</label>
-                        <select id="scheduler-preset" name="preset"
-                                class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-1.5 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <option value="ultrafast" {{ 'selected' if settings.preset == 'ultrafast' }}>Ultrafast (largest file)</option>
-                            <option value="superfast" {{ 'selected' if settings.preset == 'superfast' }}>Superfast</option>
-                            <option value="veryfast" {{ 'selected' if settings.preset == 'veryfast' }}>Very Fast</option>
-                            <option value="faster" {{ 'selected' if settings.preset == 'faster' }}>Faster</option>
-                            <option value="fast" {{ 'selected' if settings.preset == 'fast' }}>Fast</option>
-                            <option value="medium" {{ 'selected' if settings.preset == 'medium' }}>Medium (balanced)</option>
-                            <option value="slow" {{ 'selected' if settings.preset == 'slow' }}>Slow</option>
-                            <option value="slower" {{ 'selected' if settings.preset == 'slower' }}>Slower</option>
-                            <option value="veryslow" {{ 'selected' if settings.preset == 'veryslow' }}>Very Slow (smallest file)</option>
-                        </select>
+                        {{ select("preset", preset_options,
+                                  selected=settings.preset, placeholder=none) }}
                     </div>
                 </div>
                 {% endcall %}

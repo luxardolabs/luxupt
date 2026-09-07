@@ -19,6 +19,8 @@ from app.services.core.job_core_service import JobCoreService, get_job_processor
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
 from app.services.views._camera_options import (
+    PIXEL_FORMAT_OPTIONS,
+    PRESET_OPTIONS,
     build_camera_options,
     build_date_options,
 )
@@ -226,6 +228,8 @@ class TimelapsesViewService:
             "live_available": live_available,
             "historical_available": historical_available,
             "source_selected": source_selected,
+            "pixel_format_options": PIXEL_FORMAT_OPTIONS,
+            "preset_options": PRESET_OPTIONS,
         }
 
     async def update_scheduler_settings(self, update_data: dict[str, Any]) -> None:

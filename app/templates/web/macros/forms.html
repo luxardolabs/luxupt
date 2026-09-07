@@ -47,7 +47,11 @@
             {{ 'required' if required }}
             {{ 'disabled' if disabled }}
             {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
+        {#- placeholder=none for a REQUIRED setting that always has a value: an empty first
+            option would offer a "nothing" state the field does not have. -#}
+        {% if placeholder %}
         <option value="" {{ 'selected' if selected is none or selected == '' }}>{{ placeholder }}</option>
+        {% endif %}
         {% for opt in options %}
             {% if opt is mapping %}
             <option value="{{ opt.value }}" {{ 'selected' if selected == opt.value }}>{{ opt.label }}</option>
