@@ -1,7 +1,7 @@
 {# Historical timelapse panel — pulls frames from Protect's recording stream #}
 {% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
 {% from "macros/buttons.html" import primary, ghost %}
-{% from "macros/forms.html" import select %}
+{% from "macros/forms.html" import select, text_input, radio_card %}
 
 
 {% set interval_presets = [15, 60, 300, 600, 1800, 3600] %}
@@ -88,51 +88,26 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-white mb-1.5">Start Date</label>
-                    <input type="date" name="start_date" required x-model="startDate"
-                           :min="range?.oldest" :max="range?.newest"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-white mb-1.5">End Date</label>
-                    <input type="date" name="end_date" required x-model="endDate"
-                           :min="startDate || range?.oldest" :max="range?.newest"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                </div>
+                {{ text_input("start_date", label="Start Date", type="date", required=true,
+                              extra_attrs='x-model="startDate" :min="range?.oldest" :max="range?.newest"') }}
+                {{ text_input("end_date", label="End Date", type="date", required=true,
+                              extra_attrs='x-model="endDate" :min="startDate || range?.oldest" :max="range?.newest"') }}
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-white mb-1.5">Start Time</label>
-                    <input type="time" name="start_time" required value="00:00"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-white mb-1.5">End Time</label>
-                    <input type="time" name="end_time" required value="23:59"
-                           class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                </div>
+                {{ text_input("start_time", label="Start Time", type="time", value="00:00", required=true) }}
+                {{ text_input("end_time", label="End Time", type="time", value="23:59", required=true) }}
             </div>
 
             <div class="border-t border-surface-400/20 pt-4" x-data="{ mode: 'per_day' }">
                 <label class="block text-sm font-medium text-white mb-2">Output</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <label class="flex items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3 cursor-pointer"
-                           :class="mode === 'per_day' ? 'border-primary-500 bg-primary-500/10' : ''">
-                        <input type="radio" name="output_mode" value="per_day" x-model="mode" class="mt-0.5 accent-primary-500">
-                        <div>
-                            <p class="text-sm font-medium text-white">One per day</p>
-                            <p class="text-xs text-surface-200">Each day in the range → its own daily MP4. Slots into the existing browser per day.</p>
-                        </div>
-                    </label>
-                    <label class="flex items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3 cursor-pointer"
-                           :class="mode === 'combined' ? 'border-primary-500 bg-primary-500/10' : ''">
-                        <input type="radio" name="output_mode" value="combined" x-model="mode" class="mt-0.5 accent-primary-500">
-                        <div>
-                            <p class="text-sm font-medium text-white">Single combined</p>
-                            <p class="text-xs text-surface-200">One MP4 covering the full range, all days back-to-back.</p>
-                        </div>
+                    {{ radio_card("output_mode", "per_day", "One per day",
+                                  description="Each day in the range → its own daily MP4. Slots into the existing browser per day.",
+                                  model="mode") }}
+                    {{ radio_card("output_mode", "combined", "Single combined",
+                                  description="One MP4 covering the full range, all days back-to-back.",
+                                  model="mode") }}
                     </label>
                 </div>
 
