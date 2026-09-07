@@ -3,7 +3,7 @@
 {% from "macros/buttons.html" import primary, ghost, danger_confirm %}
 {% from "macros/icons.html" import icon %}
 {% from "macros/badges.html" import chip %}
-{% from "macros/forms.html" import radio_card %}
+{% from "macros/forms.html" import radio_card, checkbox, toggle_row %}
 
 {{ panel_backdrop() }}
 
@@ -81,14 +81,10 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-medium text-surface-200">Detected Capabilities</h3>
-                        <button type="button"
-                                hx-post="/cameras/{{ camera.camera_id }}/detect"
-                                hx-target="#camera-settings-result"
-                                hx-swap="innerHTML"
-                                class="text-xs text-primary-400 hover:text-primary-300 inline-flex items-center gap-1">
-                            {{ icon('arrow-path', 'w-3 h-3') }}
-                            Re-detect
-                        </button>
+                        {{ ghost("Re-detect", size="sm", icon_name="arrow-path",
+                                 hx_attrs={"hx-post": "/cameras/{{ camera.camera_id }}/detect",
+                                           "hx-target": "#camera-settings-result",
+                                           "hx-swap": "innerHTML"}) }}
                     </div>
                     <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
                         <div class="grid grid-cols-2 gap-4 text-sm">
@@ -113,14 +109,10 @@
                 <div class="rounded-xl border border-dashed border-surface-400/50 bg-surface-900/30 p-4">
                     <div class="text-center">
                         <p class="text-sm text-surface-200 mb-2">Capabilities not detected yet</p>
-                        <button type="button"
-                                hx-post="/cameras/{{ camera.camera_id }}/detect"
-                                hx-target="#camera-settings-result"
-                                hx-swap="innerHTML"
-                                class="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300">
-                            {{ icon('play', 'w-4 h-4') }}
-                            Run Detection
-                        </button>
+                        {{ ghost("Run Detection", size="sm", icon_name="play",
+                                 hx_attrs={"hx-post": "/cameras/{{ camera.camera_id }}/detect",
+                                           "hx-target": "#camera-settings-result",
+                                           "hx-swap": "innerHTML"}) }}
                     </div>
                 </div>
                 {% endif %}
@@ -160,42 +152,23 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-medium text-surface-200">Enabled Intervals</h3>
-                        <button type="button"
-                                onclick="FormUtils.toggleAllIntervals(true)"
-                                class="text-xs text-primary-400 hover:text-primary-300">Select All</button>
+                        {{ ghost("Select All", size="sm",
+                                 hx_attrs={"onclick": "FormUtils.toggleAllIntervals(true)"}) }}
                     </div>
                     <p class="text-xs text-surface-200">Select which intervals to capture for this camera.</p>
                     <div id="interval-checkboxes" class="flex flex-wrap gap-3 rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
                         {% for interval in intervals %}
-                        <label class="inline-flex items-center gap-2 cursor-pointer group">
-                            <input type="checkbox"
-                                   name="enabled_intervals"
-                                   value="{{ interval }}"
-                                   class="h-4 w-4 rounded border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20 focus:ring-offset-0"
-                                   {{ 'checked' if camera.enabled_intervals and interval in camera.enabled_intervals }}>
-                            <span class="text-sm text-surface-200 group-hover:text-surface-200">{{ interval }}s</span>
-                        </label>
+                        {{ checkbox("enabled_intervals", interval ~ "s", value=interval,
+                                    checked=(camera.enabled_intervals and interval in camera.enabled_intervals)) }}
                         {% endfor %}
                     </div>
                 </div>
 
                 <!-- Camera Active Toggle -->
                 <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
-                    <label class="flex items-center justify-between cursor-pointer">
-                        <div>
-                            <h3 class="text-sm font-medium text-white">Camera Active</h3>
-                            <p class="text-xs text-surface-200 mt-0.5">Disable to stop capturing from this camera</p>
-                        </div>
-                        <div class="relative">
-                            <input type="checkbox"
-                                   name="is_active"
-                                   value="true"
-                                   class="peer sr-only"
-                                   {{ 'checked' if camera.is_active }}>
-                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                        </div>
-                    </label>
+                    {{ toggle_row("is_active", "Camera Active",
+                                  description="Disable to stop capturing from this camera",
+                                  checked=camera.is_active) }}
                 </div>
 
                 <!-- Result Area (for responses) -->
