@@ -1,14 +1,14 @@
 {# Timelapse video lightbox - loaded via HTMX #}
+{% from "macros/buttons.html" import icon_button, secondary %}
 {% from "macros/icons.html" import icon %}
 <div id="lightbox-backdrop"
      class="fixed inset-0 z-50 bg-black/95"
      onclick="if(event.target === this) Lightbox.close()">
 
     <!-- Close button -->
-    <button onclick="Lightbox.close()"
-            class="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-10">
-        {{ icon('x-mark', 'w-8 h-8') }}
-    </button>
+    <div class="absolute top-4 right-4 z-10">
+        {{ icon_button("x-mark", "Close", hx_attrs={"onclick": "Lightbox.close()"}) }}
+    </div>
 
     <!-- Video container -->
     <div class="absolute inset-0 flex items-center justify-center p-8">
@@ -54,11 +54,8 @@
                         {{ icon('arrow-down-tray', 'w-5 h-5') }}
                         <span>Download</span>
                     </a>
-                    <button onclick="Lightbox.close()"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-400 text-white hover:bg-surface-300 transition-colors">
-                        {{ icon('x-mark', 'w-5 h-5') }}
-                        <span>Close</span>
-                    </button>
+                    {{ secondary("Close", icon_name="x-mark",
+                                 hx_attrs={"onclick": "Lightbox.close()"}) }}
                 </div>
             </div>
         </div>

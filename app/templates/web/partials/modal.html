@@ -1,4 +1,5 @@
 <!-- Modal container -->
+{% from "macros/buttons.html" import primary, ghost %}
 <div id="modal-container"
      class="fixed inset-0 z-50 hidden"
      aria-labelledby="modal-title"
@@ -23,16 +24,8 @@
 
                 <!-- Footer -->
                 <div class="flex justify-end gap-3 border-t border-surface-400/50 px-6 py-4" data-modal-footer>
-                    <button type="button"
-                            class="rounded-lg border border-surface-300 bg-surface-400 px-4 py-2 text-sm font-medium text-surface-100 hover:bg-surface-300"
-                            data-modal-close>
-                        Cancel
-                    </button>
-                    <button type="button"
-                            class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
-                            data-modal-confirm>
-                        Confirm
-                    </button>
+                    {{ ghost("Cancel", size="sm", hx_attrs={"data-modal-close": ""}) }}
+                    {{ primary("Confirm", size="sm", hx_attrs={"data-modal-confirm": ""}) }}
                 </div>
             </div>
         </div>
