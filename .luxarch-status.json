@@ -659,7 +659,7 @@
           "rule": "fw.no_hand_rolled_components_in_pages",
           "status": "FAIL",
           "since": "0.9.1",
-          "violations": 40,
+          "violations": 31,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1349,6 +1349,6 @@
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "6448a777fdfd5d271f5252aae100c9168d3d9277",
-  "generated_at": "2026-09-07T06:18:07Z"
+  "commit": "c6a21cfb35259cf6770465611bdd8181afaae770",
+  "generated_at": "2026-09-07T06:34:30Z"
 }
