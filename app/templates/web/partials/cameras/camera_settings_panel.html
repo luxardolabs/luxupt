@@ -3,6 +3,7 @@
 {% from "macros/buttons.html" import primary, ghost, danger_confirm %}
 {% from "macros/icons.html" import icon %}
 {% from "macros/badges.html" import chip %}
+{% from "macros/forms.html" import radio_card %}
 
 {{ panel_backdrop() }}
 
@@ -129,39 +130,15 @@
                     <h3 class="text-sm font-medium text-surface-200">Capture Method</h3>
                     <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">
                         <div class="space-y-3">
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="radio"
-                                       name="capture_method"
-                                       value="auto"
-                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
-                                       {{ 'checked' if camera.capture_method == 'auto' or not camera.capture_method }}>
-                                <div>
-                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">Auto</span>
-                                    <span class="text-xs text-surface-200 block">Use recommended method based on detection</span>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="radio"
-                                       name="capture_method"
-                                       value="api"
-                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
-                                       {{ 'checked' if camera.capture_method == 'api' }}>
-                                <div>
-                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">API Snapshot</span>
-                                    <span class="text-xs text-surface-200 block">Fast, lower latency. Resolution depends on camera model.</span>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="radio"
-                                       name="capture_method"
-                                       value="rtsp"
-                                       class="h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20"
-                                       {{ 'checked' if camera.capture_method == 'rtsp' }}>
-                                <div>
-                                    <span class="text-sm font-medium text-white group-hover:text-primary-300">RTSP Stream</span>
-                                    <span class="text-xs text-surface-200 block">Full resolution. Slower, uses FFmpeg.</span>
-                                </div>
-                            </label>
+                            {{ radio_card("capture_method", "auto", "Auto",
+                                          description="Use recommended method based on detection",
+                                          checked=(camera.capture_method == 'auto' or not camera.capture_method), variant="list") }}
+                            {{ radio_card("capture_method", "api", "API Snapshot",
+                                          description="Fast, lower latency. Resolution depends on camera model.",
+                                          checked=(camera.capture_method == 'api'), variant="list") }}
+                            {{ radio_card("capture_method", "rtsp", "RTSP Stream",
+                                          description="Full resolution. Slower, uses FFmpeg.",
+                                          checked=(camera.capture_method == 'rtsp'), variant="list") }}
                         </div>
                     </div>
                 </div>
@@ -172,18 +149,9 @@
                     <p class="text-xs text-surface-200">Used when capture method is RTSP or Auto selects RTSP</p>
                     <div class="flex gap-3">
                         {% for quality in ['high', 'medium', 'low'] %}
-                        <label class="flex-1 cursor-pointer">
-                            <input type="radio"
-                                   name="rtsp_quality"
-                                   value="{{ quality }}"
-                                   class="peer sr-only"
-                                   {{ 'checked' if camera.rtsp_quality == quality or (not camera.rtsp_quality and quality == 'high') }}>
-                            <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 text-center
-                                        peer-checked:border-primary-500 peer-checked:bg-primary-500/10
-                                        hover:border-surface-300 transition-colors">
-                                <span class="text-sm font-medium text-white capitalize">{{ quality }}</span>
-                            </div>
-                        </label>
+                        {{ radio_card("rtsp_quality", quality, quality,
+                                      checked=(camera.rtsp_quality == quality or (not camera.rtsp_quality and quality == 'high')),
+                                      variant="tile") }}
                         {% endfor %}
                     </div>
                 </div>

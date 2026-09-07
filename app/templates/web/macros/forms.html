@@ -137,27 +137,49 @@
 </label>
 {% endmacro %}
 
-{% macro radio_card(name, value, title, description=none, checked=false, model=none, disabled=false, note=none) %}
-{# A radio rendered as a selectable CARD: the control plus a title and explanatory copy,
-   with the whole card clickable and the selected one highlighted. Both the scheduler and
-   the historical panel were hand-rolling this block
-   (fw.no_hand_rolled_components_in_pages). `model` is an optional Alpine x-model name; when
-   set the card highlights itself on selection. #}
-<label class="flex items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3 {{ 'cursor-not-allowed opacity-60' if disabled else 'cursor-pointer' }}"
-       {% if model %}:class="{{ model }} === '{{ value }}' ? 'border-primary-500 bg-primary-500/10' : ''"{% endif %}>
+{% macro radio_card(name, value, title, description=none, checked=false, model=none, disabled=false, note=none, variant="card") %}
+{# A radio with a title and explanatory copy, in one of two skins:
+     variant="card" - a bordered, selectable card (scheduler / historical panels)
+     variant="list" - a plain row in a list, no border (camera settings panel)
+     variant="tile" - a segmented-control tile: label only, whole tile is the target
+   ONE branded component with two skins, not two parallel macros — a second, un-branded
+   copy of a component is exactly what the library exists to prevent
+   (--playbook component-macros). `model` is an optional Alpine x-model name; when set, a
+   card highlights itself on selection. #}
+{% set is_card = variant == "card" %}
+{% set is_tile = variant == "tile" %}
+{% if is_tile %}
+<label class="flex-1 {{ 'cursor-not-allowed opacity-60' if disabled else 'cursor-pointer' }}">
     <input type="radio"
            name="{{ name }}"
            value="{{ value }}"
-           class="mt-0.5 accent-primary-500"
+           class="peer sr-only"
+           {% if model %}x-model="{{ model }}"{% endif %}
+           {{ 'checked' if checked }}
+           {{ 'disabled' if disabled }}>
+    <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 text-center
+                peer-checked:border-primary-500 peer-checked:bg-primary-500/10
+                hover:border-surface-300 transition-colors">
+        <span class="text-sm font-medium text-white capitalize">{{ title }}</span>
+    </div>
+</label>
+{% else %}
+<label class="flex {{ 'items-start gap-2 rounded-lg border border-surface-500 bg-surface-700/50 p-3' if is_card else 'items-center gap-3 group' }} {{ 'cursor-not-allowed opacity-60' if disabled else 'cursor-pointer' }}"
+       {% if model and is_card %}:class="{{ model }} === '{{ value }}' ? 'border-primary-500 bg-primary-500/10' : ''"{% endif %}>
+    <input type="radio"
+           name="{{ name }}"
+           value="{{ value }}"
+           class="{{ 'mt-0.5 accent-primary-500' if is_card else 'h-4 w-4 border-surface-400 bg-surface-900 text-primary-500 focus:ring-primary-500/20' }}"
            {% if model %}x-model="{{ model }}"{% endif %}
            {{ 'checked' if checked }}
            {{ 'disabled' if disabled }}>
     <span class="block">
-        <span class="block text-sm font-medium text-white">{{ title }}</span>
-        {% if description %}<span class="block text-xs text-surface-300">{{ description }}</span>{% endif %}
+        <span class="block text-sm font-medium text-white{{ '' if is_card else ' group-hover:text-primary-300' }}">{{ title }}</span>
+        {% if description %}<span class="block text-xs text-surface-{{ '300' if is_card else '200' }}">{{ description }}</span>{% endif %}
         {% if note %}<span class="block text-xs text-warning-300 mt-0.5">{{ note }}</span>{% endif %}
     </span>
 </label>
+{% endif %}
 {% endmacro %}
 
 {% macro date_input(name, label=none, value=none, required=false) %}

@@ -99,6 +99,17 @@
                     {{ radio_card('demo_mode', 'per_day', 'One per day', description='Each day gets its own MP4.', checked=true) }}
                     {{ radio_card('demo_mode', 'combined', 'Single combined', description='One MP4 across the full range.', note='Unavailable — demo only', disabled=true) }}
                 </div>
+                <p class="text-sm text-surface-200 mt-4 mb-2">variant="list" — a plain row, no card border</p>
+                <div class="space-y-3">
+                    {{ radio_card('demo_method', 'auto', 'Auto', description='Use the recommended method.', checked=true, variant='list') }}
+                    {{ radio_card('demo_method', 'api', 'API Snapshot', description='Fast, lower latency.', variant='list') }}
+                </div>
+                <p class="text-sm text-surface-200 mt-4 mb-2">variant="tile" — a segmented control</p>
+                <div class="flex gap-3">
+                    {{ radio_card('demo_quality', 'high', 'high', checked=true, variant='tile') }}
+                    {{ radio_card('demo_quality', 'medium', 'medium', variant='tile') }}
+                    {{ radio_card('demo_quality', 'low', 'low', variant='tile') }}
+                </div>
             </div>
         </div>
 
