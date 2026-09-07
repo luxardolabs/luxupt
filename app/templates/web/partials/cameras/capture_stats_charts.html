@@ -1,23 +1,19 @@
 {% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import icon_button, ghost %}
 {% from "macros/data.html" import progress_bar %}
 
 <!-- Time Navigation -->
 <div class="flex items-center justify-between mb-4 pb-4 border-b border-surface-400/30">
     <div class="flex items-center gap-2">
         <!-- Back Arrow -->
-        <button type="button"
-                class="p-2 rounded-lg border transition-colors
-                       {% if can_navigate_back %}border-surface-400 text-surface-200 hover:text-white hover:bg-surface-500 hover:border-surface-300{% else %}border-surface-500/50 text-surface-500 cursor-not-allowed{% endif %}"
-                {% if can_navigate_back %}
-                hx-get="/cameras/capture-stats/charts?period={{ period }}&offset={{ offset - 1 }}{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
-                hx-target="#capture-stats-content"
-                hx-swap="innerHTML"
-                {% else %}
-                disabled
-                {% endif %}
-                title="{% if can_navigate_back %}Previous {{ period }}{% else %}No more history{% endif %}">
-            {{ icon('chevron-left', 'w-5 h-5') }}
-        </button>
+        {% if can_navigate_back %}
+        {{ icon_button("chevron-left", "Previous " ~ period,
+                       hx_attrs={"hx-get": chart_prev_url,
+                                 "hx-target": "#capture-stats-content",
+                                 "hx-swap": "innerHTML"}) }}
+        {% else %}
+        {{ icon_button("chevron-left", "No more history", disabled=true) }}
+        {% endif %}
 
         <!-- Time Range Display -->
         <div class="px-3 py-1.5 rounded-lg bg-surface-600/50 text-sm font-medium text-surface-100 min-w-[180px] text-center">
@@ -25,31 +21,22 @@
         </div>
 
         <!-- Forward Arrow -->
-        <button type="button"
-                class="p-2 rounded-lg border transition-colors
-                       {% if can_navigate_forward %}border-surface-400 text-surface-200 hover:text-white hover:bg-surface-500 hover:border-surface-300{% else %}border-surface-500/50 text-surface-500 cursor-not-allowed{% endif %}"
-                {% if can_navigate_forward %}
-                hx-get="/cameras/capture-stats/charts?period={{ period }}&offset={{ offset + 1 }}{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
-                hx-target="#capture-stats-content"
-                hx-swap="innerHTML"
-                {% else %}
-                disabled
-                {% endif %}
-                title="{% if can_navigate_forward %}Next {{ period }}{% else %}Already at current{% endif %}">
-            {{ icon('chevron-right', 'w-5 h-5') }}
-        </button>
+        {% if can_navigate_forward %}
+        {{ icon_button("chevron-right", "Next " ~ period,
+                       hx_attrs={"hx-get": chart_next_url,
+                                 "hx-target": "#capture-stats-content",
+                                 "hx-swap": "innerHTML"}) }}
+        {% else %}
+        {{ icon_button("chevron-right", "Already at current", disabled=true) }}
+        {% endif %}
     </div>
 
     <!-- Current indicator (when viewing historical) -->
     {% if offset < 0 %}
-    <button type="button"
-            class="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
-            hx-get="/cameras/capture-stats/charts?period={{ period }}&offset=0{% if camera %}&camera={{ camera }}{% endif %}{% if interval %}&interval={{ interval }}{% endif %}"
-            hx-target="#capture-stats-content"
-            hx-swap="innerHTML">
-        {{ icon('arrow-uturn-right', 'w-3.5 h-3.5') }}
-        Jump to current
-    </button>
+    {{ ghost("Jump to current", size="sm", icon_name="arrow-uturn-right",
+             hx_attrs={"hx-get": chart_reset_url,
+                       "hx-target": "#capture-stats-content",
+                       "hx-swap": "innerHTML"}) }}
     {% endif %}
 </div>
 

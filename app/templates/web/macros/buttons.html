@@ -176,7 +176,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro icon_button(icon_name, label, type="button", size="md", variant="ghost", hx_attrs={}, href=none, download=none) %}
+{% macro icon_button(icon_name, label, type="button", size="md", variant="ghost", hx_attrs={}, href=none, download=none, disabled=false) %}
 {# Square icon button - looks like a real button with icon centered #}
 {% set sizes = {
     'sm': 'w-8 h-8',
@@ -206,9 +206,10 @@
 </a>
 {% else %}
 <button type="{{ type }}"
-        class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}"
+        class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}{{ ' opacity-50 cursor-not-allowed' if disabled }}"
         title="{{ label }}"
         aria-label="{{ label }}"
+        {{ 'disabled' if disabled }}
         {% for attr, val in hx_attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}>
     {{ icon(icon_name, icon_sizes[size]) }}
 </button>

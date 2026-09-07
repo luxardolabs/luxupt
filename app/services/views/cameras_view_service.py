@@ -3,7 +3,7 @@
 import time
 from datetime import datetime, timedelta
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -246,6 +246,22 @@ class CamerasViewService:
                 round(item["count"] / max_count * 100) if max_count > 0 else 0
             )
 
+        def _chart_url(target_offset: int) -> str:
+            """Build a chart-navigation URL carrying the current period and filters."""
+            query = urlencode(
+                {
+                    key: value
+                    for key, value in (
+                        ("period", period),
+                        ("offset", target_offset),
+                        ("camera", camera),
+                        ("interval", interval),
+                    )
+                    if value or key == "offset"
+                }
+            )
+            return f"/cameras/capture-stats/charts?{query}"
+
         return {
             "duration_data": duration_data,
             "size_data": size_data,
@@ -263,6 +279,11 @@ class CamerasViewService:
             "end_dt": end_dt,
             "can_navigate_back": can_navigate_back,
             "can_navigate_forward": can_navigate_forward,
+            # The view assembles the navigation URLs; the template renders them
+            # (fw.no_template_logic). urlencode also escapes the filter values.
+            "chart_prev_url": _chart_url(offset - 1),
+            "chart_next_url": _chart_url(offset + 1),
+            "chart_reset_url": _chart_url(0),
         }
 
     async def get_camera_panel_context(self, safe_name: str) -> dict[str, Any]:
