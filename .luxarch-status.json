@@ -659,7 +659,7 @@
           "rule": "fw.no_hand_rolled_components_in_pages",
           "status": "FAIL",
           "since": "0.9.1",
-          "violations": 83,
+          "violations": 70,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -918,9 +918,9 @@
         },
         {
           "rule": "fw.no_threaded_aliasing",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.75.0",
-          "violations": 3,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1134,8 +1134,8 @@
         }
       ],
       "summary": {
-        "PASS": 108,
-        "FAIL": 2,
+        "PASS": 109,
+        "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 15
@@ -1343,12 +1343,12 @@
     }
   },
   "summary": {
-    "PASS": 129,
-    "FAIL": 2,
+    "PASS": 130,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "6ba23fbcbd1cf8dc02227c8beaa22e2a066b4ac4",
-  "generated_at": "2026-09-06T19:22:27Z"
+  "commit": "62ae62845cc5703570254e4988025a2d94e8ed39",
+  "generated_at": "2026-09-07T04:28:47Z"
 }
