@@ -1134,9 +1134,9 @@
         },
         {
           "rule": "fw.url_assembly_in_view",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.132.0",
-          "violations": 12,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1197,8 +1197,8 @@
         }
       ],
       "summary": {
-        "PASS": 115,
-        "FAIL": 2,
+        "PASS": 116,
+        "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 15
@@ -1469,12 +1469,12 @@
     }
   },
   "summary": {
-    "PASS": 143,
-    "FAIL": 2,
+    "PASS": 144,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "b5eeaa9e766d1dd83b82ef41d777b1ae0b403fb5",
-  "generated_at": "2026-09-08T02:02:32Z"
+  "commit": "0131c7fb3e0cb5385cb623ef41a4bf6d06d185d1",
+  "generated_at": "2026-09-08T02:36:19Z"
 }
