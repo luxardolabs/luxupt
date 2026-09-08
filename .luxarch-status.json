@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.125.0",
+  "guard_version": "0.153.0",
   "repo": "/repo",
   "targets": [
     {
@@ -1131,11 +1131,74 @@
           "deferred": false,
           "inert": false,
           "inert_reason": ""
+        },
+        {
+          "rule": "fw.url_assembly_in_view",
+          "status": "FAIL",
+          "since": "0.132.0",
+          "violations": 12,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.url_builder_not_in_template",
+          "status": "PASS",
+          "since": "0.132.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.url_assembly_in_data_layer",
+          "status": "PASS",
+          "since": "0.134.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.route_no_broad_except",
+          "status": "PASS",
+          "since": "0.136.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_crud_reach_through",
+          "status": "PASS",
+          "since": "0.146.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_layer_reach_through",
+          "status": "PASS",
+          "since": "0.147.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.datetime_display_via_filter",
+          "status": "PASS",
+          "since": "0.148.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
         }
       ],
       "summary": {
-        "PASS": 109,
-        "FAIL": 1,
+        "PASS": 115,
+        "FAIL": 2,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 15
@@ -1226,9 +1289,72 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.release_docs_present",
+        "status": "PASS",
+        "since": "0.137.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.release_docs_current",
+        "status": "PASS",
+        "since": "0.137.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.github_release_wired",
+        "status": "PASS",
+        "since": "0.150.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.release_tag_hygiene",
+        "status": "PASS",
+        "since": "0.151.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.schema_from_migrations",
+        "status": "PASS",
+        "since": "0.130.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.metadata_naming_convention",
+        "status": "PASS",
+        "since": "0.131.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.compose_conventions",
         "status": "PASS",
         "since": "0.37.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.compose_command_no_orphan_flags",
+        "status": "PASS",
+        "since": "0.141.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1335,7 +1461,7 @@
       }
     ],
     "summary": {
-      "PASS": 21,
+      "PASS": 28,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -1343,12 +1469,12 @@
     }
   },
   "summary": {
-    "PASS": 130,
-    "FAIL": 1,
+    "PASS": 143,
+    "FAIL": 2,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "fc8b75da01a93a57a41d91561248940995c412de",
-  "generated_at": "2026-09-08T00:01:52Z"
+  "commit": "b5eeaa9e766d1dd83b82ef41d777b1ae0b403fb5",
+  "generated_at": "2026-09-08T02:02:32Z"
 }
