@@ -184,6 +184,14 @@ class TimelapsesViewService:
             await self.job_service.delete_job(job_id)
             return True, "deleted"
 
+    async def get_recently_completed_context(self, limit: int = 8) -> dict[str, Any]:
+        """Assemble the context for the recently-completed jobs fragment.
+
+        The router calls the VIEW; the view calls CORE. Reaching `view_service.job_service`
+        from the router skipped this seam (fw.no_layer_reach_through).
+        """
+        return {"completed_jobs": await self.job_service.get_completed(limit=limit)}
+
     async def cleanup_stale_jobs_and_build_context(self) -> dict[str, Any]:
         """Fail every stale job, then assemble the job-list context that re-renders.
 

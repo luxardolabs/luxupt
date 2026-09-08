@@ -62,12 +62,12 @@ async def completed_jobs_partial(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render recently completed jobs partial for HTMX polling."""
-    completed_jobs = await view_service.job_service.get_completed(limit=8)
+    context = await view_service.get_recently_completed_context()
 
     return templates.TemplateResponse(
         request,
         "partials/timelapses/recently_completed.html",
-        {"completed_jobs": completed_jobs},
+        {**context},
     )
 
 

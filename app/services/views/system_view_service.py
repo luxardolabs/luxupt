@@ -138,6 +138,24 @@ class SystemViewService:
             "fetch_intervals": fetch_settings.get_intervals(),
         }
 
+    async def save_backup_settings(
+        self, *, retention: int, interval_seconds: int, backup_dir: str
+    ) -> None:
+        """Persist the backup settings the form submitted.
+
+        The router calls the VIEW; the view calls CORE. Reaching
+        `view_service.settings_service` from the router skipped this seam
+        (fw.no_layer_reach_through) — the import ban cannot see it because core is reached
+        through a held reference rather than imported.
+        """
+        await self.settings_service.update_backup_settings(
+            {
+                "retention": retention,
+                "interval": interval_seconds,
+                "backup_dir": backup_dir.strip() or "backups",
+            }
+        )
+
     async def get_backup_settings_context(self) -> dict[str, Any]:
         """Get data for backup settings panel."""
         backup_settings = await self.settings_service.get_backup_settings()

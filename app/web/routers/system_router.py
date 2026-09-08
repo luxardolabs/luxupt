@@ -391,61 +391,48 @@ async def update_backup_settings(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Update backup settings."""
-    try:
-        # Convert interval from hours to seconds
-        interval_seconds = interval_hours * 3600
+    # Convert interval from hours to seconds
+    interval_seconds = interval_hours * 3600
 
-        # If disabled, set retention to 0; otherwise use the submitted value
-        effective_retention = retention if enabled else 0
+    # If disabled, set retention to 0; otherwise use the submitted value
+    effective_retention = retention if enabled else 0
 
-        # Validate retention when enabled
-        if enabled and retention < 1:
-            return templates.TemplateResponse(
-                request,
-                "partials/system/backup_form_result.html",
-                {"success": False, "errors": ["Backups to keep must be at least 1"]},
-                status_code=400,
-            )
-
-        # Validate interval (minimum 1 hour)
-        if interval_hours < 1:
-            return templates.TemplateResponse(
-                request,
-                "partials/system/backup_form_result.html",
-                {"success": False, "errors": ["Interval must be at least 1 hour"]},
-                status_code=400,
-            )
-
-        # Update settings via service
-        await view_service.settings_service.update_backup_settings(
-            {
-                "retention": effective_retention,
-                "interval": interval_seconds,
-                "backup_dir": backup_dir.strip() or "backups",
-            }
-        )
-
-        logger.info(
-            "Backup settings updated",
-            extra={
-                "enabled": enabled,
-                "retention": effective_retention,
-                "interval_hours": interval_hours,
-                "updated_by": user,
-            },
-        )
-
+    # Validate retention when enabled
+    if enabled and retention < 1:
         return templates.TemplateResponse(
             request,
             "partials/system/backup_form_result.html",
-            {"success": True, "message": "Backup settings saved"},
+            {"success": False, "errors": ["Backups to keep must be at least 1"]},
+            status_code=400,
         )
 
-    except Exception as e:
-        logger.exception("Failed to update backup settings", extra={"error": str(e)})
+    # Validate interval (minimum 1 hour)
+    if interval_hours < 1:
         return templates.TemplateResponse(
             request,
             "partials/system/backup_form_result.html",
-            {"success": False, "errors": [str(e)]},
-            status_code=500,
+            {"success": False, "errors": ["Interval must be at least 1 hour"]},
+            status_code=400,
         )
+
+    await view_service.save_backup_settings(
+        retention=effective_retention,
+        interval_seconds=interval_seconds,
+        backup_dir=backup_dir,
+    )
+
+    logger.info(
+        "Backup settings updated",
+        extra={
+            "enabled": enabled,
+            "retention": effective_retention,
+            "interval_hours": interval_hours,
+            "updated_by": user,
+        },
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "partials/system/backup_form_result.html",
+        {"success": True, "message": "Backup settings saved"},
+    )

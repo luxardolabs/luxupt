@@ -1,0 +1,7 @@
+{# Error fragment swapped in by the client when a request fails (HX-Error-Swap: true).
+   Rendered at status 500 by the global handler — never by a route's own except. #}
+{% from "macros/alerts.html" import alert_block %}
+{% call alert_block(type="danger", title="Something went wrong") %}
+    <p>The request could not be completed. The error has been logged.</p>
+    {% if request_id %}<p class="text-xs mt-1 font-mono">Reference: {{ request_id }}</p>{% endif %}
+{% endcall %}

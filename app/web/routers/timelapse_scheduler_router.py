@@ -58,36 +58,25 @@ async def save_scheduler_settings(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Save scheduler settings (HTMX)."""
-    try:
-        context = await view_service.save_scheduler_settings(
-            enabled=enabled,
-            run_time=run_time,
-            days_ago=days_ago,
-            source=source,
-            concurrent_jobs=concurrent_jobs,
-            keep_images=keep_images,
-            recreate_existing=recreate_existing,
-            enabled_cameras=enabled_cameras,
-            enabled_intervals=enabled_intervals,
-            frame_rate=frame_rate,
-            crf=crf,
-            preset=preset,
-            pixel_format=pixel_format,
-            ffmpeg_timeout=ffmpeg_timeout,
-        )
+    context = await view_service.save_scheduler_settings(
+        enabled=enabled,
+        run_time=run_time,
+        days_ago=days_ago,
+        source=source,
+        concurrent_jobs=concurrent_jobs,
+        keep_images=keep_images,
+        recreate_existing=recreate_existing,
+        enabled_cameras=enabled_cameras,
+        enabled_intervals=enabled_intervals,
+        frame_rate=frame_rate,
+        crf=crf,
+        preset=preset,
+        pixel_format=pixel_format,
+        ffmpeg_timeout=ffmpeg_timeout,
+    )
 
-        return templates.TemplateResponse(
-            request,
-            "partials/timelapses/scheduler_result.html",
-            {**context},
-        )
-    except Exception as e:
-        logger.exception("Error saving scheduler settings", extra={"error": str(e)})
-        return templates.TemplateResponse(
-            request,
-            "partials/timelapses/scheduler_result.html",
-            {
-                "success": False,
-                "error": "Failed to save scheduler settings. Check server logs for details.",
-            },
-        )
+    return templates.TemplateResponse(
+        request,
+        "partials/timelapses/scheduler_result.html",
+        {**context},
+    )

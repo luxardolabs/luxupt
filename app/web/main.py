@@ -36,6 +36,7 @@ from app.logging_config import get_logger, setup_logging
 from app.models.enum_model import ActivityType
 from app.services.core.health_core_service import HealthCoreService, HealthStatus
 from app.services.core.metrics_core_service import MetricsCoreService
+from app.utils.exception_handlers import general_exception_handler
 
 from .auth import get_current_user
 from .middleware import (
@@ -401,32 +402,13 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
         )
 
-    @app.exception_handler(500)
-    async def internal_server_error_handler(
-        request: Request, exc: Exception
-    ) -> Response:
-        """Handle unhandled exceptions with HTML error page."""
-        logger.error(
-            "Internal server error",
-            extra={"url": str(request.url), "error": str(exc)},
-        )
-        templates_inst: Jinja2Templates | None = getattr(
-            request.app.state, "templates", None
-        )
-        if templates_inst is None:
-            # Last resort, as above: no template engine, so no template.
-            return PlainTextResponse("500 Internal server error", status_code=500)
-
-        return templates_inst.TemplateResponse(
-            request,
-            "pages/500.html",
-            {
-                "status_code": 500,
-                "title": "Server Error",
-                "message": "An unexpected error occurred.",
-            },
-            status_code=500,
-        )
+    # ONE content-negotiating handler for every UNEXPECTED exception (luxarch --emit
+    # exception-handler). Routes no longer wrap their bodies in `except Exception` to render
+    # an error partial: that reported bugs to the user as a 200 and to monitoring as success,
+    # and it made filterwarnings=error inert on the route (fw.route_no_broad_except).
+    # Registered on Exception, not on 500: a raised exception never reaches a status-code
+    # handler, so the old @app.exception_handler(500) only ever fired for an explicit 500.
+    app.add_exception_handler(Exception, general_exception_handler)
 
     # Add middleware (order matters - first added = outermost = runs first on request, last on response)
     # CORS must be outermost to handle preflight requests

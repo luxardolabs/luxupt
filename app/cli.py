@@ -5,10 +5,10 @@
 import sys
 from datetime import datetime
 
-from app.crud.fetch_settings_crud import CRUDFetchSettings
 from app.db.connection import get_db_context
 from app.fetch_service import FetchService
 from app.logging_config import get_logger
+from app.services.core.settings_core_service import SettingsCoreService
 from app.startup import print_banner, print_configuration
 from app.timelapse_service import TimelapseService
 from app.web.main import start_web_server
@@ -108,12 +108,13 @@ async def set_protect_creds(username: str, password: str) -> None:
     Used to set the credentials required for private-API endpoints
     (recording-snapshot, video/export). The Setup UI does the same thing.
     """
-    crud = CRUDFetchSettings()
+    # Through the core service, not straight into crud: only core touches crud, and reaching
+    # it from here skips the core method layer exactly as importing crud would
+    # (fw.no_crud_reach_through). get_db_context owns the transaction, so no commit here.
     async with get_db_context() as db:
-        await crud.update_settings(
-            db, obj_in={"username": username, "password": password}
+        await SettingsCoreService(db).update_fetch_settings(
+            {"username": username, "password": password}
         )
-        await db.commit()
     logger.info(
         "Stored Protect credentials in fetch_settings",
         extra={"username": username, "password_len": len(password)},

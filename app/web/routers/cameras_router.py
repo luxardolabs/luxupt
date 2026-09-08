@@ -124,70 +124,58 @@ async def save_fetch_settings(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Save global fetch settings."""
-    try:
-        (
-            success,
-            message,
-            cameras_synced,
-            reactivated,
-        ) = await view_service.save_fetch_settings(
-            enabled=enabled,
-            intervals=intervals,
-            default_capture_method=default_capture_method,
-            default_rtsp_quality=default_rtsp_quality,
-            api_key=api_key,
-            base_url=base_url,
-            username=username,
-            password=password,
-            verify_ssl=verify_ssl,
-            max_retries=max_retries,
-            retry_delay=retry_delay,
-            request_timeout=request_timeout,
-            rate_limit=rate_limit,
-            rate_limit_buffer=rate_limit_buffer,
-            min_offset_seconds=min_offset_seconds,
-            max_offset_seconds=max_offset_seconds,
-            camera_refresh_interval=camera_refresh_interval,
-            high_quality_snapshots=high_quality_snapshots,
-            rtsp_output_format=rtsp_output_format,
-            png_compression_level=png_compression_level,
-            rtsp_capture_timeout=rtsp_capture_timeout,
-            reactivate_cameras=reactivate_cameras,
-        )
+    (
+        success,
+        message,
+        cameras_synced,
+        reactivated,
+    ) = await view_service.save_fetch_settings(
+        enabled=enabled,
+        intervals=intervals,
+        default_capture_method=default_capture_method,
+        default_rtsp_quality=default_rtsp_quality,
+        api_key=api_key,
+        base_url=base_url,
+        username=username,
+        password=password,
+        verify_ssl=verify_ssl,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+        request_timeout=request_timeout,
+        rate_limit=rate_limit,
+        rate_limit_buffer=rate_limit_buffer,
+        min_offset_seconds=min_offset_seconds,
+        max_offset_seconds=max_offset_seconds,
+        camera_refresh_interval=camera_refresh_interval,
+        high_quality_snapshots=high_quality_snapshots,
+        rtsp_output_format=rtsp_output_format,
+        png_compression_level=png_compression_level,
+        rtsp_capture_timeout=rtsp_capture_timeout,
+        reactivate_cameras=reactivate_cameras,
+    )
 
-        if cameras_synced is not None and cameras_synced < 0:
-            # Connection failed
-            return templates.TemplateResponse(
-                request,
-                "partials/cameras/camera_settings_result.html",
-                {
-                    "success": False,
-                    "error": "Settings saved, but connection test failed",
-                    "details": message,
-                },
-            )
-
-        response = templates.TemplateResponse(
-            request,
-            "partials/cameras/camera_settings_result.html",
-            {"success": success, "message": message},
-        )
-        # Refresh the camera list in place (covers reactivated cameras and any
-        # setting that changes a card) instead of a full page reload
-        if success:
-            response.headers["HX-Trigger"] = "camera-list-refresh"
-        return response
-
-    except Exception as e:
-        logger.exception("Error saving fetch settings", extra={"error": str(e)})
+    if cameras_synced is not None and cameras_synced < 0:
+        # Connection failed
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",
             {
                 "success": False,
-                "error": "Failed to save fetch settings. Check server logs for details.",
+                "error": "Settings saved, but connection test failed",
+                "details": message,
             },
         )
+
+    response = templates.TemplateResponse(
+        request,
+        "partials/cameras/camera_settings_result.html",
+        {"success": success, "message": message},
+    )
+    # Refresh the camera list in place (covers reactivated cameras and any
+    # setting that changes a card) instead of a full page reload
+    if success:
+        response.headers["HX-Trigger"] = "camera-list-refresh"
+    return response
 
 
 @router.post("/fetch-settings/test-protect-connection", response_class=HTMLResponse)
@@ -292,41 +280,29 @@ async def save_camera_settings(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Save camera capture settings."""
-    try:
-        success, message = await view_service.save_camera_settings(
-            camera_id,
-            capture_method=capture_method,
-            rtsp_quality=rtsp_quality,
-            enabled_intervals=enabled_intervals,
-            is_active=is_active,
-        )
+    success, message = await view_service.save_camera_settings(
+        camera_id,
+        capture_method=capture_method,
+        rtsp_quality=rtsp_quality,
+        enabled_intervals=enabled_intervals,
+        is_active=is_active,
+    )
 
-        if not success:
-            return templates.TemplateResponse(
-                request,
-                "partials/cameras/camera_settings_result.html",
-                {"success": False, "error": message},
-            )
-
-        response = templates.TemplateResponse(
-            request,
-            "partials/cameras/camera_settings_result.html",
-            {"success": True, "message": message},
-        )
-        # Refresh the camera list in place (morph swap) instead of a full page reload
-        response.headers["HX-Trigger"] = "camera-list-refresh"
-        return response
-
-    except Exception as e:
-        logger.exception("Error saving camera settings", extra={"error": str(e)})
+    if not success:
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",
-            {
-                "success": False,
-                "error": "Failed to save camera settings. Check server logs for details.",
-            },
+            {"success": False, "error": message},
         )
+
+    response = templates.TemplateResponse(
+        request,
+        "partials/cameras/camera_settings_result.html",
+        {"success": True, "message": message},
+    )
+    # Refresh the camera list in place (morph swap) instead of a full page reload
+    response.headers["HX-Trigger"] = "camera-list-refresh"
+    return response
 
 
 @router.post("/{camera_id}/detect", response_class=HTMLResponse)
@@ -338,40 +314,28 @@ async def detect_camera_capabilities(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Run capability detection for a camera."""
-    try:
-        capabilities = await view_service.run_capability_detection(camera_id)
+    capabilities = await view_service.run_capability_detection(camera_id)
 
-        if capabilities is None:
-            return templates.TemplateResponse(
-                request,
-                "partials/cameras/camera_settings_result.html",
-                {"success": False, "error": "Camera not found or not connected"},
-            )
-
-        response = templates.TemplateResponse(
-            request,
-            "partials/cameras/camera_settings_result.html",
-            {
-                "detected": True,
-                "api_resolution": capabilities.get("api_max_resolution"),
-                "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
-                "recommended": capabilities.get("recommended_method"),
-            },
-        )
-        # Detection updated the camera's stored capabilities — refresh its card in place
-        response.headers["HX-Trigger"] = "camera-list-refresh"
-        return response
-
-    except Exception as e:
-        logger.exception("Error detecting camera capabilities", extra={"error": str(e)})
+    if capabilities is None:
         return templates.TemplateResponse(
             request,
             "partials/cameras/camera_settings_result.html",
-            {
-                "success": False,
-                "error": "Failed to detect camera capabilities. Check server logs for details.",
-            },
+            {"success": False, "error": "Camera not found or not connected"},
         )
+
+    response = templates.TemplateResponse(
+        request,
+        "partials/cameras/camera_settings_result.html",
+        {
+            "detected": True,
+            "api_resolution": capabilities.get("api_max_resolution"),
+            "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
+            "recommended": capabilities.get("recommended_method"),
+        },
+    )
+    # Detection updated the camera's stored capabilities — refresh its card in place
+    response.headers["HX-Trigger"] = "camera-list-refresh"
+    return response
 
 
 @router.delete("/{camera_id}", response_class=HTMLResponse)

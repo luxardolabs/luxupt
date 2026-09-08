@@ -143,27 +143,16 @@ async def create_timelapse(
     The camera parameter is the camera_id (UUID) from the dropdown.
     We look up the camera to get safe_name for file paths.
     """
-    try:
-        context = await view_service.create_and_start_job(
-            camera_id=camera_id,
-            date_str=date_str,
-            interval=int(interval),
-        )
-        return templates.TemplateResponse(
-            request,
-            "partials/timelapses/create_result.html",
-            {**context},
-        )
-    except Exception as e:
-        logger.exception("Error creating timelapse", extra={"error": str(e)})
-        return templates.TemplateResponse(
-            request,
-            "partials/timelapses/create_result.html",
-            {
-                "success": False,
-                "error": "Failed to create timelapse. Check server logs for details.",
-            },
-        )
+    context = await view_service.create_and_start_job(
+        camera_id=camera_id,
+        date_str=date_str,
+        interval=int(interval),
+    )
+    return templates.TemplateResponse(
+        request,
+        "partials/timelapses/create_result.html",
+        {**context},
+    )
 
 
 @router.get("/partials/dates", response_class=HTMLResponse)
