@@ -3,7 +3,12 @@
 # The canonical ruff.toml / mypy.ini live byte-identical in the image.
 
 [source]
-paths = ["app", "scripts"]   # the app package + repo scripts — lint + format-check + mypy target
+paths = ["app", "scripts"]
+# The Claude-Code hooks are EMITTED by `luxarch --emit hooks` and must never be hand-edited
+# (repo.hooks_current reds when what is committed drifts from the pin). Covering them would
+# make any ruff finding unfixable — the only honest fix would be editing an emitted asset —
+# so they are excluded, not scanned. luxarch owns their quality; re-emit to update them.
+exclude = [".claude/hooks"]   # the app package + repo scripts — lint + format-check + mypy target
                              # scripts/ holds the EMITTED migration-chain verifier; emitted fleet
                              # assets are designed lint/mypy-clean, so it is covered, not excluded
                              # (lint.source_declared: an unscanned .py is a hollow green).

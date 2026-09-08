@@ -1,0 +1,12 @@
+[
+  {
+    "sha": "639033b",
+    "subject": "guards: luxarch 0.155.2 \u2014 install the canonical agent hooks + move a DTO to schemas",
+    "issue": null
+  },
+  {
+    "sha": "9c8bcaf",
+    "subject": "status: regenerate at HEAD",
+    "issue": null
+  }
+]
