@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.153.0",
+  "guard_version": "0.155.2",
   "repo": "/repo",
   "targets": [
     {
@@ -1194,10 +1194,19 @@
           "deferred": false,
           "inert": false,
           "inert_reason": ""
+        },
+        {
+          "rule": "fw.dto_in_schemas",
+          "status": "PASS",
+          "since": "0.155.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
         }
       ],
       "summary": {
-        "PASS": 116,
+        "PASS": 117,
         "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
@@ -1319,6 +1328,15 @@
         "rule": "repo.release_tag_hygiene",
         "status": "PASS",
         "since": "0.151.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.hooks_wired",
+        "status": "PASS",
+        "since": "0.154.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1461,7 +1479,7 @@
       }
     ],
     "summary": {
-      "PASS": 28,
+      "PASS": 29,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -1469,12 +1487,12 @@
     }
   },
   "summary": {
-    "PASS": 144,
+    "PASS": 146,
     "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 15
   },
-  "commit": "0131c7fb3e0cb5385cb623ef41a4bf6d06d185d1",
-  "generated_at": "2026-09-08T02:36:19Z"
+  "commit": "639033bac3eb65df5e84ca47fbefaa31c5901d69",
+  "generated_at": "2026-09-08T02:51:59Z"
 }

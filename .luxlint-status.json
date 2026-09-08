@@ -86,9 +86,9 @@
     },
     {
       "rule": "lint.source_declared",
-      "status": "PASS",
+      "status": "FAIL",
       "since": "0.38.0",
-      "violations": 0,
+      "violations": 17,
       "deferred": false
     },
     {
@@ -156,12 +156,12 @@
     }
   ],
   "summary": {
-    "PASS": 20,
-    "FAIL": 1,
+    "PASS": 19,
+    "FAIL": 2,
     "XFAIL": 0,
     "XPASS": 0
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "0131c7fb3e0cb5385cb623ef41a4bf6d06d185d1",
-  "generated_at": "2026-09-08T02:36:19Z"
+  "commit": "639033bac3eb65df5e84ca47fbefaa31c5901d69",
+  "generated_at": "2026-09-08T02:51:59Z"
 }
