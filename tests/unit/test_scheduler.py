@@ -8,6 +8,7 @@ next tick BOUNDED (within one interval) and mutually phase-aligned.
 """
 
 import pytest
+
 from app.fetch_service import current_aligned_timestamp, next_aligned_timestamp
 
 INTERVALS = [15, 30, 60, 120, 300, 45, 7, 11, 13, 900, 3600]

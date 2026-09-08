@@ -54,18 +54,21 @@ os.environ["DATABASE_DIR"] = str(_TEST_DB_PATH.parent)
 os.environ.setdefault("IMAGE_OUTPUT_PATH", str(_TMP / "images"))
 os.environ.setdefault("VIDEO_OUTPUT_PATH", str(_TMP / "videos"))
 os.environ.setdefault("THUMBNAIL_CACHE_PATH", str(_TMP / "thumbnails"))
-os.environ.setdefault("WEB_SESSION_SECRET", "test-only-session-secret-not-for-production")
+os.environ.setdefault(
+    "WEB_SESSION_SECRET", "test-only-session-secret-not-for-production"
+)
 os.environ.setdefault("WEB_USERNAME", "testadmin")
 os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 
-from app.db.base import Base  # noqa: E402
-from app.db.connection import seed_singleton_settings, async_session, engine  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import (  # noqa: E402
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+from app.db.base import Base  # noqa: E402
+from app.db.connection import async_session, engine, seed_singleton_settings  # noqa: E402
 from app.web.main import app  # noqa: E402
 
 TEST_USERNAME = os.environ["WEB_USERNAME"]
@@ -117,9 +120,7 @@ async def durable_db() -> AsyncGenerator[async_sessionmaker[AsyncSession]]:
     test_engine = create_async_engine(f"sqlite+aiosqlite:///{tmp / 'durable.db'}")
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    maker = async_sessionmaker(
-        test_engine, expire_on_commit=False, autoflush=False
-    )
+    maker = async_sessionmaker(test_engine, expire_on_commit=False, autoflush=False)
     try:
         yield maker
     finally:

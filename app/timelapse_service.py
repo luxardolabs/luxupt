@@ -48,9 +48,7 @@ class EncodingSettings:
     ffmpeg_timeout: int
 
     @classmethod
-    def from_scheduler_settings(
-        cls, settings: "SchedulerSettings"
-    ) -> "EncodingSettings":
+    def from_scheduler_settings(cls, settings: SchedulerSettings) -> EncodingSettings:
         """Create from scheduler settings model."""
         return cls(
             frame_rate=settings.frame_rate,
@@ -86,7 +84,7 @@ class ProgressTracker:
         job_key: str,
         camera_safe_name: str,
         interval: int,
-        service_instance: "TimelapseService",
+        service_instance: TimelapseService,
         image_files: list[Path] | None = None,
     ) -> None:
         self.total_frames = total_frames
@@ -300,7 +298,7 @@ class TimelapseService:
 
         logger.info("Timelapse service stopped")
 
-    async def _cleanup_stale_jobs(self, db: "AsyncSession") -> None:
+    async def _cleanup_stale_jobs(self, db: AsyncSession) -> None:
         """Mark any running/pending jobs as failed on startup and kill orphaned FFmpeg processes.
 
         Jobs in these states at startup are stale from a previous run
@@ -1430,7 +1428,7 @@ class TimelapseService:
 
     async def _create_timelapse_record(
         self,
-        db: "AsyncSession",
+        db: AsyncSession,
         camera_safe_name: str,
         target_date: datetime,
         interval: int,

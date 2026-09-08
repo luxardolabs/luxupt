@@ -55,7 +55,9 @@ class TestAuthenticatedPages:
         self, auth_client: AsyncClient, path: str
     ) -> None:
         resp = await auth_client.get(path, follow_redirects=True)
-        assert resp.status_code == 200, f"{path}: {resp.status_code} — {resp.text[:300]}"
+        assert resp.status_code == 200, (
+            f"{path}: {resp.status_code} — {resp.text[:300]}"
+        )
         assert "text/html" in resp.headers["content-type"]
 
     async def test_unknown_path_is_handled(self, auth_client: AsyncClient) -> None:

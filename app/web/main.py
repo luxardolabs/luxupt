@@ -54,14 +54,14 @@ logger = get_logger(__name__)
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _create_monitored_task(coro: Any, name: str) -> "asyncio.Task[Any]":
+def _create_monitored_task(coro: Any, name: str) -> asyncio.Task[Any]:
     """Create an asyncio task with exception monitoring.
 
     Adds a done callback that logs any unhandled exceptions from background tasks,
     preventing the 'Task exception was never retrieved' warning.
     """
 
-    def _handle_task_exception(task: "asyncio.Task[Any]") -> None:
+    def _handle_task_exception(task: asyncio.Task[Any]) -> None:
         """Log unhandled exceptions from background tasks to prevent silent failures."""
         if task.cancelled():
             logger.debug("Background task was cancelled", extra={"task": name})

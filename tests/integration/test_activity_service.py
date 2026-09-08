@@ -2,10 +2,11 @@
 aggregation (Router -> View -> Core -> CRUD, exercised at the Core seam).
 """
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud import activity_crud
 from app.models.enum_model import ActivityType
 from app.services.core.activity_core_service import ActivityCoreService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestActivityCoreService:

@@ -21,14 +21,14 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Video",
     "Topic :: System :: Monitoring"
 ]
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.14"
 httpx = "^0.28.1"
 urllib3 = "^2.6.3"
 fastapi = "^0.140.0"  # >=0.140 admits starlette 1.x (fixes the starlette CVEs; ^0.128 capped it <1.0)

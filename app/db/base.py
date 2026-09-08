@@ -1,7 +1,7 @@
 """SQLAlchemy base classes and mixins."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -33,10 +33,7 @@ class TimestampMixin:
     )
 
 
-_ModelT = TypeVar("_ModelT", bound="Base")
-
-
-def with_column_defaults(obj: _ModelT) -> _ModelT:
+def with_column_defaults[ModelT: Base](obj: ModelT) -> ModelT:
     """Apply the model's column defaults to a TRANSIENT (never-inserted) instance.
 
     SQLAlchemy resolves ``default=`` at INSERT time, so an object built in memory has

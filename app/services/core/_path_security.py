@@ -40,7 +40,7 @@ def _is_safe_path(file_path: str, allowed_base: Path) -> bool:
         resolved = Path(file_path).resolve()
         allowed_resolved = allowed_base.resolve()
         return resolved.is_relative_to(allowed_resolved)
-    except (ValueError, OSError):
+    except ValueError, OSError:
         return False
 
 

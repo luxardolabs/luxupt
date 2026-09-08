@@ -55,7 +55,7 @@ class Camera:
     smart_detect_types: list[str] | None = None
 
     @classmethod
-    def from_api_response(cls, camera_data: dict[str, Any]) -> "Camera":
+    def from_api_response(cls, camera_data: dict[str, Any]) -> Camera:
         """Create Camera instance from API response data."""
         # Extract feature flags
         feature_flags = camera_data.get("featureFlags", {})
@@ -184,7 +184,7 @@ class CameraManager:
         if not self.settings.verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    async def __aenter__(self) -> "CameraManager":
+    async def __aenter__(self) -> CameraManager:
         """Async context manager entry."""
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
         timeout = httpx.Timeout(self.settings.request_timeout)
@@ -1013,7 +1013,7 @@ class CameraManager:
         try:
             width, height = resolution.split("x")
             return int(width) * int(height)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             return 0
 
     async def get_effective_capture_method(

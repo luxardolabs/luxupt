@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for luxupt using Poetry
 
 # Stage 1: Build stage
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Install system dependencies needed for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,7 +32,7 @@ COPY app ./app
 COPY README.md ./
 
 # Stage 2: Runtime stage
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Static environment variables (don't change between builds)
 ENV PYTHONUNBUFFERED=1 \

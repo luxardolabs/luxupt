@@ -4,7 +4,7 @@
 # so docker's layer cache rebuilds it ONLY when deps change. Source (incl. tests/) is
 # over-mounted at run time (never baked), and the pytest config is emitted by luxlint —
 # nothing stale is ever inherited from :dev.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN pip install --no-cache-dir "poetry==2.4.1"
 

@@ -49,9 +49,7 @@ async def _wait_gone(path: Path, tries: int = 100) -> None:
         await asyncio.sleep(0.02)
 
 
-async def test_commit_deletes_rows_and_files(
-    durable_db: Maker, tmp_path: Path
-) -> None:
+async def test_commit_deletes_rows_and_files(durable_db: Maker, tmp_path: Path) -> None:
     img = tmp_path / "shot.jpg"
     async with durable_db() as owner:
         await _seed(owner, img)
@@ -72,9 +70,7 @@ async def test_commit_deletes_rows_and_files(
     assert await _count(durable_db) == 0
 
 
-async def test_rollback_keeps_rows_and_files(
-    durable_db: Maker, tmp_path: Path
-) -> None:
+async def test_rollback_keeps_rows_and_files(durable_db: Maker, tmp_path: Path) -> None:
     img = tmp_path / "shot.jpg"
     async with durable_db() as owner:
         await _seed(owner, img)

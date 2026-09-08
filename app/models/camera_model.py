@@ -81,10 +81,10 @@ class Camera(Base, TimestampMixin):
     )
 
     # Relationships
-    captures: Mapped[list["Capture"]] = relationship(
+    captures: Mapped[list[Capture]] = relationship(
         "Capture", back_populates="camera", lazy="dynamic"
     )
-    timelapses: Mapped[list["Timelapse"]] = relationship(
+    timelapses: Mapped[list[Timelapse]] = relationship(
         "Timelapse", back_populates="camera", lazy="dynamic"
     )
 
@@ -92,7 +92,7 @@ class Camera(Base, TimestampMixin):
         return f"<Camera(id={self.id}, name={self.name}, safe_name={self.safe_name})>"
 
     @classmethod
-    def from_api_response(cls, camera_data: dict[str, Any]) -> "Camera":
+    def from_api_response(cls, camera_data: dict[str, Any]) -> Camera:
         """Create a Camera instance from UniFi Protect API response."""
         name = camera_data.get("name", "Unknown")
         safe_name = "".join(

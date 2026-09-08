@@ -133,7 +133,7 @@ lock: ## Update poetry.lock file
 # --- Poetry in Docker (no local poetry needed; matches the Dockerfile's version) ---
 POETRY_IN_DOCKER_VERSION := 2.4.1
 define poetry_docker
-	docker run --rm -v $(PWD):/app -w /app python:3.13-slim \
+	docker run --rm -v $(PWD):/app -w /app python:3.14-slim \
 	  sh -c "pip install -q poetry==$(POETRY_IN_DOCKER_VERSION) && poetry $(1)"
 endef
 
@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.41.0
+LUXLINT_VERSION ?= 0.45.1
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
@@ -209,7 +209,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.125.0
+LUXARCH_VERSION  ?= 0.153.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch

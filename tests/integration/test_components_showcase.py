@@ -39,8 +39,6 @@ class TestComponentShowcase:
         variant: str,
     ) -> None:
         monkeypatch.setattr(config, "LOGGING_LEVEL", "DEBUG")
-        resp = await auth_client.get(
-            f"/system/components/panel-demo?variant={variant}"
-        )
+        resp = await auth_client.get(f"/system/components/panel-demo?variant={variant}")
         assert resp.status_code == 200, resp.text[:400]
         assert "text/html" in resp.headers["content-type"]

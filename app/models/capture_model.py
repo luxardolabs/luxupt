@@ -68,7 +68,7 @@ class Capture(Base, TimestampMixin):
     capture_duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationship
-    camera: Mapped["Camera"] = relationship("Camera", back_populates="captures")
+    camera: Mapped[Camera] = relationship("Camera", back_populates="captures")
 
     __table_args__ = (
         # Primary query indexes using camera_id

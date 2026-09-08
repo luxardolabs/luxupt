@@ -3,9 +3,10 @@ schema + session fixture) and that the VARCHAR-backed enum column stores/reads a
 ActivityType enum (str_enum), the pattern the fw.enumish_columns guard enforces.
 """
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud import activity_crud
 from app.models.enum_model import ActivityType
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestActivityCrud:

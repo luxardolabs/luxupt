@@ -49,7 +49,9 @@ def test_forged_signature_rejected() -> None:
     # Signed with a different secret (>=32 bytes, per PyJWT's HMAC minimum) ->
     # the signature check must still fail against the real key.
     forged = jwt.encode(
-        {"sub": "mallory"}, "a-different-secret-of-sufficient-length-32b", algorithm=ALGORITHM
+        {"sub": "mallory"},
+        "a-different-secret-of-sufficient-length-32b",
+        algorithm=ALGORITHM,
     )
     assert AuthService.verify_token(forged) is None
 

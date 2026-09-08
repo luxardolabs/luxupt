@@ -9,7 +9,6 @@ job row (§5e cross-process read). This locks both properties:
 """
 
 import types
-from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker

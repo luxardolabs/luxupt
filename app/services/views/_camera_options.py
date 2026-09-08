@@ -34,7 +34,7 @@ def build_camera_options(
     ]
 
 
-def build_date_options(available_dates: "Sequence[object]") -> list[str]:
+def build_date_options(available_dates: Sequence[object]) -> list[str]:
     """Return the dates as strings, which is what a `<select>` option value is.
 
     Five templates each wrote ``available_dates|map('string')|list`` — the same conversion,

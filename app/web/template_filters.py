@@ -323,7 +323,7 @@ def day_label(d: date | datetime | None) -> str:
     return f"{day:%A, %B} {day.day}"
 
 
-def register_filters(templates: "Jinja2Templates") -> None:
+def register_filters(templates: Jinja2Templates) -> None:
     """Register all custom filters with a Jinja2Templates instance.
 
     Args:

@@ -142,10 +142,7 @@ files = [
 ]
 
 [package.dependencies]
-cffi = [
-    {version = ">=1.0.1", markers = "python_version < \"3.14\""},
-    {version = ">=2.0.0b1", markers = "python_version >= \"3.14\""},
-]
+cffi = {version = ">=2.0.0b1", markers = "python_version >= \"3.14\""}
 
 [[package]]
 name = "black"
@@ -2053,7 +2050,7 @@ description = "Fast implementation of asyncio event loop on top of libuv"
 optional = false
 python-versions = ">=3.8.1"
 groups = ["main"]
-markers = "platform_python_implementation != \"PyPy\" and sys_platform != \"win32\" and sys_platform != \"cygwin\""
+markers = "sys_platform != \"win32\" and sys_platform != \"cygwin\" and platform_python_implementation != \"PyPy\""
 files = [
     {file = "uvloop-0.22.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ef6f0d4cc8a9fa1f6a910230cd53545d9a14479311e87e3cb225495952eb672c"},
     {file = "uvloop-0.22.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7cd375a12b71d33d46af85a3343b35d98e8116134ba404bd657b3b1d15988792"},
@@ -2370,5 +2367,5 @@ files = [
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.13"
-content-hash = "16c6a09e65b4e2124f4631d09c0eec3361f7883a3a252389b6e79da6d7b64dd2"
+python-versions = "^3.14"
+content-hash = "bc4def908648295fcc651d89e09c6b663706036121fffa327bd2a6adaee0a8d7"

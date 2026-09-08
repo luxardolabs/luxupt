@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from app.models.enum_model import ScheduleSource
 from app.services.views.timelapses_view_service import TimelapsesViewService
 

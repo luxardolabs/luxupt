@@ -25,7 +25,9 @@ class TestDuration:
     def test_short_style(self) -> None:
         assert duration(0) == "0s"
         assert duration(45) == "45s"
-        assert duration(90) == "1m"  # sub-minute seconds dropped once a larger unit shows
+        assert (
+            duration(90) == "1m"
+        )  # sub-minute seconds dropped once a larger unit shows
         assert duration(3600) == "1h"
         assert duration(3661) == "1h 1m"
         assert duration(90061) == "1d 1h 1m"

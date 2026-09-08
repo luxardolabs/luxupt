@@ -75,7 +75,7 @@ LOGGING_FORMAT = os.getenv("LOGGING_FORMAT", "json").lower()
 _module_levels_str = os.getenv("LOGGING_MODULE_LEVELS", "{}")
 try:
     LOGGING_MODULE_LEVELS: dict[str, str] = json.loads(_module_levels_str)
-except (json.JSONDecodeError, TypeError):
+except json.JSONDecodeError, TypeError:
     LOGGING_MODULE_LEVELS = {}
 
 # =============================================================================

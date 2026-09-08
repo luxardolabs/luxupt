@@ -149,7 +149,7 @@ class CaptureCoreService:
         """Get overall capture statistics."""
         return await capture_crud.get_stats(self.db)
 
-    async def sync_cameras_from_api(self, cameras: list["ApiCamera"]) -> None:
+    async def sync_cameras_from_api(self, cameras: list[ApiCamera]) -> None:
         """Sync camera list from API to database."""
         for cam in cameras:
             # Build camera data dict

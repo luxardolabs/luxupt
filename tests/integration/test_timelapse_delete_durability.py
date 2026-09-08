@@ -38,9 +38,7 @@ async def _seed(session: AsyncSession, video: Path, thumb: Path) -> int:
     return tl.id
 
 
-async def test_commit_removes_row_and_files(
-    durable_db: Maker, tmp_path: Path
-) -> None:
+async def test_commit_removes_row_and_files(durable_db: Maker, tmp_path: Path) -> None:
     video, thumb = tmp_path / "c.mp4", tmp_path / "c_thumb.jpg"
     async with durable_db() as owner:
         pk = await _seed(owner, video, thumb)
@@ -60,9 +58,7 @@ async def test_commit_removes_row_and_files(
     assert not thumb.exists()
 
 
-async def test_rollback_keeps_row_and_files(
-    durable_db: Maker, tmp_path: Path
-) -> None:
+async def test_rollback_keeps_row_and_files(durable_db: Maker, tmp_path: Path) -> None:
     video, thumb = tmp_path / "c.mp4", tmp_path / "c_thumb.jpg"
     async with durable_db() as owner:
         pk = await _seed(owner, video, thumb)

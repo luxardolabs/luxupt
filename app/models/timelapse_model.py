@@ -79,7 +79,7 @@ class Timelapse(Base, TimestampMixin):
     processing_time_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationship
-    camera: Mapped["Camera"] = relationship("Camera", back_populates="timelapses")
+    camera: Mapped[Camera] = relationship("Camera", back_populates="timelapses")
 
     __table_args__ = (
         # Primary query indexes using camera_id

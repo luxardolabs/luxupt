@@ -9,7 +9,7 @@ paths = ["app", "scripts"]   # the app package + repo scripts — lint + format-
                              # (lint.source_declared: an unscanned .py is a hollow green).
 
 [python]
-target = "py313"      # repo runtime FACT: python = "^3.13" (pyproject), python:3.13-slim (Dockerfile).
+target = "py314"      # repo runtime FACT: python = "^3.14" (pyproject), python:3.14-slim (Dockerfile).
                       # Sets what ruff/mypy check against; the rule SET stays fleet-identical.
 
 # Mypy ratchet — a monotonic-DOWN floor, at ZERO. As of luxlint 0.24.0 mypy runs MOUNT-ONLY
