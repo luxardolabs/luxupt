@@ -20,6 +20,7 @@ from app.services.core.timelapse_browser_core_service import TimelapseBrowserCor
 from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
+    build_job_card_urls,
 )
 
 
@@ -393,6 +394,9 @@ class SystemViewService:
 
         return {
             "demo_camera_urls": build_camera_card_urls("demo-cam-1"),
+            "demo_job_urls": build_job_card_urls(
+                ["demo-job-run", "demo-job-pend", "demo-job-done"]
+            ),
             "demo_camera": {
                 "safe_name": "front_door",
                 "camera_id": "demo-cam-1",

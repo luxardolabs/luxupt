@@ -79,3 +79,19 @@ def build_camera_card_urls(camera_id: str) -> dict[str, str]:
         "images": f"/images?camera={camera_id}",
         "timelapses": f"/timelapses?camera={camera_id}",
     }
+
+
+def build_job_card_urls(job_ids: Sequence[str]) -> dict[str, dict[str, str]]:
+    """URLs for each job card, keyed by job_id (fw.url_assembly_in_view).
+
+    Returned as a MAP rather than attached per item so the templates keep their existing
+    loops: they index `job_urls[job.job_id]`, which is a lookup, not URL assembly.
+    """
+    return {
+        job_id: {
+            "poll": f"/timelapses/partials/job/{job_id}",
+            "cancel": f"/timelapses/job/{job_id}",
+            "target": f"#job-{job_id}",
+        }
+        for job_id in job_ids
+    }

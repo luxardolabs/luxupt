@@ -302,12 +302,12 @@
 </div>
 {% endmacro %}
 
-{% macro running_job_card(job) %}
+{% macro running_job_card(job, urls=none) %}
 {# Large card for running jobs with live thumbnail - max-w-sm keeps cards reasonably sized #}
 <div class="rounded-xl border border-primary-500/50 bg-surface-900/80 overflow-hidden max-w-sm"
      id="job-{{ job.job_id }}"
      hx-ext="morph"
-     hx-get="/timelapses/partials/job/{{ job.job_id }}"
+     hx-get="{{ urls.poll }}"
      hx-trigger="every 1s"
      hx-swap="morph:outerHTML">
     {# Thumbnail - natural aspect ratio from image #}
@@ -335,7 +335,7 @@
     <div class="p-3">
         <div class="flex items-center justify-between mb-1">
             <span class="font-medium text-surface-100 text-sm truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
-            {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Cancel job') }}
+            {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}
         </div>
         <p class="text-xs text-surface-200 truncate mb-1">{{ job.message or 'Processing...' }}</p>
         <div class="flex items-center gap-3 text-xs text-surface-200">
@@ -346,18 +346,18 @@
 </div>
 {% endmacro %}
 
-{% macro pending_job_card(job) %}
+{% macro pending_job_card(job, urls=none) %}
 {# Card for pending/waiting jobs - matches grid layout #}
 <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 flex flex-col"
      id="job-{{ job.job_id }}"
      hx-ext="morph"
-     hx-get="/timelapses/partials/job/{{ job.job_id }}"
+     hx-get="{{ urls.poll }}"
      hx-trigger="every 3s"
      hx-swap="morph:outerHTML">
     {# Header with badge and delete #}
     <div class="flex items-center justify-between mb-2">
         {{ status_chip('pending') }}
-        {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Cancel job') }}
+        {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}
     </div>
     {# Camera name #}
     <p class="text-sm font-medium text-white truncate mb-2" title="{{ job.camera_safe_name }}">
@@ -383,7 +383,7 @@
 </div>
 {% endmacro %}
 
-{% macro completed_job_card(job) %}
+{% macro completed_job_card(job, urls=none) %}
 {# Compact card for completed/failed jobs in Recently Completed section #}
 <div class="rounded-lg border border-surface-400/30 bg-surface-900/50 p-2" id="job-{{ job.job_id }}">
     <div class="flex items-center justify-between gap-2">
@@ -391,7 +391,7 @@
             {{ status_chip(job.status) }}
             <span class="text-sm text-white truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
         </div>
-        {{ delete_icon_button(hx_delete='/timelapses/job/' ~ job.job_id, hx_target='#job-' ~ job.job_id, hx_swap='delete', title='Remove from list') }}
+        {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Remove from list') }}
     </div>
     <p class="text-xs text-surface-200 mt-0.5">
         for <span class="text-surface-100">{{ job.target_date }}</span> · {{ job.interval }}s

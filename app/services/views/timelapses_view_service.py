@@ -23,6 +23,7 @@ from app.services.views._camera_options import (
     PRESET_OPTIONS,
     build_camera_options,
     build_date_options,
+    build_job_card_urls,
 )
 
 logger = get_logger(__name__)
@@ -166,7 +167,11 @@ class TimelapsesViewService:
         else:
             action = "render"
 
-        return {"job": job, "action": action}
+        return {
+            "job": job,
+            "action": action,
+            "job_urls": build_job_card_urls([job.job_id] if job else []),
+        }
 
     async def cancel_or_delete_job(self, job_id: str) -> tuple[bool, str]:
         """Cancel or delete a job based on its status.
@@ -190,7 +195,11 @@ class TimelapsesViewService:
         The router calls the VIEW; the view calls CORE. Reaching `view_service.job_service`
         from the router skipped this seam (fw.no_layer_reach_through).
         """
-        return {"completed_jobs": await self.job_service.get_completed(limit=limit)}
+        completed_jobs = await self.job_service.get_completed(limit=limit)
+        return {
+            "completed_jobs": completed_jobs,
+            "job_urls": build_job_card_urls([j.job_id for j in completed_jobs]),
+        }
 
     async def cleanup_stale_jobs_and_build_context(self) -> dict[str, Any]:
         """Fail every stale job, then assemble the job-list context that re-renders.
@@ -779,6 +788,9 @@ class TimelapsesViewService:
             "running_jobs": running_jobs,
             "pending_jobs": pending_jobs,
             "completed_jobs": completed_jobs,
+            "job_urls": build_job_card_urls(
+                [j.job_id for j in (*running_jobs, *pending_jobs, *completed_jobs)]
+            ),
             "filters": {
                 "camera": camera,
                 "date": timelapse_date,
@@ -806,6 +818,9 @@ class TimelapsesViewService:
             "running_jobs": running_jobs,
             "pending_jobs": pending_jobs,
             "completed_jobs": completed_jobs,
+            "job_urls": build_job_card_urls(
+                [j.job_id for j in (*running_jobs, *pending_jobs, *completed_jobs)]
+            ),
             "summary": summary,
             "concurrent_jobs": concurrent_jobs,
         }
