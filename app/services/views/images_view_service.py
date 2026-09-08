@@ -1,6 +1,7 @@
 """Images view service for preparing image browser template data."""
 
 import asyncio
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
 from urllib.parse import urlencode
@@ -14,6 +15,7 @@ from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreSer
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.image_core_service import image_service
 from app.services.views._camera_options import (
+    CaptureIdentity,
     build_camera_options,
     build_date_options,
 )
@@ -128,6 +130,40 @@ class ImagesViewService:
             "capture_date": capture.capture_date,
         }
 
+    @staticmethod
+    def _build_image_card_urls(
+        images: Sequence[CaptureIdentity],
+        *,
+        camera: str | None,
+        date_str: str | None,
+        interval: int | None,
+    ) -> dict[int, str]:
+        """Lightbox URL per capture, keyed by capture id (fw.url_assembly_in_view).
+
+        The card macro used to assemble this itself: three conditional appends, a join, and a
+        concat — real logic in the render layer. Each URL carries the active filters so
+        lightbox navigation stays inside the current result set, plus the capture's OWN
+        interval, because the same timestamp can exist at several intervals. urlencode
+        escapes the values; the string concatenation did not.
+        """
+        urls: dict[int, str] = {}
+        for image in images:
+            query = urlencode(
+                {
+                    key: value
+                    for key, value in (
+                        ("camera", camera),
+                        ("date", date_str),
+                        ("interval", image.interval),
+                    )
+                    if value
+                }
+            )
+            urls[image.id] = (
+                f"/images/lightbox/{image.camera_safe_name}/{image.timestamp}?{query}"
+            )
+        return urls
+
     async def get_browser_context(
         self,
         *,
@@ -173,6 +209,9 @@ class ImagesViewService:
 
         return {
             "images": images,
+            "image_urls": self._build_image_card_urls(
+                images, camera=camera, date_str=date_str, interval=interval
+            ),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
@@ -221,6 +260,9 @@ class ImagesViewService:
 
         return {
             "images": images,
+            "image_urls": self._build_image_card_urls(
+                images, camera=camera, date_str=date_str, interval=interval
+            ),
             "filters": {
                 "camera": camera,
                 "date": capture_date,

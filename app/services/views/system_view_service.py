@@ -394,6 +394,14 @@ class SystemViewService:
 
         return {
             "demo_camera_urls": build_camera_card_urls("demo-cam-1"),
+            "demo_timelapse_urls": {
+                "demo-tl-1": {
+                    "lightbox": "/timelapses/demo-tl-1/lightbox",
+                    "video": "/timelapses/demo-tl-1/video",
+                    "delete": "/timelapses/demo-tl-1",
+                    "target": "#timelapse-demo-tl-1",
+                }
+            },
             "demo_job_urls": build_job_card_urls(
                 ["demo-job-run", "demo-job-pend", "demo-job-done"]
             ),

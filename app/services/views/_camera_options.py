@@ -14,6 +14,29 @@ from collections.abc import Sequence
 from typing import Protocol
 
 
+class CaptureIdentity(Protocol):
+    """The fields a capture's lightbox URL is built from."""
+
+    @property
+    def id(self) -> int: ...
+
+    @property
+    def camera_safe_name(self) -> str: ...
+
+    @property
+    def timestamp(self) -> int: ...
+
+    @property
+    def interval(self) -> int: ...
+
+
+class _HasTimelapseIdentity(Protocol):
+    """The field a timelapse card's URLs are built from."""
+
+    @property
+    def id(self) -> int: ...
+
+
 class _HasCameraIdentity(Protocol):
     """The two fields a camera option is built from."""
 
@@ -94,4 +117,19 @@ def build_job_card_urls(job_ids: Sequence[str]) -> dict[str, dict[str, str]]:
             "target": f"#job-{job_id}",
         }
         for job_id in job_ids
+    }
+
+
+def build_timelapse_card_urls(
+    timelapses: Sequence[_HasTimelapseIdentity],
+) -> dict[int, dict[str, str]]:
+    """URLs for each timelapse card, keyed by id (fw.url_assembly_in_view)."""
+    return {
+        t.id: {
+            "lightbox": f"/timelapses/{t.id}/lightbox",
+            "video": f"/timelapses/{t.id}/video",
+            "delete": f"/timelapses/{t.id}",
+            "target": f"#timelapse-{t.id}",
+        }
+        for t in timelapses
     }

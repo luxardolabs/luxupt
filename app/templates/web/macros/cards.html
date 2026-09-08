@@ -270,18 +270,9 @@
 </div>
 {% endmacro %}
 
-{% macro image_card(capture, filters=none) %}
-{# Build filter params for lightbox navigation #}
-{% set filter_params = [] %}
-{% if filters and filters.camera %}{% set _ = filter_params.append('camera=' ~ filters.camera) %}{% endif %}
-{% if filters and filters.date %}{% set _ = filter_params.append('date=' ~ filters.date) %}{% endif %}
-{% if filters and filters.interval %}{% set _ = filter_params.append('interval=' ~ filters.interval) %}{% endif %}
-{% set filter_str = filter_params|join('&') %}
-{# Always include the capture's own interval to avoid ambiguity when same timestamp exists at multiple intervals #}
-{% set lightbox_interval = 'interval=' ~ capture.interval %}
-{% set lightbox_params = (filter_str ~ '&' ~ lightbox_interval) if filter_str else lightbox_interval %}
+{% macro image_card(capture, filters=none, lightbox_url=none) %}
 <div class="group relative overflow-hidden rounded-lg border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 cursor-pointer"
-     hx-get="/images/lightbox/{{ capture.camera_safe_name }}/{{ capture.timestamp }}?{{ lightbox_params }}"
+     hx-get="{{ lightbox_url }}"
      hx-target="#lightbox-container"
      hx-swap="innerHTML">
     <div class="relative aspect-video bg-surface-800">
@@ -407,7 +398,7 @@
 </div>
 {% endmacro %}
 
-{% macro timelapse_card(timelapse) %}
+{% macro timelapse_card(timelapse, urls=none) %}
 <div id="timelapse-{{ timelapse.id }}" class="overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50">
     <div class="relative aspect-video bg-surface-800">
         {% if timelapse.status == 'completed' and timelapse.file_path %}
@@ -418,7 +409,7 @@
         <div class="hidden h-full items-center justify-center absolute inset-0 bg-surface-800">
             {{ icon('film', 'w-12 h-12 text-surface-200') }}
         </div>
-        <div hx-get="/timelapses/{{ timelapse.id }}/lightbox"
+        <div hx-get="{{ urls.lightbox }}"
              hx-target="#lightbox-container"
              hx-swap="innerHTML"
              class="absolute inset-0 flex items-center justify-center group cursor-pointer">
@@ -443,9 +434,9 @@
             </div>
             <div class="flex items-center gap-2">
                 {% if timelapse.status == 'completed' and timelapse.file_path %}
-                {{ icon_button('arrow-down-tray', 'Download video', href='/timelapses/' ~ timelapse.id ~ '/video', size='sm', variant='success', download=timelapse.file_name or (timelapse.camera_safe_name ~ '.mp4')) }}
+                {{ icon_button('arrow-down-tray', 'Download video', href=urls.video, size='sm', variant='success', download=timelapse.file_name or (timelapse.camera_safe_name ~ '.mp4')) }}
                 {% endif %}
-                {{ delete_icon_button(hx_delete='/timelapses/' ~ timelapse.id, hx_target='#timelapse-' ~ timelapse.id, hx_swap='delete', title='Delete timelapse') }}
+                {{ delete_icon_button(hx_delete=urls.delete, hx_target=urls.target, hx_swap='delete', title='Delete timelapse') }}
             </div>
         </div>
         {% if timelapse.status == 'completed' %}

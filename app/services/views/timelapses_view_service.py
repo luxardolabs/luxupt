@@ -24,6 +24,7 @@ from app.services.views._camera_options import (
     build_camera_options,
     build_date_options,
     build_job_card_urls,
+    build_timelapse_card_urls,
 )
 
 logger = get_logger(__name__)
@@ -778,6 +779,7 @@ class TimelapsesViewService:
 
         return {
             "timelapses": timelapses,
+            "timelapse_urls": build_timelapse_card_urls(timelapses),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
