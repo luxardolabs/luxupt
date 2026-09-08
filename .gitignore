@@ -59,3 +59,10 @@ _archive/
 
 # Private registry hosts (build config committed; only the host stays local)
 Makefile.local
+
+# ── Claude Code hooks (luxarch --emit hooks) ──
+# The hook SOURCES and the wiring are committed so every clone runs the byte-identical set
+# (repo.hooks_wired / hooks_current). The heartbeat is a runtime stamp proving they actually
+# execute — machine-local, never committed. settings.local.json is per-developer.
+.claude/.hooks-heartbeat
+.claude/settings.local.json

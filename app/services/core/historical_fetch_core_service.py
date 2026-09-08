@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import asyncio
 import time as time_module
-from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from pathlib import Path
 
@@ -30,6 +29,7 @@ from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus
 from app.models.job_model import Job
 from app.protect_client import ProtectClient, ProtectRequestError
 from app.schemas.capture_schema import CaptureCreate
+from app.schemas.historical_fetch_schema import HistoricalFetchResult
 from app.services.core.settings_core_service import SettingsCoreService
 
 logger = get_logger(__name__)
@@ -38,19 +38,6 @@ DEFAULT_CONCURRENCY = 8
 # Recording-write lag — `recording-snapshot?ts=now()` returns 404. Reject any
 # requested timestamps within this window of "now" to avoid known failures.
 MIN_RECORDING_LAG_SECONDS = 60
-
-
-@dataclass
-class HistoricalFetchResult:
-    frames_attempted: int
-    frames_succeeded: int
-    no_recording: int  # HTTP 404 — gap in Protect's recordings, not our fault
-    errors: int  # auth, network, malformed responses
-    elapsed_seconds: float
-
-    @property
-    def frames_failed(self) -> int:
-        return self.no_recording + self.errors
 
 
 def _expand_timestamps(

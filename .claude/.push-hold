@@ -1,0 +1,17 @@
+Held pending owner decision — LUXUPT-74.
+
+`dev` is ~120 commits ahead of origin/dev and is NOT being pushed, for two reasons:
+
+1. The pre-push hook (gitleaks over full history) blocks it. History on `dev` was scrubbed
+   on 2026-09-05 and is clean, but `main` still serves the un-scrubbed history — two of the
+   original leak commits (fa2a5cb, b0cac0b) are already published there. Pushing `dev`
+   without a decision on `main` leaves the repo half-scrubbed.
+
+2. Pushing rewritten history to a PUBLIC repo is a force-push: every SHA changed, so anyone
+   with a clone must re-clone. That is the owner's call, not the agent's, and it has been
+   raised (LUXUPT-74, state on_hold, waiting_on the owner).
+
+Pre-scrub backup mirror: /tmp/luxupt-prescrub-backup.git (at abff6e2) — ephemeral, move it
+somewhere durable if it is still wanted.
+
+Clear this file once LUXUPT-74 is decided and the push happens.
