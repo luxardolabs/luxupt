@@ -13,7 +13,7 @@
         <!-- Content -->
         <div class="flex-1 min-h-0 overflow-y-auto p-6">
             <form id="camera-settings-form"
-                  hx-post="/cameras/{{ camera.camera_id }}/settings"
+                  hx-post="{{ camera_settings_post_url }}"
                   hx-target="#camera-settings-result"
                   hx-swap="innerHTML"
                   class="space-y-6">

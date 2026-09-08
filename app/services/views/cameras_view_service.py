@@ -112,6 +112,7 @@ class CamerasViewService:
             "intervals": intervals,
             # The view assembles URLs; the template renders them (fw.no_template_logic).
             "camera_delete_url": f"/cameras/{camera.camera_id}",
+            "camera_settings_post_url": f"/cameras/{camera.camera_id}/settings",
         }
 
     async def get_capture_stats_context(self) -> dict[str, Any]:
@@ -290,7 +291,14 @@ class CamerasViewService:
         """Get data for camera detail panel."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
-            return {"camera": None, "latest_capture": None, "stats": {}}
+            return {
+                "camera": None,
+                "latest_capture": None,
+                "stats": {},
+                "images_url": None,
+                "timelapses_url": None,
+                "latest_capture_url": None,
+            }
 
         latest_capture = await self.capture_service.get_latest_by_camera(
             camera.camera_id
@@ -335,6 +343,17 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "stats": stats,
+            # Route knowledge lives in ONE place (fw.url_assembly_in_view). These also carry
+            # camera_id, not safe_name: the browse filters query Capture/Timelapse.camera_id,
+            # so the old safe_name links matched nothing.
+            "images_url": f"/images?camera={camera.camera_id}",
+            "timelapses_url": f"/timelapses?camera={camera.camera_id}",
+            "latest_capture_url": (
+                f"/images/file/{camera.safe_name}/{latest_capture.interval}"
+                f"/{latest_capture.timestamp}"
+                if latest_capture
+                else None
+            ),
         }
 
     async def save_fetch_settings(

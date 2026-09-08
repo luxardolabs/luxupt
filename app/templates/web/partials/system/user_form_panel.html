@@ -17,7 +17,7 @@
     <div class="flex-1 min-h-0 overflow-y-auto p-6">
         <form id="user-form"
               {% if edit_user %}
-              hx-post="/system/users/{{ edit_user.id }}"
+              hx-post="{{ user_form_post_url }}"
               {% else %}
               hx-post="/system/users"
               {% endif %}

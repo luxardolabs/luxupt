@@ -306,7 +306,11 @@ class TimelapsesViewService:
     async def get_lightbox_context(self, timelapse_id: int) -> dict[str, Any]:
         """Get lightbox context for video viewing."""
         timelapse = await self.timelapse_service.get_by_id(timelapse_id)
-        return {"timelapse": timelapse}
+        return {
+            "timelapse": timelapse,
+            # Route knowledge lives in the view (fw.url_assembly_in_view).
+            "video_url": f"/timelapses/{timelapse_id}/video",
+        }
 
     async def get_video_path(self, timelapse_id: int) -> tuple[str | None, str | None]:
         """Get video file path and filename for a timelapse (with path traversal protection)."""

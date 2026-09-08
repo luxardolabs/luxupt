@@ -33,7 +33,7 @@
 {% call card("Latest Capture") %}
 <div class="flex gap-4">
     <div class="flex-shrink-0">
-        <a href="/images/file/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.timestamp }}" target="_blank" class="block">
+        <a href="{{ latest_capture_url }}" target="_blank" class="block">
             <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
                  alt="Latest capture"
                  class="w-64 h-auto rounded-lg border border-surface-400/50 hover:border-surface-300 transition-colors"
@@ -64,12 +64,12 @@
 <!-- Quick actions -->
 {% call card("Quick Actions") %}
 <div class="flex flex-wrap gap-3">
-    <a href="/images?camera={{ camera.safe_name }}"
+    <a href="{{ images_url }}"
        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-colors">
         {{ icon('photo', 'w-5 h-5') }}
         <span>View Images</span>
     </a>
-    <a href="/timelapses?camera={{ camera.safe_name }}"
+    <a href="{{ timelapses_url }}"
        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-colors">
         {{ icon('film', 'w-5 h-5') }}
         <span>View Timelapses</span>

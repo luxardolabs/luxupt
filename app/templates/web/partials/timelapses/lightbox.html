@@ -48,7 +48,7 @@
 
                 <!-- Action buttons -->
                 <div class="flex items-center gap-3">
-                    <a href="/timelapses/{{ timelapse.id }}/video"
+                    <a href="{{ video_url }}"
                        download="{{ timelapse.file_name or (timelapse.camera_safe_name ~ '_' ~ (timelapse.timelapse_date | date('%Y%m%d')) ~ '.mp4') }}"
                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors">
                         {{ icon('arrow-down-tray', 'w-5 h-5') }}

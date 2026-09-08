@@ -31,7 +31,14 @@ class UsersViewService:
         edit_user = None
         if user_id:
             edit_user = await self.user_service.get_by_id(user_id)
-        return {"edit_user": edit_user}
+        return {
+            "edit_user": edit_user,
+            # Route knowledge lives in the view (fw.url_assembly_in_view); create and edit
+            # post to different endpoints.
+            "user_form_post_url": (
+                f"/system/users/{edit_user.id}" if edit_user else "/system/users"
+            ),
+        }
 
     async def get_delete_confirm_context(self, user_id: int) -> dict[str, Any]:
         """Get context for delete confirmation panel."""
