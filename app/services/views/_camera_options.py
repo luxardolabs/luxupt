@@ -65,3 +65,17 @@ PRESET_OPTIONS: list[dict[str, str]] = [
     {"value": "slower", "label": "Slower"},
     {"value": "veryslow", "label": "Very Slow (smallest file)"},
 ]
+
+
+def build_camera_card_urls(camera_id: str) -> dict[str, str]:
+    """The URLs a camera card links to, assembled in the view (fw.url_assembly_in_view).
+
+    Route knowledge belongs in one place: a path spelled into a template cannot be grepped
+    when the route moves, and a card that silently links nowhere fails quietly. The browse
+    links carry camera_id because that is the column the image and timelapse filters query.
+    """
+    return {
+        "settings": f"/cameras/{camera_id}/settings",
+        "images": f"/images?camera={camera_id}",
+        "timelapses": f"/timelapses?camera={camera_id}",
+    }

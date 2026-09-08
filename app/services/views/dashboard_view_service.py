@@ -9,7 +9,10 @@ from app.services.core.capture_stats_core_service import CaptureStatsCoreService
 from app.services.core.job_core_service import JobCoreService
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
-from app.services.views._camera_options import build_camera_options
+from app.services.views._camera_options import (
+    build_camera_card_urls,
+    build_camera_options,
+)
 
 
 class DashboardViewService:
@@ -94,6 +97,7 @@ class DashboardViewService:
                     "latest_capture": latest,
                     "has_thumbnail": latest is not None,
                     "stats": stats,
+                    "urls": build_camera_card_urls(camera.camera_id),
                 }
             )
 

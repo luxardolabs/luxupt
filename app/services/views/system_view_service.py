@@ -17,7 +17,10 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
-from app.services.views._camera_options import build_camera_options
+from app.services.views._camera_options import (
+    build_camera_card_urls,
+    build_camera_options,
+)
 
 
 class SystemViewService:
@@ -389,6 +392,7 @@ class SystemViewService:
         today = now.date().isoformat()
 
         return {
+            "demo_camera_urls": build_camera_card_urls("demo-cam-1"),
             "demo_camera": {
                 "safe_name": "front_door",
                 "camera_id": "demo-cam-1",

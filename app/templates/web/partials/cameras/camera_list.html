@@ -3,7 +3,7 @@
 {% if camera_cards %}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     {% for card_data in camera_cards %}
-    {{ camera_card(card_data.camera, card_data.latest_capture, card_data.stats) }}
+    {{ camera_card(card_data.camera, card_data.latest_capture, card_data.stats, urls=card_data.urls) }}
     {% endfor %}
 </div>
 {% else %}

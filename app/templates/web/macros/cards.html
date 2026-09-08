@@ -146,10 +146,10 @@
 </div>
 {% endmacro %}
 
-{% macro camera_card(camera, latest_capture=none, stats=none) %}
+{% macro camera_card(camera, latest_capture=none, stats=none, urls=none) %}
 <div id="camera-card-{{ camera.safe_name }}"
      class="group relative overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 hover:shadow-lg cursor-pointer"
-     hx-get="/cameras/{{ camera.camera_id }}/settings"
+     hx-get="{{ urls.settings }}"
      hx-target="#panel-container"
      hx-swap="innerHTML">
     <!-- Thumbnail -->
@@ -194,8 +194,8 @@
             </div>
             <!-- Quick action buttons -->
             <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation();">
-                {{ icon_button('photo', 'View Images', href='/images?camera=' ~ camera.camera_id, size='sm', variant='primary') }}
-                {{ icon_button('film', 'View Timelapses', href='/timelapses?camera=' ~ camera.camera_id, size='sm', variant='primary') }}
+                {{ icon_button('photo', 'View Images', href=urls.images, size='sm', variant='primary') }}
+                {{ icon_button('film', 'View Timelapses', href=urls.timelapses, size='sm', variant='primary') }}
             </div>
         </div>
         <!-- Stats -->

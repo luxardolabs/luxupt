@@ -16,7 +16,10 @@ from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
 from app.services.core.settings_core_service import SettingsCoreService
-from app.services.views._camera_options import build_camera_options
+from app.services.views._camera_options import (
+    build_camera_card_urls,
+    build_camera_options,
+)
 
 logger = get_logger(__name__)
 
@@ -53,7 +56,12 @@ class CamerasViewService:
         """Get data for a single camera card."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
-            return {"camera": None, "latest_capture": None, "has_thumbnail": False}
+            return {
+                "camera": None,
+                "latest_capture": None,
+                "has_thumbnail": False,
+                "urls": None,
+            }
 
         latest_capture = await self.capture_service.get_latest_by_camera(
             camera.camera_id
@@ -63,6 +71,7 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "has_thumbnail": latest_capture is not None,
+            "urls": build_camera_card_urls(camera.camera_id),
         }
 
     async def get_fetch_settings_context(self) -> dict[str, Any]:
