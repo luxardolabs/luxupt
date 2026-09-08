@@ -608,8 +608,21 @@ release-ghcr: docker-push-ghcr docker-tag-latest-ghcr ## Release to GHCR only: v
 	@echo '$(BLUE)Pull command:$(NC)'
 	@echo '  docker pull $(GHCR_IMAGE):latest'
 
+.PHONY: github-release
+github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this version's notes
+	@# A git tag is NOT a Release: without this the /releases page is empty and
+	@# app/release_notes/$(VERSION).md never reaches anyone (repo.github_release_wired,
+	@# FLEET-RELEASE-PROCESS §9). Fleet tag convention is v<VERSION> (repo.release_tag_hygiene).
+	@test -f app/release_notes/$(VERSION).md || { \
+	  echo "missing app/release_notes/$(VERSION).md — write the notes before releasing"; exit 1; }
+	@git rev-parse "v$(VERSION)" >/dev/null 2>&1 || git tag -a "v$(VERSION)" -m "$(VERSION)"
+	@git push origin "v$(VERSION)"
+	@gh release create "v$(VERSION)" \
+	  --title "$(VERSION)" \
+	  --notes-file "app/release_notes/$(VERSION).md"
+
 .PHONY: release
-release: docker-push-all docker-tag-latest ## Full release: version + latest to all registries (multi-arch)
+release: docker-push-all docker-tag-latest github-release ## Full release: images + the GitHub Release
 	@echo ''
 	@echo '$(GREEN)========================================$(NC)'
 	@echo '$(GREEN)Release $(VERSION) complete!$(NC)'
