@@ -61,28 +61,8 @@
                             {{ select("rtsp_output_format", [{"value": "png", "label": "PNG (Lossless)"}, {"value": "jpg", "label": "JPEG (Smaller)"}], label="RTSP Format", selected=settings.rtsp_output_format) }}
                             <p class="text-xs text-surface-200 mt-1">PNG better for timelapse</p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white mb-2">PNG Compression</label>
-                            <div class="relative">
-                                <input type="number" name="png_compression_level"
-                                       value="{{ settings.png_compression_level }}"
-                                       min="0" max="9"
-                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">0-9</span>
-                            </div>
-                            <p class="text-xs text-surface-200 mt-1">6=balanced, 9=smallest</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white mb-2">RTSP Timeout</label>
-                            <div class="relative">
-                                <input type="number" name="rtsp_capture_timeout"
-                                       value="{{ settings.rtsp_capture_timeout }}"
-                                       min="5" max="60"
-                                       class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-sm text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-200">sec</span>
-                            </div>
-                            <p class="text-xs text-surface-200 mt-1">Timeout per capture</p>
-                        </div>
+                        {{ text_input("png_compression_level", label="PNG Compression", type="number", value=settings.png_compression_level, suffix="0-9", help="6=balanced, 9=smallest", extra_attrs='min="0" max="9"') }}
+                        {{ text_input("rtsp_capture_timeout", label="RTSP Timeout", type="number", value=settings.rtsp_capture_timeout, suffix="sec", help="Timeout per capture", extra_attrs='min="5" max="60"') }}
                     </div>
                 </div>
                 {% endcall %}
@@ -236,22 +216,15 @@
                     {{ text_input("retry_delay", label="Retry Delay", type="number", value=settings.retry_delay, align="center", suffix="s", extra_attrs='min="1" max="30"') }}
                     <!-- Rate Limit -->
                     <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Rate Limit</label>
-                        <div class="relative">
-                            <input type="number" name="rate_limit"
-                                   value="{{ settings.rate_limit }}"
-                                   min="1" max="100"
-                                   class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-surface-200">/s</span>
-                        </div>
+                        {{ text_input("rate_limit", label="Rate Limit", type="number",
+                                      value=settings.rate_limit, align="center", suffix="/s",
+                                      extra_attrs='min="1" max="100"') }}
                     </div>
                     <!-- Safety Buffer -->
                     <div>
-                        <label class="block text-xs font-medium text-surface-200 mb-1">Buffer</label>
-                        <input type="number" name="rate_limit_buffer"
-                               value="{{ settings.rate_limit_buffer }}"
-                               min="0.1" max="1.0" step="0.1"
-                               class="block w-full rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        {{ text_input("rate_limit_buffer", label="Buffer", type="number",
+                                      value=settings.rate_limit_buffer, align="center",
+                                      extra_attrs='min="0.1" max="1.0" step="0.1"') }}
                     </div>
                 </div>
                 {% endcall %}
