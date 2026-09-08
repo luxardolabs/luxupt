@@ -162,6 +162,6 @@
     "XPASS": 0
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "34f0cb92fe566433c5fa4e44f6eef2d45831b216",
-  "generated_at": "2026-09-07T21:09:43Z"
+  "commit": "fc8b75da01a93a57a41d91561248940995c412de",
+  "generated_at": "2026-09-08T00:01:52Z"
 }
