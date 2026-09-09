@@ -85,18 +85,22 @@ class DashboardViewService:
         fetch_settings = await self.settings_service.get_fetch_settings()
         global_intervals = fetch_settings.get_intervals()
 
+        # One batched call, not one per camera: this renders the cameras page, so the old
+        # per-card `get_stats` was 6 queries x N cameras against a captures table with
+        # hundreds of thousands of rows.
+        stats_by_camera = await self.camera_service.get_stats_bulk(
+            cameras, global_intervals=global_intervals
+        )
+
         camera_cards = []
         for camera in cameras:
             latest = latest_captures.get(camera.camera_id)
-            stats = await self.camera_service.get_stats(
-                camera.camera_id, global_intervals=global_intervals
-            )
             camera_cards.append(
                 {
                     "camera": camera,
                     "latest_capture": latest,
                     "has_thumbnail": latest is not None,
-                    "stats": stats,
+                    "stats": stats_by_camera.get(camera.camera_id, {}),
                     "urls": build_camera_card_urls(camera.camera_id),
                 }
             )
@@ -104,6 +108,7 @@ class DashboardViewService:
         return {
             "camera_cards": camera_cards,
             "total_cameras": len(cameras),
+            # post-db-filter: counted off the already-loaded camera list
             "connected_cameras": sum(1 for c in cameras if c.is_connected),
             "total_captures": capture_stats.total_captures,
             "successful_captures": capture_stats.successful_captures,

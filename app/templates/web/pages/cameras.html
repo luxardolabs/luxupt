@@ -19,8 +19,8 @@
 {# Statistics Section #}
 {% call section("Statistics", "chart-bar") %}
 <div class="grid gap-4 grid-cols-2 lg:grid-cols-3">
-    {{ stat_card("Captures", successful_captures|default(0), icon_name="photo", color="success", hx_attrs={"hx-get": "/cameras/capture-stats", "hx-target": "#panel-container", "hx-swap": "innerHTML"}, mobile_full=true) }}
-    {{ stat_card("Failed", failed_captures|default(0), icon_name="exclamation-triangle", color="danger", mobile_full=true) }}
+    {{ stat_card("Captures", successful_captures, icon_name="photo", color="success", hx_attrs={"hx-get": "/cameras/capture-stats", "hx-target": "#panel-container", "hx-swap": "innerHTML"}, mobile_full=true) }}
+    {{ stat_card("Failed", failed_captures, icon_name="exclamation-triangle", color="danger", mobile_full=true) }}
     {{ stat_card("Cameras", total_cameras, icon_name="camera", color="primary", value_prefix=connected_cameras, value_suffix="connected", mobile_full=true) }}
 </div>
 {% endcall %}

@@ -48,6 +48,14 @@ class CameraCoreService:
             self.db, camera_id, global_intervals=global_intervals
         )
 
+    async def get_stats_bulk(
+        self, cameras: list[Camera], *, global_intervals: list[int] | None = None
+    ) -> dict[str, dict[str, Any]]:
+        """Get statistics for many cameras at once, keyed by camera_id."""
+        return await camera_crud.get_camera_stats_bulk(
+            self.db, cameras, global_intervals=global_intervals
+        )
+
     async def update_settings(
         self, camera_id: str, settings: dict[str, Any]
     ) -> Camera | None:

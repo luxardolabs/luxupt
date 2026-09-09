@@ -131,132 +131,158 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         camera = await self.get_by_camera_id(db, camera_id)
         if not camera:
             return {}
-
-        # Get actual counts from captures table
-        total_result = await db.execute(
-            select(func.count(Capture.id)).where(
-                Capture.camera_id == camera.camera_id,
-            )
+        stats = await self.get_camera_stats_bulk(
+            db, [camera], global_intervals=global_intervals
         )
-        total = total_result.scalar() or 0
+        return stats.get(camera.camera_id, {})
 
-        failed_result = await db.execute(
-            select(func.count(Capture.id)).where(
-                Capture.camera_id == camera.camera_id,
-                Capture.status == "failed",
+    async def get_camera_stats_bulk(
+        self,
+        db: AsyncSession,
+        cameras: list[Camera],
+        *,
+        global_intervals: list[int] | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Get statistics for many cameras in a fixed number of queries, keyed by camera_id.
+
+        The per-camera form issued SIX queries each, so rendering the cameras page — which
+        shows a card per camera — cost 6xN round-trips against a captures table with hundreds
+        of thousands of rows. This does the same work in four, by grouping on ``camera_id``
+        instead of filtering to one.
+
+        ``get_camera_stats`` delegates here rather than keeping its own copy of the counting
+        and expected-vs-actual arithmetic, so the single- and many-camera answers cannot
+        drift apart.
+        """
+        if not cameras:
+            return {}
+
+        ids = [c.camera_id for c in cameras]
+
+        # 1. capture totals + failures, per camera
+        totals_rows = (
+            await db.execute(
+                select(
+                    Capture.camera_id,
+                    func.count(Capture.id).label("total"),
+                    func.sum(case((Capture.status == "failed", 1), else_=0)).label(
+                        "failed"
+                    ),
+                    func.count(func.distinct(Capture.capture_date)).label("days"),
+                )
+                .where(Capture.camera_id.in_(ids))
+                .group_by(Capture.camera_id)
             )
-        )
-        failed = failed_result.scalar() or 0
+        ).fetchall()
+        totals = {r.camera_id: r for r in totals_rows}
 
-        success_rate = ((total - failed) / total * 100) if total > 0 else 0.0
-
-        # Get timelapse count
-        timelapse_result = await db.execute(
-            select(func.count(Timelapse.id)).where(
-                Timelapse.camera_id == camera.camera_id,
+        # 2. timelapse counts, per camera
+        tl_rows = (
+            await db.execute(
+                select(Timelapse.camera_id, func.count(Timelapse.id).label("n"))
+                .where(Timelapse.camera_id.in_(ids))
+                .group_by(Timelapse.camera_id)
             )
-        )
-        timelapse_count = timelapse_result.scalar() or 0
+        ).fetchall()
+        timelapse_counts = {r.camera_id: int(r.n or 0) for r in tl_rows}
 
-        # Get distinct capture days
-        days_result = await db.execute(
-            select(func.count(func.distinct(Capture.capture_date))).where(
-                Capture.camera_id == camera.camera_id,
-            )
-        )
-        capture_days = days_result.scalar() or 0
-
-        # Get per-interval stats (today's captures by interval — success + failed)
-        # Business day: `Capture.capture_date` is the local calendar day the frame
-        # was filed under, so "today's captures" must use the same boundary.
+        # 3. today's captures by (camera, interval)
+        # Business day: `Capture.capture_date` is the local calendar day the frame was
+        # filed under, so "today's captures" must use the same boundary.
         today = business_day()
-        interval_stats_result = await db.execute(
-            select(
-                Capture.interval,
-                func.count(Capture.id).label("total"),
-                func.sum(case((Capture.status == "success", 1), else_=0)).label(
-                    "success"
-                ),
-                func.sum(case((Capture.status != "success", 1), else_=0)).label(
-                    "failed"
-                ),
-                func.min(Capture.timestamp).label("first_capture_ts"),
+        interval_rows = (
+            await db.execute(
+                select(
+                    Capture.camera_id,
+                    Capture.interval,
+                    func.sum(case((Capture.status == "success", 1), else_=0)).label(
+                        "success"
+                    ),
+                    func.sum(case((Capture.status != "success", 1), else_=0)).label(
+                        "failed"
+                    ),
+                    func.min(Capture.timestamp).label("first_capture_ts"),
+                )
+                .where(
+                    Capture.camera_id.in_(ids),
+                    Capture.capture_date == today,
+                )
+                .group_by(Capture.camera_id, Capture.interval)
+                .order_by(Capture.camera_id, Capture.interval)
             )
-            .where(
-                Capture.camera_id == camera.camera_id,
-                Capture.capture_date == today,
-            )
-            .group_by(Capture.interval)
-            .order_by(Capture.interval)
-        )
-        rows = interval_stats_result.fetchall()
+        ).fetchall()
 
-        # Calculate expected captures per interval from first capture of the day
         now_ts = int(datetime.now(UTC).timestamp())
-
-        # Build interval_stats dict from query results
-        interval_stats: dict[int, dict[str, Any]] = {}
-        for row in rows:
+        per_camera_intervals: dict[str, dict[int, dict[str, Any]]] = {}
+        for row in interval_rows:
             if row.first_capture_ts and row.interval > 0:
                 elapsed = max(0, now_ts - int(row.first_capture_ts))
-                expected = (
-                    int(elapsed / row.interval) + 1
-                )  # +1 includes the first capture itself
+                # +1 includes the first capture itself
+                expected = int(elapsed / row.interval) + 1
             else:
                 expected = 0
             success = int(row.success or 0)
             failed_count = int(row.failed or 0)
             rate = round(success / expected * 100, 1) if expected > 0 else 0.0
-            interval_stats[row.interval] = {
+            per_camera_intervals.setdefault(row.camera_id, {})[row.interval] = {
                 "success": success,
                 "failed": failed_count,
                 "expected": expected,
                 "rate": rate,
             }
 
-        # Determine effective intervals for this camera and include zero-capture intervals
-        effective_intervals = camera.enabled_intervals or global_intervals or []
-        for iv in effective_intervals:
-            if iv not in interval_stats:
-                interval_stats[iv] = {
-                    "success": 0,
-                    "failed": 0,
-                    "expected": 0,
-                    "rate": 0.0,
-                }
+        stats: dict[str, dict[str, Any]] = {}
+        for camera in cameras:
+            row = totals.get(camera.camera_id)
+            total = int(row.total or 0) if row else 0
+            failed = int(row.failed or 0) if row else 0
+            capture_days = int(row.days or 0) if row else 0
+            success_rate = ((total - failed) / total * 100) if total > 0 else 0.0
 
-        # Compute today_summary across all intervals
-        total_success_today = sum(d["success"] for d in interval_stats.values())
-        total_failed_today = sum(d["failed"] for d in interval_stats.values())
-        total_expected_today = sum(d["expected"] for d in interval_stats.values())
-        overall_rate = (
-            round(total_success_today / total_expected_today * 100, 1)
-            if total_expected_today > 0
-            else 0.0
-        )
-        today_summary = {
-            "success": total_success_today,
-            "failed": total_failed_today,
-            "expected": total_expected_today,
-            "rate": overall_rate,
-        }
+            interval_stats = per_camera_intervals.get(camera.camera_id, {})
+            # Include intervals the camera is configured for but has no captures on today
+            effective_intervals = camera.enabled_intervals or global_intervals or []
+            for iv in effective_intervals:
+                if iv not in interval_stats:
+                    interval_stats[iv] = {
+                        "success": 0,
+                        "failed": 0,
+                        "expected": 0,
+                        "rate": 0.0,
+                    }
+            interval_stats = dict(sorted(interval_stats.items()))
 
-        return {
-            "camera_id": camera.camera_id,
-            "name": camera.name,
-            "safe_name": camera.safe_name,
-            "total_captures": total,
-            "successful_captures": total - failed,
-            "failed_captures": failed,
-            "success_rate": round(success_rate, 2),
-            "last_capture_at": camera.last_capture_at,
-            "is_connected": camera.is_connected,
-            "captures_today": total_success_today + total_failed_today,
-            "timelapse_count": timelapse_count,
-            "capture_days": capture_days,
-            "interval_stats": interval_stats,
-            "today_summary": today_summary,
-        }
+            total_success_today = sum(d["success"] for d in interval_stats.values())
+            total_failed_today = sum(d["failed"] for d in interval_stats.values())
+            total_expected_today = sum(d["expected"] for d in interval_stats.values())
+            overall_rate = (
+                round(total_success_today / total_expected_today * 100, 1)
+                if total_expected_today > 0
+                else 0.0
+            )
+
+            stats[camera.camera_id] = {
+                "camera_id": camera.camera_id,
+                "name": camera.name,
+                "safe_name": camera.safe_name,
+                "total_captures": total,
+                "successful_captures": total - failed,
+                "failed_captures": failed,
+                "success_rate": round(success_rate, 2),
+                "last_capture_at": camera.last_capture_at,
+                "is_connected": camera.is_connected,
+                "captures_today": total_success_today + total_failed_today,
+                "timelapse_count": timelapse_counts.get(camera.camera_id, 0),
+                "capture_days": capture_days,
+                "interval_stats": interval_stats,
+                "today_summary": {
+                    "success": total_success_today,
+                    "failed": total_failed_today,
+                    "expected": total_expected_today,
+                    "rate": overall_rate,
+                },
+            }
+        return stats
 
     async def update_capture_settings(
         self,
