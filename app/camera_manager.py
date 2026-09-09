@@ -851,8 +851,14 @@ class CameraManager:
                 try:
                     process.kill()
                     await process.wait()
-                except Exception:
+                except ProcessLookupError:
+                    # Already exited between the timeout and the kill — the outcome we wanted
                     pass
+                except OSError as kill_error:
+                    logger.warning(
+                        "Could not kill timed-out capture process",
+                        extra={"error": str(kill_error)},
+                    )
                 return make_result(False, error=error_msg)
 
         except Exception as e:

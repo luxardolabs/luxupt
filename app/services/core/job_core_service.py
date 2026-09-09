@@ -1,7 +1,6 @@
 """Job service for timelapse job management and processing."""
 
 import asyncio
-import contextlib
 import json as json_module
 import os
 import signal
@@ -574,9 +573,16 @@ class JobProcessor:
                     "Output file failed decode validation; failing job",
                     extra={"job_id": job_id, "output": str(output_path)},
                 )
-                # Delete the corrupt file and any partial thumbnail
-                with contextlib.suppress(Exception):
+                # Delete the corrupt file and any partial thumbnail. Best-effort: a failure
+                # here must not mask the decode failure being reported, but it is logged --
+                # a leftover corrupt file is worth knowing about.
+                try:
                     await async_fs.path_unlink(output_path, missing_ok=True)
+                except OSError as unlink_error:
+                    logger.warning(
+                        "Could not delete corrupt output file",
+                        extra={"output": str(output_path), "error": str(unlink_error)},
+                    )
                 async with get_db_context() as db:
                     await job_crud.fail_job(
                         db,

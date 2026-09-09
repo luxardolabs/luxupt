@@ -1177,8 +1177,13 @@ class TimelapseService:
         finally:
             # Concat file is a per-run side artifact; delete on any exit path.
             if concat_file is not None:
-                with contextlib.suppress(Exception):
+                try:
                     await async_fs.path_unlink(concat_file, missing_ok=True)
+                except OSError as unlink_error:
+                    logger.warning(
+                        "Could not delete concat file",
+                        extra={"path": str(concat_file), "error": str(unlink_error)},
+                    )
 
     async def create_combined_timelapse_for_range(
         self,
@@ -1296,9 +1301,12 @@ class TimelapseService:
                     break
                 chunks.append(chunk.decode("utf-8", errors="ignore"))
         except asyncio.CancelledError:
+            # The drain task is cancelled when the process ends -- expected, not a failure.
             pass
-        except Exception:
-            pass
+        except OSError as read_error:
+            logger.warning(
+                "Failed reading ffmpeg stderr", extra={"error": str(read_error)}
+            )
         return "".join(chunks)
 
     async def _track_progress(

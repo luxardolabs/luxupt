@@ -709,7 +709,10 @@ class FetchService:
                             )
                             await session.commit()
                     except Exception:
-                        pass  # Don't let activity logging break the interval loop
+                        # Activity logging is best-effort and must not break the interval
+                        # loop -- but a discarded error is a failure that never happened as
+                        # far as anyone can tell, so it is logged rather than swallowed.
+                        logger.exception("Failed to log capture activity")
                 else:
                     # Get cameras from API (uses internal caching)
                     api_cameras = await self.camera_manager.get_cameras()
