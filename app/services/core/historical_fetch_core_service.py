@@ -31,6 +31,7 @@ from app.protect_client import ProtectClient, ProtectRequestError
 from app.schemas.capture_schema import CaptureCreate
 from app.schemas.historical_fetch_schema import HistoricalFetchResult
 from app.services.core.settings_core_service import SettingsCoreService
+from app.utils.async_fs import path_mkdir
 
 logger = get_logger(__name__)
 
@@ -196,7 +197,7 @@ class HistoricalFetchCoreService:
                         raise HistoricalJobCanceled()
 
                     path = _frame_path(job.camera_safe_name, job.interval, ts)
-                    path.parent.mkdir(parents=True, exist_ok=True)
+                    await path_mkdir(path.parent, parents=True, exist_ok=True)
 
                     fetch_start = time_module.time()
                     status = CaptureStatus.SUCCESS
@@ -205,7 +206,7 @@ class HistoricalFetchCoreService:
                     file_size: int | None = None
                     try:
                         jpg = await pc.historical_snapshot(camera.camera_id, ts)
-                        path.write_bytes(jpg)
+                        await asyncio.to_thread(path.write_bytes, jpg)
                         file_size = len(jpg)
                     except ProtectRequestError as e:
                         status = CaptureStatus.FAILED

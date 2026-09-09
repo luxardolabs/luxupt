@@ -29,6 +29,7 @@ import httpx
 import urllib3
 
 from app.logging_config import get_logger
+from app.utils.async_fs import path_mkdir
 
 logger = get_logger(__name__)
 
@@ -229,7 +230,7 @@ class ProtectClient:
         on this hardware. Use this for raw video export (Phase 2 event-manager
         use case) where Protect streams the on-disk MP4 directly (~45 MB/s).
         """
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        await path_mkdir(output_path.parent, parents=True, exist_ok=True)
         path = "/proxy/protect/api/video/export"
         params: dict[str, Any] = {
             "camera": camera_id,
@@ -274,9 +275,15 @@ class ProtectClient:
     ) -> None:
         total = int(resp.headers.get("content-length", 0)) or None
         current = 0
-        with output_path.open("wb") as f:
+        # Opened, written and closed off the loop. A video export is tens of megabytes, so a
+        # synchronous write per chunk would freeze every concurrent request on this worker
+        # for the whole download.
+        f = await asyncio.to_thread(output_path.open, "wb")
+        try:
             async for chunk in resp.aiter_bytes(chunk_size):
-                f.write(chunk)
+                await asyncio.to_thread(f.write, chunk)
                 current += len(chunk)
                 if progress_callback is not None:
                     await progress_callback(current, total)
+        finally:
+            await asyncio.to_thread(f.close)
