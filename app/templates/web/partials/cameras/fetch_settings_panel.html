@@ -3,7 +3,7 @@
 {% from "macros/icons.html" import icon %}
 {% from "macros/cards.html" import section_card %}
 {% from "macros/buttons.html" import primary, primary_loading, ghost, secondary, icon_button %}
-{% from "macros/forms.html" import select, text_input, toggle_row %}
+{% from "macros/forms.html" import select, text_input, toggle_row, toggle %}
 
 {{ panel_backdrop() }}
 
@@ -165,18 +165,12 @@
                     </div>
 
                     <!-- SSL Verification -->
-                    <label class="flex items-center justify-between cursor-pointer border-t border-surface-400/20 pt-4">
-                        <div>
-                            <span class="text-sm font-medium text-white">Verify SSL</span>
-                            <p class="text-xs text-surface-200">Disable for self-signed certificates{% if settings.verify_ssl is none %} <span class="text-surface-200">(ENV: {{ 'enabled' if api_config.verify_ssl else 'disabled' }})</span>{% endif %}</p>
-                        </div>
-                        <div class="relative">
-                            <input type="checkbox" name="verify_ssl" value="true" class="peer sr-only"
-                                   {{ 'checked' if settings.verify_ssl or (settings.verify_ssl is none and api_config.verify_ssl) }}>
-                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                        </div>
-                    </label>
+                    <div class="border-t border-surface-400/20 pt-4">
+                        {% call toggle_row("verify_ssl", "Verify SSL",
+                                           checked=(settings.verify_ssl or (settings.verify_ssl is none and api_config.verify_ssl))) %}
+                            Disable for self-signed certificates{% if settings.verify_ssl is none %} <span class="text-surface-200">(ENV: {{ 'enabled' if api_config.verify_ssl else 'disabled' }})</span>{% endif %}
+                        {% endcall %}
+                    </div>
 
                     <!-- Camera Refresh -->
                     <div class="flex items-center justify-between border-t border-surface-400/20 pt-4">
@@ -185,10 +179,10 @@
                             <p class="text-xs text-surface-200">How often to check for new cameras</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <input type="number" name="camera_refresh_interval"
-                                   value="{{ settings.camera_refresh_interval }}"
-                                   min="60" max="3600"
-                                   class="w-20 rounded-lg border border-surface-500 bg-surface-700 px-2 py-1.5 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            {{ text_input("camera_refresh_interval", type="number",
+                                          value=settings.camera_refresh_interval,
+                                          align="center", width="w-20",
+                                          extra_attrs='min="60" max="3600"') }}
                             <span class="text-xs text-surface-200">sec</span>
                         </div>
                     </div>
@@ -239,10 +233,8 @@
                             {{ icon('camera', 'w-4 h-4 text-surface-200 shrink-0') }}
                             <span class="text-sm text-white truncate">{{ camera.name }}</span>
                         </div>
-                        <div class="relative shrink-0 ml-2">
-                            <input type="checkbox" name="reactivate_cameras" value="{{ camera.camera_id }}" class="peer sr-only">
-                            <div class="h-6 w-11 rounded-full bg-surface-600 peer-checked:bg-primary-500 transition-colors"></div>
-                            <div class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                        <div class="shrink-0 ml-2">
+                            {{ toggle("reactivate_cameras", "", value=camera.camera_id) }}
                         </div>
                     </label>
                     {% endfor %}

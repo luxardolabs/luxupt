@@ -136,9 +136,9 @@
                             class="text-xs px-2.5 py-1 rounded-md border hover:bg-surface-600 transition-colors"
                             x-text="label({{ v }})"></button>
                     {% endfor %}
-                    <input type="number" name="interval" required min="5" max="86400" step="1"
-                           x-model.number="interval"
-                           class="w-20 rounded-md border border-surface-500 bg-surface-700 px-2 py-1 text-sm text-white text-center focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    {{ text_input("interval", type="number", required=true,
+                                  align="center", width="w-20",
+                                  extra_attrs='min="5" max="86400" step="1" x-model.number="interval"') }}
                     <span class="text-xs text-surface-200 whitespace-nowrap">seconds (5–86400)</span>
                 </div>
                 <p class="text-xs text-surface-200 mt-1.5">Frames snap to ~5s keyframes.</p>
