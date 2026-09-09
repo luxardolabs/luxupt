@@ -136,15 +136,16 @@ class ImagesViewService:
         *,
         camera: str | None,
         date_str: str | None,
-        interval: int | None,
     ) -> dict[int, str]:
         """Lightbox URL per capture, keyed by capture id (fw.url_assembly_in_view).
 
         The card macro used to assemble this itself: three conditional appends, a join, and a
         concat — real logic in the render layer. Each URL carries the active filters so
         lightbox navigation stays inside the current result set, plus the capture's OWN
-        interval, because the same timestamp can exist at several intervals. urlencode
-        escapes the values; the string concatenation did not.
+        interval, because the same timestamp can exist at several intervals — which is why
+        this deliberately does NOT take the active interval FILTER: it would be the wrong
+        value to put in the URL. urlencode escapes the values; the string concatenation did
+        not.
         """
         urls: dict[int, str] = {}
         for image in images:
@@ -210,7 +211,7 @@ class ImagesViewService:
         return {
             "images": images,
             "image_urls": self._build_image_card_urls(
-                images, camera=camera, date_str=date_str, interval=interval
+                images, camera=camera, date_str=date_str
             ),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
@@ -261,7 +262,7 @@ class ImagesViewService:
         return {
             "images": images,
             "image_urls": self._build_image_card_urls(
-                images, camera=camera, date_str=date_str, interval=interval
+                images, camera=camera, date_str=date_str
             ),
             "filters": {
                 "camera": camera,

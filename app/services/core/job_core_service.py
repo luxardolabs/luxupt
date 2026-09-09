@@ -326,7 +326,6 @@ class JobProcessor:
         self,
         job_id: str,
         progress: float,
-        status: str,
         message: str,
         current_image: str | None = None,
     ) -> None:
@@ -335,6 +334,10 @@ class JobProcessor:
         Called every PROGRESS_UPDATE_INTERVAL seconds per job (default 15s).
         Writes are awaited directly (not fire-and-forget) so they never pile up
         or exhaust the connection pool.
+
+        Progress only — it does NOT carry status. It used to accept one, computed by the
+        caller and then dropped on the floor here, which read like a status report and was
+        not one. The job's status is owned by start_job / complete_job / fail_job.
         """
         try:
             async with get_db_context() as db:
@@ -422,7 +425,6 @@ class JobProcessor:
                     await self.update_job_progress(
                         job_id,
                         5,
-                        "running",
                         "Keeping images for this job (job override)",
                     )
 

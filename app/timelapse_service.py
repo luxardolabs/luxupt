@@ -67,7 +67,6 @@ class JobProgressCallback(Protocol):
         self,
         job_id: str,
         progress: float,
-        status: str,
         message: str,
         current_image: str | None = None,
     ) -> None:
@@ -1376,15 +1375,8 @@ class TimelapseService:
             and self._current_job_id
         ):
             try:
-                status = (
-                    "completed"
-                    if progress == 100
-                    else "failed"
-                    if progress < 0
-                    else "running"
-                )
                 await self._progress_callback.update_job_progress(
-                    self._current_job_id, progress, status, message, current_image
+                    self._current_job_id, progress, message, current_image
                 )
             except Exception as e:
                 logger.exception(
