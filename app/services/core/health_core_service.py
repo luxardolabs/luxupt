@@ -62,7 +62,10 @@ class HealthCoreService:
             # Check if we have any cameras discovered
             cameras = await self.camera_manager.get_cameras()
             camera_count = len(cameras) if cameras else 0
+            # post-db-filter: `cameras` is the UniFi Protect API response, not a query —
+            # there is no WHERE to push this into.
             connected_count = (
+                # post-db-filter: the Protect API response, not a query — no WHERE to use
                 sum(1 for c in cameras if c.is_connected) if cameras else 0
             )
 

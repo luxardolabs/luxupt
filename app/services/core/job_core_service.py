@@ -391,7 +391,7 @@ class JobProcessor:
                 if job_obj.job_type in ("historical", "historical_combined"):
                     try:
                         result = await HistoricalFetchCoreService().run_historical_job(
-                            job_obj
+                            job_id
                         )
                     except HistoricalJobCanceled:
                         logger.info("Historical job canceled", extra={"job_id": job_id})

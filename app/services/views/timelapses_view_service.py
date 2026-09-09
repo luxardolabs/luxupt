@@ -776,8 +776,11 @@ class TimelapsesViewService:
         active_jobs = await self.job_service.get_active()
         completed_jobs = await self.job_service.get_completed(limit=8)
 
-        # Split active jobs into running and pending
+        # Split active jobs into running and pending. This is a 2-way partition of one
+        # already-fetched list — two queries to avoid one pass over it would be slower.
+        # post-db-filter: partitions an already-fetched result set
         running_jobs = [j for j in active_jobs if j.status == "running"]
+        # post-db-filter: the other half of the partition above
         pending_jobs = [j for j in active_jobs if j.status == "pending"]
 
         return {
@@ -812,8 +815,11 @@ class TimelapsesViewService:
         summary = await self.job_service.get_summary()
         scheduler_settings = await self.settings_service.get_scheduler_settings()
 
-        # Split active jobs into running and pending
+        # Split active jobs into running and pending. This is a 2-way partition of one
+        # already-fetched list — two queries to avoid one pass over it would be slower.
+        # post-db-filter: partitions an already-fetched result set
         running_jobs = [j for j in active_jobs if j.status == "running"]
+        # post-db-filter: the other half of the partition above
         pending_jobs = [j for j in active_jobs if j.status == "pending"]
 
         # Cap display columns at 4 for running jobs

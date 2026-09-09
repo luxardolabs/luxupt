@@ -107,12 +107,19 @@ class MetricsCoreService:
             cameras = await camera_crud.get_multi(db, limit=1000)
             total_cameras = len(cameras) if cameras else 0
 
-            # Count by status
+            # Count by status. The rows are ALREADY loaded for total_cameras, so counting
+            # three attributes off that one list is one round-trip; pushing each into its own
+            # WHERE would be four, to serve a single Prometheus scrape.
+            # post-db-filter: counted off an already-loaded result set, not a second query
             active_cameras = sum(1 for c in cameras if c.is_active) if cameras else 0
+            # post-db-filter: same result set as active_cameras above
             connected_cameras = (
+                # post-db-filter: same already-loaded result set as active_cameras
                 sum(1 for c in cameras if c.is_connected) if cameras else 0
             )
+            # post-db-filter: same result set as active_cameras above
             recording_cameras = (
+                # post-db-filter: same already-loaded result set as active_cameras
                 sum(1 for c in cameras if c.is_recording) if cameras else 0
             )
 

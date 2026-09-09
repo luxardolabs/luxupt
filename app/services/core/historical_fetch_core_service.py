@@ -26,7 +26,6 @@ from app.crud.job_crud import job_crud
 from app.db.connection import get_db_context
 from app.logging_config import get_logger
 from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus
-from app.models.job_model import Job
 from app.protect_client import ProtectClient, ProtectRequestError
 from app.schemas.capture_schema import CaptureCreate
 from app.schemas.historical_fetch_schema import HistoricalFetchResult
@@ -117,15 +116,28 @@ class HistoricalFetchCoreService:
 
     async def run_historical_job(
         self,
-        job: Job,
+        job_id: str,
         *,
         concurrency: int = DEFAULT_CONCURRENCY,
     ) -> HistoricalFetchResult:
-        """Fetch all historical frames for a Job and write them to the image tree.
+        """Fetch all historical frames for a job and write them to the image tree.
+
+        Takes the job's ID and refetches, rather than accepting a handed-in ORM ``Job``.
+        A core service that accepts a model instance inherits whatever session that
+        instance came from — and this method runs long enough (a full day of frames) that
+        the caller's session is closed well before it finishes, so every attribute read
+        here would be a detached-instance gamble. Refetching also means the job_type and
+        window it validates are the ones in the database now, not a snapshot from before
+        the fetch started.
 
         Does NOT render video — the caller (JobProcessor) invokes
         TimelapseService._create_video() afterwards.
         """
+        async with get_db_context() as session:
+            job = await job_crud.get_by_job_id(session, job_id)
+        if job is None:
+            raise ValueError(f"job {job_id!r} not found")
+
         if job.job_type not in ("historical", "historical_combined"):
             raise ValueError(f"run_historical_job called on job_type={job.job_type!r}")
         if job.start_at is None or job.end_at is None:
