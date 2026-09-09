@@ -1,6 +1,6 @@
 """System and settings routes."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
@@ -140,7 +140,7 @@ async def about_page(
 ) -> Response:
     """Render the about page with all data loaded at once."""
     start_time = get_start_time(request)
-    uptime_seconds = (datetime.now() - start_time).total_seconds()
+    uptime_seconds = (datetime.now(UTC) - start_time).total_seconds()
 
     context = await view_service.get_about_context(uptime_seconds)
 

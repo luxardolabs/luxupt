@@ -1,6 +1,6 @@
 """Timelapses view service for preparing timelapse template data."""
 
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,7 @@ from app.services.views._camera_options import (
     build_job_card_urls,
     build_timelapse_card_urls,
 )
+from app.utils.timezones import business_day, display_zone, to_display
 
 logger = get_logger(__name__)
 
@@ -58,7 +59,7 @@ class TimelapsesViewService:
         Protect's recording-snapshot endpoint 404s on too-recent timestamps, so an end time
         that lands within `lag_seconds` of now is pulled back to now - lag_seconds.
         """
-        candidate = datetime.combine(day, end_t).astimezone()
+        candidate = datetime.combine(day, end_t, tzinfo=display_zone())
         if day == now_local.date():
             return min(candidate, now_local - timedelta(seconds=lag_seconds))
         return candidate
@@ -106,7 +107,6 @@ class TimelapsesViewService:
             available_dates = []
         return {
             "available_dates": available_dates,
-            "available_date_options": build_date_options(available_dates),
             "available_date_options": build_date_options(available_dates),
         }
 
@@ -288,7 +288,9 @@ class TimelapsesViewService:
         update_data = {
             "enabled": is_enabled,
             # Convert run_time string from form to time object
-            "run_time": datetime.strptime(run_time, "%H:%M").time(),
+            # A recurring WALL CLOCK ("run at 02:00"), not an instant — parsed as a time,
+            # so there is no zone to get wrong. strptime here built a naive 1900-01-01.
+            "run_time": time.fromisoformat(run_time),
             "days_ago": days_ago,
             "source": source_choice,
             "concurrent_jobs": concurrent_jobs,
@@ -433,7 +435,7 @@ class TimelapsesViewService:
         available per camera before submitting a job.
         """
         cameras = await self.camera_service.get_active()
-        yesterday = date.today() - timedelta(days=1)
+        yesterday = business_day() - timedelta(days=1)
         scheduler_settings = await self.settings_service.get_scheduler_settings()
         global_recreate = bool(scheduler_settings.recreate_existing)
 
@@ -463,7 +465,9 @@ class TimelapsesViewService:
                             oldest_d = oldest.date()
                             newest_d = newest.date()
                             # Default to yesterday if it's in the range, else clamp to range
-                            default_d = min(newest_d, date.today() - timedelta(days=1))
+                            default_d = min(
+                                newest_d, business_day() - timedelta(days=1)
+                            )
                             if default_d < oldest_d:
                                 default_d = oldest_d
                             camera_ranges[cam.camera_id] = {
@@ -497,7 +501,7 @@ class TimelapsesViewService:
             union_newest = max(str(r["newest"]) for r in camera_ranges.values())
             # Default to yesterday if it's within union, else the newest
             default_d = min(
-                date.fromisoformat(union_newest), date.today() - timedelta(days=1)
+                date.fromisoformat(union_newest), business_day() - timedelta(days=1)
             )
             if default_d < date.fromisoformat(union_oldest):
                 default_d = date.fromisoformat(union_oldest)
@@ -556,14 +560,13 @@ class TimelapsesViewService:
             # Recording-write lag: Protect needs ~60s before a frame is in the recording stream.
             # If the end date is in the future entirely, reject. If it's today (or past)
             # with a time that crosses the lag boundary, clamp silently.
-            now_local = datetime.now().astimezone()
+            now_local = to_display(datetime.now(UTC))
             if end_d > now_local.date():
                 return {"success": False, "error": "End date cannot be in the future."}
             # If end_t for the actual end_d already lands in the past, fine. If end_d is today
             # and end_t pushes into the future, end_at_for will clamp to the recording-lag threshold.
-            if (
-                self.end_at_for(end_d, end_t, now_local)
-                <= datetime.combine(start_d, start_t).astimezone()
+            if self.end_at_for(end_d, end_t, now_local) <= datetime.combine(
+                start_d, start_t, tzinfo=display_zone()
             ):
                 return {
                     "success": False,
@@ -585,7 +588,7 @@ class TimelapsesViewService:
             recreated_jobs: list[str] = []  # job_ids we cancelled+deleted to re-run
 
             if output_mode == "combined":
-                start_at = datetime.combine(start_d, start_t).astimezone()
+                start_at = datetime.combine(start_d, start_t, tzinfo=display_zone())
                 end_at = self.end_at_for(end_d, end_t, now_local)
                 existing = await self.job_service.get_active_combined_job(
                     camera_safe_name=camera_safe_name,
@@ -656,7 +659,7 @@ class TimelapsesViewService:
                             await self.job_service.cancel_job(existing_job.job_id)
                             await self.job_service.delete_job(existing_job.job_id)
                             recreated_jobs.append(existing_job.job_id)
-                    start_at = datetime.combine(day, start_t).astimezone()
+                    start_at = datetime.combine(day, start_t, tzinfo=display_zone())
                     end_at = self.end_at_for(day, end_t, now_local)
                     # Skip days whose end clamps to before/equal-to start (e.g., today before 00:01)
                     if end_at <= start_at:

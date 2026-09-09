@@ -8,7 +8,7 @@ import signal
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from datetime import time as dt_time
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
@@ -32,6 +32,7 @@ from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.utils import async_fs
+from app.utils.timezones import display_zone, to_display
 
 # Module logger
 logger = get_logger(__name__)
@@ -373,7 +374,10 @@ class TimelapseService:
                         await asyncio.sleep(60)
                         continue
 
-                    now = datetime.now()
+                    # Display zone, deliberately: the scheduler fires at a wall-clock
+                    # time the user configured ("run at 02:00"), which is a recurring
+                    # local time, not a UTC instant.
+                    now = to_display(datetime.now(UTC))
                     today = now.date()
 
                     # Check if it's time to run (within the current minute)
@@ -393,10 +397,14 @@ class TimelapseService:
                         last_run_key = run_key
 
                         # Time to create time-lapses
-                        start_time = datetime.now()
+                        start_time = datetime.now(UTC)
                         logger.info(
                             "Starting scheduled timelapse creation",
-                            extra={"time": start_time.strftime("%Y-%m-%d %H:%M:%S")},
+                            extra={
+                                "time": to_display(start_time).strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                )
+                            },
                         )
 
                         try:
@@ -412,7 +420,8 @@ class TimelapseService:
                             )
 
                             await self._create_timelapses_for_date(
-                                datetime.now() - timedelta(days=days_ago),
+                                to_display(datetime.now(UTC))
+                                - timedelta(days=days_ago),
                                 enabled_cameras=enabled_cameras,
                                 enabled_intervals=enabled_intervals,
                                 keep_images=keep_images,
@@ -429,7 +438,7 @@ class TimelapseService:
                                 extra={"error": str(e)},
                             )
 
-                        end_time = datetime.now()
+                        end_time = datetime.now(UTC)
                         duration_seconds = (end_time - start_time).total_seconds()
                         logger.info(
                             "Scheduled timelapse creation completed",
@@ -656,8 +665,12 @@ class TimelapseService:
 
         day = target_date.date()
         # Whole day; the historical fetch clamps any too-recent timestamps (recording lag).
-        start_at = datetime.combine(day, dt_time(0, 0)).astimezone()
-        end_at = datetime.combine(day, dt_time(23, 59)).astimezone()
+        # Business zone: `day` names a local calendar day (it is the date in the title
+        # and the archive folder), so its bounds are that day's local midnight-to-23:59
+        # expressed as UTC instants — not 00:00 UTC, which would be the wrong day.
+        zone = display_zone()
+        start_at = datetime.combine(day, dt_time(0, 0), tzinfo=zone).astimezone(UTC)
+        end_at = datetime.combine(day, dt_time(23, 59), tzinfo=zone).astimezone(UTC)
 
         async with get_db_context() as db:
             existing = await job_crud.get_job_for_camera_date(
@@ -1480,7 +1493,7 @@ class TimelapseService:
             resolution=resolution,
             thumbnail_path=thumbnail_path,
             status="completed",
-            completed_at=datetime.now(),
+            completed_at=datetime.now(UTC),
         )
         db.add(timelapse)
 
@@ -1596,7 +1609,9 @@ class TimelapseService:
         Args:
             days_ago: Number of days ago to create time-lapses for (default: 1)
         """
-        target_date = datetime.now() - timedelta(days=days_ago)
+        # Display zone: target_date NAMES a day (it becomes the archive folder and the
+        # timelapse title), so it is resolved against the local calendar.
+        target_date = to_display(datetime.now(UTC)) - timedelta(days=days_ago)
 
         if not hasattr(self, "camera_manager"):
             cm_settings = await self._load_camera_manager_settings()

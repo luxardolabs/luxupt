@@ -5,7 +5,7 @@ import json as json_module
 import os
 import signal
 import subprocess
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,7 @@ from app.services.core.historical_fetch_core_service import (
 )
 from app.timelapse_service import EncodingSettings, TimelapseService
 from app.utils import async_fs
+from app.utils.timezones import display_zone
 
 logger = get_logger(__name__)
 
@@ -431,7 +432,11 @@ class JobProcessor:
                 await timelapse_service.camera_manager.__aenter__()
 
                 try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    # A calendar day, parsed as one: strptime would build a naive
+                    # midnight instant whose zone is whatever the process happens to
+                    # be in. This day is the archive folder and the title.
+                    day = date.fromisoformat(date_str)
+                    date_obj = datetime.combine(day, time(0, 0), tzinfo=display_zone())
 
                     if job_obj.job_type == "historical_combined":
                         # Multi-day combined assembly — globs across the date range
@@ -635,7 +640,7 @@ class JobProcessor:
                     "resolution": resolution,
                     "thumbnail_path": thumbnail_path,
                     "status": "completed",
-                    "completed_at": datetime.now(),
+                    "completed_at": datetime.now(UTC),
                 },
             )
             await db.commit()

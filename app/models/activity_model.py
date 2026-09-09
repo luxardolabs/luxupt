@@ -3,11 +3,12 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Index, Integer, String, Text
+from sqlalchemy import Index, Integer, String, Text
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UtcDateTime
 from app.models.enum_model import ActivityType, str_enum
 
 
@@ -19,9 +20,7 @@ class Activity(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # Event metadata
-    timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
-    )
+    timestamp: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False, index=True)
     activity_type: Mapped[ActivityType] = mapped_column(
         str_enum(ActivityType, length=64), nullable=False, index=True
     )

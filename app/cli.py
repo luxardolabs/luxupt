@@ -3,7 +3,7 @@
 """CLI commands for the application."""
 
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.db.connection import get_db_context
 from app.fetch_service import FetchService
@@ -76,7 +76,7 @@ async def test_cameras() -> None:
         await fetch_service.start()
 
         # Do a one-off capture at 60s interval
-        timestamp = int(datetime.now().timestamp())
+        timestamp = int(datetime.now(UTC).timestamp())
         results = await fetch_service.capture_once(timestamp, interval=60)
 
         # Report results

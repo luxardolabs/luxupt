@@ -5,7 +5,7 @@ import os
 import platform
 import shutil
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app import config
@@ -22,6 +22,7 @@ from app.services.views._camera_options import (
     build_camera_options,
     build_job_card_urls,
 )
+from app.utils.timezones import business_day, to_display
 
 
 class SystemViewService:
@@ -224,7 +225,7 @@ class SystemViewService:
         # slicing a strftime("%z") string (fw.strftime_is_display_only; the slicing was also
         # fragile — it assumed a fixed-width ±HHMM and silently produced junk otherwise).
         # This reports a configuration FACT about the host, not a timestamp for a viewer.
-        offset = datetime.now().astimezone().utcoffset() or timedelta(0)
+        offset = to_display(datetime.now(UTC)).utcoffset() or timedelta(0)
         total_minutes = int(offset.total_seconds()) // 60
         sign = "+" if total_minutes >= 0 else "-"
         hours, minutes = divmod(abs(total_minutes), 60)
@@ -275,7 +276,9 @@ class SystemViewService:
             activity_types = [show]
 
         hours, period_label = self.PERIODS.get(period, self.PERIODS["7d"])
-        since = datetime.now() - timedelta(hours=hours) if hours is not None else None
+        since = (
+            datetime.now(UTC) - timedelta(hours=hours) if hours is not None else None
+        )
 
         total = await self.activity_service.count(
             activity_types=activity_types,
@@ -389,8 +392,8 @@ class SystemViewService:
         domain objects + custom filters, so the fixtures are built here (real
         datetimes, real Pagination DTO) and passed into the template. Never
         hand-roll pagination state in the template (fw.template_pagination)."""
-        now = datetime.now()
-        today = now.date().isoformat()
+        now = datetime.now(UTC)
+        today = business_day(now).isoformat()
 
         return {
             "demo_camera_urls": build_camera_card_urls("demo-cam-1"),

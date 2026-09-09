@@ -2,10 +2,11 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import UtcDateTime
 
 
 class User(Base, TimestampMixin):
@@ -31,9 +32,7 @@ class User(Base, TimestampMixin):
     auth_source: Mapped[str] = mapped_column(
         String(32), default=SOURCE_DATABASE, nullable=False
     )
-    last_login_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_login_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
 
     @property
     def is_env_managed(self) -> bool:

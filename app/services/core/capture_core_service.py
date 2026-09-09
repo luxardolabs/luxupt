@@ -1,6 +1,6 @@
 """Capture service for managing snapshot captures with database integration."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -38,7 +38,7 @@ class CaptureCoreService:
         capture_duration_ms: int | None = None,
     ) -> None:
         """Record a successful capture to the database."""
-        capture_datetime = datetime.fromtimestamp(timestamp)
+        capture_datetime = datetime.fromtimestamp(timestamp, UTC)
 
         # Get camera DB ID if available
         camera = await camera_crud.get_by_camera_id(self.db, camera_id)
@@ -87,7 +87,7 @@ class CaptureCoreService:
         capture_method: str = "api",
     ) -> None:
         """Record a failed capture to the database."""
-        capture_datetime = datetime.fromtimestamp(timestamp)
+        capture_datetime = datetime.fromtimestamp(timestamp, UTC)
 
         # Get camera DB ID if available
         camera = await camera_crud.get_by_camera_id(self.db, camera_id)

@@ -7,7 +7,7 @@ Phase 3 to the inline pre-commit asyncio.create_task deletes the files even on r
 """
 
 import asyncio
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -21,13 +21,13 @@ Maker = async_sessionmaker[AsyncSession]
 
 
 async def _seed(session: AsyncSession, img: Path) -> None:
-    img.write_bytes(b"img")
+    await asyncio.to_thread(img.write_bytes, b"img")
     session.add(
         Capture(
             camera_id="cam-uuid-1",
             camera_safe_name="front_door",
             timestamp=1735732800,
-            capture_datetime=datetime(2026, 1, 1, 12, 0, 0),
+            capture_datetime=datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC),
             capture_date=date(2026, 1, 1),
             interval=60,
             status=CaptureStatus.SUCCESS,
@@ -44,7 +44,7 @@ async def _count(maker: Maker) -> int:
 
 async def _wait_gone(path: Path, tries: int = 100) -> None:
     for _ in range(tries):
-        if not path.exists():
+        if not await asyncio.to_thread(path.exists):
             return
         await asyncio.sleep(0.02)
 

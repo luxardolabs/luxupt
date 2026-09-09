@@ -2,7 +2,7 @@
 
 import asyncio
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.crud.backup_settings_crud import backup_settings_crud
@@ -74,7 +74,7 @@ class BackupCoreService:
         # Filename/identifier stamp -- machine output, not display: filesystem-safe, sortable,
         # and kept on the line that names the extension so it reads as the filename it is
         # (fw.strftime_is_display_only explicitly exempts this shape).
-        backup_file = backup_path / f"timelapse_{datetime.now():%Y%m%d_%H%M%S}.db"
+        backup_file = backup_path / f"timelapse_{datetime.now(UTC):%Y%m%d_%H%M%S}.db"
 
         try:
             # Use SQLite's backup API (hot backup, works while DB is in use)

@@ -1,13 +1,14 @@
 """Camera SQLAlchemy model."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import UtcDateTime
 from app.models.enum_model import CaptureMethod, str_enum
 
 if TYPE_CHECKING:
@@ -47,12 +48,8 @@ class Camera(Base, TimestampMixin):
     state: Mapped[str] = mapped_column(
         String(32), default="DISCONNECTED", nullable=False
     )
-    last_seen_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    last_capture_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_seen_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    last_capture_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
 
     total_captures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     failed_captures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -77,7 +74,7 @@ class Camera(Base, TimestampMixin):
 
     # Discovery tracking
     first_discovered_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        UtcDateTime, nullable=True
     )
 
     # Relationships
@@ -116,7 +113,7 @@ class Camera(Base, TimestampMixin):
             has_speaker=feature_flags.get("hasSpeaker", False),
             smart_detect_types=feature_flags.get("smartDetectTypes"),
             state=camera_data.get("state", "DISCONNECTED"),
-            last_seen_at=datetime.now()
+            last_seen_at=datetime.now(UTC)
             if camera_data.get("state") == "CONNECTED"
             else None,
         )

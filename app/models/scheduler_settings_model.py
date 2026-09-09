@@ -2,11 +2,12 @@
 
 from datetime import datetime, time
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Time
+from sqlalchemy import Boolean, Integer, String, Time
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import UtcDateTime
 from app.models.enum_model import ScheduleSource, str_enum
 
 
@@ -54,9 +55,7 @@ class SchedulerSettings(Base, TimestampMixin):
     )
 
     # When scheduler last ran
-    last_run_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_run_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
 
     # ===========================================
     # FFmpeg/Encoding Settings

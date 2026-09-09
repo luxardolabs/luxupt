@@ -32,6 +32,7 @@ from app.schemas.capture_schema import CaptureCreate
 from app.schemas.historical_fetch_schema import HistoricalFetchResult
 from app.services.core.settings_core_service import SettingsCoreService
 from app.utils.async_fs import path_mkdir
+from app.utils.timezones import business_day, display_zone
 
 logger = get_logger(__name__)
 
@@ -51,28 +52,27 @@ def _expand_timestamps(
 ) -> list[datetime]:
     """Expand a range + optional daily window into the list of timestamps to fetch."""
     timestamps: list[datetime] = []
-    cur_date = start_at.date()
-    last_date = end_at.date()
+    # A daily window is a WALL CLOCK the user set ("capture 08:00-18:00"), so both the
+    # day boundaries and the window bounds are resolved in the business zone and then
+    # converted back to UTC instants. Resolving them against start_at's own zone would
+    # silently mean UTC now that job timestamps are stored aware-UTC.
+    zone = display_zone()
+    cur_date = business_day(start_at)
+    last_date = business_day(end_at)
     step = timedelta(seconds=interval_seconds)
 
     while cur_date <= last_date:
         if daily_start is not None and daily_end is not None:
-            window_start = datetime.combine(
-                cur_date, daily_start, tzinfo=start_at.tzinfo
-            )
-            window_end_naive = datetime.combine(
-                cur_date, daily_end, tzinfo=start_at.tzinfo
-            )
+            window_start = datetime.combine(cur_date, daily_start, tzinfo=zone)
+            window_end_naive = datetime.combine(cur_date, daily_end, tzinfo=zone)
             # If end-of-day rolls past midnight, push to next day
             if daily_end <= daily_start:
                 window_end_naive += timedelta(days=1)
             window_end = window_end_naive
         else:
-            window_start = datetime.combine(
-                cur_date, time(0, 0), tzinfo=start_at.tzinfo
-            )
+            window_start = datetime.combine(cur_date, time(0, 0), tzinfo=zone)
             window_end = datetime.combine(
-                cur_date + timedelta(days=1), time(0, 0), tzinfo=start_at.tzinfo
+                cur_date + timedelta(days=1), time(0, 0), tzinfo=zone
             )
 
         cur = max(window_start, start_at)

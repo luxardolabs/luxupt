@@ -1,6 +1,6 @@
 """CRUD operations for Camera model."""
 
-from datetime import date, datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import case, func, select
@@ -11,6 +11,7 @@ from app.models.camera_model import Camera
 from app.models.capture_model import Capture
 from app.models.timelapse_model import Timelapse
 from app.schemas.camera_schema import CameraCreate, CameraUpdate
+from app.utils.timezones import business_day
 
 
 class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
@@ -87,7 +88,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         if is_connected is not None:
             update_data["is_connected"] = is_connected
             if is_connected:
-                update_data["last_seen_at"] = datetime.now()
+                update_data["last_seen_at"] = datetime.now(UTC)
         if is_recording is not None:
             update_data["is_recording"] = is_recording
         if state is not None:
@@ -112,7 +113,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         camera.total_captures += 1
         if not success:
             camera.failed_captures += 1
-        camera.last_capture_at = datetime.now()
+        camera.last_capture_at = datetime.now(UTC)
 
         db.add(camera)
         await db.flush()
@@ -166,7 +167,9 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         capture_days = days_result.scalar() or 0
 
         # Get per-interval stats (today's captures by interval — success + failed)
-        today = date.today()
+        # Business day: `Capture.capture_date` is the local calendar day the frame
+        # was filed under, so "today's captures" must use the same boundary.
+        today = business_day()
         interval_stats_result = await db.execute(
             select(
                 Capture.interval,
@@ -189,7 +192,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         rows = interval_stats_result.fetchall()
 
         # Calculate expected captures per interval from first capture of the day
-        now_ts = int(datetime.now().timestamp())
+        now_ts = int(datetime.now(UTC).timestamp())
 
         # Build interval_stats dict from query results
         interval_stats: dict[int, dict[str, Any]] = {}
@@ -341,7 +344,7 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
             return None
 
         if camera.first_discovered_at is None:
-            camera.first_discovered_at = datetime.now()
+            camera.first_discovered_at = datetime.now(UTC)
             db.add(camera)
             await db.flush()
             await db.refresh(camera)

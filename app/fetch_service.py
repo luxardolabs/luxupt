@@ -3,7 +3,7 @@
 import asyncio
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,7 @@ from app.logging_config import get_logger
 from app.models.enum_model import ActivityType, CaptureMethod, CaptureStatus
 from app.schemas.capture_schema import CaptureCreate
 from app.services.core.image_core_service import image_service
+from app.utils.timezones import business_day, to_display
 
 # Module logger
 logger = get_logger(__name__)
@@ -193,7 +194,7 @@ class FetchService:
 
                     # Set defaults for new cameras only
                     if not existing:
-                        camera_data["first_discovered_at"] = datetime.now()
+                        camera_data["first_discovered_at"] = datetime.now(UTC)
                         camera_data["is_active"] = True
                         camera_data["capture_method"] = "rtsp"
                         camera_data["rtsp_quality"] = "high"
@@ -635,9 +636,9 @@ class FetchService:
                 extra={
                     "interval": interval,
                     "sleep_seconds": round(sleep_time, 1),
-                    "scheduled_time": datetime.fromtimestamp(next_aligned_ts).strftime(
-                        "%H:%M:%S"
-                    ),
+                    "scheduled_time": to_display(
+                        datetime.fromtimestamp(next_aligned_ts, UTC)
+                    ).strftime("%H:%M:%S"),
                 },
             )
             await asyncio.sleep(sleep_time)
@@ -678,7 +679,9 @@ class FetchService:
 
             # Use the aligned timestamp for this capture
             timestamp = next_aligned_ts
-            capture_time = datetime.fromtimestamp(timestamp)
+            # Display zone: capture_time is only ever rendered as %H:%M:%S into log
+            # `extra` fields, and an operator reading those wants their own wall clock.
+            capture_time = to_display(datetime.fromtimestamp(timestamp, UTC))
 
             try:
                 # Clean up completed tasks
@@ -966,7 +969,10 @@ class FetchService:
                 rtsp_quality = settings.get("rtsp_quality") or default_rtsp_quality
 
                 # Build output path - use appropriate extension based on capture method
-                date_obj = datetime.fromtimestamp(timestamp)
+                # Business day, not UTC: the archive on disk is already foldered by
+                # local date, so a UTC boundary would file every evening capture under
+                # tomorrow and orphan everything written before this change.
+                date_obj = business_day(datetime.fromtimestamp(timestamp, UTC))
                 year = date_obj.strftime("%Y")
                 month = date_obj.strftime("%m")
                 day = date_obj.strftime("%d")
@@ -1145,7 +1151,7 @@ class FetchService:
             async with get_db_context() as session:
                 for _camera_name, result in results.items():
                     # Store local datetime
-                    capture_datetime = datetime.fromtimestamp(result.timestamp)
+                    capture_datetime = datetime.fromtimestamp(result.timestamp, UTC)
 
                     # Extract file name from path
                     file_name = (
@@ -1191,7 +1197,7 @@ class FetchService:
                             result.camera_safe_name,
                             result.timestamp,
                             result.interval,
-                            datetime.fromtimestamp(result.timestamp).date(),
+                            business_day(datetime.fromtimestamp(result.timestamp, UTC)),
                         )
 
                 await session.commit()

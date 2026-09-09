@@ -1,6 +1,6 @@
 """CRUD operations for Job model."""
 
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from typing import Any
 
 from sqlalchemy import func, or_, select, update
@@ -119,7 +119,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             daily_window_end=daily_window_end,
             status=JobStatus.PENDING,
             progress=0.0,
-            created_at=datetime.now(),
+            created_at=datetime.now(UTC),
         )
         db.add(job)
         await db.flush()
@@ -133,7 +133,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             return None
 
         job.status = JobStatus.RUNNING
-        job.started_at = datetime.now()
+        job.started_at = datetime.now(UTC)
         job.message = "Processing..."
 
         db.add(job)
@@ -188,7 +188,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
 
         job.status = JobStatus.COMPLETED
         job.progress = 100.0
-        job.completed_at = datetime.now()
+        job.completed_at = datetime.now(UTC)
         job.message = "Completed"
         job.pid = None  # Clear PID on completion
         job.output_file = output_file
@@ -214,7 +214,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             return None
 
         job.status = JobStatus.FAILED
-        job.completed_at = datetime.now()
+        job.completed_at = datetime.now(UTC)
         job.pid = None  # Clear PID on failure
         # Only set message to "Failed" if no error message was already set
         if (
@@ -237,7 +237,7 @@ class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
             return None
 
         job.status = JobStatus.CANCELLED
-        job.completed_at = datetime.now()
+        job.completed_at = datetime.now(UTC)
         job.message = "Cancelled"
         job.pid = None  # Clear PID on cancel
 

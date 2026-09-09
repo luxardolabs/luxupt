@@ -5,7 +5,7 @@ crashing output in the templates the render smokes exercise. All are pure — no
 no wall-clock (timeago takes an explicit `now`).
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from app.web.template_filters import (
     duration,
@@ -14,7 +14,7 @@ from app.web.template_filters import (
     timeago,
 )
 
-NOW = datetime(2026, 7, 26, 12, 0, 0)
+NOW = datetime(2026, 7, 26, 12, 0, 0, tzinfo=UTC)
 
 
 class TestDuration:

@@ -3,8 +3,10 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from app.db.types import UtcDateTime
 
 # The canonical fleet convention (luxarch --emit naming-convention). Constraint and index
 # names end up IN THE DATABASE, so without a convention autogenerate emits non-deterministic
@@ -37,12 +39,12 @@ class TimestampMixin:
     """Mixin that adds created_at and updated_at timestamp columns."""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UtcDateTime,
         server_default=func.now(),
         nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UtcDateTime,
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,

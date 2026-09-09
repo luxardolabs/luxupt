@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import (
     BigInteger,
     Date,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -16,6 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import UtcDateTime
 from app.models.enum_model import CaptureMethod, CaptureStatus, str_enum
 
 if TYPE_CHECKING:
@@ -43,9 +43,7 @@ class Capture(Base, TimestampMixin):
 
     # Capture metadata
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    capture_datetime: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    capture_datetime: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
     capture_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     interval: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -183,8 +183,8 @@ class ProtectClient:
             if not (cid and start_ms and end_ms):
                 continue
             ranges[cid] = (
-                datetime.fromtimestamp(start_ms / 1000).astimezone(),
-                datetime.fromtimestamp(end_ms / 1000).astimezone(),
+                datetime.fromtimestamp(start_ms / 1000, UTC),
+                datetime.fromtimestamp(end_ms / 1000, UTC),
             )
         return ranges
 

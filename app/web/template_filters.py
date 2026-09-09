@@ -36,6 +36,8 @@ DURATION ({{ seconds | duration }}):
 from datetime import UTC, date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 
+from app.utils.timezones import business_day
+
 if TYPE_CHECKING:
     from fastapi.templating import Jinja2Templates
 
@@ -163,7 +165,7 @@ def timeago(dt: datetime | None, now: datetime | None = None) -> str:
         return "--"
 
     if now is None:
-        now = datetime.now()
+        now = datetime.now(UTC)
 
     # Handle future times
     if dt > now:
@@ -314,8 +316,10 @@ def day_label(d: date | datetime | None) -> str:
     """
     if d is None:
         return "--"
-    day = d.date() if isinstance(d, datetime) else d
-    today = datetime.now().date()
+    # `d` arrives as an aware UTC instant, so `.date()` would answer the UTC day: a
+    # 9pm local capture would read "Tomorrow". The day a viewer means is the local one.
+    day = business_day(d) if isinstance(d, datetime) else d
+    today = business_day()
     if day == today:
         return "Today"
     if day == today - timedelta(days=1):

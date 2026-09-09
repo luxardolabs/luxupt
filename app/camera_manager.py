@@ -5,7 +5,7 @@ import os
 import tempfile
 import time as time_module
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -231,7 +231,7 @@ class CameraManager:
         """
         Refresh the list of cameras from the API.
         """
-        now = datetime.now()
+        now = datetime.now(UTC)
 
         # Check if we need to refresh
         if (
@@ -560,7 +560,7 @@ class CameraManager:
         if cache_key in self._rtsps_cache:
             cached = self._rtsps_cache[cache_key]
             # Cache is valid for configured TTL
-            cache_age = (datetime.now() - cached["created_at"]).total_seconds()
+            cache_age = (datetime.now(UTC) - cached["created_at"]).total_seconds()
             if (
                 cache_age < self.settings.rtsps_url_cache_ttl
                 and cached["quality"] == quality
@@ -586,7 +586,7 @@ class CameraManager:
                     self._rtsps_cache[cache_key] = {
                         "url": rtsps_url_str,
                         "quality": quality,
-                        "created_at": datetime.now(),
+                        "created_at": datetime.now(UTC),
                     }
                     logger.debug(
                         "Got RTSPS URL",
@@ -897,7 +897,7 @@ class CameraManager:
             "supports_full_hd_snapshot": camera.supports_full_hd_snapshot,
         }
 
-        timestamp = int(datetime.now().timestamp())
+        timestamp = int(datetime.now(UTC).timestamp())
 
         # Test API capture
         try:

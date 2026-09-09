@@ -4,10 +4,11 @@
 
 import os
 import platform
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import config
 from app.logging_config import get_logger
+from app.utils.timezones import to_display
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ def print_banner() -> None:
         extra={
             "platform": f"{platform.system()} {platform.release()} {platform.machine()}",
             "python": platform.python_version(),
-            "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "start_time": to_display(datetime.now(UTC)).strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
 

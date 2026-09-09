@@ -9,7 +9,7 @@ import asyncio
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -155,7 +155,7 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
 
                 # Set defaults for new cameras only
                 if not existing:
-                    camera_data["first_discovered_at"] = dt.now()
+                    camera_data["first_discovered_at"] = dt.now(UTC)
                     camera_data["is_active"] = True
                     camera_data["capture_method"] = "auto"
                     camera_data["rtsp_quality"] = "high"
@@ -282,7 +282,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Store in app state
     app.state.camera_manager = camera_manager
-    app.state.start_time = datetime.now()
+    app.state.start_time = datetime.now(UTC)
 
     # Sync cameras from API to database
     await sync_cameras_to_db(camera_manager)
@@ -528,7 +528,7 @@ def get_camera_manager(request: Request) -> CameraManager:
 
 def get_start_time(request: Request) -> datetime:
     """Get the application start time from app state."""
-    return getattr(request.app.state, "start_time", datetime.now())
+    return getattr(request.app.state, "start_time", datetime.now(UTC))
 
 
 # Create app instance
@@ -580,7 +580,7 @@ async def readiness_check(request: Request) -> JSONResponse:
 @app.get("/metrics")
 async def prometheus_metrics(request: Request) -> PlainTextResponse:
     """Prometheus metrics endpoint."""
-    start_time = getattr(request.app.state, "start_time", datetime.now())
+    start_time = getattr(request.app.state, "start_time", datetime.now(UTC))
     metrics_service = MetricsCoreService(start_time=start_time)
 
     async for db in get_db():

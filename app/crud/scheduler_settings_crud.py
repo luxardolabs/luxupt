@@ -1,6 +1,6 @@
 """CRUD operations for SchedulerSettings model."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -56,7 +56,7 @@ class CRUDSchedulerSettings:
     async def update_last_run(self, db: AsyncSession) -> SchedulerSettings:
         """Update the last_run_at timestamp to now."""
         settings = await self.get_settings(db)
-        settings.last_run_at = datetime.now()
+        settings.last_run_at = datetime.now(UTC)
         db.add(settings)
         await db.flush()
         await db.refresh(settings)

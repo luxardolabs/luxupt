@@ -6,7 +6,7 @@ Focuses on application-specific metrics (cameras, captures, timelapses, jobs).
 Host metrics (CPU, memory, disk) should be collected by dedicated tools like node_exporter.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +22,7 @@ class MetricsCoreService:
     """Service for generating Prometheus-format metrics."""
 
     def __init__(self, start_time: datetime | None = None):
-        self.start_time = start_time or datetime.now()
+        self.start_time = start_time or datetime.now(UTC)
 
     def _format_metric(
         self,
@@ -74,7 +74,7 @@ class MetricsCoreService:
         metrics = []
 
         # Service uptime
-        uptime_seconds = (datetime.now() - self.start_time).total_seconds()
+        uptime_seconds = (datetime.now(UTC) - self.start_time).total_seconds()
         metrics.append(
             self._format_metric(
                 "unifi_timelapse_uptime_seconds",
@@ -336,7 +336,7 @@ class MetricsCoreService:
 
         # Add header comment
         sections.append("# LuxUPT Metrics")
-        sections.append(f"# Generated at {datetime.now().isoformat()}")
+        sections.append(f"# Generated at {datetime.now(UTC).isoformat()}")
 
         # Collect all application metrics
         service_metrics = await self.get_service_metrics()

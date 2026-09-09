@@ -6,6 +6,7 @@ at a deleted file. The bite: reverting to an inline pre-commit unlink makes the 
 delete the files while the row is rolled back — the orphan the rule exists to prevent.
 """
 
+import asyncio
 from datetime import date
 from pathlib import Path
 
@@ -19,8 +20,8 @@ Maker = async_sessionmaker[AsyncSession]
 
 
 async def _seed(session: AsyncSession, video: Path, thumb: Path) -> int:
-    video.write_bytes(b"v")
-    thumb.write_bytes(b"t")
+    await asyncio.to_thread(video.write_bytes, b"v")
+    await asyncio.to_thread(thumb.write_bytes, b"t")
     tl = Timelapse(
         camera_id="cam-1",
         camera_safe_name="front_door",

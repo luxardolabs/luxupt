@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import (
     BigInteger,
     Date,
-    DateTime,
     Float,
     ForeignKey,
     Index,
@@ -17,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import UtcDateTime
 from app.models.enum_model import TimelapseStatus, str_enum
 
 if TYPE_CHECKING:
@@ -70,12 +70,8 @@ class Timelapse(Base, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Processing metadata
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     processing_time_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationship

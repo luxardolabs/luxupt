@@ -1,6 +1,6 @@
 """CRUD operations for User model."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from passlib.context import CryptContext
 from sqlalchemy import func, select
@@ -95,7 +95,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         user = await self.get(db, user_id)
         if not user:
             return None
-        user.last_login_at = datetime.now()
+        user.last_login_at = datetime.now(UTC)
         db.add(user)
         await db.flush()
         await db.refresh(user)

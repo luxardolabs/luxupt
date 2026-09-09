@@ -7,7 +7,6 @@ from uuid import uuid4
 from sqlalchemy import (
     Boolean,
     Date,
-    DateTime,
     Float,
     Index,
     Integer,
@@ -19,6 +18,7 @@ from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UtcDateTime
 from app.models.enum_model import JobStatus, JobType, str_enum
 
 
@@ -52,12 +52,8 @@ class Job(Base):
     )
 
     # Historical job range — null for live_daily jobs
-    start_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    end_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    start_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    end_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     # Optional daily window filter (e.g., only 07:00 → 19:00 each day in the range)
     daily_window_start: Mapped[time | None] = mapped_column(Time, nullable=True)
     daily_window_end: Mapped[time | None] = mapped_column(Time, nullable=True)
@@ -85,15 +81,9 @@ class Job(Base):
     keep_images: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Timing
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
 
     # Result
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

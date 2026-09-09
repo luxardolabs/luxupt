@@ -1,7 +1,7 @@
 """Cameras view service for preparing camera template data."""
 
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
@@ -173,8 +173,8 @@ class CamerasViewService:
         can_navigate_forward = offset < 0
 
         # Datetime range for template formatting
-        start_dt = datetime.fromtimestamp(since_timestamp)
-        end_dt = datetime.fromtimestamp(end_timestamp)
+        start_dt = datetime.fromtimestamp(since_timestamp, UTC)
+        end_dt = datetime.fromtimestamp(end_timestamp, UTC)
 
         # Get bucket size for time series
         bucket_seconds = CAPTURE_STATS_BUCKET_SIZES.get(
@@ -521,7 +521,7 @@ class CamerasViewService:
         test_camera = cameras[0]
 
         # Try a historical snapshot a minute ago (recording-write lag means now() can 404)
-        ts = datetime.now() - timedelta(minutes=1)
+        ts = datetime.now(UTC) - timedelta(minutes=1)
 
         try:
             async with ProtectClient(

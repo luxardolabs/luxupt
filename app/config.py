@@ -54,6 +54,23 @@ THUMBNAIL_SIZE_LARGE = int(os.getenv("THUMBNAIL_SIZE_LARGE", "512"))
 THUMBNAIL_WORKERS = int(os.getenv("THUMBNAIL_WORKERS", "4"))
 
 # =============================================================================
+# TIME ZONE (display + business-day boundary)
+# =============================================================================
+# Every stored timestamp is an aware UTC instant (luxarch --playbook datetime-utc). This
+# setting is NOT storage — it is the zone a human means, and it is used for exactly two
+# things:
+#
+#   1. DISPLAY — rendering an instant at the edge.
+#   2. The BUSINESS-DAY BOUNDARY — which calendar day an instant belongs to. That is a real
+#      decision, not a formatting detail: the image and video archives are foldered by day
+#      (output/videos/YYYY/MM/, one timelapse per "date"), so computing the day in UTC would
+#      file every capture after ~6pm US-Central under tomorrow, and would make the EXISTING
+#      on-disk archive unreachable. The day is therefore always computed in this zone.
+#
+# Defaults to the container TZ, which is how the app has always behaved.
+DISPLAY_TIMEZONE = os.getenv("DISPLAY_TIMEZONE", os.getenv("TZ", "UTC"))
+
+# =============================================================================
 # DATABASE SETTINGS (connection-time)
 # =============================================================================
 

@@ -1,6 +1,6 @@
 """CRUD operations for Activity model."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import BaseModel
@@ -93,7 +93,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
     ) -> Activity:
         """Log a new activity event."""
         activity = Activity(
-            timestamp=datetime.now(),
+            timestamp=datetime.now(UTC),
             activity_type=activity_type,
             message=message,
             camera_id=camera_id,
@@ -213,7 +213,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         Uses CASE expressions to count all activity types at once,
         avoiding N+1 query pattern.
         """
-        since = datetime.now() - timedelta(hours=hours)
+        since = datetime.now(UTC) - timedelta(hours=hours)
 
         # Single query with CASE expressions to count each type
         result = await db.execute(
@@ -287,7 +287,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         days: int = 30,
     ) -> int:
         """Delete activities older than N days. Returns count of deleted records."""
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         count = await execute_rowcount(
             db, delete(Activity).where(Activity.timestamp < cutoff)
         )

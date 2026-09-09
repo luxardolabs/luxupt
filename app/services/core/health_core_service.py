@@ -5,7 +5,7 @@ Provides comprehensive health checks for the application.
 """
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +31,7 @@ class HealthCoreService:
 
     def __init__(self, camera_manager: CameraManager | None = None):
         self.camera_manager = camera_manager
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(UTC)
 
     async def check_database(self, db: AsyncSession) -> dict[str, Any]:
         """Check database connectivity."""
@@ -182,11 +182,11 @@ class HealthCoreService:
             overall_status = HealthStatus.DEGRADED
 
         # Calculate uptime
-        uptime_seconds = (datetime.now() - self.start_time).total_seconds()
+        uptime_seconds = (datetime.now(UTC) - self.start_time).total_seconds()
 
         return {
             "status": overall_status,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "version": os.getenv("BUILD_VERSION", "dev"),
             "uptime_seconds": int(uptime_seconds),
             "checks": checks,
@@ -196,7 +196,7 @@ class HealthCoreService:
         """Simple liveness check (is the application running)."""
         return {
             "status": HealthStatus.HEALTHY,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     async def get_readiness(self, db: AsyncSession) -> dict[str, Any]:
@@ -207,7 +207,7 @@ class HealthCoreService:
         if db_check["status"] == HealthStatus.UNHEALTHY:
             return {
                 "status": HealthStatus.UNHEALTHY,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "message": "Database not available",
             }
 
@@ -219,12 +219,12 @@ class HealthCoreService:
         if camera_check["status"] == HealthStatus.UNHEALTHY:
             return {
                 "status": HealthStatus.UNHEALTHY,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "message": "Camera manager error",
             }
 
         return {
             "status": HealthStatus.HEALTHY,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "message": "Application ready",
         }
