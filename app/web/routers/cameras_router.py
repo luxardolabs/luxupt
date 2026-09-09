@@ -407,7 +407,7 @@ async def camera_detail_page(
         return templates.TemplateResponse(
             request,
             "pages/404.html",
-            {"message": "Camera not found"},
+            {"title": "Not Found", "message": "Camera not found"},
             status_code=404,
         )
 

@@ -22,8 +22,8 @@
 {# Statistics Section #}
 {% call section("Statistics", "chart-bar") %}
 <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-    {{ stat_card("Cameras", db_stats.camera_count|default(0)|string, icon_name="camera", color="primary") }}
-    {{ stat_card("Captures", db_stats.capture_count|default(0)|number_format, icon_name="photo", color="info") }}
+    {{ stat_card("Cameras", db_stats.camera_count|string, icon_name="camera", color="primary") }}
+    {{ stat_card("Captures", db_stats.capture_count|number_format, icon_name="photo", color="info") }}
     {{ stat_card("Disk Used", storage_info.disk.percent ~ "%", icon_name="circle-stack", color="warning") }}
     {{ stat_card("Database", db_stats.db_size_mb ~ " MB", icon_name="table-cells", color="success") }}
 </div>
@@ -72,9 +72,9 @@
     <!-- Database Stats -->
     {% call card("Database", icon_name="table-cells", color="success") %}
     <div class="divide-y divide-surface-400/20">
-        {{ data_row("Captures", db_stats.capture_count|default(0)|string) }}
-        {{ data_row("Timelapses", db_stats.timelapse_count|default(0)|string) }}
-        {{ data_row("Cameras", db_stats.camera_count|default(0)|string) }}
+        {{ data_row("Captures", db_stats.capture_count|string) }}
+        {{ data_row("Timelapses", db_stats.timelapse_count|string) }}
+        {{ data_row("Cameras", db_stats.camera_count|string) }}
         {{ data_row("Database Size", file_size(db_stats.db_size)) }}
         {{ divider() }}
         {{ data_row_status("Backup", service_status.backup_enabled) }}

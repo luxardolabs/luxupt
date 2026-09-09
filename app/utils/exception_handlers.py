@@ -80,6 +80,13 @@ async def general_exception_handler(request: Request, exc: Exception) -> Respons
     return templates.TemplateResponse(
         request,
         "pages/500.html",
-        {"request_id": request_id},
+        {
+            "request_id": request_id,
+            # The error templates take title+message from whoever renders them. The HTTP
+            # exception handler in web/main always supplies both; this path is the other
+            # renderer, and omitting them is what forced a |default guard into the markup.
+            "title": "Server Error",
+            "message": "An unexpected error occurred. Please try again later.",
+        },
         status_code=500,
     )

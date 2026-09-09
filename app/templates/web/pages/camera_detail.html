@@ -22,9 +22,9 @@
 
 <!-- Stats -->
 <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-    {{ stat_card("Total Captures", stats.total_captures|default(0), icon_name="photo", color="info") }}
-    {{ stat_card("Today", stats.captures_today|default(0), icon_name="calendar", color="success") }}
-    {{ stat_card("Timelapses", stats.timelapse_count|default(0), icon_name="film", color="primary") }}
+    {{ stat_card("Total Captures", stats.total_captures, icon_name="photo", color="info") }}
+    {{ stat_card("Today", stats.captures_today, icon_name="calendar", color="success") }}
+    {{ stat_card("Timelapses", stats.timelapse_count, icon_name="film", color="primary") }}
     {{ stat_card("Type", camera.type|default("Unknown"), icon_name="camera", color="warning") }}
 </div>
 
