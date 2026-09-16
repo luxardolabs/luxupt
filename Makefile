@@ -177,7 +177,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION ?= 0.45.1
+LUXLINT_VERSION := 0.45.1
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
@@ -209,7 +209,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   ?= 0.155.3
+LUXARCH_VERSION   := 0.155.3
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -219,7 +219,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION ?= 0.4.0
+LUXAUDIT_VERSION := 0.4.0
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit
@@ -246,8 +246,8 @@ guard-upgrade: ## Bump every guard pin to the published latest (prints what newl
 	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest --version 2>/dev/null | awk '{print $$2}'); \
 	  [ -z "$$latest" ] && continue; \
 	  var=$$(echo $$g | tr a-z A-Z)_VERSION; \
-	  old=$$(sed -n "s/^$$var *?= *//p" Makefile); \
-	  sed -i "s|^$$var\( *\)?= .*|$$var\1?= $$latest|" Makefile; \
+	  old=$$(sed -n "s/^$$var *:= *//p" Makefile); \
+	  sed -i "s|^$$var\( *\):= .*|$$var\1:= $$latest|" Makefile; \
 	  if [ "$$g" = luxarch ] && [ -n "$$old" ] && [ "$$old" != "$$latest" ]; then \
 	    docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
 	  fi; \
