@@ -1,6 +1,28 @@
-{# Camera settings save result - HTMX partial #}
+{# Camera settings save result - HTMX partial.
+
+   FOUR mutually exclusive states (success / detecting / detected / error), rendered from
+   SEVEN call sites that each pass only the keys their own state needs. Under
+   StrictUndefined the `{% elif %}` chain dereferences every flag on the way down, so a
+   site passing `{"success": False, "error": ...}` raised on `detecting` before it ever
+   reached its own branch — a 500 on every failure path, and on the detect route's SUCCESS
+   path (it passes `detected` and no `success` at all). Found by route-smoke.
+
+   The contract is defaulted HERE, in the one place that knows all four states, rather
+   than by adding six keys to each of seven call sites. A caller still says which state it
+   is by passing that state's flag; everything it does not pass is simply absent.
+#}
 {% from "macros/alerts.html" import alert_block %}
 {% from "macros/icons.html" import icon %}
+
+{% set success = success | default(false) %}
+{% set detecting = detecting | default(false) %}
+{% set detected = detected | default(false) %}
+{% set message = message | default(none) %}
+{% set error = error | default(none) %}
+{% set details = details | default(none) %}
+{% set api_resolution = api_resolution | default(none) %}
+{% set rtsp_resolution = rtsp_resolution | default(none) %}
+{% set recommended = recommended | default(none) %}
 
 {% if success %}
 {% call alert_block(type="success", title="Settings saved successfully") %}

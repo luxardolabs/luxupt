@@ -458,7 +458,7 @@ class SystemViewService:
                 "camera_safe_name": "back_yard",
                 "interval": 300,
                 "target_date": today,
-                "image_count": 288,
+                "total_frames": 288,
             },
             "demo_completed_job": {
                 "job_id": "demo-job-done",

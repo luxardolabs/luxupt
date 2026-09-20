@@ -98,7 +98,9 @@ async def image_filters_partial(
         "partials/images/image_filters.html",
         {
             "cameras": context["cameras"],
+            "camera_options": context["camera_options"],
             "available_dates": context["available_dates"],
+            "available_date_options": context["available_date_options"],
             "available_intervals": context["available_intervals"],
             "filters": context["filters"],
         },

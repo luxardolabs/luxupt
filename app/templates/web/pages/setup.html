@@ -44,9 +44,9 @@
                 {% endif %}
 
                 <form class="space-y-5" action="/setup" method="POST">
-                    {{ text_input("username", label="Username", type="text", {# undefined-guards: GET /setup renders with no context; only the POST error paths
-                       re-render with a username to preserve. Optional by design. #}
-                    value=username | default('', true), placeholder="Choose a username", required=true, autocomplete="username") }}
+                    {# undefined-guards: GET /setup renders with no context; only the POST error
+                       paths re-render with a username to preserve. Optional by design. #}
+                    {{ text_input("username", label="Username", type="text", value=username | default('', true), placeholder="Choose a username", required=true, autocomplete="username") }}
                     {{ text_input("password", label="Password", type="password", placeholder="Choose a password", required=true, autocomplete="new-password") }}
                     {{ text_input("confirm_password", label="Confirm Password", type="password", placeholder="Confirm your password", required=true, autocomplete="new-password") }}
                     {{ primary("Create Account", type="submit", full_width=true) }}

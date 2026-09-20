@@ -49,17 +49,17 @@
     <!-- Storage Configuration -->
     {% call card("Storage Configuration", icon_name="circle-stack", color="warning") %}
     <div class="divide-y divide-surface-400/20">
-        {{ data_row_stacked("Image Path", config.image_path, mono=true) }}
-        {{ data_row_stacked("Video Path", config.video_path, mono=true) }}
+        {{ data_row_stacked("Image Path", config.image_output_path, mono=true) }}
+        {{ data_row_stacked("Video Path", config.video_output_path, mono=true) }}
     </div>
     {% endcall %}
 
     <!-- FFmpeg Configuration -->
     {% call card("FFmpeg Configuration", icon_name="film", color="success") %}
     <div class="divide-y divide-surface-400/20">
-        {{ data_row("Frame Rate", config.ffmpeg_settings.frame_rate ~ " fps") }}
-        {{ data_row("Quality (CRF)", config.ffmpeg_settings.crf|string) }}
-        {{ data_row("Preset", config.ffmpeg_settings.preset) }}
+        {{ data_row("Frame Rate", config.timelapse_frame_rate ~ " fps") }}
+        {{ data_row("Quality (CRF)", config.timelapse_crf|string) }}
+        {{ data_row("Preset", config.timelapse_preset) }}
     </div>
     {% endcall %}
 </div>

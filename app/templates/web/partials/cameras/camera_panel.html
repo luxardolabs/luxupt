@@ -9,7 +9,7 @@
 {{ panel_backdrop() }}
 
 {% call panel_drawer('max-w-lg') %}
-    {{ panel_header(camera.name, camera.type or 'Camera') }}
+    {{ panel_header(camera.name, camera.model_key or 'Camera') }}
 
     <!-- Content -->
     <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
@@ -61,19 +61,19 @@
     <div class="px-4">
         {{ data_row("Camera ID", camera.safe_name, mono=true) }}
     </div>
-    {% if camera.model %}
+    {% if camera.model_key %}
     <div class="px-4">
-        {{ data_row("Model", camera.model) }}
+        {{ data_row("Model", camera.model_key) }}
     </div>
     {% endif %}
-    {% if camera.firmware_version %}
+    {# Firmware and IP Address rows were removed: `Camera` has no `firmware_version` or
+       `host` column, so under StrictUndefined both were a hard 500 on this panel rather
+       than the empty rows they looked like. The panel was written against a richer Protect
+       payload than the model actually stores. Capturing that metadata is LUXUPT-77; a row
+       is added back when there is a column behind it. #}
+    {% if camera.mac %}
     <div class="px-4">
-        {{ data_row("Firmware", camera.firmware_version) }}
-    </div>
-    {% endif %}
-    {% if camera.host %}
-    <div class="px-4">
-        {{ data_row("IP Address", camera.host, mono=true) }}
+        {{ data_row("MAC", camera.mac, mono=true) }}
     </div>
     {% endif %}
 </div>

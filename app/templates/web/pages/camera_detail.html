@@ -25,7 +25,7 @@
     {{ stat_card("Total Captures", stats.total_captures, icon_name="photo", color="info") }}
     {{ stat_card("Today", stats.captures_today, icon_name="calendar", color="success") }}
     {{ stat_card("Timelapses", stats.timelapse_count, icon_name="film", color="primary") }}
-    {{ stat_card("Type", camera.type|default("Unknown"), icon_name="camera", color="warning") }}
+    {{ stat_card("Type", camera.model_key|default("Unknown"), icon_name="camera", color="warning") }}
 </div>
 
 <!-- Latest capture -->

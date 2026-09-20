@@ -14,13 +14,11 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
-    HTMLResponse,
     JSONResponse,
     PlainTextResponse,
-    RedirectResponse,
     Response,
 )
 from fastapi.staticfiles import StaticFiles
@@ -38,7 +36,6 @@ from app.services.core.health_core_service import HealthCoreService, HealthStatu
 from app.services.core.metrics_core_service import MetricsCoreService
 from app.utils.exception_handlers import general_exception_handler
 
-from .auth import get_current_user
 from .middleware import (
     AuthRedirectMiddleware,
     RequestLoggingMiddleware,
@@ -502,13 +499,10 @@ def create_app() -> FastAPI:
     app.include_router(timelapses_router, prefix="/timelapses", tags=["timelapses"])
     app.include_router(system_router, prefix="/system", tags=["system"])
 
-    # Root redirect
-    @app.get("/", response_class=HTMLResponse)
-    async def root(
-        request: Request, user: str = Depends(get_current_user)
-    ) -> RedirectResponse:
-        """Redirect to cameras."""
-        return RedirectResponse(url="/cameras", status_code=302)
+    # NOTE: `GET /` is served by pages_router.root_redirect, which is included above and
+    # therefore matches first. A second `@app.get("/")` used to be declared here and was
+    # dead — Starlette matches in registration order, so it could never run. Found by the
+    # route-smoke asserter's shadowed-route check.
 
     return app
 

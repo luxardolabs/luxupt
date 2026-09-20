@@ -301,13 +301,24 @@ class TimelapsesViewService:
             "enabled_intervals": [int(i) for i in enabled_intervals]
             if enabled_intervals
             else None,
-            # FFmpeg settings (None means use env var defaults)
-            "frame_rate": frame_rate if frame_rate else None,
-            "crf": crf if crf is not None else None,  # crf=0 is valid
-            "preset": preset if preset else None,
-            "pixel_format": pixel_format if pixel_format else None,
-            "ffmpeg_timeout": ffmpeg_timeout if ffmpeg_timeout else None,
         }
+
+        # The FFmpeg settings are NOT-NULL columns carrying DB defaults, so "leave it as it
+        # is" has to mean OMITTING the key — `update_settings` only setattr's what the dict
+        # contains. Writing None instead, as this did, is an IntegrityError: every scheduler
+        # save from a form that does not carry the encoding fields was a 500. (crf=0 is a
+        # valid value, hence the `is not None` test rather than a truthiness one.)
+        optional_encoding: dict[str, Any] = {
+            "frame_rate": frame_rate,
+            "crf": crf,
+            "preset": preset,
+            "pixel_format": pixel_format,
+            "ffmpeg_timeout": ffmpeg_timeout,
+        }
+        update_data.update(
+            {k: v for k, v in optional_encoding.items() if v is not None and v != ""}
+        )
+
         await self.update_scheduler_settings(update_data)
         return {
             "success": True,
