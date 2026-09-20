@@ -26,18 +26,17 @@ from typing import Any, cast
 import jwt
 from fastapi import Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
 from app.crud.user_crud import user_crud
 from app.db.connection import get_db_context
 from app.logging_config import get_logger
+from app.utils.password_hash import hash_password, verify_password
 
 logger = get_logger(__name__)
 
-# Password hashing (argon2 - no length limits, more secure than bcrypt)
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Password hashing lives in one home — app/utils/password_hash.py (argon2, no length limit).
 
 # JWT settings - use persistent secret from config, or generate one
 if config.WEB_SESSION_SECRET:
@@ -150,12 +149,12 @@ class AuthService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
-        return pwd_context.verify(plain_password, hashed_password)
+        return verify_password(plain_password, hashed_password)
 
     @staticmethod
     def get_password_hash(password: str) -> str:
         """Hash a password."""
-        return pwd_context.hash(password)
+        return hash_password(password)
 
     @staticmethod
     def authenticate_user_env(username: str, password: str) -> bool:

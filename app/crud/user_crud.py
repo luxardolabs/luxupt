@@ -2,16 +2,16 @@
 
 from datetime import UTC, datetime
 
-from passlib.context import CryptContext
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base_crud import CRUDBase
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate
+from app.utils.password_hash import hash_password, verify_password
 
-# Use argon2 for new passwords, but support legacy bcrypt hashes for existing users
-pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated=["bcrypt"])
+# Argon2 for new passwords, legacy bcrypt still verifiable — see app/utils/password_hash.py
+# for why this no longer goes through passlib's argon2 handler.
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
@@ -31,7 +31,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         self, db: AsyncSession, *, username: str, password: str, is_admin: bool = True
     ) -> User:
         """Create a new user with hashed password."""
-        password_hash = pwd_context.hash(password)
+        password_hash = hash_password(password)
         user = User(
             username=username,
             password_hash=password_hash,
@@ -55,7 +55,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         if username is not None:
             user.username = username
         if password is not None:
-            user.password_hash = pwd_context.hash(password)
+            user.password_hash = hash_password(password)
         if is_admin is not None:
             user.is_admin = is_admin
         db.add(user)
@@ -65,7 +65,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
 
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
-        return pwd_context.verify(plain_password, hashed_password)
+        return verify_password(plain_password, hashed_password)
 
     async def authenticate(
         self, db: AsyncSession, username: str, password: str
