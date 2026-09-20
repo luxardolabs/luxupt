@@ -50,13 +50,6 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         )
         return list(result.scalars().all())
 
-    async def upsert(self, db: AsyncSession, *, obj_in: CameraCreate) -> Camera:
-        """Create or update a camera by camera_id."""
-        existing = await self.get_by_camera_id(db, obj_in.camera_id)
-        if existing:
-            return await self.update(db, db_obj=existing, obj_in=obj_in.model_dump())
-        return await self.create(db, obj_in=obj_in)
-
     async def upsert_from_dict(
         self, db: AsyncSession, *, data: dict[str, Any]
     ) -> Camera:
@@ -283,32 +276,6 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
                 },
             }
         return stats
-
-    async def update_capture_settings(
-        self,
-        db: AsyncSession,
-        camera_id: str,
-        *,
-        capture_method: str | None = None,
-        rtsp_quality: str | None = None,
-        enabled_intervals: list[int] | None = None,
-    ) -> Camera | None:
-        """Update per-camera capture settings."""
-        camera = await self.get_by_camera_id(db, camera_id)
-        if not camera:
-            return None
-
-        update_data: dict[str, Any] = {}
-        if capture_method is not None:
-            update_data["capture_method"] = capture_method
-        if rtsp_quality is not None:
-            update_data["rtsp_quality"] = rtsp_quality
-        if enabled_intervals is not None:
-            update_data["enabled_intervals"] = enabled_intervals
-
-        if update_data:
-            return await self.update(db, db_obj=camera, obj_in=update_data)
-        return camera
 
     async def update_capability_detection(
         self,

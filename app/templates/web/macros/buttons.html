@@ -176,7 +176,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro icon_button(icon_name, label, type="button", size="md", variant="ghost", hx_attrs={}, href=none, download=none, disabled=false) %}
+{% macro icon_button(icon_name, label, type="button", size="md", variant="ghost", hx_attrs={}, href=none, download=none, disabled=false, extra_class="") %}
 {# Square icon button - looks like a real button with icon centered #}
 {% set sizes = {
     'sm': 'w-8 h-8',
@@ -192,12 +192,15 @@
     'primary': 'border-primary-500/50 text-primary-400 hover:text-primary-300 hover:bg-primary-500/20 hover:border-primary-400',
     'ghost': 'border-surface-400/50 text-surface-200 hover:text-white hover:bg-surface-500/50 hover:border-surface-300',
     'danger': 'border-danger-500/50 text-danger-400 hover:text-danger-300 hover:bg-danger-500/20 hover:border-danger-400',
-    'success': 'border-success-500/50 text-success-400 hover:text-success-300 hover:bg-success-500/20 hover:border-success-400'
+    'success': 'border-success-500/50 text-success-400 hover:text-success-300 hover:bg-success-500/20 hover:border-success-400',
+    'bare': 'border-transparent text-surface-200 hover:text-white'
 } %}
+{# 'bare' = no box: an icon that sits inside other chrome (a toast, a nav bar) and must not
+   draw its own border or background. #}
 {% set base = "inline-flex items-center justify-center rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-900" %}
 {% if href %}
 <a href="{{ href }}"
-   class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}"
+   class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}{% if extra_class %} {{ extra_class }}{% endif %}"
    title="{{ label }}"
    aria-label="{{ label }}"
    {% if download %}download="{{ download }}"{% endif %}
@@ -206,7 +209,7 @@
 </a>
 {% else %}
 <button type="{{ type }}"
-        class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}{{ ' opacity-50 cursor-not-allowed' if disabled }}"
+        class="{{ base }} {{ sizes[size] }} {{ variants.get(variant, variants.ghost) }}{{ ' opacity-50 cursor-not-allowed' if disabled }}{% if extra_class %} {{ extra_class }}{% endif %}"
         title="{{ label }}"
         aria-label="{{ label }}"
         {{ 'disabled' if disabled }}
@@ -221,4 +224,36 @@
 <div class="inline-flex items-center gap-2">
     {{ caller() }}
 </div>
+{% endmacro %}
+
+{% macro icon_toggle_button(icon_on, icon_off, label, model, extra_class="") %}
+{# An icon button that SWAPS its icon on an Alpine boolean (a menu/disclosure toggle).
+   `icon_button` renders one icon and cannot express the swap, so this is its own component
+   rather than a flag on that one. `model` is the Alpine expression holding the open state;
+   the button owns `aria-expanded` so every caller gets it right. #}
+<button type="button"
+        @click="{{ model }} = !{{ model }}"
+        class="inline-flex items-center justify-center p-2 rounded-lg text-surface-200 hover:text-white hover:bg-surface-700 transition-colors{% if extra_class %} {{ extra_class }}{% endif %}"
+        :aria-expanded="{{ model }}">
+    <span class="sr-only">{{ label }}</span>
+    <template x-if="!{{ model }}">
+        {{ icon(icon_on, 'w-6 h-6') }}
+    </template>
+    <template x-if="{{ model }}">
+        {{ icon(icon_off, 'w-6 h-6') }}
+    </template>
+</button>
+{% endmacro %}
+
+
+{% macro chip_button(text=none, click=none, x_text=none, active_class=none, extra_class="") %}
+{# A small pill button for an inline option row (date-range presets, interval presets).
+   Either pass `text` for a literal label, or `x_text` for an Alpine expression when the
+   chip is rendered inside an x-for. `active_class` is an Alpine `:class` expression that
+   paints the selected state; without it the chip renders in its resting style. #}
+<button type="button"
+        {% if click %}@click="{{ click }}"{% endif %}
+        {% if active_class %}:class="{{ active_class }}"{% endif %}
+        class="text-xs px-2.5 py-1 rounded-md border transition-colors{% if not active_class %} border-surface-500 bg-surface-700 text-white{% endif %} hover:bg-surface-600{% if extra_class %} {{ extra_class }}{% endif %}"
+        {% if x_text %}x-text="{{ x_text }}"{% endif %}>{% if text %}{{ text }}{% endif %}</button>
 {% endmacro %}

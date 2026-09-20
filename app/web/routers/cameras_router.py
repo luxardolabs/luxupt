@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 
 from app.logging_config import get_logger
 from app.web.auth import get_current_user
-from app.web.deps import CamerasViewDep, DashboardViewDep, TemplatesDep
+from app.web.deps import CamerasViewDep, TemplatesDep
 from app.web.query_params import IntFilter
 
 logger = get_logger(__name__)
@@ -19,7 +19,7 @@ router = APIRouter(tags=["cameras"])
 async def cameras_page(
     request: Request,
     templates: TemplatesDep,
-    view_service: DashboardViewDep,
+    view_service: CamerasViewDep,
     cameras_view_service: CamerasViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
@@ -40,7 +40,7 @@ async def cameras_page(
 async def camera_list_partial(
     request: Request,
     templates: TemplatesDep,
-    view_service: DashboardViewDep,
+    view_service: CamerasViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render camera list partial for HTMX updates."""

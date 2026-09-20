@@ -247,7 +247,10 @@ class HistoricalFetchCoreService:
                                     camera_safe_name=job.camera_safe_name,
                                     timestamp=int(ts.timestamp()),
                                     capture_datetime=ts,
-                                    capture_date=ts.date(),
+                                    # Business day, not the UTC day — same reason as the
+                                    # live path: this must match the folder the frame is
+                                    # written to and the day the browse filters query.
+                                    capture_date=business_day(ts),
                                     interval=job.interval,
                                     status=status,
                                     capture_method=CaptureMethod.PROTECT_HISTORICAL,

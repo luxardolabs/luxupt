@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.192.4",
+  "guard_version": "0.193.0",
   "repo": "/repo",
   "targets": [
     {
@@ -657,9 +657,9 @@
         },
         {
           "rule": "fw.no_hand_rolled_components_in_pages",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.9.1",
-          "violations": 11,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1278,8 +1278,8 @@
         }
       ],
       "summary": {
-        "PASS": 123,
-        "FAIL": 1,
+        "PASS": 124,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 17
@@ -1559,6 +1559,15 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.buildx_strays_refused",
+        "status": "PASS",
+        "since": "0.193.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.version_single_source",
         "status": "PASS",
         "since": "0.52.0",
@@ -1614,7 +1623,7 @@
       }
     ],
     "summary": {
-      "PASS": 36,
+      "PASS": 37,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -1622,12 +1631,12 @@
     }
   },
   "summary": {
-    "PASS": 159,
-    "FAIL": 1,
+    "PASS": 161,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 17
   },
-  "commit": "03991e5597fec6d8d7cac8d0a74fa88bf82b7151",
-  "generated_at": "2026-09-20T19:53:12Z"
+  "commit": "fa8b384e30e9ac297f2beb3d93f8519de57c5444",
+  "generated_at": "2026-09-20T20:35:24Z"
 }

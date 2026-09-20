@@ -208,7 +208,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.192.4
+LUXARCH_VERSION   := 0.193.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -410,6 +410,18 @@ docker-setup: ## Set up the shared fleet Docker buildx builder (create-once, GC-
 	@docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 || \
 	  docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --buildkitd-config $(HOME)/.docker/buildkitd.toml --use
 	@docker buildx use $(BUILDX_BUILDER)
+	@# Refuse a stray per-project builder. `buildx create` only ever CREATES, so a repo that
+	@# migrated to the shared builder leaves its old daemon running forever — uncapped, with
+	@# its own cache. The orphan lives on the HOST, which no file scan can see, so the recipe
+	@# is the only place this can be enforced (repo.buildx_strays_refused). Four such orphans
+	@# filled a 249G disk and killed a production database while every repo read green.
+	@strays=$$(docker buildx ls 2>/dev/null | awk '$$2=="docker-container"{print $$1}' \
+	  | grep -v '^\\_' | sed 's/\*$$//' | grep -vxF "$(BUILDX_BUILDER)" | tr '\n' ' '); \
+	if [ -n "$$strays" ] && [ -z "$(ALLOW_STRAY_BUILDERS)" ]; then \
+	  echo "REFUSING: stray per-project buildx builders are running: $$strays"; \
+	  echo "Remove them:  docker buildx rm $$strays"; \
+	  exit 1; \
+	fi
 	docker buildx inspect --bootstrap
 
 .PHONY: docker-login-hub

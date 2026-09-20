@@ -1,5 +1,6 @@
 {% from "macros/nav.html" import nav_link, nav_logo, nav_status, nav_action, nav_user %}
 {% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import icon_toggle_button %}
 
 <nav class="fixed top-0 left-0 right-0 z-50 border-b border-surface-400/30 bg-surface-900/95 backdrop-blur-sm"
      x-data="{ mobileMenuOpen: false }">
@@ -24,18 +25,7 @@
                 {{ nav_action("/logout", "Logout") }}
 
                 <!-- Mobile menu button -->
-                <button type="button"
-                        @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="md:hidden p-2 rounded-lg text-surface-200 hover:text-white hover:bg-surface-700 transition-colors"
-                        :aria-expanded="mobileMenuOpen">
-                    <span class="sr-only">Open menu</span>
-                    <template x-if="!mobileMenuOpen">
-                        {{ icon('bars-3', 'w-6 h-6') }}
-                    </template>
-                    <template x-if="mobileMenuOpen">
-                        {{ icon('x-mark', 'w-6 h-6') }}
-                    </template>
-                </button>
+                {{ icon_toggle_button('bars-3', 'x-mark', 'Open menu', 'mobileMenuOpen', extra_class='md:hidden') }}
             </div>
         </div>
     </div>

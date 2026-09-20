@@ -191,60 +191,6 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             newest_capture=row.newest,
         )
 
-    async def get_captures_for_timelapse(
-        self,
-        db: AsyncSession,
-        *,
-        camera_id: str,
-        capture_date: date,
-        interval: int,
-    ) -> list[Capture]:
-        """Get all successful captures for timelapse creation."""
-        result = await db.execute(
-            select(Capture)
-            .where(
-                Capture.camera_id == camera_id,
-                Capture.capture_date == capture_date,
-                Capture.interval == interval,
-                Capture.status == "success",
-            )
-            .order_by(Capture.timestamp.asc())
-        )
-        return list(result.scalars().all())
-
-    async def delete_old_captures(
-        self,
-        db: AsyncSession,
-        *,
-        before_date: date,
-    ) -> int:
-        """Delete captures older than a date. Returns count of deleted records."""
-        count = await execute_rowcount(
-            db, delete(Capture).where(Capture.capture_date < before_date)
-        )
-        await db.flush()
-        return count
-
-    async def delete_by_camera_date_interval(
-        self,
-        db: AsyncSession,
-        *,
-        camera_id: str,
-        capture_date: date,
-        interval: int,
-    ) -> int:
-        """Delete captures for a specific camera/date/interval. Returns count deleted."""
-        count = await execute_rowcount(
-            db,
-            delete(Capture).where(
-                Capture.camera_id == camera_id,
-                Capture.capture_date == capture_date,
-                Capture.interval == interval,
-            ),
-        )
-        await db.flush()
-        return count
-
     async def get_recent_failures(
         self,
         db: AsyncSession,

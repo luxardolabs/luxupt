@@ -690,3 +690,48 @@ class CamerasViewService:
                 "Error deleting camera", extra={"camera_id": camera_id, "error": str(e)}
             )
             return False, str(e)
+
+    async def get_camera_cards_context(self) -> dict[str, Any]:
+        """Get data for the cameras page's card grid.
+
+        Moved here from the retired DashboardViewService: it was the only method of
+        that class still reachable, and the page it serves is this one.
+        """
+        cameras = await self.camera_service.get_active()
+        latest_captures = await self.capture_service.get_latest_captures_all()
+        capture_stats = await self.capture_stats_service.get_stats()
+        recent_failures = await self.capture_service.get_recent_failures(limit=10)
+
+        fetch_settings = await self.settings_service.get_fetch_settings()
+        global_intervals = fetch_settings.get_intervals()
+
+        # One batched call, not one per camera: this renders the cameras page, so the old
+        # per-card `get_stats` was 6 queries x N cameras against a captures table with
+        # hundreds of thousands of rows.
+        stats_by_camera = await self.camera_service.get_stats_bulk(
+            cameras, global_intervals=global_intervals
+        )
+
+        camera_cards = []
+        for camera in cameras:
+            latest = latest_captures.get(camera.camera_id)
+            camera_cards.append(
+                {
+                    "camera": camera,
+                    "latest_capture": latest,
+                    "has_thumbnail": latest is not None,
+                    "stats": stats_by_camera.get(camera.camera_id, {}),
+                    "urls": build_camera_card_urls(camera.camera_id),
+                }
+            )
+
+        return {
+            "camera_cards": camera_cards,
+            "total_cameras": len(cameras),
+            # post-db-filter: counted off the already-loaded camera list
+            "connected_cameras": sum(1 for c in cameras if c.is_connected),
+            "total_captures": capture_stats.total_captures,
+            "successful_captures": capture_stats.successful_captures,
+            "failed_captures": capture_stats.failed_captures,
+            "recent_failures": recent_failures,
+        }

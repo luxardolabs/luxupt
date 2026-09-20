@@ -1,7 +1,7 @@
 {# =========================================================================
    BUTTONS - primary(), secondary(), success(), danger(), warning(), ghost()
    ========================================================================= #}
-{% from "macros/buttons.html" import primary, primary_loading, secondary, success, danger, warning, ghost, icon_button, button_group, danger_confirm %}
+{% from "macros/buttons.html" import primary, primary_loading, secondary, success, danger, warning, ghost, icon_button, button_group, danger_confirm, icon_toggle_button, chip_button %}
 {% from "macros/icons.html" import icon, delete_icon_button %}
 
 <div id="buttons" class="scroll-mt-20">
@@ -65,6 +65,25 @@
                     {{ secondary('Cancel', icon_name='x-mark') }}
                     {{ success('Connect', icon_name='signal') }}
                     {{ danger('Delete', icon_name='trash') }}
+                </div>
+            </div>
+
+            <div x-data="{ demoMenuOpen: false, demoInterval: 60 }">
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">icon_toggle_button() — swaps its icon on an Alpine boolean</p>
+                <div class="flex flex-wrap items-center gap-3 mb-6">
+                    {{ icon_toggle_button('bars-3', 'x-mark', 'Open menu', 'demoMenuOpen') }}
+                    <span class="text-sm text-surface-200" x-text="demoMenuOpen ? 'open' : 'closed'"></span>
+                </div>
+
+                <p class="text-xs font-medium text-surface-200 uppercase mb-3">chip_button() — a pill for an inline option row</p>
+                <div class="flex flex-wrap items-center gap-2 mb-6">
+                    {{ chip_button(text='Last 7 days') }}
+                    {% for v in [30, 60, 300] %}
+                    {{ chip_button(
+                        click="demoInterval = " ~ v,
+                        active_class="demoInterval === " ~ v ~ " ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
+                        x_text="'" ~ v ~ "s'") }}
+                    {% endfor %}
                 </div>
             </div>
 

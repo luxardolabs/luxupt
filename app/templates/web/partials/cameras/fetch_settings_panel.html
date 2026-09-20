@@ -39,8 +39,9 @@
                         <div id="intervals-container" class="flex flex-wrap gap-2">
                             {% for interval in settings.get_intervals() %}
                             <div class="interval-row flex items-center gap-1 bg-surface-700/50 rounded-lg px-2 py-1">
-                                <input type="number" name="intervals" value="{{ interval }}" min="5" max="3600"
-                                       class="w-16 rounded border-0 bg-transparent px-1 py-0.5 text-sm text-white text-center focus:ring-1 focus:ring-primary-500">
+                                {{ text_input("intervals", type="number", value=interval, bare=true,
+                                              width="w-16", align="center",
+                                              extra_attrs='min="5" max="3600"') }}
                                 <span class="text-xs text-surface-200">sec</span>
                                 {{ icon_button("x-mark", "Remove interval", size="sm", variant="danger",
                                                hx_attrs={"onclick": "FormUtils.removeInterval(this)"}) }}

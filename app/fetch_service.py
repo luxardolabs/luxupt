@@ -1163,7 +1163,12 @@ class FetchService:
                         camera_safe_name=result.camera_safe_name,
                         timestamp=result.timestamp,
                         capture_datetime=capture_datetime,
-                        capture_date=capture_datetime.date(),
+                        # The BUSINESS day, matching the archive folder built from the same
+                        # timestamp above. `.date()` on an aware UTC instant answers the UTC
+                        # day, so after ~6pm US-Central the row and the file on disk claimed
+                        # different days — and capture_date is what every browse filter and
+                        # "today's captures" query keys on.
+                        capture_date=business_day(capture_datetime),
                         interval=result.interval,
                         status=CaptureStatus.SUCCESS
                         if result.success

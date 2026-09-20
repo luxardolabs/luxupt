@@ -86,50 +86,6 @@ class ImagesViewService:
             camera.camera_id, timestamp, interval
         )
 
-    async def get_capture_for_thumbnail(
-        self,
-        camera_safe_name: str,
-        interval: int,
-        timestamp: int,
-    ) -> dict[str, Any] | None:
-        """Get capture info for thumbnail generation.
-
-        Args:
-            camera_safe_name: Camera safe name (from URL path)
-            interval: Capture interval (required - must match exactly)
-            timestamp: Capture timestamp
-
-        Returns:
-            Dict with file_path, camera_safe_name, interval, capture_date or None if not found
-        """
-        # Lookup camera to get camera_id for queries
-        camera = await self.camera_service.get_by_safe_name(camera_safe_name)
-        if not camera:
-            return None
-
-        camera_id = camera.camera_id
-
-        # Get capture with exact interval match
-        capture = await self.capture_service.get_by_camera_and_timestamp(
-            camera_id, timestamp, interval=interval
-        )
-        if not capture:
-            return None
-
-        # Validate file path
-        file_path, exists = await self.capture_service.get_validated_file_path(
-            camera_id, timestamp
-        )
-        if not file_path:
-            return None
-
-        return {
-            "file_path": file_path,
-            "camera_safe_name": capture.camera_safe_name,
-            "interval": capture.interval,
-            "capture_date": capture.capture_date,
-        }
-
     @staticmethod
     def _build_image_card_urls(
         images: Sequence[CaptureIdentity],

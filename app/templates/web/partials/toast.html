@@ -1,5 +1,5 @@
 <!-- Toast container -->
-{% from "macros/icons.html" import icon %}
+{% from "macros/buttons.html" import icon_button %}
 <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
 
 <!-- Toast template (hidden, used by JS) -->
@@ -9,9 +9,7 @@
         <div class="flex-1">
             <p class="toast-message text-sm text-surface-100"></p>
         </div>
-        <button type="button" class="toast-close text-surface-200 hover:text-surface-100" aria-label="Close">
-            {{ icon('x-mark-solid', 'h-4 w-4') }}
-        </button>
+        {{ icon_button('x-mark-solid', 'Close', size='sm', variant='bare', extra_class='toast-close') }}
     </div>
 </template>
 

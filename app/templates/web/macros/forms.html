@@ -5,10 +5,13 @@
 {% set input_base = "block w-full rounded-lg border border-surface-500 bg-surface-700 px-3 py-2 text-base sm:text-sm text-white placeholder-surface-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed" %}
 {% set label_base = "block text-sm font-medium text-white mb-1.5" %}
 
-{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none, autocomplete=none, error=none, help=none, suffix=none, align=none, width=none, extra_attrs="") %}
+{% macro text_input(name, label=none, value="", type="text", placeholder="", required=false, disabled=false, icon_name=none, autocomplete=none, error=none, help=none, suffix=none, align=none, width=none, extra_attrs="", bare=false) %}
 {# extra_attrs: raw passthrough for anything not a first-class param (autofocus, min/max, …).
    width: a Tailwind width (e.g. "w-20") for a COMPACT field that sits inline in a flex row
-   beside other controls — the default block/full-width field would blow that row out. #}
+   beside other controls — the default block/full-width field would blow that row out.
+   bare: the field sits INSIDE other chrome (a pill, a table cell) that already draws the
+   box, so it renders without its own border/background. #}
+{% set field_class = "rounded border-0 bg-transparent px-1 py-0.5 text-sm text-white focus:ring-1 focus:ring-primary-500" if bare else input_base %}
 <div{% if width %} class="{{ width }}"{% endif %}>
     {% if label %}
     <label for="{{ name }}" class="{{ label_base }}">{{ label }}{% if required %}<span class="text-danger-400 ml-0.5">*</span>{% endif %}</label>
@@ -24,7 +27,7 @@
                name="{{ name }}"
                value="{{ value }}"
                placeholder="{{ placeholder }}"
-               class="{{ input_base }}{% if width %} {{ width }}{% endif %} {% if icon_name %}pl-10{% endif %}{% if suffix %} pr-10{% endif %}{% if align == 'center' %} text-center{% endif %}"
+               class="{{ field_class }}{% if width %} {{ width }}{% endif %} {% if icon_name %}pl-10{% endif %}{% if suffix %} pr-10{% endif %}{% if align == 'center' %} text-center{% endif %}"
                {{ 'required' if required }}
                {{ 'disabled' if disabled }}
                {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}

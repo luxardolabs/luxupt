@@ -17,7 +17,6 @@ from app.services.core.timelapse_browser_core_service import TimelapseBrowserCor
 from app.services.core.user_core_service import UserCoreService
 from app.services.views import (
     CamerasViewService,
-    DashboardViewService,
     ImagesViewService,
     SystemViewService,
     TimelapsesViewService,
@@ -107,27 +106,6 @@ async def get_cameras_view_service(
     )
 
 
-async def get_dashboard_view_service(
-    camera_service: CameraServiceDep,
-    capture_service: CaptureServiceDep,
-    capture_stats_service: CaptureStatsServiceDep,
-    timelapse_service: TimelapseBrowserServiceDep,
-    job_service: JobServiceDep,
-    activity_service: ActivityServiceDep,
-    settings_service: SettingsServiceDep,
-) -> DashboardViewService:
-    """Get dashboard view service instance."""
-    return DashboardViewService(
-        camera_service,
-        capture_service,
-        capture_stats_service,
-        timelapse_service,
-        job_service,
-        activity_service,
-        settings_service,
-    )
-
-
 async def get_images_view_service(
     camera_service: CameraServiceDep,
     capture_service: CaptureServiceDep,
@@ -186,7 +164,6 @@ async def get_users_view_service(
 
 # Type aliases for dependency injection - View services
 CamerasViewDep = Annotated[CamerasViewService, Depends(get_cameras_view_service)]
-DashboardViewDep = Annotated[DashboardViewService, Depends(get_dashboard_view_service)]
 ImagesViewDep = Annotated[ImagesViewService, Depends(get_images_view_service)]
 TimelapsesViewDep = Annotated[
     TimelapsesViewService, Depends(get_timelapses_view_service)

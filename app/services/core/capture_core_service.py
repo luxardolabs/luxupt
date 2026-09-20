@@ -1,21 +1,20 @@
 """Capture service for managing snapshot captures with database integration."""
 
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
-from app.crud import activity_crud, camera_crud, capture_crud
+from app.crud import capture_crud
 from app.models.capture_model import Capture
-from app.models.enum_model import CaptureMethod, CaptureStatus
-from app.schemas.capture_schema import CaptureCreate, CaptureStats
+from app.schemas.capture_schema import CaptureStats
 from app.services.core._path_security import validate_image_path
 from app.utils import async_fs
 
 if TYPE_CHECKING:
-    from app.camera_manager import Camera as ApiCamera
+    pass
 
 
 class CaptureCoreService:
@@ -25,122 +24,6 @@ class CaptureCoreService:
         """Initialize capture service with database session."""
         self.db = db
 
-    async def record_capture_success(
-        self,
-        *,
-        camera_id: str,
-        camera_safe_name: str,
-        timestamp: int,
-        interval: int,
-        file_path: str,
-        file_size: int,
-        capture_method: str = "api",
-        capture_duration_ms: int | None = None,
-    ) -> None:
-        """Record a successful capture to the database."""
-        capture_datetime = datetime.fromtimestamp(timestamp, UTC)
-
-        # Get camera DB ID if available
-        camera = await camera_crud.get_by_camera_id(self.db, camera_id)
-        camera_db_id = camera.id if camera else None
-
-        # Create capture record
-        capture_data = CaptureCreate(
-            camera_id=camera_id,
-            camera_safe_name=camera_safe_name,
-            timestamp=timestamp,
-            capture_datetime=capture_datetime,
-            capture_date=capture_datetime.date(),
-            interval=interval,
-            status=CaptureStatus.SUCCESS,
-            capture_method=CaptureMethod(capture_method),
-            camera_db_id=camera_db_id,
-            file_path=file_path,
-            file_name=Path(file_path).name,
-            file_size=file_size,
-            capture_duration_ms=capture_duration_ms,
-        )
-
-        await capture_crud.create(self.db, obj_in=capture_data)
-
-        # Update camera stats
-        if camera:
-            await camera_crud.increment_captures(self.db, camera_id, success=True)
-
-        # Log activity
-        await activity_crud.log_capture_success(
-            self.db,
-            camera_id=camera_id,
-            camera_safe_name=camera_safe_name,
-            interval=interval,
-            file_path=file_path,
-        )
-
-    async def record_capture_failure(
-        self,
-        *,
-        camera_id: str,
-        camera_safe_name: str,
-        timestamp: int,
-        interval: int,
-        error_message: str,
-        capture_method: str = "api",
-    ) -> None:
-        """Record a failed capture to the database."""
-        capture_datetime = datetime.fromtimestamp(timestamp, UTC)
-
-        # Get camera DB ID if available
-        camera = await camera_crud.get_by_camera_id(self.db, camera_id)
-        camera_db_id = camera.id if camera else None
-
-        # Create capture record with error
-        capture_data = CaptureCreate(
-            camera_id=camera_id,
-            camera_safe_name=camera_safe_name,
-            timestamp=timestamp,
-            capture_datetime=capture_datetime,
-            capture_date=capture_datetime.date(),
-            interval=interval,
-            status=CaptureStatus.FAILED,
-            capture_method=CaptureMethod(capture_method),
-            camera_db_id=camera_db_id,
-            error_message=error_message,
-        )
-
-        await capture_crud.create(self.db, obj_in=capture_data)
-
-        # Update camera stats
-        if camera:
-            await camera_crud.increment_captures(self.db, camera_id, success=False)
-
-        # Log activity
-        await activity_crud.log_capture_failed(
-            self.db,
-            camera_id=camera_id,
-            camera_safe_name=camera_safe_name,
-            interval=interval,
-            error_message=error_message,
-        )
-
-    async def get_captures_for_date(
-        self,
-        *,
-        camera_id: str,
-        capture_date: date,
-        interval: int,
-    ) -> list[Capture]:
-        """Get all captures for a specific camera, date, and interval."""
-        return await capture_crud.get_captures_for_timelapse(
-            self.db,
-            camera_id=camera_id,
-            capture_date=capture_date,
-            interval=interval,
-        )
-
-    async def get_latest_capture(self, camera_id: str) -> Capture | None:
-        """Get the latest capture for a camera."""
-        return await capture_crud.get_latest_by_camera(self.db, camera_id)
-
     async def get_latest_captures_all(self) -> dict[str, Capture]:
         """Get the latest capture for each camera."""
         return await capture_crud.get_latest_per_camera(self.db)
@@ -148,30 +31,6 @@ class CaptureCoreService:
     async def get_capture_stats(self) -> CaptureStats:
         """Get overall capture statistics."""
         return await capture_crud.get_stats(self.db)
-
-    async def sync_cameras_from_api(self, cameras: list[ApiCamera]) -> None:
-        """Sync camera list from API to database."""
-        for cam in cameras:
-            # Build camera data dict
-            camera_data = {
-                "camera_id": cam.id,
-                "name": cam.name,
-                "safe_name": cam.safe_name,
-                "mac": cam.mac,
-                "model_key": cam.model_key,
-                "video_mode": cam.video_mode,
-                "hdr_type": cam.hdr_type,
-                "is_connected": cam.is_connected,
-                "is_recording": cam.is_recording,
-                "supports_full_hd_snapshot": cam.supports_full_hd_snapshot,
-                "has_hdr": cam.has_hdr,
-                "has_mic": cam.has_mic,
-                "has_speaker": cam.has_speaker,
-                "smart_detect_types": cam.smart_detect_types,
-                "state": cam.state,
-            }
-
-            await camera_crud.upsert_from_dict(self.db, data=camera_data)
 
     async def get_latest_by_camera(self, camera_id: str) -> Capture | None:
         """Get the latest capture for a camera."""

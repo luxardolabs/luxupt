@@ -86,10 +86,6 @@ class CameraCoreService:
         """Get cameras enabled for a specific interval."""
         return await camera_crud.get_cameras_for_interval(self.db, interval)
 
-    async def upsert(self, data: dict[str, Any]) -> Camera:
-        """Create or update a camera from a dictionary."""
-        return await camera_crud.upsert_from_dict(self.db, data=data)
-
     async def update_status(
         self,
         camera_id: str,

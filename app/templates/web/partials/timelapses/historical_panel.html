@@ -1,6 +1,6 @@
 {# Historical timelapse panel — pulls frames from Protect's recording stream #}
 {% from "macros/panels.html" import panel_backdrop, panel_header, panel_footer, panel_drawer %}
-{% from "macros/buttons.html" import primary, ghost %}
+{% from "macros/buttons.html" import primary, ghost, chip_button %}
 {% from "macros/forms.html" import select, text_input, radio_card, toggle_row %}
 
 
@@ -64,8 +64,8 @@
                         {label: 'Last 14 days', days: 14},
                         {label: 'All available', days: null}
                     ]" :key="preset.label">
-                        <button type="button"
-                                @click="
+                        {{ chip_button(
+                            click="
                                     if (!range) return;
                                     const end = new Date(range.newest);
                                     let start;
@@ -75,9 +75,8 @@
                                     if (start < minD) start = minD;
                                     startDate = start.toISOString().slice(0,10);
                                     endDate = end.toISOString().slice(0,10);
-                                "
-                                class="text-xs px-2.5 py-1 rounded-md border border-surface-500 bg-surface-700 hover:bg-surface-600 text-white transition-colors"
-                                x-text="preset.label"></button>
+                                ",
+                            x_text="preset.label") }}
                     </template>
                 </div>
             </div>
@@ -130,11 +129,10 @@
                 <label class="block text-sm font-medium text-white mb-1.5">Interval</label>
                 <div class="flex flex-wrap items-center gap-2">
                     {% for v in interval_presets %}
-                    <button type="button"
-                            @click="interval = {{ v }}"
-                            :class="interval === {{ v }} ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'"
-                            class="text-xs px-2.5 py-1 rounded-md border hover:bg-surface-600 transition-colors"
-                            x-text="label({{ v }})"></button>
+                    {{ chip_button(
+                        click="interval = " ~ v,
+                        active_class="interval === " ~ v ~ " ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
+                        x_text="label(" ~ v ~ ")") }}
                     {% endfor %}
                     {{ text_input("interval", type="number", required=true,
                                   align="center", width="w-20",

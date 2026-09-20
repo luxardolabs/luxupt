@@ -133,14 +133,6 @@ class SettingsCoreService:
         Delegates to the owned-session helper; does NOT use this service's handed session."""
         await _save_fetch_settings_durable(settings)
 
-    async def get_fetch_intervals(self) -> list[int]:
-        """Get configured fetch intervals."""
-        return await fetch_settings_crud.get_intervals(self.db)
-
-    async def is_fetch_enabled(self) -> bool:
-        """Check if fetch is enabled."""
-        return await fetch_settings_crud.is_enabled(self.db)
-
     # Scheduler settings methods
 
     async def get_scheduler_settings(self) -> SchedulerSettings:
@@ -161,14 +153,6 @@ class SettingsCoreService:
         """Get list of enabled intervals for scheduler, or None for all."""
         return await scheduler_settings_crud.get_enabled_intervals(self.db)
 
-    async def is_scheduler_enabled(self) -> bool:
-        """Check if scheduler is enabled."""
-        return await scheduler_settings_crud.is_enabled(self.db)
-
-    async def update_scheduler_last_run(self) -> SchedulerSettings:
-        """Update the scheduler last_run_at timestamp to now."""
-        return await scheduler_settings_crud.update_last_run(self.db)
-
     # Backup settings methods
 
     async def get_backup_settings(self) -> BackupSettings:
@@ -178,10 +162,6 @@ class SettingsCoreService:
     async def update_backup_settings(self, settings: dict[str, Any]) -> BackupSettings:
         """Update backup settings."""
         return await backup_settings_crud.update_settings(self.db, obj_in=settings)
-
-    async def is_backup_enabled(self) -> bool:
-        """Check if backup is enabled (retention > 0)."""
-        return await backup_settings_crud.is_enabled(self.db)
 
 
 async def get_settings_service(db: AsyncSession) -> SettingsCoreService:

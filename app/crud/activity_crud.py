@@ -62,24 +62,6 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
             query = query.where(Activity.timestamp >= since)
         return (await db.execute(query)).scalar() or 0
 
-    async def get_since(
-        self,
-        db: AsyncSession,
-        since: datetime,
-        *,
-        activity_type: str | None = None,
-        limit: int = config.MAX_PAGE_SIZE,
-    ) -> list[Activity]:
-        """Get activities since a timestamp."""
-        query = select(Activity).where(Activity.timestamp >= since)
-
-        if activity_type:
-            query = query.where(Activity.activity_type == activity_type)
-
-        query = query.order_by(Activity.timestamp.desc()).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
-
     async def log(
         self,
         db: AsyncSession,
