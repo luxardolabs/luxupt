@@ -1,12 +1,71 @@
 [
   {
-    "sha": "639033b",
-    "subject": "guards: luxarch 0.155.2 \u2014 install the canonical agent hooks + move a DTO to schemas",
+    "sha": "14c00ec",
+    "subject": "templates: toggle_row caller block + a compact text_input width (15 -> 12)",
     "issue": null
   },
   {
-    "sha": "9c8bcaf",
-    "subject": "status: regenerate at HEAD",
+    "sha": "237749b",
+    "subject": "errors: stop discarding five swallowed exceptions (sweep DEFINITE 5 -> 0)",
     "issue": null
+  },
+  {
+    "sha": "7d5f3f3",
+    "subject": "async: move four blocking pathlib calls off the event loop (sweep blocking-io 4 -> 0)",
+    "issue": null
+  },
+  {
+    "sha": "103439f",
+    "subject": "datetime: store aware UTC end-to-end (LUXUPT-70, ruff DTZ 72 -> 0)",
+    "issue": "LUXUPT-70"
+  },
+  {
+    "sha": "53b12ff",
+    "subject": "docs: record the UTC migration, the two sweeps and the deploy step",
+    "issue": null
+  },
+  {
+    "sha": "5e5078b",
+    "subject": "sweeps: view-seam to 0, post-db-filter 11 -> 3 (LUXUPT-73)",
+    "issue": "LUXUPT-73"
+  },
+  {
+    "sha": "8055561",
+    "subject": "sweeps: dropped-input to 0 \u2014 remove two params that were threaded in and discarded",
+    "issue": null
+  },
+  {
+    "sha": "c08c882",
+    "subject": "perf: batch camera stats \u2014 the cameras page did 32 queries, now 3 (LUXUPT-73)",
+    "issue": "LUXUPT-73"
+  },
+  {
+    "sha": "a1babb2",
+    "subject": "templates: adjudicate the undefined guards, 25 -> 1 (LUXUPT-73)",
+    "issue": "LUXUPT-73"
+  },
+  {
+    "sha": "03991e5",
+    "subject": "build(guards): pin guards with := so an untracked Makefile.local cannot shadow them",
+    "issue": null,
+    "session": "739ee83a-d905-46b3-a7ed-de72d7cb811d"
+  },
+  {
+    "sha": "a99dd74",
+    "subject": "build(guards): luxarch 0.155.3->0.192.4, luxlint 0.45.1->0.55.0, luxaudit 0.4.0->0.9.0",
+    "issue": null,
+    "session": "739ee83a-d905-46b3-a7ed-de72d7cb811d"
+  },
+  {
+    "sha": "517ba51",
+    "subject": "auth: hash passwords with argon2-cffi directly; drop passlib",
+    "issue": null,
+    "session": "739ee83a-d905-46b3-a7ed-de72d7cb811d"
+  },
+  {
+    "sha": "5ce36ca",
+    "subject": "routes: smoke-test every route, and fix the nine 500s it found (LUXUPT-73)",
+    "issue": "LUXUPT-73",
+    "session": "739ee83a-d905-46b3-a7ed-de72d7cb811d"
   }
 ]
