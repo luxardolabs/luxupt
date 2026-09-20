@@ -111,5 +111,18 @@ lint_logic = true
 #                           declared but unlabelled today. Wire with the enum-typing burn-down.
 #   fw.color_mode_tokens  — needs a [color_tokens] token→tailwind map; the palette is defined in
 #                           tailwind.config.js and has not been mapped yet.
-#   fw.route_smoke_wired  — needs [route_smoke].enabled + `luxarch --emit route-smoke` into the
-#                           conftest. Wire with the test-harness work.
+
+# ── route-smoke ──────────────────────────────────────────────────────────────────────
+# Every registered route is REQUESTED by the suite, so `filterwarnings = error` actually
+# runs everywhere it matters, and so a render-time 500 cannot ship. Not optional for this
+# app: it runs StrictUndefined, where an unguarded template deref RAISES, and rendering the
+# route is the only net that sees it (luxarch 0.191.0). Turning it on found nine live 500s
+# and one dependency deprecation that was one release away from breaking password hashing.
+# The asserter is the emitted tests/conftest_route_smoke.py — re-emit, never hand-edit.
+[route_smoke]
+enabled = true
+exempt = [
+  "/health/live",   # liveness probe — no behaviour to assert
+  "/health/ready",  # readiness probe — no behaviour to assert
+  "/metrics",       # prometheus scrape — no behaviour to assert
+]

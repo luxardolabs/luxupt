@@ -126,9 +126,8 @@ update: ## Update dependencies
 	$(POETRY) update
 
 .PHONY: lock
-lock: ## Update poetry.lock file
-	@echo '$(BLUE)Updating poetry.lock file...$(NC)'
-	$(POETRY) lock --no-update
+lock: poetry-lock  ## Regenerate poetry.lock (alias for poetry-lock — runs IN DOCKER)
+	@:
 
 # --- Poetry in Docker (no local poetry needed; matches the Dockerfile's version) ---
 POETRY_IN_DOCKER_VERSION := 2.4.1
@@ -177,7 +176,7 @@ gitleaks-staged: ## Scan STAGED changes for secrets (good as a pre-commit check)
 	$(GITLEAKS_RUN) git /repo -c /cfg.toml --staged --redact --no-banner -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION := 0.45.1
+LUXLINT_VERSION := 0.55.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
@@ -209,7 +208,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.155.3
+LUXARCH_VERSION   := 0.192.4
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -219,7 +218,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION := 0.4.0
+LUXAUDIT_VERSION := 0.9.0
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit
@@ -240,18 +239,24 @@ guard-version-check: ## FATAL: fail the gate if any guard pin is behind the publ
 	done; exit $$rc
 
 .PHONY: guard-upgrade
-guard-upgrade: ## Bump every guard pin to the published latest (prints what newly bites)
+guard-upgrade:  ## Bump every guard pin to the published latest (prints what newly bites)
 	@for g in luxarch luxlint luxaudit; do \
 	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest >/dev/null 2>&1 || true; \
 	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest --version 2>/dev/null | awk '{print $$2}'); \
-	  [ -z "$$latest" ] && continue; \
 	  var=$$(echo $$g | tr a-z A-Z)_VERSION; \
-	  old=$$(sed -n "s/^$$var *:= *//p" Makefile); \
-	  sed -i "s|^$$var\( *\):= .*|$$var\1:= $$latest|" Makefile; \
-	  if [ "$$g" = luxarch ] && [ -n "$$old" ] && [ "$$old" != "$$latest" ]; then \
-	    docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
-	  fi; \
-	done; echo "pins bumped — re-run make check"
+	  old=$$(sed -n -E "s/^$$var[[:space:]]*:=[[:space:]]*//p" Makefile); \
+	  if [ -z "$$old" ]; then echo "!! no $$var pin found in Makefile — NOT bumped"; continue; fi; \
+	  if [ -z "$$latest" ]; then echo "!! could not read $$g:latest — $$var left at $$old"; continue; fi; \
+	  checked=1; \
+	  sed -i -E "s|^($$var[[:space:]]*:=[[:space:]]*).*|\\1$$latest|" Makefile; \
+	  new=$$(sed -n -E "s/^$$var[[:space:]]*:=[[:space:]]*//p" Makefile); \
+	  if [ "$$new" != "$$latest" ]; then echo "!! $$var did NOT change (still $$new)"; exit 1; fi; \
+	  if [ "$$old" != "$$latest" ]; then echo "$$var $$old -> $$latest"; bumped=1; fi; \
+	  [ "$$g" = luxarch ] && [ "$$old" != "$$latest" ] && docker run --rm -v $(PWD):/repo $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
+	done; \
+	if [ -n "$$bumped" ]; then echo "pins bumped — re-run make check"; \
+	elif [ -n "$$checked" ]; then echo "all pins already at latest"; \
+	else echo "!! could not reach the registry — NO pin was checked; currency NOT established"; exit 1; fi
 
 .PHONY: onboard-check
 onboard-check: ## Prove the repo is onboarded: all three guards ON + HONEST, NOT green (FLEET-ONBOARDING-STANDARD §5)
@@ -450,15 +455,15 @@ docker-build-local: validate-version validate-structure docker-setup docker-pull
 	@echo '$(GREEN)Docker build complete!$(NC)'
 
 .PHONY: build-dev
-build-dev: validate-version validate-structure ## Build the local luxupt:dev image from current source (for dev overlays)
-	@echo '$(BLUE)Building luxupt:dev from current source...$(NC)'
+build-dev: validate-version validate-structure ## Build the local :dev image from current source (for a dev stack)
+	@echo '$(BLUE)Building $(LOCAL_IMAGE):dev from current source...$(NC)'
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build \
 		--build-arg BUILD_VERSION=$(VERSION)-dev \
 		--build-arg BUILD_TIMESTAMP=$(CREATED) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		-t luxupt:dev \
+		-t $(LOCAL_IMAGE):dev \
 		.
-	@echo '$(GREEN)Built luxupt:dev — dev overlays run this image. Re-run after code changes.$(NC)'
+	@echo '$(GREEN)Built $(LOCAL_IMAGE):dev — a dev stack runs it with TAG=dev + PULL_POLICY=never. Re-run after code changes.$(NC)'
 
 .PHONY: docker-push-local
 docker-push-local: validate-version validate-structure docker-setup docker-pull-cache ## Build and push to local registry (multi-arch: amd64 + arm64)

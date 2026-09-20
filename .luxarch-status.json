@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.155.2",
+  "guard_version": "0.192.4",
   "repo": "/repo",
   "targets": [
     {
@@ -659,7 +659,7 @@
           "rule": "fw.no_hand_rolled_components_in_pages",
           "status": "FAIL",
           "since": "0.9.1",
-          "violations": 15,
+          "violations": 11,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -864,12 +864,12 @@
         },
         {
           "rule": "fw.route_smoke_wired",
-          "status": "INERT",
+          "status": "PASS",
           "since": "0.64.0",
           "violations": 0,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "route-smoke catches a dependency deprecation one release before the pin makes it fatal, but it's off here. To turn it ON: set [route_smoke].enabled = true, then `luxarch --emit route-smoke` into tests/conftest.py (this rule then enforces the asserter is committed)."
+          "inert": false,
+          "inert_reason": ""
         },
         {
           "rule": "fw.session_minted_in_owner",
@@ -1203,14 +1203,86 @@
           "deferred": false,
           "inert": false,
           "inert_reason": ""
+        },
+        {
+          "rule": "fw.paginated_result_unpacked",
+          "status": "PASS",
+          "since": "0.157.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.test_engine_pool_parity",
+          "status": "PASS",
+          "since": "0.160.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.template_context_complete",
+          "status": "PASS",
+          "since": "0.174.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.asserter_current",
+          "status": "PASS",
+          "since": "0.188.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.broad_except_is_logged",
+          "status": "PASS",
+          "since": "0.177.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.core_mutation_checks_permission",
+          "status": "INERT",
+          "since": "0.178.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [rbac].require_names (the same list the route-level RBAC rules use) to enforce that a mutating core method taking a `user` actually checks that user's permission. Until then this rule does not run."
+        },
+        {
+          "rule": "fw.destructive_macro_gated",
+          "status": "INERT",
+          "since": "0.179.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [components].destructive (the macros that delete/reindex/revoke) and [rbac].require_names (what a permission check looks like here) to enforce that a destructive control is rendered only inside a permission conditional. The image cannot infer either: a macro NAME does not tell you whether it destroys, and every repo spells its permission check differently. Until both are declared this rule does not run."
+        },
+        {
+          "rule": "fw.route_dep_matches_surface",
+          "status": "INERT",
+          "since": "0.180.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "declare [[authz.signature]] rows (`prefix` + `require_dep`) to enforce that a route under a surface carries THAT surface's dependency. `fw.admin_endpoints_rbac` asks whether any gate exists; this asks whether it is the right one \u2014 a bare CurrentUser on /admin is a gate and not an admin gate. Until rows are declared this rule does not run."
         }
       ],
       "summary": {
-        "PASS": 117,
+        "PASS": 123,
         "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 15
+        "INERT": 17
       }
     }
   ],
@@ -1280,6 +1352,33 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.makefile_no_command_substitution",
+        "status": "PASS",
+        "since": "0.185.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.guard_pins_not_overridable",
+        "status": "PASS",
+        "since": "0.187.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.guard_upgrade_verifies_write",
+        "status": "PASS",
+        "since": "0.192.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.makefile_test_db_harness",
         "status": "PASS",
         "since": "0.102.0",
@@ -1337,6 +1436,33 @@
         "rule": "repo.hooks_wired",
         "status": "PASS",
         "since": "0.154.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.hooks_current",
+        "status": "PASS",
+        "since": "0.164.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.allowlist_wellformed",
+        "status": "PASS",
+        "since": "0.165.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.python_version_consistent",
+        "status": "PASS",
+        "since": "0.166.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1451,6 +1577,15 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.hatch_version_source_buildable",
+        "status": "PASS",
+        "since": "0.184.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.app_version_calver",
         "status": "PASS",
         "since": "0.50.0",
@@ -1479,7 +1614,7 @@
       }
     ],
     "summary": {
-      "PASS": 29,
+      "PASS": 36,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -1487,12 +1622,12 @@
     }
   },
   "summary": {
-    "PASS": 146,
+    "PASS": 159,
     "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 15
+    "INERT": 17
   },
-  "commit": "5202bd78c633115c20117817f73d69e1ad5e5238",
-  "generated_at": "2026-09-08T02:54:19Z"
+  "commit": "03991e5597fec6d8d7cac8d0a74fa88bf82b7151",
+  "generated_at": "2026-09-20T19:53:12Z"
 }

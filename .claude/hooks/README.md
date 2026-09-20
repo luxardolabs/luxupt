@@ -12,6 +12,22 @@ luxarch/luxlint own the CODE. These hooks own what a file-scanning guard **struc
 
 A hook here must never re-implement a rule the guard already owns. Eleven repos each grew a hand-rolled copy of `view-services-no-crud` / `crud-no-fastapi` / … — eleven parallel copies of a standard with one home, unable to see the allowlists, INERT states or site-waivers the real rule honours. They were deleted; the guard was always the authority.
 
+## Writing a Bash hook: two texts, two questions
+
+Every Bash hook reads its command through `_cmdtext`. There is one rule, and three over-firing defects were shipped before it was written down — each one caught by the hook blocking its own author mid-task:
+
+| question                                       | ask it of                        | why                                                                                                                           |
+| ---------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| is this dangerous verb actually being **run**? | **masked** text (`command_text`) | a heredoc body or a quoted literal containing the pattern is DATA — writing a test or a doc about `rm -rf` is not running it  |
+| what is it **pointing at**?                    | **raw** text                     | a path is routinely quoted, and masking deletes the target — `rm -rf "$DIR"` loses its own argument                           |
+| does it pair two things?                       | **one segment**                  | a compound line silences or creates something unrelated; `docker run … 2>/dev/null && git add -A` is not a silenced `git add` |
+
+`segments(cmd)` returns aligned `(masked, raw)` pairs, one per segment — masking preserves length, so the two strings share offsets. Use it rather than splitting either text alone.
+
+The exception is `no-ai-attribution`, which must NOT mask: a commit message *is* the quoted payload. It is safe because it is already scoped to commit/PR commands.
+
+**And the discipline that matters more than any of this:** for every hook, test that it FIRES on the real thing *and* passes the legitimate neighbour. A hook that over-fires gets switched off, taking its real catches with it — strictly worse than no hook.
+
 ## What's here
 
 | hook                    | fires                        | effect                                                        |

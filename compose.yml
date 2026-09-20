@@ -1,0 +1,103 @@
+# The ONE compose file for LuxUPT (repo.compose_conventions / --playbook compose-hygiene).
+#
+# Environments differ by `.env.<env>`, never by an overlay file. One env file per site and
+# per environment, each gitignored because it carries the registry, the tag, the ports, the
+# storage paths and the credentials:
+#
+#   docker compose --env-file .env.<site>     up -d      # that site, production
+#   docker compose --env-file .env.<site>-dev up -d      # that site, dev (local :dev image)
+#
+# nginx is a PROFILE of this same file, not a second compose file. It fronts every site stack
+# on the host and is started once per host:
+#
+#   docker compose --env-file .env.<site> --profile nginx up -d nginx
+#
+# Nothing here BUILDS. `make release` (prod) and `make build-dev` (dev) produce the image;
+# compose only runs the tag named in the env file.
+
+name: ${STACK_NAME:?set STACK_NAME in .env.<env>}
+
+services:
+  luxupt:
+    # Always a registry-namespaced, pinned ref — never :latest, never bare. The dev tag is
+    # built locally under the same namespace (make build-dev) and paired with
+    # PULL_POLICY=never, so a dev stack still names the exact artifact it runs.
+    image: ${REGISTRY:?set REGISTRY in .env.<env>}/luxardolabs/luxupt:${TAG:?set TAG in .env.<env>}
+    pull_policy: ${PULL_POLICY:-missing}
+    container_name: ${STACK_NAME:?}
+    restart: always
+
+    # The app's own settings (credentials, feature flags, Protect host) come from the same
+    # env file that parameterises this compose — passed to the CONTAINER here, and used for
+    # INTERPOLATION above via --env-file. Both are needed; they are different mechanisms.
+    env_file:
+      - ${ENV_FILE:?set ENV_FILE in .env.<env>}
+
+    # Internal only. nginx terminates SSL on the host and proxies here — no app container
+    # ever publishes a host port.
+    expose:
+      - "${WEB_PORT:?set WEB_PORT in .env.<env>}"
+
+    volumes:
+      # Single mount (all data on one disk). For tiered storage, point each of
+      # DATABASE_DIR / IMAGE_OUTPUT_PATH / VIDEO_OUTPUT_PATH / THUMBNAIL_CACHE_PATH at its
+      # own container mount and add a volume line per mount.
+      - ${DATA_ROOT:?set DATA_ROOT in .env.<env>}:/app/luxupt/output:rw
+
+    environment:
+      TZ: ${TZ:-UTC}
+
+      # =============================================================================
+      # PATHS (required - can't be changed at runtime)
+      # =============================================================================
+      IMAGE_OUTPUT_PATH: "output/images"
+      VIDEO_OUTPUT_PATH: "output/videos"
+
+      # =============================================================================
+      # LOGGING (startup-time only)
+      # =============================================================================
+      LOGGING_LEVEL: "${LOGGING_LEVEL:-INFO}"
+      LOGGING_FORMAT: "${LOGGING_FORMAT:-json}"
+
+      WEB_PORT: "${WEB_PORT:?}"
+
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import httpx; r = httpx.get('http://localhost:$${WEB_PORT:-8080}/health/live', timeout=5); exit(0 if r.status_code == 200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - luxupt-network
+
+  # =============================================================================
+  # NGINX SSL TERMINATION  (profile: nginx)
+  # =============================================================================
+  # Inert for a normal `up` — it starts only when the profile is named. One nginx fronts
+  # every site stack on the host, which is why it is a profile of this file rather than a
+  # second compose file.
+  nginx:
+    profiles:
+      - nginx
+    image: nginx:1.27-alpine
+    container_name: luxupt-nginx
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ${CERT_ROOT:?set CERT_ROOT in .env.<env>}:/etc/nginx/ssl:ro
+    ports:
+      - "${NGINX_PORT_PRIMARY:?set NGINX_PORT_PRIMARY}:${NGINX_PORT_PRIMARY:?set NGINX_PORT_PRIMARY}"
+      - "${NGINX_PORT_SECONDARY:?set NGINX_PORT_SECONDARY}:${NGINX_PORT_SECONDARY:?set NGINX_PORT_SECONDARY}"
+    networks:
+      - luxupt-network
+    restart: unless-stopped
+
+networks:
+  luxupt-network:
+    name: luxupt-network
+    # Shared across every site stack on the host. Created once via `make network` so a
+    # `docker compose down` on one site never removes it from under another.
+    external: true

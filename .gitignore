@@ -41,8 +41,11 @@ Thumbs.db
 # ── Local-only: deploy infra & tooling not part of the public source subset ──
 # NOTE: VERSION is committed (source of truth for clean-clone builds; repo.app_version_calver).
 CLAUDE.md
-compose*.yaml
-compose*.yml
+# compose.yml IS committed: it is the one stack definition and carries no topology — every
+# host/registry/tag/path in it is interpolated from a gitignored .env.<env>
+# (repo.compose_conventions). Any OTHER compose file is a leftover overlay and stays ignored.
+compose.*.yaml
+compose.*.yml
 docker-compose*.yml
 nginx/
 prod/
@@ -66,3 +69,8 @@ Makefile.local
 # execute — machine-local, never committed. settings.local.json is per-developer.
 .claude/.hooks-heartbeat
 .claude/settings.local.json
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.luxpm-ledger.json
+.claude/settings.json.bak
+.claude/.push-hold
