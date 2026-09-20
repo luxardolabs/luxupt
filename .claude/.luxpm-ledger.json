@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "sha": "b090cc5",
+    "subject": "dead-code: remove 21 superseded methods, the retired dashboard service and two orphan partials",
+    "issue": null,
+    "session": "739ee83a-d905-46b3-a7ed-de72d7cb811d"
+  }
+]
