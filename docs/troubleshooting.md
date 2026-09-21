@@ -321,6 +321,28 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+### Historical Timelapse Fails or the Option Is Unavailable
+
+**The Recordings source is greyed out, or the Historical panel says something is missing.**
+
+Historical timelapses read Protect's recording stream, which the integration API key cannot reach. They need `UNIFI_PROTECT_USERNAME` and `UNIFI_PROTECT_PASSWORD` as well.
+
+It must be a **local Protect user**, not a Ubiquiti SSO account — SSO credentials will not authenticate against the recording API. Create a local user in the Protect UI with view access to the cameras you want.
+
+**The job runs but returns no frames for some days.** Your NVR only holds recordings for as long as its retention allows. The panel shows the available range for the camera you picked; anything outside it has been overwritten. A camera added recently has a shorter range than the others.
+
+**The end of my range was pulled back.** Protect needs roughly a minute before a frame is in the recording stream, so an end time too close to now is clamped. This is deliberate — without it the last few frames would 404.
+
+**It is slow.** Fetching is rate-limited the same way live capture is, deliberately, so a long range takes a while. It runs as a normal job — watch it on the **Jobs** tab rather than waiting on the panel.
+
+### Everything Is Filed Under the Wrong Day
+
+Captures after a certain hour appear under the next day, or Today / Yesterday labels look off by one.
+
+This is `TZ` (or `DISPLAY_TIMEZONE`) not matching your actual local zone. Times are stored as UTC; these settings decide which calendar day a capture belongs to. Left at UTC while you are in US Central, everything after about 6pm is filed under tomorrow.
+
+Set it to your real zone and restart. Note that this does **not** move what is already on disk — the existing archive keeps the boundary it was written with, so expect a seam at the point you changed it.
+
 ### Scheduler Not Running
 
 **Symptom:** No automatic timelapses being created.

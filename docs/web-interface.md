@@ -44,6 +44,8 @@ Click the "Captures" stat card to open detailed statistics.
 - Failure breakdown by error type
 - Average capture time
 
+**Moving through time:** the period is a window you can walk. Back and forward arrows step to the previous or next window of the same length, and a **Now** control jumps you back to the current one. Forward is disabled once you are at the present — so you can compare this afternoon against yesterday afternoon without changing the period.
+
 ### Recent Failures Section
 
 A collapsible section showing the most recent capture failures. Helps diagnose problems quickly.
@@ -336,20 +338,42 @@ Click **Create Timelapse** to queue the job. The panel closes and you can:
 
 ______________________________________________________________________
 
+## Historical Timelapse Panel
+
+Access via **Historical** on the Timelapses page. Builds a timelapse for days you never had live capture running, by pulling frames from the recordings already stored on your NVR.
+
+This is the panel to use when you want footage of something that already happened. Normal timelapse creation can only use images LuxUPT captured at the time; this one reads Protect's own recording stream, so the only limit is how far back your NVR still holds recordings.
+
+**Requires a local Protect user.** Set `UNIFI_PROTECT_USERNAME` and `UNIFI_PROTECT_PASSWORD` — the API key alone cannot read recordings. See [Configuration](configuration.md). Without them this panel tells you what is missing rather than failing when you submit.
+
+| Setting          | Description                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| **Camera**       | Which camera to pull from. The available recording range is shown for the one you pick.          |
+| **Date range**   | Start and end date. Presets cover the last 7 / 14 days or everything available.                  |
+| **Daily window** | Optional start and end time, so you get (say) 08:00–18:00 each day instead of the full 24 hours. |
+| **Interval**     | Seconds between frames — the same meaning as a live capture interval.                            |
+| **Output**       | **Per day** gives one video per date. **Combined** gives a single video across the whole range.  |
+| **Keep images**  | Whether the fetched frames are kept after the video is built.                                    |
+
+The available range is shown in **your browser's** time zone, not the server's.
+
+Fetching is rate-limited the same way live capture is, so a long range takes a while — it runs as a normal job and appears on the **Jobs** tab with progress. A range ending too close to now is pulled back automatically, because Protect needs roughly a minute before a frame is in the recording stream.
+
 ## Scheduler Panel
 
 Access via **Scheduler** button on the Timelapses page. Configures automatic daily timelapse creation. The scheduler runs once per day at the configured time.
 
 ### Schedule Section
 
-| Setting                | Description                                                                                                                                                                              | Default |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **Enable Scheduler**   | Master switch for automatic timelapse creation. When disabled, no automatic videos are created (you can still create them manually).                                                     | On      |
-| **Run Time**           | What time of day the scheduler runs (24-hour format). Recommended: late night when system load is low.                                                                                   | 01:00   |
-| **Days Back**          | Which day to process. **1** = yesterday (most common), **2** = two days ago, etc. Using 1 ensures a full day of captures is available.                                                   | 1       |
-| **Concurrent**         | Number of videos to encode simultaneously. Higher values finish faster but use more CPU/RAM.                                                                                             | 2       |
-| **Keep Source Images** | When enabled, images are preserved after video creation. When disabled, images are deleted after successful video creation to save storage.                                              | On      |
-| **Recreate Existing**  | When enabled, existing videos for the same camera/date/interval are overwritten. When disabled, existing videos are skipped. Disable if you want to skip dates that already have videos. | On      |
+| Setting                | Description                                                                                                                                                                                                        | Default  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| **Enable Scheduler**   | Master switch for automatic timelapse creation. When disabled, no automatic videos are created (you can still create them manually).                                                                               | On       |
+| **Source**             | Where frames come from: **Captured** (images LuxUPT captured live) or **Recordings** (pulled from the NVR, as in the Historical panel). An option you have not configured is shown as unavailable with the reason. | Captured |
+| **Run Time**           | What time of day the scheduler runs (24-hour format). Recommended: late night when system load is low.                                                                                                             | 01:00    |
+| **Days Back**          | Which day to process. **1** = yesterday (most common), **2** = two days ago, etc. Using 1 ensures a full day of captures is available.                                                                             | 1        |
+| **Concurrent**         | Number of videos to encode simultaneously. Higher values finish faster but use more CPU/RAM.                                                                                                                       | 2        |
+| **Keep Source Images** | When enabled, images are preserved after video creation. When disabled, images are deleted after successful video creation to save storage.                                                                        | On       |
+| **Recreate Existing**  | When enabled, existing videos for the same camera/date/interval are overwritten. When disabled, existing videos are skipped. Disable if you want to skip dates that already have videos.                           | On       |
 
 *Example: With Run Time at 01:00, Days Back at 1, and Concurrent at 2, LuxUPT creates yesterday's timelapses at 1 AM, encoding 2 videos at a time. A system with 8 cameras at one interval would create 8 videos, 2 at a time.*
 
@@ -608,7 +632,14 @@ Backups are stored as `output/backups/timelapse_YYYYMMDD_HHMMSS.db`. Old backups
 
 #### Activity Feed
 
-The dashboard and activity log show system events including:
+There is a full **Activity** page in the navigation, in addition to the summary feed here. It opens on **Problems**, because that is usually why you are looking, and offers:
+
+- a time range — last 24 hours, 7 days, 30 days, or everything
+- a filter by kind of event
+- grouping by day, with summary cards for the range
+- paging, and the full message shown inline so it can be copied
+
+The page and the feed show the same system events, including:
 
 - **Capture failures** — Individual camera capture errors (timeouts, connection failures, retry exhaustion) are logged with camera name, interval, and error message
 - **Cycle skips** — If the capture system falls behind (previous cycles still running when a new one would start), an error is logged identifying the affected interval

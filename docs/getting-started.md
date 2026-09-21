@@ -26,12 +26,12 @@ Keep this key secure. Anyone with the key can access your camera feeds.
 
 ### Basic Setup
 
-Create a `compose.yaml` file:
+Create a `compose.yml` file:
 
 ```yaml
 services:
   luxupt:
-    image: ghcr.io/luxardolabs/luxupt:latest
+    image: ghcr.io/luxardolabs/luxupt:2026.09.0
     container_name: luxupt
     restart: always
     ports:
@@ -39,8 +39,10 @@ services:
     volumes:
       - ./output:/app/luxupt/output
     environment:
-      TZ: America/Chicago  # Your timezone
+      TZ: America/Chicago  # Your timezone — see the note below
 ```
+
+Pin a version rather than using `:latest`. `:latest` moves under you, so a restart can pick up a different build than the one you tested — and you have no way to say which version you are running when something goes wrong.
 
 Start the container:
 
@@ -57,7 +59,15 @@ docker compose up -d
 | `restart: always` | Automatically restart if the container stops or system reboots       |
 | `ports`           | Maps port 8080 inside the container to your host                     |
 | `volumes`         | Where images, videos, and the database are stored                    |
-| `TZ`              | Your timezone — used for scheduling and file timestamps              |
+| `TZ`              | Your timezone — see below; it decides which day a capture belongs to |
+
+### About `TZ`
+
+Set this to your actual local zone before you start capturing, and then leave it alone.
+
+Times are always *stored* in UTC, so this does not affect the data — but it does decide **which calendar day** a capture belongs to. Images and videos are filed in dated folders, and "today's captures" and the Today / Yesterday labels follow the same boundary. Left at UTC while you are in US Central, everything captured after about 6pm is filed under the next day.
+
+Changing it later does not move what is already on disk, so the archive keeps the boundary it was written with. (`DISPLAY_TIMEZONE` can override it for display if you ever need the two to differ — see [Configuration](configuration.md).)
 
 ### Volume Mount
 

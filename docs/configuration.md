@@ -72,6 +72,25 @@ ______________________________________________________________________
 | `UNIFI_PROTECT_BASE_URL`   | API endpoint (e.g., `https://192.168.1.1/proxy/protect/integration/v1`) | —       |
 | `UNIFI_PROTECT_API_KEY`    | Your generated API key                                                  | —       |
 | `UNIFI_PROTECT_VERIFY_SSL` | Verify SSL certificates (`true` or `false`)                             | `false` |
+| `UNIFI_PROTECT_USERNAME`   | Local Protect user — **only** needed for historical timelapses          | —       |
+| `UNIFI_PROTECT_PASSWORD`   | That user's password                                                    | —       |
+
+The API key covers live capture. **Historical timelapses** — building a timelapse from the recordings already on your NVR — read Protect's recording stream, which the integration API key cannot reach, so they additionally need `UNIFI_PROTECT_USERNAME` / `UNIFI_PROTECT_PASSWORD`.
+
+That must be a **local Protect user**, not a Ubiquiti SSO account. Create one in the Protect UI with view access to the cameras you want; SSO credentials will not authenticate here.
+
+Leave them unset if you only use live capture — the Scheduler will simply show the recordings-based source as unavailable, and tell you which setting is missing.
+
+### Time zone
+
+| Variable           | Description                                    | Default            |
+| ------------------ | ---------------------------------------------- | ------------------ |
+| `TZ`               | Container time zone — what logs and the UI use | `UTC`              |
+| `DISPLAY_TIMEZONE` | Overrides `TZ` for display and day boundaries  | falls back to `TZ` |
+
+Every timestamp is **stored** as UTC. These two settings control only how a time is *shown* and, more importantly, **which calendar day something belongs to**.
+
+That second part is not cosmetic. Images and videos are filed in folders by date, and "today's captures" and the Today / Yesterday labels are worked out the same way. If this is set to UTC while you are in, say, US Central, everything captured after about 6pm gets filed under the next day. Set it to your actual local zone and leave it there — if you change it after capturing, the archive already on disk keeps the old boundary.
 
 ### Storage Paths
 
