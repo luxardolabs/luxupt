@@ -38,7 +38,6 @@ LOCAL_REGISTRY ?=
 DOCKER_HUB_USER := luxardolabs
 GITHUB_USER := luxardolabs
 LOCAL_IMAGE := $(LOCAL_REGISTRY)/$(DOCKER_HUB_USER)/$(PROJECT_NAME)
-DOCKER_HUB_IMAGE := $(DOCKER_HUB_USER)/$(PROJECT_NAME)
 GHCR_IMAGE := ghcr.io/$(GITHUB_USER)/$(PROJECT_NAME)
 
 # Load .env file if present (for GHCR_TOKEN and other credentials)
@@ -75,7 +74,6 @@ help: ## Show this help message
 	@echo '  Directory: $(CURRENT_DIR)'
 	@echo '  Version: $(VERSION)'
 	@echo '  Local Registry: $(LOCAL_IMAGE):$(VERSION)'
-	@echo '  Docker Hub: $(DOCKER_HUB_IMAGE):$(VERSION)'
 	@echo ''
 	@echo '$(BLUE)Available targets:$(NC)'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -208,7 +206,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.195.0
+LUXARCH_VERSION   := 0.196.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -424,15 +422,6 @@ docker-setup: ## Set up the shared fleet Docker buildx builder (create-once, GC-
 	fi
 	docker buildx inspect --bootstrap
 
-.PHONY: docker-login-hub
-docker-login-hub: ## Login to Docker Hub (uses DOCKER_HUB_TOKEN env var or prompts)
-	@echo '$(BLUE)Logging in to Docker Hub...$(NC)'
-	@if [ -n "$$DOCKER_HUB_TOKEN" ]; then \
-		echo "$$DOCKER_HUB_TOKEN" | docker login -u $(DOCKER_HUB_USER) --password-stdin; \
-	else \
-		docker login -u $(DOCKER_HUB_USER); \
-	fi
-	@echo '$(GREEN)Docker Hub login successful!$(NC)'
 
 .PHONY: docker-login-ghcr
 docker-login-ghcr: ## Login to GitHub Container Registry
@@ -498,28 +487,6 @@ docker-push-local: validate-version validate-structure docker-setup docker-pull-
 		.
 	@echo '$(GREEN)Pushed $(LOCAL_IMAGE):$(VERSION)$(NC)'
 
-.PHONY: docker-push-hub
-docker-push-hub: validate-version validate-structure docker-setup docker-login-hub ## Build and push to Docker Hub (multi-arch: amd64 + arm64)
-	@echo '$(BLUE)Pulling previous Docker Hub image for cache...$(NC)'
-	@docker pull $(DOCKER_HUB_IMAGE):latest 2>/dev/null || echo "No previous image found for cache"
-	@echo '$(BLUE)Building and pushing to Docker Hub (multi-arch)...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
-		--platform $(PLATFORM) \
-		--build-arg BUILDKIT_INLINE_CACHE=1 \
-		--cache-from $(DOCKER_HUB_IMAGE):latest \
-		--build-arg BUILD_VERSION=$(VERSION) \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		--label "org.opencontainers.image.created=$(CREATED)" \
-		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=luxupt" \
-		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
-		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(DOCKER_HUB_IMAGE):$(VERSION) \
-		--push \
-		.
-	@echo '$(GREEN)Pushed $(DOCKER_HUB_IMAGE):$(VERSION)$(NC)'
 
 .PHONY: docker-push-ghcr
 docker-push-ghcr: validate-version validate-structure docker-setup docker-login-ghcr ## Build and push to GHCR (multi-arch: amd64 + arm64)
@@ -543,87 +510,16 @@ docker-push-ghcr: validate-version validate-structure docker-setup docker-login-
 	@echo '$(GREEN)Pushed $(GHCR_IMAGE):$(VERSION)$(NC)'
 
 .PHONY: docker-push-all
-docker-push-all: docker-push-local docker-push-hub docker-push-ghcr ## Push to all registries (local, Docker Hub, GHCR)
+# FLEET-BUILD-DEPLOY-STANDARD: the private registry is the artifact hub, and GHCR is "a
+# deliberate, separate promotion" for a public flavour — never part of an internal release.
+.PHONY: release-public
+release-public: docker-push-ghcr ## Promote this version to GHCR (public flavour; NOT part of `release`)
+	@echo '$(GREEN)Promoted $(VERSION) to GHCR$(NC)'
 
-.PHONY: docker-tag-latest-local
-docker-tag-latest-local: ## Tag current version as latest (local)
-	@echo '$(BLUE)Tagging $(VERSION) as latest in local registry...$(NC)'
-	docker tag $(LOCAL_IMAGE):$(VERSION) $(LOCAL_IMAGE):latest
-	docker push $(LOCAL_IMAGE):latest
-	@echo '$(GREEN)Tagged and pushed latest to local registry$(NC)'
 
-.PHONY: docker-tag-latest-hub
-docker-tag-latest-hub: docker-login-hub ## Tag current version as latest (Docker Hub, multi-arch)
-	@echo '$(BLUE)Tagging $(VERSION) as latest on Docker Hub...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
-		--platform $(PLATFORM) \
-		--build-arg BUILDKIT_INLINE_CACHE=1 \
-		--cache-from $(DOCKER_HUB_IMAGE):$(VERSION) \
-		--build-arg BUILD_VERSION=$(VERSION) \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		--label "org.opencontainers.image.created=$(CREATED)" \
-		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=luxupt" \
-		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
-		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(DOCKER_HUB_IMAGE):latest \
-		--push \
-		.
-	@echo '$(GREEN)Tagged and pushed latest to Docker Hub$(NC)'
 
-.PHONY: docker-tag-latest-ghcr
-docker-tag-latest-ghcr: docker-login-ghcr ## Tag current version as latest (GHCR, multi-arch)
-	@echo '$(BLUE)Tagging $(VERSION) as latest on GHCR...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
-		--platform $(PLATFORM) \
-		--build-arg BUILDKIT_INLINE_CACHE=1 \
-		--cache-from $(GHCR_IMAGE):$(VERSION) \
-		--build-arg BUILD_VERSION=$(VERSION) \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		--label "org.opencontainers.image.created=$(CREATED)" \
-		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=luxupt" \
-		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
-		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(GHCR_IMAGE):latest \
-		--push \
-		.
-	@echo '$(GREEN)Tagged and pushed latest to GHCR$(NC)'
 
-.PHONY: docker-tag-latest
-docker-tag-latest: docker-tag-latest-local docker-tag-latest-hub docker-tag-latest-ghcr ## Tag as latest in all registries
 
-.PHONY: release-hub
-release-hub: docker-push-hub docker-tag-latest-hub ## Release to Docker Hub only: version + latest (multi-arch)
-	@echo ''
-	@echo '$(GREEN)========================================$(NC)'
-	@echo '$(GREEN)Docker Hub Release $(VERSION) complete!$(NC)'
-	@echo '$(GREEN)========================================$(NC)'
-	@echo ''
-	@echo '$(BLUE)Images published (amd64 + arm64):$(NC)'
-	@echo '  $(DOCKER_HUB_IMAGE):$(VERSION)'
-	@echo '  $(DOCKER_HUB_IMAGE):latest'
-	@echo ''
-	@echo '$(BLUE)Pull command:$(NC)'
-	@echo '  docker pull $(DOCKER_HUB_IMAGE):latest'
-
-.PHONY: release-ghcr
-release-ghcr: docker-push-ghcr docker-tag-latest-ghcr ## Release to GHCR only: version + latest (multi-arch)
-	@echo ''
-	@echo '$(GREEN)========================================$(NC)'
-	@echo '$(GREEN)GHCR Release $(VERSION) complete!$(NC)'
-	@echo '$(GREEN)========================================$(NC)'
-	@echo ''
-	@echo '$(BLUE)Images published (amd64 + arm64):$(NC)'
-	@echo '  $(GHCR_IMAGE):$(VERSION)'
-	@echo '  $(GHCR_IMAGE):latest'
-	@echo ''
-	@echo '$(BLUE)Pull command:$(NC)'
-	@echo '  docker pull $(GHCR_IMAGE):latest'
 
 .PHONY: github-release
 github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this version's notes
@@ -639,7 +535,7 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 	  --notes-file "app/release_notes/$(VERSION).md"
 
 .PHONY: release
-release: docker-push-all docker-tag-latest github-release ## Full release: images + the GitHub Release
+release: docker-push-local github-release ## Full release: the :$(VERSION) image + the GitHub Release
 	@echo ''
 	@echo '$(GREEN)========================================$(NC)'
 	@echo '$(GREEN)Release $(VERSION) complete!$(NC)'
@@ -651,16 +547,12 @@ release: docker-push-all docker-tag-latest github-release ## Full release: image
 	@echo '    $(LOCAL_IMAGE):$(VERSION)'
 	@echo '    $(LOCAL_IMAGE):latest'
 	@echo ''
-	@echo '  $(YELLOW)Docker Hub:$(NC)'
-	@echo '    $(DOCKER_HUB_IMAGE):$(VERSION)'
-	@echo '    $(DOCKER_HUB_IMAGE):latest'
 	@echo ''
 	@echo '  $(YELLOW)GHCR:$(NC)'
 	@echo '    $(GHCR_IMAGE):$(VERSION)'
 	@echo '    $(GHCR_IMAGE):latest'
 	@echo ''
 	@echo '$(BLUE)Pull commands:$(NC)'
-	@echo '  docker pull $(DOCKER_HUB_IMAGE):latest'
 	@echo '  docker pull $(GHCR_IMAGE):latest'
 
 .PHONY: run
@@ -707,7 +599,6 @@ info: validate-version ## Show project information
 	@echo ''
 	@echo '$(BLUE)Registry Information:$(NC)'
 	@echo '  Local: $(LOCAL_IMAGE)'
-	@echo '  Docker Hub: $(DOCKER_HUB_IMAGE)'
 	@echo ''
 	@echo '$(BLUE)Poetry Information:$(NC)'
 	@$(POETRY) --version || echo "Poetry not installed"
