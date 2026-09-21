@@ -206,7 +206,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.196.0
+LUXARCH_VERSION   := 0.196.3
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -429,13 +429,19 @@ docker-login-ghcr: ## Login to GitHub Container Registry
 	@echo "$(GHCR_TOKEN)" | docker login ghcr.io -u $(GITHUB_USER) --password-stdin
 	@echo '$(GREEN)GHCR login successful!$(NC)'
 
-# A PUBLIC repo also runs `make release-public` -> GHCR. Visibility decides the image
-# registry and nothing else (FLEET-RELEASE-PROCESS §9 / the release skill); it never changes
-# whether the GitHub Release is created. Keep it a separate target — that is the canonical
-# shape, not a simplification to fold into `release`.
+# A PUBLIC repo also runs `make release-public` -> GHCR. Visibility decides the image registry
+# and nothing else (FLEET-RELEASE-PROCESS §9). This PROMOTES the already-built manifest rather
+# than rebuilding: `imagetools create` copies the SAME DIGEST, so the public image is provably
+# the artifact that was released — and it needs no registry login of its own.
 .PHONY: release-public
-release-public: docker-push-ghcr ## [PUBLIC REPO] Promote :$(VERSION) to GHCR
-	@echo '$(GREEN)Promoted $(VERSION) to GHCR: $(GHCR_IMAGE):$(VERSION)$(NC)'
+release-public: ## [PUBLIC REPO] Promote :$(VERSION) + :latest to GHCR, then publish the GitHub Release
+	@docker buildx imagetools inspect $(LOCAL_IMAGE):$(VERSION) >/dev/null 2>&1 \
+	  || { echo '$(RED)$(LOCAL_IMAGE):$(VERSION) not found — run `make release` first$(NC)'; exit 1; }
+	docker buildx imagetools create \
+	  -t $(GHCR_IMAGE):$(VERSION) -t $(GHCR_IMAGE):latest \
+	  $(LOCAL_IMAGE):$(VERSION)
+	@echo '$(GREEN)Promoted $(LOCAL_IMAGE):$(VERSION) -> $(GHCR_IMAGE):$(VERSION) + :latest (same digest)$(NC)'
+	@$(MAKE) --no-print-directory github-release
 
 .PHONY: docker-pull-cache
 docker-pull-cache: ## Pull previous image for cache
@@ -491,6 +497,7 @@ docker-push-local: validate-version validate-structure docker-setup docker-pull-
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
 		-t $(LOCAL_IMAGE):$(VERSION) \
+		-t $(LOCAL_IMAGE):latest \
 		--push \
 		.
 	@echo '$(GREEN)Pushed $(LOCAL_IMAGE):$(VERSION)$(NC)'
@@ -541,21 +548,13 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 	fi
 
 .PHONY: release
-release: docker-push-local github-release ## Full release: the :$(VERSION) image + the GitHub Release
+release: docker-push-local ## Build + push :$(VERSION) AND :latest (multi-arch) to the private registry
 	@echo ''
-	@echo '$(GREEN)========================================$(NC)'
-	@echo '$(GREEN)Release $(VERSION) complete!$(NC)'
-	@echo '$(GREEN)========================================$(NC)'
-	@echo ''
-	@echo '$(BLUE)Image published (amd64 + arm64):$(NC)'
+	@echo '$(GREEN)Released $(VERSION) to the private registry$(NC)'
 	@echo '    $(LOCAL_IMAGE):$(VERSION)'
+	@echo '    $(LOCAL_IMAGE):latest'
 	@echo ''
-	@echo '$(BLUE)GitHub Release:$(NC)'
-	@echo '    https://github.com/$(GITHUB_USER)/$(PROJECT_NAME)/releases/tag/v$(VERSION)'
-	@echo ''
-	@echo '$(BLUE)Deploy:$(NC)  set TAG=$(VERSION) in .env.<env>, then'
-	@echo '    docker compose --env-file .env.<env> pull && docker compose --env-file .env.<env> up -d'
-	@echo ''
+	@echo '$(BLUE)Public repo? promote + publish the notes:$(NC)  make release-public'
 
 .PHONY: run
 run: ## Run the application locally with Poetry
