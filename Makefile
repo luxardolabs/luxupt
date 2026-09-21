@@ -429,6 +429,14 @@ docker-login-ghcr: ## Login to GitHub Container Registry
 	@echo "$(GHCR_TOKEN)" | docker login ghcr.io -u $(GITHUB_USER) --password-stdin
 	@echo '$(GREEN)GHCR login successful!$(NC)'
 
+# A PUBLIC repo also runs `make release-public` -> GHCR. Visibility decides the image
+# registry and nothing else (FLEET-RELEASE-PROCESS §9 / the release skill); it never changes
+# whether the GitHub Release is created. Keep it a separate target — that is the canonical
+# shape, not a simplification to fold into `release`.
+.PHONY: release-public
+release-public: docker-push-ghcr ## [PUBLIC REPO] Promote :$(VERSION) to GHCR
+	@echo '$(GREEN)Promoted $(VERSION) to GHCR: $(GHCR_IMAGE):$(VERSION)$(NC)'
+
 .PHONY: docker-pull-cache
 docker-pull-cache: ## Pull previous image for cache
 	@echo '$(BLUE)Pulling previous image for cache...$(NC)'
@@ -510,16 +518,6 @@ docker-push-ghcr: validate-version validate-structure docker-setup docker-login-
 	@echo '$(GREEN)Pushed $(GHCR_IMAGE):$(VERSION)$(NC)'
 
 .PHONY: docker-push-all
-# FLEET-BUILD-DEPLOY-STANDARD: the private registry is the artifact hub, and GHCR is "a
-# deliberate, separate promotion" for a public flavour — never part of an internal release.
-.PHONY: release-public
-release-public: docker-push-ghcr ## Promote this version to GHCR (public flavour; NOT part of `release`)
-	@echo '$(GREEN)Promoted $(VERSION) to GHCR$(NC)'
-
-
-
-
-
 
 .PHONY: github-release
 github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this version's notes
@@ -530,9 +528,17 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 	  echo "missing app/release_notes/$(VERSION).md — write the notes before releasing"; exit 1; }
 	@git rev-parse "v$(VERSION)" >/dev/null 2>&1 || git tag -a "v$(VERSION)" -m "$(VERSION)"
 	@git push origin "v$(VERSION)"
-	@gh release create "v$(VERSION)" \
-	  --title "$(VERSION)" \
-	  --notes-file "app/release_notes/$(VERSION).md"
+	@# Idempotent on purpose. A release is re-run after a partial failure far more often than
+	@# it is run once cleanly — 2026.09.0 itself had to be re-run after a registry login
+	@# aborted the first attempt mid-way. `gh release create` errors with
+	@# "Release.tag_name already exists", which would leave a re-run failing at the LAST step
+	@# with every image already pushed, i.e. reporting failure on a release that is complete.
+	@if gh release view "v$(VERSION)" >/dev/null 2>&1; then \
+	  echo "GitHub Release v$(VERSION) exists — updating its notes"; \
+	  gh release edit "v$(VERSION)" --title "$(VERSION)" --notes-file "app/release_notes/$(VERSION).md"; \
+	else \
+	  gh release create "v$(VERSION)" --title "$(VERSION)" --notes-file "app/release_notes/$(VERSION).md"; \
+	fi
 
 .PHONY: release
 release: docker-push-local github-release ## Full release: the :$(VERSION) image + the GitHub Release
@@ -550,7 +556,6 @@ release: docker-push-local github-release ## Full release: the :$(VERSION) image
 	@echo '$(BLUE)Deploy:$(NC)  set TAG=$(VERSION) in .env.<env>, then'
 	@echo '    docker compose --env-file .env.<env> pull && docker compose --env-file .env.<env> up -d'
 	@echo ''
-	@echo '$(YELLOW)Public flavour is a separate, deliberate promotion:$(NC)  make release-public'
 
 .PHONY: run
 run: ## Run the application locally with Poetry
