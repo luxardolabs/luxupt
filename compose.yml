@@ -30,6 +30,12 @@ services:
     # The app's own settings (credentials, feature flags, Protect host) come from the same
     # env file that parameterises this compose — passed to the CONTAINER here, and used for
     # INTERPOLATION above via --env-file. Both are needed; they are different mechanisms.
+    #
+    # A consequence worth knowing rather than debugging: because it is ONE file, the container
+    # also receives the deployment keys (REGISTRY, TAG, STACK_NAME, CERT_ROOT, NGINX_PORT_*).
+    # The app ignores what it does not recognise. Splitting them into two files per
+    # environment would buy tidiness at the cost of doubling the things an operator has to
+    # keep in step, which is the trade the one-file rule already made.
     env_file:
       - ${ENV_FILE:?set ENV_FILE in .env.<env>}
 
