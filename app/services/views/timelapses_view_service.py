@@ -8,10 +8,10 @@ from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clients.protect_client import ProtectClient
+from app.core.logging_config import get_logger
 from app.db.post_commit import after_commit
-from app.logging_config import get_logger
 from app.models.enum_model import ScheduleSource
-from app.protect_client import ProtectClient
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService

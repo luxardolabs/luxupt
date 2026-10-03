@@ -3,8 +3,8 @@
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from app import config
-from app.logging_config import get_logger
+from app.core import config
+from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

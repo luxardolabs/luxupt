@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app import config
+from app.core import config
 from app.db.database import DATABASE_PATH
 from app.models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
 from app.schemas.pagination_schema import build_pagination

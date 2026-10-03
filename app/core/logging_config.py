@@ -12,7 +12,7 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any
 
-from app import config
+from app.core import config
 
 # Optional JSON logging support. Under TYPE_CHECKING we import the concrete base so mypy can check
 # the StructuredJsonFormatter subclass; at runtime we fall back to logging.Formatter if the optional

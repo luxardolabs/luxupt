@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app import config
+from app.core import config
 from app.web.auth import get_current_user
 from app.web.deps import ImagesViewDep, TemplatesDep
 from app.web.query_params import ThumbnailSizeFilter

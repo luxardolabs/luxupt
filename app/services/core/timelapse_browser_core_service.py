@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.crud import timelapse_crud
 from app.db.post_commit import after_commit
 from app.models.timelapse_model import Timelapse

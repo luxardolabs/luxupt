@@ -9,7 +9,7 @@ The page is gated on LOGGING_LEVEL == "DEBUG"; monkeypatch flips that per-test.
 import pytest
 from httpx import AsyncClient
 
-from app import config
+from app.core import config
 
 
 class TestComponentShowcase:

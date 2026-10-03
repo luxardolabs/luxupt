@@ -10,10 +10,10 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
-from app.camera_manager import CameraManager
+from app.clients.camera_manager import CameraManager
+from app.core import config
+from app.core.logging_config import get_logger
 from app.db import maintenance as db_maintenance
-from app.logging_config import get_logger
 
 logger = get_logger(__name__)
 

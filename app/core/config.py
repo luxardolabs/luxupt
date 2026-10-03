@@ -1,4 +1,4 @@
-# app/config.py
+# app/core/config.py
 """
 Minimal configuration - startup-time settings only.
 
@@ -10,10 +10,6 @@ is available, or settings that cannot change at runtime (like file paths).
 import json
 import os
 from pathlib import Path
-
-from app.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 # =============================================================================
 # UNIFI PROTECT API (env var fallback when not set in database)

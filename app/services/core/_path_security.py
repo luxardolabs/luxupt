@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from app import config
-from app.logging_config import get_logger
+from app.core import config
+from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

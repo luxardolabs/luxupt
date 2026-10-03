@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.crud.base_crud import CRUDBase
 from app.models.timelapse_model import Timelapse
 from app.schemas.timelapse_schema import (

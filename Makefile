@@ -116,7 +116,7 @@ validate-structure: ## Validate project structure
 		echo '$(RED)ERROR: pyproject.toml not found$(NC)'; \
 		exit 1; \
 	fi
-	@if [ ! -f "app/config.py" ] || [ ! -f "app/camera_manager.py" ] || [ ! -f "app/main.py" ]; then \
+	@if [ ! -f "app/core/config.py" ] || [ ! -f "app/clients/camera_manager.py" ] || [ ! -f "app/main.py" ]; then \
 		echo '$(RED)ERROR: Required source files missing in app directory$(NC)'; \
 		exit 1; \
 	fi

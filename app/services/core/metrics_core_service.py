@@ -10,10 +10,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging_config import get_logger
 from app.crud import camera_crud, job_crud
 from app.crud.capture_crud import capture_crud
 from app.crud.timelapse_crud import timelapse_crud
-from app.logging_config import get_logger
 
 logger = get_logger(__name__)
 

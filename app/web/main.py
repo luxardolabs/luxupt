@@ -26,12 +26,12 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import StrictUndefined
 from slowapi.errors import RateLimitExceeded
 
-from app import config
-from app.camera_manager import CameraManager, CameraManagerSettings
+from app.clients.camera_manager import CameraManager, CameraManagerSettings
+from app.core import config
+from app.core.logging_config import get_logger, setup_logging
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import close_db, get_db, get_db_context, init_db
-from app.logging_config import get_logger, setup_logging
 from app.models.enum_model import ActivityType
 from app.services.core.health_core_service import HealthCoreService, HealthStatus
 from app.services.core.metrics_core_service import MetricsCoreService
@@ -231,16 +231,16 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifespan."""
-    from app.fetch_service import (  # noqa: PLC0415
-        FetchService,
-    )
     from app.services.core.backup_core_service import (  # noqa: PLC0415
         BackupCoreService,
     )
     from app.services.core.user_core_service import (  # noqa: PLC0415
         UserCoreService,
     )
-    from app.timelapse_service import (  # noqa: PLC0415
+    from app.workers.fetch_service import (  # noqa: PLC0415
+        FetchService,
+    )
+    from app.workers.timelapse_service import (  # noqa: PLC0415
         TimelapseService,
     )
 

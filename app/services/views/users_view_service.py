@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.services.core.user_core_service import UserCoreService
 
 logger = get_logger(__name__)

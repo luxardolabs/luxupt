@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.crud import activity_crud
 from app.models.activity_model import Activity
 from app.schemas.activity_schema import ActivitySummary

@@ -17,8 +17,8 @@ This module provides CLI commands for testing and maintenance:
 import asyncio
 import sys
 
-from app.cli import handle_cli_command, show_help
-from app.logging_config import get_logger, setup_logging
+from app.cli.commands import handle_cli_command, show_help
+from app.core.logging_config import get_logger, setup_logging
 
 logger = get_logger(__name__)
 

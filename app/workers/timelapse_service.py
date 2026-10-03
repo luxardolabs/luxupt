@@ -20,14 +20,14 @@ if TYPE_CHECKING:
 
 import contextlib
 
-from app import config
-from app.camera_manager import CameraManager, CameraManagerSettings
+from app.clients.camera_manager import CameraManager, CameraManagerSettings
+from app.core import config
+from app.core.logging_config import get_logger
 from app.crud import camera_crud, job_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
 from app.db.database import get_db_context
-from app.logging_config import get_logger
 from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService

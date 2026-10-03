@@ -8,7 +8,7 @@ request.
 
 from httpx import AsyncClient
 
-from app import config
+from app.core import config
 
 BAD = {"username": "nobody", "password": "wrong-password"}
 

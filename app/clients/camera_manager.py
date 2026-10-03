@@ -12,7 +12,7 @@ import httpx
 import urllib3
 from PIL import Image
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.utils import async_fs
 
 # Module logger

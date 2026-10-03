@@ -4,8 +4,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
-from app.camera_manager import CameraManagerSettings
+from app.clients.camera_manager import CameraManagerSettings
+from app.core import config
 from app.crud.backup_settings_crud import backup_settings_crud
 from app.crud.camera_crud import camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.crud import capture_crud
 from app.models.capture_model import Capture
 from app.schemas.capture_schema import CaptureStats

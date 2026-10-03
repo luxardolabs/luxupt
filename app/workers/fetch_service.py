@@ -7,17 +7,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import config
-from app.camera_manager import Camera as ApiCamera
-from app.camera_manager import (
+from app.clients.camera_manager import Camera as ApiCamera
+from app.clients.camera_manager import (
     CameraManager,
     CameraManagerSettings,
     CaptureResult,
     calculate_consecutive_offsets,
 )
+from app.core import config
+from app.core.logging_config import get_logger
 from app.crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
 from app.db.database import get_db_context, init_db
-from app.logging_config import get_logger
 from app.models.enum_model import ActivityType, CaptureMethod, CaptureStatus
 from app.schemas.capture_schema import CaptureCreate
 from app.services.core.image_core_service import image_service

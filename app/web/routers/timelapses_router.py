@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 from app.web.query_params import TimelapseStatusFilter

@@ -28,7 +28,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.models.camera_model import Camera
 from app.models.capture_model import Capture
 from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus

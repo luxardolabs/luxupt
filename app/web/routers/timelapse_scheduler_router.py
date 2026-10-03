@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 

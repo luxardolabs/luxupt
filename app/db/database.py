@@ -13,7 +13,7 @@ from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
-from app import config
+from app.core import config
 
 # Database path - separate from output to allow local SSD for DB, NFS for images
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "output"))
@@ -132,7 +132,7 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
         # Alembic's env.py calls fileConfig(alembic.ini) which replaces the root logger
         # with a WARN-level stderr handler and disables all existing app loggers.
         # Re-initialize our logging to restore the JSON/text handler on stdout at INFO level.
-        from app.logging_config import (  # noqa: PLC0415
+        from app.core.logging_config import (  # noqa: PLC0415
             setup_logging,
         )
 
@@ -141,7 +141,7 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
 
 async def init_db() -> None:
     """Initialize database tables."""
-    from app.logging_config import get_logger  # noqa: PLC0415 (lazy, migration path)
+    from app.core.logging_config import get_logger  # noqa: PLC0415 (lazy, migration path)
 
     logger = get_logger(__name__)
 

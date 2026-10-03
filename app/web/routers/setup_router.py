@@ -5,7 +5,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.web.auth import needs_setup
 from app.web.deps import DbSession, TemplatesDep, UsersViewDep
 

@@ -7,11 +7,14 @@ from urllib.parse import urlencode, urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.camera_manager import Camera as ApiCamera
-from app.camera_manager import CameraManager
-from app.fetch_service import FetchService
-from app.logging_config import get_logger
-from app.protect_client import ProtectAuthError, ProtectClient, ProtectRequestError
+from app.clients.camera_manager import Camera as ApiCamera
+from app.clients.camera_manager import CameraManager
+from app.clients.protect_client import (
+    ProtectAuthError,
+    ProtectClient,
+    ProtectRequestError,
+)
+from app.core.logging_config import get_logger
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -20,6 +23,7 @@ from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
 )
+from app.workers.fetch_service import FetchService
 
 logger = get_logger(__name__)
 

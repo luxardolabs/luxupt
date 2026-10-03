@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 
 from .auth import (
     COOKIE_NAME,

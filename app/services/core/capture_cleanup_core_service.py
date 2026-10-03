@@ -6,10 +6,10 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging_config import get_logger
 from app.crud import capture_crud
 from app.db import maintenance as db_maintenance
 from app.db.post_commit import after_commit
-from app.logging_config import get_logger
 from app.utils.capture_files import delete_capture_files
 
 logger = get_logger(__name__)

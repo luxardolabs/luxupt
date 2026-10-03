@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import httpx
 import urllib3
 
-from app.logging_config import get_logger
+from app.core.logging_config import get_logger
 from app.utils.async_fs import path_mkdir
 
 logger = get_logger(__name__)

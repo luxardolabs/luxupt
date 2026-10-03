@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app import config
+from app.core import config
 from app.models.enum_model import ActivityType
 
 

@@ -1,4 +1,4 @@
-# app/startup.py
+# app/core/startup.py
 
 """Startup utilities for banner and configuration display."""
 
@@ -6,8 +6,8 @@ import os
 import platform
 from datetime import UTC, datetime
 
-from app import config
-from app.logging_config import get_logger
+from app.core import config
+from app.core.logging_config import get_logger
 from app.utils.timezones import to_display
 
 logger = get_logger(__name__)

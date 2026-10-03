@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
 from app.crud.base_crud import CRUDBase
 from app.db.dml import execute_rowcount
 from app.models.activity_model import Activity

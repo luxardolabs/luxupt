@@ -26,10 +26,10 @@ from fastapi import Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
+from app.core import config
+from app.core.logging_config import get_logger
 from app.crud.user_crud import user_crud
 from app.db.database import get_db_context
-from app.logging_config import get_logger
 from app.utils.password_hash import hash_password, verify_password
 from app.web.rate_limit import client_ip
 

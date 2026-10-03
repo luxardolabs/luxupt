@@ -23,7 +23,7 @@ from fastapi import Request, Response
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 
-from app import config
+from app.core import config
 
 # Login: a credential route cannot key on the authenticated identity (the credential is what
 # is being verified), so it is per-route plus per-IP (§3). Every attempt counts, success or not.

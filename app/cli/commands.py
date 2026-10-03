@@ -1,17 +1,17 @@
-# app/cli.py
+# app/cli/commands.py
 
 """CLI commands for the application."""
 
 import sys
 from datetime import UTC, datetime
 
+from app.core.logging_config import get_logger
+from app.core.startup import print_banner, print_configuration
 from app.db.database import get_db_context
-from app.fetch_service import FetchService
-from app.logging_config import get_logger
 from app.services.core.settings_core_service import SettingsCoreService
-from app.startup import print_banner, print_configuration
-from app.timelapse_service import TimelapseService
 from app.web.main import start_web_server
+from app.workers.fetch_service import FetchService
+from app.workers.timelapse_service import TimelapseService
 
 logger = get_logger(__name__)
 

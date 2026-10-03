@@ -11,20 +11,20 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
-from app.camera_manager import CameraManager, CameraManagerSettings
+from app.clients.camera_manager import CameraManager, CameraManagerSettings
+from app.core import config
+from app.core.logging_config import get_logger
 from app.crud import job_crud, scheduler_settings_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import get_db_context
-from app.logging_config import get_logger
 from app.models.job_model import Job
 from app.services.core.historical_fetch_core_service import (
     HistoricalFetchCoreService,
     HistoricalJobCanceled,
 )
-from app.timelapse_service import EncodingSettings, TimelapseService
 from app.utils import async_fs
 from app.utils.timezones import display_zone
+from app.workers.timelapse_service import EncodingSettings, TimelapseService
 
 logger = get_logger(__name__)
 
