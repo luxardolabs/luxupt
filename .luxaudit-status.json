@@ -6,7 +6,7 @@
   "source": "poetry.lock",
   "summary": {
     "PASS": 52,
-    "FAIL": 17,
+    "FAIL": 0,
     "XFAIL": 0
   },
   "vulnerable": [],
@@ -14,168 +14,14 @@
   "banned": [],
   "not_audited": [],
   "image": {
-    "ref": "luxardolabs/luxupt:2026.09.0",
+    "ref": "luxardolabs/luxupt:2026.10.0",
     "inert": false,
     "inert_reason": "",
     "error": "",
     "not_released": [],
-    "vulnerable": [
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102268",
-        "severity": "CRITICAL",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102266",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102267",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102271",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102272",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "PyJWT",
-        "installed": "2.13.0",
-        "vuln_id": "CVE-2026-102273",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.14.0"
-      },
-      {
-        "package": "msgpack",
-        "installed": "1.1.2",
-        "vuln_id": "GHSA-6v7p-g79w-8964",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "1.2.1"
-      },
-      {
-        "package": "setuptools",
-        "installed": "70.3.0",
-        "vuln_id": "CVE-2025-47273",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "78.1.1"
-      },
-      {
-        "package": "urllib3",
-        "installed": "2.7.0",
-        "vuln_id": "CVE-2026-97687",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.8.0"
-      },
-      {
-        "package": "urllib3",
-        "installed": "2.7.0",
-        "vuln_id": "CVE-2026-97689",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "2.8.0"
-      },
-      {
-        "package": "libpcre2-8-0",
-        "installed": "10.46-1~deb13u2",
-        "vuln_id": "CVE-2026-103111",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "10.46-1~deb13u3"
-      },
-      {
-        "package": "libssl3t64",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-75804",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      },
-      {
-        "package": "libssl3t64",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-84782",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      },
-      {
-        "package": "openssl",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-75804",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      },
-      {
-        "package": "openssl",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-84782",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      },
-      {
-        "package": "openssl-provider-legacy",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-75804",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      },
-      {
-        "package": "openssl-provider-legacy",
-        "installed": "3.5.7-1~deb13u2",
-        "vuln_id": "CVE-2026-84782",
-        "severity": "HIGH",
-        "layer": "os",
-        "image": "luxardolabs/luxupt:2026.09.0",
-        "fix": "3.5.7-1~deb13u3"
-      }
-    ],
+    "vulnerable": [],
     "deferred": []
   },
-  "commit": "0f453242f6a002bf27c1caec635b91ccd4abf62b",
-  "generated_at": "2026-10-03T03:41:52Z"
+  "commit": "0ce28128ac40e647b3f0ea8f7ea711254e9e31fd",
+  "generated_at": "2026-10-03T04:15:48Z"
 }

@@ -1515,9 +1515,9 @@
       },
       {
         "rule": "repo.deploy_tag_is_immutable",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.197.0",
-        "violations": 2,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1560,12 +1560,12 @@
       },
       {
         "rule": "repo.luxpm_receipt_current",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.211.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "no `.luxpm-receipt` is committed \u2014 there is no tracker attestation to verify. NOT a clearance: it means this repo's tracker currency is entirely self-reported, which is the drift this receipt exists to make visible. Issue one with `luxpm_issue_sync_receipt` and commit it verbatim"
+        "inert": false,
+        "inert_reason": ""
       },
       {
         "rule": "repo.guard_status_current",
@@ -1866,20 +1866,20 @@
       }
     ],
     "summary": {
-      "PASS": 52,
-      "FAIL": 1,
+      "PASS": 54,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 2
+      "INERT": 1
     }
   },
   "summary": {
-    "PASS": 183,
-    "FAIL": 1,
+    "PASS": 185,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 21
+    "INERT": 20
   },
-  "commit": "0f453242f6a002bf27c1caec635b91ccd4abf62b",
-  "generated_at": "2026-10-03T03:41:52Z"
+  "commit": "0ce28128ac40e647b3f0ea8f7ea711254e9e31fd",
+  "generated_at": "2026-10-03T04:15:48Z"
 }
