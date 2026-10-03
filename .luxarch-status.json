@@ -1211,7 +1211,7 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:201), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids (WWWLUXARDO-139). Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone."
+          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:202), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids (WWWLUXARDO-139). Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone."
         },
         {
           "rule": "fw.template_context_complete",
@@ -1269,9 +1269,9 @@
         },
         {
           "rule": "fw.credential_routes_limited",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.215.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1323,18 +1323,18 @@
         },
         {
           "rule": "fw.module_homes",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.233.0",
-          "violations": 8,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
         },
         {
           "rule": "fw.file_size",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.235.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": ""
@@ -1359,8 +1359,8 @@
         }
       ],
       "summary": {
-        "PASS": 128,
-        "FAIL": 3,
+        "PASS": 131,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 19
@@ -1434,9 +1434,9 @@
       },
       {
         "rule": "repo.guard_owned_tools_undeclared",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.243.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1452,9 +1452,9 @@
       },
       {
         "rule": "repo.fleet_skills_present",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.245.0",
-        "violations": 4,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1517,16 +1517,16 @@
         "rule": "repo.deploy_tag_is_immutable",
         "status": "FAIL",
         "since": "0.197.0",
-        "violations": 5,
+        "violations": 2,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
       },
       {
         "rule": "repo.release_scans_candidate",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.250.0",
-        "violations": 3,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1551,9 +1551,9 @@
       },
       {
         "rule": "repo.emitted_assets_current",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.208.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1578,9 +1578,9 @@
       },
       {
         "rule": "repo.claude_pointer_present",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.213.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1659,9 +1659,9 @@
       },
       {
         "rule": "repo.hooks_current",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.164.0",
-        "violations": 9,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1686,9 +1686,9 @@
       },
       {
         "rule": "repo.fleet_dep_floor",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.219.0",
-        "violations": 4,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1866,20 +1866,20 @@
       }
     ],
     "summary": {
-      "PASS": 45,
-      "FAIL": 8,
+      "PASS": 52,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 2
     }
   },
   "summary": {
-    "PASS": 173,
-    "FAIL": 11,
+    "PASS": 183,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 21
   },
-  "commit": "395a97c6baee190c9423bd7ba8001cdb3359dbb4",
-  "generated_at": "2026-10-03T03:11:51Z"
+  "commit": "0f453242f6a002bf27c1caec635b91ccd4abf62b",
+  "generated_at": "2026-10-03T03:41:52Z"
 }

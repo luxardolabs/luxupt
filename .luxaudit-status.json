@@ -2,135 +2,14 @@
   "guard": "luxaudit",
   "guard_version": "0.13.0",
   "repo": "/repo",
-  "packages": 69,
+  "packages": 52,
   "source": "poetry.lock",
   "summary": {
-    "PASS": 49,
-    "FAIL": 37,
+    "PASS": 52,
+    "FAIL": 17,
     "XFAIL": 0
   },
-  "vulnerable": [
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4145",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4146",
-      "fix": "(no fix released)"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4149",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4152",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4144",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4143",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4148",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4140",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4141",
-      "fix": "2.15.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4147",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4151",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4150",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "pyjwt",
-      "version": "2.13.0",
-      "vuln_id": "PYSEC-2026-4142",
-      "fix": "2.14.0"
-    },
-    {
-      "package": "urllib3",
-      "version": "2.7.0",
-      "vuln_id": "PYSEC-2026-4177",
-      "fix": "2.8.0"
-    },
-    {
-      "package": "urllib3",
-      "version": "2.7.0",
-      "vuln_id": "PYSEC-2026-4176",
-      "fix": "2.8.0"
-    },
-    {
-      "package": "urllib3",
-      "version": "2.7.0",
-      "vuln_id": "PYSEC-2026-4175",
-      "fix": "2.8.0"
-    },
-    {
-      "package": "virtualenv",
-      "version": "21.7.0",
-      "vuln_id": "PYSEC-2026-4011",
-      "fix": "21.7.12"
-    },
-    {
-      "package": "virtualenv",
-      "version": "21.7.0",
-      "vuln_id": "PYSEC-2026-4012",
-      "fix": "21.7.11"
-    },
-    {
-      "package": "virtualenv",
-      "version": "21.7.0",
-      "vuln_id": "PYSEC-2026-4014",
-      "fix": "21.7.12"
-    },
-    {
-      "package": "virtualenv",
-      "version": "21.7.0",
-      "vuln_id": "PYSEC-2026-4013",
-      "fix": "21.7.13"
-    }
-  ],
+  "vulnerable": [],
   "deferred": [],
   "banned": [],
   "not_audited": [],
@@ -297,6 +176,6 @@
     ],
     "deferred": []
   },
-  "commit": "395a97c6baee190c9423bd7ba8001cdb3359dbb4",
-  "generated_at": "2026-10-03T03:11:51Z"
+  "commit": "0f453242f6a002bf27c1caec635b91ccd4abf62b",
+  "generated_at": "2026-10-03T03:41:52Z"
 }
