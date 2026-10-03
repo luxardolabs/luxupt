@@ -5,8 +5,8 @@ from typing import cast
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.db.connection import DbSession
 from app.web.auth import login, login_form, logout
+from app.web.deps import DbSession
 
 router = APIRouter(tags=["pages"])
 

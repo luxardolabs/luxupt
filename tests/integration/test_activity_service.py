@@ -10,16 +10,16 @@ from app.services.core.activity_core_service import ActivityCoreService
 
 
 class TestActivityCoreService:
-    async def test_summary_counts_by_type(self, db_session: AsyncSession) -> None:
-        svc = ActivityCoreService(db_session)
+    async def test_summary_counts_by_type(self, db: AsyncSession) -> None:
+        svc = ActivityCoreService(db)
         await activity_crud.log(
-            db_session, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok"
+            db, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok"
         )
         await activity_crud.log(
-            db_session, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok2"
+            db, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok2"
         )
         await activity_crud.log(
-            db_session, activity_type=ActivityType.CAPTURE_FAILED, message="bad"
+            db, activity_type=ActivityType.CAPTURE_FAILED, message="bad"
         )
 
         summary = await svc.get_summary(hours=24)
@@ -29,7 +29,7 @@ class TestActivityCoreService:
         assert summary.capture_failed_count == 1
         assert summary.timelapse_failed_count == 0
 
-    async def test_summary_empty(self, db_session: AsyncSession) -> None:
-        summary = await ActivityCoreService(db_session).get_summary(hours=24)
+    async def test_summary_empty(self, db: AsyncSession) -> None:
+        summary = await ActivityCoreService(db).get_summary(hours=24)
         assert summary.total_events == 0
         assert summary.capture_success_count == 0

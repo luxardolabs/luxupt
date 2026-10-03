@@ -45,7 +45,12 @@ target_metadata = Base.metadata
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "output"))
 DATABASE_DIR = Path(os.getenv("DATABASE_DIR", str(OUTPUT_DIR)))
 DATABASE_PATH = DATABASE_DIR / "timelapse.db"
-DATABASE_URL = f"sqlite+aiosqlite:///{DATABASE_PATH}"
+# A caller-supplied URL WINS (the test harness, init_db, db-verify set it on the Config before
+# env.py runs); the DATABASE_DIR default is only for a bare `alembic upgrade head`. alembic.ini
+# carries no url, so the two never collide (repo.alembic_env_honors_caller_url).
+DATABASE_URL = (
+    config.get_main_option("sqlalchemy.url") or f"sqlite+aiosqlite:///{DATABASE_PATH}"
+)
 
 
 def run_migrations_offline() -> None:

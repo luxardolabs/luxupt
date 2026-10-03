@@ -26,7 +26,7 @@ from app.crud import camera_crud, job_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
-from app.db.connection import get_db_context
+from app.db.database import get_db_context
 from app.logging_config import get_logger
 from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse

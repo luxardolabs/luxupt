@@ -4,8 +4,9 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.connection import DbSession
+from app.db.database import get_db
 from app.services.core.activity_core_service import ActivityCoreService
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
@@ -22,6 +23,9 @@ from app.services.views import (
     TimelapsesViewService,
     UsersViewService,
 )
+
+# The request-scoped session: get_db owns its transaction (commit on success, rollback on raise).
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 # Core service dependencies

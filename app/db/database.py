@@ -1,15 +1,14 @@
-"""SQLite async database connection and session management."""
+"""The engine, the two session owners (get_db / get_db_context) and schema bootstrap."""
 
 import asyncio
 import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
-from fastapi import Depends
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import AsyncAdaptedQueuePool
@@ -97,10 +96,6 @@ async def get_db_context() -> AsyncIterator[AsyncSession]:
             raise
 
 
-# Type alias for dependency injection
-DbSession = Annotated[AsyncSession, Depends(get_db)]
-
-
 def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
     """Run Alembic migrations to upgrade the database schema.
 
@@ -124,13 +119,15 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
         alembic_cfg.set_main_option(
             "script_location", str(app_dir / "db" / "migrations")
         )
+        # Name the database explicitly: env.py honours a caller-supplied URL, so the engine
+        # and the migration can never disagree about which file they mean.
+        alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
 
+        # The migration chain IS the schema (fw.schema_from_migrations) -- there is no
+        # create_all fallback, so a failed upgrade must stop startup, never be logged past.
         logger.info("Running database migrations")
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
-    except Exception as e:
-        # Log but don't fail startup - migrations might already be applied
-        logger.warning("Migration warning (may be expected)", extra={"error": str(e)})
     finally:
         # Alembic's env.py calls fileConfig(alembic.ini) which replaces the root logger
         # with a WARN-level stderr handler and disables all existing app loggers.
@@ -147,23 +144,6 @@ async def init_db() -> None:
     from app.logging_config import get_logger  # noqa: PLC0415 (lazy, migration path)
 
     logger = get_logger(__name__)
-
-    # Import all models to register them with SQLAlchemy metadata
-    # This ensures all tables are created
-    from app.db.base import (  # noqa: PLC0415
-        Base,
-    )
-    from app.models import (  # noqa: F401, PLC0415
-        Activity,
-        BackupSettings,
-        Camera,
-        Capture,
-        FetchSettings,
-        Job,
-        SchedulerSettings,
-        Timelapse,
-        User,
-    )
 
     # Off the event loop: a blocking pathlib call in an async def stalls EVERY concurrent
     # request on this worker (ruff ASYNC240). asyncio.to_thread is the asyncio fix --
@@ -189,10 +169,8 @@ async def init_db() -> None:
                 await conn.execute(text("VACUUM"))
                 logger.info("Incremental auto-vacuum enabled")
 
-            await conn.run_sync(Base.metadata.create_all)
-
-        # Run Alembic migrations to apply any schema changes
-        # This handles upgrades for existing databases
+        # Build/upgrade the schema from the migration chain -- the ONE construction, the same
+        # on a fresh deploy and an existing database (fw.schema_from_migrations).
         _run_migrations(logger)
 
         await seed_singleton_settings()

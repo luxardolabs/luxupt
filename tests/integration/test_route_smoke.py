@@ -26,8 +26,9 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.connection import async_session
+from app import config
 from app.models.camera_model import Camera
 from app.models.capture_model import Capture
 from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus
@@ -43,7 +44,7 @@ TIMESTAMP = 1767225600  # 2026-01-01 00:00:00 UTC
 
 
 @pytest_asyncio.fixture
-async def seeded() -> AsyncGenerator[dict[str, Any]]:
+async def seeded(db: AsyncSession) -> AsyncGenerator[dict[str, Any]]:
     """One row of each kind the path-parameter routes need, committed so the app sees them.
 
     The routes under `{camera_id}` / `{job_id}` / `{timelapse_id}` would 404 on an empty
@@ -53,78 +54,63 @@ async def seeded() -> AsyncGenerator[dict[str, Any]]:
     """
     now = datetime.now(UTC)
     today = business_day()
-    async with async_session() as db:
-        camera = Camera(
-            camera_id=CAMERA_ID,
-            name="Route Smoke Cam",
-            safe_name=CAMERA_SAFE_NAME,
-            is_active=True,
-            is_connected=True,
-            capture_method=CaptureMethod.AUTO,
-            rtsp_quality="high",
-            enabled_intervals=[60],
-            first_discovered_at=now,
-        )
-        db.add(camera)
-        db.add(
-            Capture(
-                camera_id=CAMERA_ID,
-                camera_safe_name=CAMERA_SAFE_NAME,
-                timestamp=TIMESTAMP,
-                capture_datetime=now,
-                capture_date=today,
-                interval=60,
-                status=CaptureStatus.SUCCESS,
-                capture_method=CaptureMethod.API,
-                file_path=f"/nonexistent/{CAMERA_SAFE_NAME}/{TIMESTAMP}.jpg",
-                file_size=1024,
-            )
-        )
-        db.add(
-            Job(
-                job_id=JOB_ID,
-                title=f"{CAMERA_SAFE_NAME}_{today}_60s",
-                camera_safe_name=CAMERA_SAFE_NAME,
-                target_date=today,
-                status=JobStatus.PENDING,
-                interval=60,
-                created_at=now,
-            )
-        )
-        timelapse = Timelapse(
+    camera = Camera(
+        camera_id=CAMERA_ID,
+        name="Route Smoke Cam",
+        safe_name=CAMERA_SAFE_NAME,
+        is_active=True,
+        is_connected=True,
+        capture_method=CaptureMethod.AUTO,
+        rtsp_quality="high",
+        enabled_intervals=[60],
+        first_discovered_at=now,
+    )
+    db.add(camera)
+    db.add(
+        Capture(
             camera_id=CAMERA_ID,
             camera_safe_name=CAMERA_SAFE_NAME,
-            timelapse_date=today,
+            timestamp=TIMESTAMP,
+            capture_datetime=now,
+            capture_date=today,
             interval=60,
-            frame_count=10,
-            frame_rate=30,
-            duration_seconds=0.33,
-            file_path=f"/nonexistent/{CAMERA_SAFE_NAME}.mp4",
+            status=CaptureStatus.SUCCESS,
+            capture_method=CaptureMethod.API,
+            file_path=f"/nonexistent/{CAMERA_SAFE_NAME}/{TIMESTAMP}.jpg",
+            file_size=1024,
         )
-        db.add(timelapse)
-        user = User(username="route-smoke-user", password_hash="x", is_admin=False)
-        db.add(user)
-        await db.commit()
-        await db.refresh(timelapse)
-        await db.refresh(user)
-        ids = {"timelapse_id": timelapse.id, "user_id": user.id}
+    )
+    db.add(
+        Job(
+            job_id=JOB_ID,
+            title=f"{CAMERA_SAFE_NAME}_{today}_60s",
+            camera_safe_name=CAMERA_SAFE_NAME,
+            target_date=today,
+            status=JobStatus.PENDING,
+            interval=60,
+            created_at=now,
+        )
+    )
+    timelapse = Timelapse(
+        camera_id=CAMERA_ID,
+        camera_safe_name=CAMERA_SAFE_NAME,
+        timelapse_date=today,
+        interval=60,
+        frame_count=10,
+        frame_rate=30,
+        duration_seconds=0.33,
+        file_path=f"/nonexistent/{CAMERA_SAFE_NAME}.mp4",
+    )
+    db.add(timelapse)
+    user = User(username="route-smoke-user", password_hash="x", is_admin=False)
+    db.add(user)
+    await db.commit()
+    await db.refresh(timelapse)
+    await db.refresh(user)
+    ids = {"timelapse_id": timelapse.id, "user_id": user.id}
 
+    # Nothing to clean up: `db` rolls back and the test's database file is its own.
     yield ids
-
-    # The suite shares one database across tests; clean up what this fixture committed.
-    async with async_session() as db:
-        for model, column, value in (
-            (Capture, Capture.camera_id, CAMERA_ID),
-            (Job, Job.job_id, JOB_ID),
-            (Timelapse, Timelapse.camera_id, CAMERA_ID),
-            (Camera, Camera.camera_id, CAMERA_ID),
-            (User, User.username, "route-smoke-user"),
-        ):
-            for row in (
-                await db.execute(select(model).where(column == value))
-            ).scalars():
-                await db.delete(row)
-        await db.commit()
 
 
 def _ran(resp: Any, what: str) -> None:
@@ -175,8 +161,17 @@ class TestAuthenticatedGets:
 class TestPublicGets:
     """GETs reachable without a session."""
 
-    async def test_setup_page(self, client: AsyncClient) -> None:
-        _ran(await client.get("/setup"), "GET /setup")
+    async def test_setup_page(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The first-run form renders only when setup is genuinely needed: no env auth and no
+        # DB users. The suite logs in with env auth, under which /setup correctly bounces to
+        # /login -- the handler's redirect branch, not the form. Switch env auth off for this
+        # request (the test's database has no users) so the TEMPLATE renders.
+        monkeypatch.setattr(config, "WEB_PASSWORD", "")
+        resp = await client.get("/setup")
+        _ran(resp, "GET /setup")
+        assert resp.status_code == 200, f"GET /setup did not render: {resp.status_code}"
 
     async def test_logout(self, auth_client: AsyncClient) -> None:
         # Uses its own authed client: logout clears the session cookie, and the fixture is
@@ -357,7 +352,9 @@ class TestJobCreationPosts:
 class TestUserPosts:
     """User management, including the first-run setup route."""
 
-    async def test_create_and_update_user(self, auth_client: AsyncClient) -> None:
+    async def test_create_and_update_user(
+        self, auth_client: AsyncClient, db: AsyncSession
+    ) -> None:
         created = await auth_client.post(
             "/system/users",
             data={
@@ -369,12 +366,9 @@ class TestUserPosts:
         )
         _ran(created, "POST /system/users")
 
-        async with async_session() as db:
-            row = (
-                await db.execute(
-                    select(User).where(User.username == "smoke-created-user")
-                )
-            ).scalar_one_or_none()
+        row = (
+            await db.execute(select(User).where(User.username == "smoke-created-user"))
+        ).scalar_one_or_none()
 
         if row is not None:
             _ran(

@@ -172,7 +172,7 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
             return False
 
         # Check database for users
-        from app.db.connection import (  # noqa: PLC0415
+        from app.db.database import (  # noqa: PLC0415
             get_db_context,
         )
 

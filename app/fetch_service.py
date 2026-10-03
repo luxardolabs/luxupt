@@ -16,7 +16,7 @@ from app.camera_manager import (
     calculate_consecutive_offsets,
 )
 from app.crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
-from app.db.connection import get_db_context, init_db
+from app.db.database import get_db_context, init_db
 from app.logging_config import get_logger
 from app.models.enum_model import ActivityType, CaptureMethod, CaptureStatus
 from app.schemas.capture_schema import CaptureCreate

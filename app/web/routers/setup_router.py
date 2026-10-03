@@ -5,10 +5,9 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.db.connection import DbSession
 from app.logging_config import get_logger
 from app.web.auth import needs_setup
-from app.web.deps import TemplatesDep, UsersViewDep
+from app.web.deps import DbSession, TemplatesDep, UsersViewDep
 
 logger = get_logger(__name__)
 
@@ -33,7 +32,8 @@ async def setup_page(
         templates.TemplateResponse(
             request,
             "pages/setup.html",
-            {},
+            # The template reads `errors` unguarded (StrictUndefined): a first render has none.
+            {"errors": [], "username": ""},
         ),
     )
 

@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app import config
-from app.db.connection import DATABASE_PATH
+from app.db.database import DATABASE_PATH
 from app.models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.activity_core_service import ActivityCoreService

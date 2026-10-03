@@ -40,7 +40,7 @@ enum_dto_freetext = [
 # luxupt is a hybrid: alongside the FastAPI monitor it runs long-lived worker loops
 # (camera fetch + timelapse render) with no request scope; each owns its sessions.
 non_request_files = [
-  "app/db/connection.py",                                # get_db() itself — the request-scope owner
+  "app/db/database.py",                                # get_db() itself — the request-scope owner
   "app/cli.py",                                          # CLI entry: one-shot commands own their session
   "app/fetch_service.py",                                # worker loop: periodic snapshot capture
   "app/timelapse_service.py",                            # worker loop: ffmpeg render pipeline

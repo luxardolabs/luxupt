@@ -74,3 +74,6 @@ Makefile.local
 .claude/.luxpm-ledger.json
 .claude/settings.json.bak
 .claude/.push-hold
+
+# ── Per-run scratch the Makefile keeps in-repo (test / verify databases) ──
+.cache/

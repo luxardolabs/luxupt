@@ -23,7 +23,7 @@ from app import config
 from app.crud.camera_crud import camera_crud
 from app.crud.capture_crud import capture_crud
 from app.crud.job_crud import job_crud
-from app.db.connection import get_db_context
+from app.db.database import get_db_context
 from app.logging_config import get_logger
 from app.models.enum_model import CaptureMethod, CaptureStatus, JobStatus
 from app.protect_client import ProtectClient, ProtectRequestError

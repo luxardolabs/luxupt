@@ -1,4 +1,5 @@
-# luxarch:migration-chain verifier v2 — DO NOT edit the marker line above (repo.migrations_build_schema finds it).
+# luxarch:migration-chain asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit migration-chain`.
+# luxarch:migration-chain verifier v3 — DO NOT edit the marker line above (repo.migrations_build_schema finds it).
 #
 # WHY THIS FILE EXISTS
 # The other emitted asserter, `--emit schema-drift`, compares your models to a LIVE database and fails
@@ -92,7 +93,8 @@ def _diff(url: str, metadata: object) -> list[Any]:
             engine = create_async_engine(url)
             try:
                 async with engine.connect() as conn:
-                    return await conn.run_sync(lambda c: _compare_sync(c, metadata))
+                    diffs = await conn.run_sync(lambda c: _compare_sync(c, metadata))
+                    return list(diffs)
             finally:
                 await engine.dispose()
 

@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.196.3",
+  "guard_version": "0.250.1",
   "repo": "/repo",
   "targets": [
     {
@@ -261,24 +261,6 @@
         },
         {
           "rule": "fw.no_inline_html",
-          "status": "PASS",
-          "since": "0.1.0",
-          "violations": 0,
-          "deferred": false,
-          "inert": false,
-          "inert_reason": ""
-        },
-        {
-          "rule": "fw.router_size",
-          "status": "PASS",
-          "since": "0.1.0",
-          "violations": 0,
-          "deferred": false,
-          "inert": false,
-          "inert_reason": ""
-        },
-        {
-          "rule": "fw.service_size",
           "status": "PASS",
           "since": "0.1.0",
           "violations": 0,
@@ -1224,12 +1206,12 @@
         },
         {
           "rule": "fw.test_engine_pool_parity",
-          "status": "PASS",
+          "status": "INERT",
           "since": "0.160.0",
           "violations": 0,
           "deferred": false,
-          "inert": false,
-          "inert_reason": ""
+          "inert": true,
+          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:201), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids (WWWLUXARDO-139). Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone."
         },
         {
           "rule": "fw.template_context_complete",
@@ -1284,14 +1266,104 @@
           "deferred": false,
           "inert": true,
           "inert_reason": "declare [[authz.signature]] rows (`prefix` + `require_dep`) to enforce that a route under a surface carries THAT surface's dependency. `fw.admin_endpoints_rbac` asks whether any gate exists; this asks whether it is the right one \u2014 a bare CurrentUser on /admin is a gate and not an admin gate. Until rows are declared this rule does not run."
+        },
+        {
+          "rule": "fw.credential_routes_limited",
+          "status": "FAIL",
+          "since": "0.215.0",
+          "violations": 1,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.committed_artifacts_declared",
+          "status": "PASS",
+          "since": "0.226.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_reserved_query_params",
+          "status": "PASS",
+          "since": "0.227.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.surface_separation",
+          "status": "INERT",
+          "since": "0.228.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "opt-in \u2014 N/A until [surfaces].admin and [surfaces].tenant name the two surfaces' template roots (a repo with an operator surface and a customer surface should declare them)"
+        },
+        {
+          "rule": "fw.auth_surface_declared",
+          "status": "PASS",
+          "since": "0.230.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.rate_limit_enforced",
+          "status": "PASS",
+          "since": "0.231.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.module_homes",
+          "status": "FAIL",
+          "since": "0.233.0",
+          "violations": 8,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.file_size",
+          "status": "FAIL",
+          "since": "0.235.0",
+          "violations": 1,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.no_noload_loader",
+          "status": "PASS",
+          "since": "0.244.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
+        },
+        {
+          "rule": "fw.sqlalchemy_21_ready",
+          "status": "PASS",
+          "since": "0.247.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": ""
         }
       ],
       "summary": {
-        "PASS": 125,
-        "FAIL": 0,
+        "PASS": 128,
+        "FAIL": 3,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 17
+        "INERT": 19
       }
     }
   ],
@@ -1361,9 +1433,45 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.guard_owned_tools_undeclared",
+        "status": "FAIL",
+        "since": "0.243.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.dev_tools_not_in_production",
+        "status": "PASS",
+        "since": "0.243.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.fleet_skills_present",
+        "status": "FAIL",
+        "since": "0.245.0",
+        "violations": 4,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.makefile_no_command_substitution",
         "status": "PASS",
         "since": "0.185.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.makefile_no_fixed_tmp",
+        "status": "PASS",
+        "since": "0.249.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1391,6 +1499,96 @@
         "rule": "repo.db_verify_image_is_current",
         "status": "PASS",
         "since": "0.196.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.image_name_declares_provenance",
+        "status": "PASS",
+        "since": "0.197.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.deploy_tag_is_immutable",
+        "status": "FAIL",
+        "since": "0.197.0",
+        "violations": 5,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.release_scans_candidate",
+        "status": "FAIL",
+        "since": "0.250.0",
+        "violations": 3,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.makefile_image_ref_well_formed",
+        "status": "PASS",
+        "since": "0.208.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.alembic_env_honors_caller_url",
+        "status": "PASS",
+        "since": "0.217.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.emitted_assets_current",
+        "status": "FAIL",
+        "since": "0.208.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.luxpm_receipt_current",
+        "status": "INERT",
+        "since": "0.211.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "no `.luxpm-receipt` is committed \u2014 there is no tracker attestation to verify. NOT a clearance: it means this repo's tracker currency is entirely self-reported, which is the drift this receipt exists to make visible. Issue one with `luxpm_issue_sync_receipt` and commit it verbatim"
+      },
+      {
+        "rule": "repo.guard_status_current",
+        "status": "INERT",
+        "since": "0.222.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "this run is WRITING the status files (`make status`), so the files on disk are the ones it is replacing \u2014 judging them would record a red about themselves in the committed snapshot. The next `make check` judges what was written"
+      },
+      {
+        "rule": "repo.claude_pointer_present",
+        "status": "FAIL",
+        "since": "0.213.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.gitleaks_scans_identity",
+        "status": "PASS",
+        "since": "0.204.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1461,9 +1659,9 @@
       },
       {
         "rule": "repo.hooks_current",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.164.0",
-        "violations": 0,
+        "violations": 9,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1482,6 +1680,15 @@
         "status": "PASS",
         "since": "0.166.0",
         "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.fleet_dep_floor",
+        "status": "FAIL",
+        "since": "0.219.0",
+        "violations": 4,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -1550,6 +1757,15 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.makefile_db_ephemeral_volume",
+        "status": "PASS",
+        "since": "0.240.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.alembic_path_separator",
         "status": "PASS",
         "since": "0.71.0",
@@ -1562,6 +1778,15 @@
         "rule": "repo.alembic_autogen_comparisons",
         "status": "PASS",
         "since": "0.123.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.migration_notnull_safe",
+        "status": "PASS",
+        "since": "0.239.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1641,20 +1866,20 @@
       }
     ],
     "summary": {
-      "PASS": 38,
-      "FAIL": 0,
+      "PASS": 45,
+      "FAIL": 8,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 0
+      "INERT": 2
     }
   },
   "summary": {
-    "PASS": 163,
-    "FAIL": 0,
+    "PASS": 173,
+    "FAIL": 11,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 17
+    "INERT": 21
   },
-  "commit": "d3230f781b2809bd019b75015852e068071a643f",
-  "generated_at": "2026-09-21T05:10:56Z"
+  "commit": "395a97c6baee190c9423bd7ba8001cdb3359dbb4",
+  "generated_at": "2026-10-03T03:11:51Z"
 }

@@ -1,3 +1,5 @@
+# luxarch:exception-handler asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit exception-handler`.
+# luxarch:exception-handler example v1 - emitted asset, re-emit to update; do not hand-edit.
 """Canonical fleet exception handler — ONE content-negotiating handler for UNEXPECTED errors.
 
 Emitted by ``luxarch --emit exception-handler``. Wire it in your app factory:
@@ -38,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def _is_api(request: Request) -> bool:
-    return request.url.path.startswith("/api")
+    return bool(request.url.path.startswith("/api"))
 
 
 def _is_htmx(request: Request) -> bool:

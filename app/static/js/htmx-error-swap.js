@@ -1,3 +1,4 @@
+// luxarch:htmx-error-swap asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit htmx-error-swap`.
 // Canonical fleet HTMX error swap — emitted by `luxarch --emit htmx-error-swap`.
 //
 // Fleet ruling (WWWLUXARDO-116, `luxarch --playbook htmx-error-ux`): an unexpected error propagates

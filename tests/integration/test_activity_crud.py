@@ -10,9 +10,9 @@ from app.models.enum_model import ActivityType
 
 
 class TestActivityCrud:
-    async def test_log_then_read_back(self, db_session: AsyncSession) -> None:
+    async def test_log_then_read_back(self, db: AsyncSession) -> None:
         created = await activity_crud.log(
-            db_session,
+            db,
             activity_type=ActivityType.CAPTURE_FAILED,
             message="camera boom",
             interval=60,
@@ -20,7 +20,7 @@ class TestActivityCrud:
         )
         assert created.id is not None
 
-        rows = await activity_crud.get_recent(db_session, limit=10)
+        rows = await activity_crud.get_recent(db, limit=10)
         match = next((r for r in rows if r.message == "camera boom"), None)
         assert match is not None
         assert match.interval == 60
@@ -28,15 +28,15 @@ class TestActivityCrud:
         # stored VARCHAR reads back as the enum, not a bare string
         assert match.activity_type == ActivityType.CAPTURE_FAILED
 
-    async def test_filter_by_type(self, db_session: AsyncSession) -> None:
+    async def test_filter_by_type(self, db: AsyncSession) -> None:
         await activity_crud.log(
-            db_session, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok"
+            db, activity_type=ActivityType.CAPTURE_SUCCESS, message="ok"
         )
         await activity_crud.log(
-            db_session, activity_type=ActivityType.CAPTURE_FAILED, message="bad"
+            db, activity_type=ActivityType.CAPTURE_FAILED, message="bad"
         )
         failed = await activity_crud.get_recent(
-            db_session, activity_types=[ActivityType.CAPTURE_FAILED], limit=10
+            db, activity_types=[ActivityType.CAPTURE_FAILED], limit=10
         )
         assert failed
         assert all(r.activity_type == ActivityType.CAPTURE_FAILED for r in failed)

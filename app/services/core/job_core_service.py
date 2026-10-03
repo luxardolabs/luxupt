@@ -15,7 +15,7 @@ from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
 from app.crud import job_crud, scheduler_settings_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.connection import get_db_context
+from app.db.database import get_db_context
 from app.logging_config import get_logger
 from app.models.job_model import Job
 from app.services.core.historical_fetch_core_service import (

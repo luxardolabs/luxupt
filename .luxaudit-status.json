@@ -1,17 +1,302 @@
 {
   "guard": "luxaudit",
-  "guard_version": "0.9.0",
+  "guard_version": "0.13.0",
   "repo": "/repo",
   "packages": 69,
   "source": "poetry.lock",
   "summary": {
-    "PASS": 69,
-    "FAIL": 0,
+    "PASS": 49,
+    "FAIL": 37,
     "XFAIL": 0
   },
-  "vulnerable": [],
+  "vulnerable": [
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4145",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4146",
+      "fix": "(no fix released)"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4149",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4152",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4144",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4143",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4148",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4140",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4141",
+      "fix": "2.15.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4147",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4151",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4150",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "pyjwt",
+      "version": "2.13.0",
+      "vuln_id": "PYSEC-2026-4142",
+      "fix": "2.14.0"
+    },
+    {
+      "package": "urllib3",
+      "version": "2.7.0",
+      "vuln_id": "PYSEC-2026-4177",
+      "fix": "2.8.0"
+    },
+    {
+      "package": "urllib3",
+      "version": "2.7.0",
+      "vuln_id": "PYSEC-2026-4176",
+      "fix": "2.8.0"
+    },
+    {
+      "package": "urllib3",
+      "version": "2.7.0",
+      "vuln_id": "PYSEC-2026-4175",
+      "fix": "2.8.0"
+    },
+    {
+      "package": "virtualenv",
+      "version": "21.7.0",
+      "vuln_id": "PYSEC-2026-4011",
+      "fix": "21.7.12"
+    },
+    {
+      "package": "virtualenv",
+      "version": "21.7.0",
+      "vuln_id": "PYSEC-2026-4012",
+      "fix": "21.7.11"
+    },
+    {
+      "package": "virtualenv",
+      "version": "21.7.0",
+      "vuln_id": "PYSEC-2026-4014",
+      "fix": "21.7.12"
+    },
+    {
+      "package": "virtualenv",
+      "version": "21.7.0",
+      "vuln_id": "PYSEC-2026-4013",
+      "fix": "21.7.13"
+    }
+  ],
   "deferred": [],
+  "banned": [],
   "not_audited": [],
-  "commit": "d3230f781b2809bd019b75015852e068071a643f",
-  "generated_at": "2026-09-21T05:10:56Z"
+  "image": {
+    "ref": "luxardolabs/luxupt:2026.09.0",
+    "inert": false,
+    "inert_reason": "",
+    "error": "",
+    "not_released": [],
+    "vulnerable": [
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102268",
+        "severity": "CRITICAL",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102266",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102267",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102271",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102272",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "PyJWT",
+        "installed": "2.13.0",
+        "vuln_id": "CVE-2026-102273",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.14.0"
+      },
+      {
+        "package": "msgpack",
+        "installed": "1.1.2",
+        "vuln_id": "GHSA-6v7p-g79w-8964",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "1.2.1"
+      },
+      {
+        "package": "setuptools",
+        "installed": "70.3.0",
+        "vuln_id": "CVE-2025-47273",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "78.1.1"
+      },
+      {
+        "package": "urllib3",
+        "installed": "2.7.0",
+        "vuln_id": "CVE-2026-97687",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.8.0"
+      },
+      {
+        "package": "urllib3",
+        "installed": "2.7.0",
+        "vuln_id": "CVE-2026-97689",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "2.8.0"
+      },
+      {
+        "package": "libpcre2-8-0",
+        "installed": "10.46-1~deb13u2",
+        "vuln_id": "CVE-2026-103111",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "10.46-1~deb13u3"
+      },
+      {
+        "package": "libssl3t64",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "libssl3t64",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl-provider-legacy",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl-provider-legacy",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/luxupt:2026.09.0",
+        "fix": "3.5.7-1~deb13u3"
+      }
+    ],
+    "deferred": []
+  },
+  "commit": "395a97c6baee190c9423bd7ba8001cdb3359dbb4",
+  "generated_at": "2026-10-03T03:11:51Z"
 }

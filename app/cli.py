@@ -5,7 +5,7 @@
 import sys
 from datetime import UTC, datetime
 
-from app.db.connection import get_db_context
+from app.db.database import get_db_context
 from app.fetch_service import FetchService
 from app.logging_config import get_logger
 from app.services.core.settings_core_service import SettingsCoreService
