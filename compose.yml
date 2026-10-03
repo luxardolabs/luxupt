@@ -5,23 +5,23 @@
 # storage paths and the credentials:
 #
 #   docker compose --env-file .env.<site>     up -d      # that site, production
-#   docker compose --env-file .env.<site>-dev up -d      # that site, dev (local :dev image)
+#   make dev-deploy SITE=<site>                          # that site, dev (publish + pin + up)
 #
 # nginx is a PROFILE of this same file, not a second compose file. It fronts every site stack
 # on the host and is started once per host:
 #
 #   docker compose --env-file .env.<site> --profile nginx up -d nginx
 #
-# Nothing here BUILDS. `make release` (prod) and `make build-dev` (dev) produce the image;
+# Nothing here BUILDS. `make release` (prod) and `make dev-deploy` (dev) publish a scanned image;
 # compose only runs the tag named in the env file.
 
 name: ${STACK_NAME:?set STACK_NAME in .env.<env>}
 
 services:
   luxupt:
-    # Always a registry-namespaced, pinned ref — never :latest, never bare. The dev tag is
-    # built locally under the same namespace (make build-dev) and paired with
-    # PULL_POLICY=never, so a dev stack still names the exact artifact it runs.
+    # Always a registry-namespaced, IMMUTABLE ref — :<version> or :sha-<commit>, never a moving
+    # :dev/:latest (repo.deploy_tag_is_immutable). A dev stack pins the sha `make dev-deploy`
+    # published, so it names exactly the bits it runs and can roll back with `make dev-pin`.
     image: ${REGISTRY:?set REGISTRY in .env.<env>}/luxardolabs/luxupt:${TAG:?set TAG in .env.<env>}
     pull_policy: ${PULL_POLICY:-missing}
     container_name: ${STACK_NAME:?}

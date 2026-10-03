@@ -563,17 +563,6 @@ docker-build-local: validate-version validate-structure buildx-setup docker-pull
 		.
 	@echo '$(GREEN)Docker build complete!$(NC)'
 
-.PHONY: build-dev
-build-dev: validate-version validate-structure ## Build the local :dev image from current source (for a dev stack)
-	@echo '$(BLUE)Building $(LOCAL_IMAGE):dev from current source...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build \
-		--build-arg BUILD_VERSION=$(VERSION)-dev \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		-t $(LOCAL_IMAGE):dev \
-		.
-	@echo '$(GREEN)Built $(LOCAL_IMAGE):dev — a dev stack runs it with TAG=dev + PULL_POLICY=never. Re-run after code changes.$(NC)'
-
 .PHONY: github-release
 github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this version's notes
 	@# A git tag is NOT a Release: without this the /releases page is empty and
@@ -596,16 +585,19 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 	fi
 
 # v5 shape (luxarch --emit image-block), multi-arch: the build PUSHES a `candidate-<commit>` tag
-# nothing pins, each platform of it is pulled + saved + scanned, and only then are the release tags
+# nothing pins, each platform of it is pulled + saved + scanned, and only then is :sha-<commit>
 # created FROM that digest — so what ships is byte-for-byte what the scan passed
-# (repo.release_scans_candidate). A dirty tree is refused: the tags name HEAD, the build reads the
+# (repo.release_scans_candidate). A dirty tree is refused: the tag names HEAD, the build reads the
 # working directory (repo.deploy_tag_is_immutable).
-.PHONY: release
-release: validate-version validate-structure buildx-setup docker-pull-cache ## Build, SCAN, then push :$(VERSION) + :sha-<commit> + :latest (multi-arch) to the private registry
+#
+# Split from `release` on purpose: a DEV deploy publishes only the immutable sha. Re-pushing
+# :$(VERSION) on every dev build would overwrite the released tag with unreleased code.
+.PHONY: publish-sha
+publish-sha: validate-version validate-structure buildx-setup docker-pull-cache ## Build, SCAN, then push :sha-<commit> (multi-arch) — the dev-deploy artifact
 	@if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then \
 	  echo "REFUSING: the working tree is dirty, so sha-$(COMMIT) would not describe these bits:"; \
 	  git status --short | sed 's/^/    /'; \
-	  echo "Commit first, then release."; \
+	  echo "Commit first, then publish. make test runs uncommitted code; the stack runs what was pushed."; \
 	  exit 1; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
@@ -632,15 +624,60 @@ release: validate-version validate-structure buildx-setup docker-pull-cache ## B
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(CANDIDATE_IMAGE) ($$plat)"; \
 	done
-	docker buildx imagetools create -t $(SHA_IMAGE) -t $(VERSION_IMAGE) $(CANDIDATE_IMAGE)
+	docker buildx imagetools create -t $(SHA_IMAGE) $(CANDIDATE_IMAGE)
+	@echo '$(GREEN)Published $(SHA_IMAGE) (candidate scanned clean)$(NC)'
+
+.PHONY: release
+release: publish-sha ## Build, SCAN, then push :sha-<commit> + :$(VERSION) + :latest (multi-arch) to the private registry
+	@# :$(VERSION) is created from the sha publish-sha just scanned — same digest, no rebuild.
+	docker buildx imagetools create -t $(VERSION_IMAGE) $(SHA_IMAGE)
 	@# The alias moves LAST and carries nothing: a label on an already-published artifact.
 	docker buildx imagetools create -t $(IMAGE):latest $(SHA_IMAGE)
 	@echo ''
-	@echo '$(GREEN)Released $(VERSION) to the private registry (candidate scanned clean)$(NC)'
+	@echo '$(GREEN)Released $(VERSION) to the private registry$(NC)'
 	@echo '    $(VERSION_IMAGE)'
 	@echo '    $(SHA_IMAGE)'
 	@echo ''
 	@echo '$(BLUE)Public repo? scan + promote + publish the notes:$(NC)  make release-public'
+
+# ── Point a dev stack at a build (luxarch --emit image-block v5) ────────────────────────────────
+# The tag is PERSISTED into .env.<site>-dev, not passed in the deploying shell, because the stack
+# has to come back after a reboot: compose reads `${TAG:?}`. Exactly ONE line of that file is
+# rewritten in place; nothing else is read, printed or reordered, because it holds secrets.
+SITE ?=
+DEV_ENV = .env.$(SITE)-dev
+
+define pin_env_tag
+	f='$(1)'; t='$(2)'; \
+	[ -f "$$f" ] || { echo "$$f is missing — copy .env.example and fill it in first"; exit 1; }; \
+	tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
+	if grep -qE '^[[:space:]]*TAG=' "$$f"; then \
+	  awk -v t="$$t" '/^[[:space:]]*TAG=/ && !d {print "TAG=" t; d=1; next} {print}' "$$f" > "$$tmp"; \
+	else \
+	  cp "$$f" "$$tmp" && printf 'TAG=%s\n' "$$t" >> "$$tmp"; \
+	fi; \
+	[ -s "$$tmp" ] || { echo "refusing to write an empty $$f"; exit 1; }; \
+	o=$$(wc -l < "$$f"); n=$$(wc -l < "$$tmp"); \
+	[ "$$n" -ge "$$o" ] || { echo "refusing: rewriting $$f lost lines ($$o -> $$n)"; exit 1; }; \
+	cat "$$tmp" > "$$f"; \
+	echo "$$f: TAG=$$t"
+endef
+
+.PHONY: dev-deploy
+dev-deploy: ## Publish THIS commit, pin .env.$(SITE)-dev to it, restart that dev stack (SITE=<site>)
+	@[ -n "$(SITE)" ] || { echo "usage: make dev-deploy SITE=<site>"; exit 1; }
+	@$(MAKE) --no-print-directory publish-sha
+	@$(MAKE) --no-print-directory dev-pin SITE=$(SITE) TAG=sha-$(COMMIT)
+
+# The rollback path, and the only one that does not build: name a tag you already published.
+# The registry is checked FIRST, so a stack is never pinned to a name the registry never held.
+.PHONY: dev-pin
+dev-pin: ## Point .env.$(SITE)-dev at an ALREADY-PUBLISHED tag and restart it (rollback path)
+	@[ -n "$(SITE)" ] && [ -n "$(TAG)" ] || { echo "usage: make dev-pin SITE=<site> TAG=sha-<commit>|<version>"; exit 1; }
+	@docker buildx imagetools inspect $(IMAGE):$(TAG) >/dev/null 2>&1 || \
+	  { echo "$(IMAGE):$(TAG) is not in the registry — publish it before pinning a stack to it"; exit 1; }
+	@$(call pin_env_tag,$(DEV_ENV),$(TAG))
+	docker compose --env-file $(DEV_ENV) up -d
 
 .PHONY: run
 run: ## Run the application locally with Poetry
