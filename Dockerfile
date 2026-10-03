@@ -39,8 +39,11 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/luxupt
 
-# Install runtime dependencies (cacheable - no ARGs yet)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install runtime dependencies (cacheable - no ARGs yet). `apt-get upgrade` pulls the base
+# image's OS packages (openssl, libssl, pcre2, ...) up to their fixed versions: the base tag lags
+# its own security updates, and luxaudit's image leg reds every fixable HIGH/CRITICAL it ships.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
     ffmpeg \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -85,6 +88,10 @@ RUN mkdir -p output/images output/videos && \
 
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
+
+# Nothing runs pip at runtime, and pip vendors its own urllib3/msgpack/setuptools that no lock
+# bump reaches (luxaudit --doc REFERENCE, image leg) -- so the runtime carries none of it.
+RUN /app/.venv/bin/python -m pip uninstall -y pip && python -m pip uninstall -y pip
 
 # Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH"
