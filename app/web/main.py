@@ -24,6 +24,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import StrictUndefined
+from slowapi.errors import RateLimitExceeded
 
 from app import config
 from app.camera_manager import CameraManager, CameraManagerSettings
@@ -35,6 +36,7 @@ from app.models.enum_model import ActivityType
 from app.services.core.health_core_service import HealthCoreService, HealthStatus
 from app.services.core.metrics_core_service import MetricsCoreService
 from app.utils.exception_handlers import general_exception_handler
+from app.web.rate_limit import limiter, rate_limit_exceeded_handler
 
 from .middleware import (
     AuthRedirectMiddleware,
@@ -406,6 +408,11 @@ def create_app() -> FastAPI:
     # Registered on Exception, not on 500: a raised exception never reaches a status-code
     # handler, so the old @app.exception_handler(500) only ever fired for an explicit 500.
     app.add_exception_handler(Exception, general_exception_handler)
+
+    # The request limiter (FLEET-RATE-LIMIT-STANDARD): routes carry @limiter.limit, slowapi reads
+    # the instance from app.state, and an over-limit request is refused with a 429.
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
     # Add middleware (order matters - first added = outermost = runs first on request, last on response)
     # CORS must be outermost to handle preflight requests

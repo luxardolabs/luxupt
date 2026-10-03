@@ -34,3 +34,9 @@ baseline = 0   # luxlint --mypy applies this ratchet itself (mount-only, no pipi
 source_type = "script"   # no bundler — plain <script> tags in layouts/base.html
 ecma_version = "2022"
 globals = ["htmx", "echarts"]   # ambient vendor libs, loaded before app.js in base.html
+
+# The ONE sanctioned third-party deprecation carve-out (luxarch --doc FLEET-RATE-LIMIT-STANDARD §4).
+# Scoped to the exact message AND module, so a future slowapi deprecation still fails the suite.
+[[pytest.filterwarnings_ignore]]
+warning = "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:slowapi.extension"
+reason = "slowapi 0.1.10 Limiter.limit calls the deprecated asyncio.iscoroutinefunction (upstream laurentS/slowapi#263, fix PRs unmerged). Scoped to the exact message AND module. REMOVE when slowapi ships the fix — on Python 3.16 the call becomes an AttributeError at startup, so this carve-out is a deadline, not a resolution. See luxarch --doc FLEET-RATE-LIMIT-STANDARD §4. Tracked in LUXUPT-83."

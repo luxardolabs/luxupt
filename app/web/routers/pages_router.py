@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.web.auth import login, login_form, logout
 from app.web.deps import DbSession
+from app.web.rate_limit import LOGIN_RATE, limiter
 
 router = APIRouter(tags=["pages"])
 
@@ -30,6 +31,7 @@ async def login_page(request: Request) -> Response:
 
 
 @router.post("/login")
+@limiter.limit(LOGIN_RATE)
 async def login_submit(request: Request, db: DbSession) -> Response:
     """Process login."""
     form = await request.form()

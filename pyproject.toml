@@ -47,6 +47,7 @@ sqlalchemy = {version = "^2.1", extras = ["asyncio"]}  # fleet floor: --playbook
 aiosqlite = "^0.22.1"
 alembic = "^1.19"  # fleet floor
 python-json-logger = "^4.0.0"  # For structured JSON logging
+slowapi = "^0.1.10"  # the fleet's sanctioned request limiter (FLEET-RATE-LIMIT-STANDARD §3)
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.2"

@@ -18,9 +18,7 @@ Security features:
 """
 
 import secrets
-from collections import defaultdict
 from datetime import UTC, datetime, timedelta
-from time import time
 from typing import Any, cast
 
 import jwt
@@ -33,6 +31,7 @@ from app.crud.user_crud import user_crud
 from app.db.database import get_db_context
 from app.logging_config import get_logger
 from app.utils.password_hash import hash_password, verify_password
+from app.web.rate_limit import client_ip
 
 logger = get_logger(__name__)
 
@@ -50,20 +49,6 @@ else:
 ALGORITHM = "HS256"
 COOKIE_NAME = f"access_token_{config.WEB_PORT}"
 
-# Login rate limiting - track failed attempts per IP
-# Structure: {ip: [(timestamp, ...], ...}
-_login_attempts: dict[str, list[float]] = defaultdict(list)
-
-
-def _get_client_ip(request: Request) -> str:
-    """Get client IP, respecting X-Forwarded-For if trusted."""
-    if config.WEB_TRUST_PROXY_HEADERS:
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            # Take the first IP (original client)
-            return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
 
 def _is_https_request(request: Request) -> bool:
     """
@@ -80,42 +65,6 @@ def _is_https_request(request: Request) -> bool:
 
     # Fall back to request URL scheme
     return request.url.scheme == "https"
-
-
-def _check_rate_limit(ip: str) -> tuple[bool, int]:
-    """
-    Check if IP has exceeded login rate limit.
-
-    Returns (is_allowed, seconds_until_allowed).
-    Cleans up old attempts automatically.
-    """
-    now = time()
-    window_seconds = config.WEB_LOGIN_RATE_WINDOW_SECONDS
-    window_start = now - window_seconds
-
-    # Clean up old attempts
-    _login_attempts[ip] = [ts for ts in _login_attempts[ip] if ts > window_start]
-
-    attempts = len(_login_attempts[ip])
-
-    if attempts >= config.WEB_LOGIN_RATE_LIMIT:
-        # Calculate when the oldest attempt will expire
-        oldest = min(_login_attempts[ip]) if _login_attempts[ip] else now
-        seconds_remaining = int(oldest + window_seconds - now) + 1
-        return False, max(seconds_remaining, 1)
-
-    return True, 0
-
-
-def _record_login_attempt(ip: str) -> None:
-    """Record a failed login attempt for rate limiting."""
-    _login_attempts[ip].append(time())
-
-
-def _clear_login_attempts(ip: str) -> None:
-    """Clear login attempts on successful login."""
-    if ip in _login_attempts:
-        del _login_attempts[ip]
 
 
 def uses_env_auth() -> bool:
@@ -276,43 +225,29 @@ async def login(
     username: str = Form(...),
     password: str = Form(...),
 ) -> Response:
-    """Process login form with rate limiting and adaptive cookie security.
+    """Process the login form (rate-limited at the route) and set the session cookie.
 
     Uses the caller's request-scoped session; get_db() owns the commit.
     """
     templates = request.app.state.templates
-    client_ip = _get_client_ip(request)
-
-    # Check rate limit before processing
-    is_allowed, wait_seconds = _check_rate_limit(client_ip)
-    if not is_allowed:
-        logger.warning("Login rate limit exceeded", extra={"client_ip": client_ip})
-        return cast(
-            Response,
-            templates.TemplateResponse(
-                request,
-                "pages/login.html",
-                {
-                    "error": f"Too many login attempts. Please wait {wait_seconds} seconds."
-                },
-                status_code=429,
-            ),
-        )
+    # The attempt limit is enforced BEFORE this runs: POST /login carries @limiter.limit
+    # (app/web/rate_limit.py), which refuses with a 429. This only logs the address.
+    address = client_ip(request)
 
     # Authenticate (supports both env and database auth)
     success, user_id = await AuthService.authenticate_user(db, username, password)
 
     if not success:
-        _record_login_attempt(client_ip)
         logger.warning(
-            "Failed login attempt", extra={"username": username, "client_ip": client_ip}
+            "Failed login attempt", extra={"username": username, "client_ip": address}
         )
         return cast(
             Response,
             templates.TemplateResponse(
                 request,
                 "pages/login.html",
-                {"error": "Invalid username or password"},
+                # login.html reads `success` and `error` unguarded (StrictUndefined); pass both.
+                {"success": None, "error": "Invalid username or password"},
                 status_code=400,
             ),
         )
@@ -326,11 +261,7 @@ async def login(
         env_user = await user_crud.sync_env_user(db, username)
         await user_crud.update_last_login(db, env_user.id)
 
-    # Success - clear rate limit tracking
-    _clear_login_attempts(client_ip)
-    logger.info(
-        "Successful login", extra={"username": username, "client_ip": client_ip}
-    )
+    logger.info("Successful login", extra={"username": username, "client_ip": address})
 
     # Create access token
     access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)

@@ -88,6 +88,7 @@ from app.db.database import get_db, seed_singleton_settings  # noqa: E402
 # «EDIT» — the app instance (module-level: create_app() registers process-global state such as
 # the Prometheus collectors, so it is built once, exactly as in production)
 from app.web.main import app  # noqa: E402
+from app.web.rate_limit import limiter  # noqa: E402
 
 _APP_MAKER = "async_session"  # «EDIT» the maker's attribute name in that module
 
@@ -234,6 +235,17 @@ async def client(db: AsyncSession) -> AsyncIterator[AsyncClient]:
             yield ac
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits() -> None:
+    """Start every test with empty rate-limit counters — RESET, never disabled.
+
+    Every test logs in from the same ASGI client address, so without this the login limit
+    trips a few tests in and every later `auth_client` is refused. Disabling the limiter would
+    hide that the limit refuses; resetting keeps it live for the test that proves it does.
+    """
+    limiter.reset()
 
 
 @pytest_asyncio.fixture
