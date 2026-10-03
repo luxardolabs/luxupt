@@ -8,7 +8,7 @@
 #   Unset on a clean public clone: the guards + guard-version-check skip cleanly.
 LUXARCH_REGISTRY ?= docker.<your-private-registry>:5000
 #
-# LOCAL_REGISTRY — your private registry for the app image (make docker-push-local).
+# LOCAL_REGISTRY — your private registry for the app image (make release).
 LOCAL_REGISTRY   ?= <your-local-registry>:5000
 
 # Production topology (public repo: the real values live here, gitignored).

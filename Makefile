@@ -43,6 +43,16 @@ GITHUB_USER := luxardolabs
 LOCAL_IMAGE := $(LOCAL_REGISTRY)/$(DOCKER_HUB_USER)/$(PROJECT_NAME)
 GHCR_IMAGE := ghcr.io/$(GITHUB_USER)/$(PROJECT_NAME)
 
+# Immutable deploy tags (luxarch --emit image-block v5) — the ONLY tags a stack may pin.
+# CANDIDATE is pushed by the build and pinned by nothing: it exists so the exact bits can be
+# scanned before any release tag points at them.
+IMAGE           := $(LOCAL_IMAGE)
+COMMIT          := $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
+VERSION_IMAGE   := $(IMAGE):$(VERSION)
+SHA_IMAGE       := $(IMAGE):sha-$(COMMIT)
+CANDIDATE_IMAGE := $(IMAGE):candidate-$(COMMIT)
+comma           := ,
+
 # Load .env file if present (for GHCR_TOKEN and other credentials)
 ifneq (,$(wildcard .env))
     include .env
@@ -56,6 +66,7 @@ GHCR_TOKEN ?= $(error GHCR_TOKEN not set — add to .env or export it)
 CREATED := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Git revision for OCI image provenance (repo.oci_image_labels)
 BUILD_COMMIT := $(shell git -c safe.directory=$(CURRENT_DIR) rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_ARGS := --build-arg BUILD_VERSION=$(VERSION) --build-arg BUILD_TIMESTAMP=$(CREATED) --build-arg BUILD_COMMIT=$(BUILD_COMMIT)
 # For quick local development builds - amd64 only (faster iteration)
 PLATFORM_DEV := linux/amd64
 # For release builds - multi-arch (amd64 + arm64)
@@ -502,13 +513,28 @@ docker-login-ghcr: ## Login to GitHub Container Registry
 # than rebuilding: `imagetools create` copies the SAME DIGEST, so the public image is provably
 # the artifact that was released — and it needs no registry login of its own.
 .PHONY: release-public
-release-public: ## [PUBLIC REPO] Promote :$(VERSION) + :latest to GHCR, then publish the GitHub Release
-	@docker buildx imagetools inspect $(LOCAL_IMAGE):$(VERSION) >/dev/null 2>&1 \
-	  || { echo '$(RED)$(LOCAL_IMAGE):$(VERSION) not found — run `make release` first$(NC)'; exit 1; }
+release-public: ## [PUBLIC REPO] Scan + promote :$(VERSION) + :latest to GHCR, then publish the GitHub Release
+	@if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then \
+	  echo "REFUSING: the working tree is dirty, so v$(VERSION) would not describe these bits:"; \
+	  git status --short | sed 's/^/    /'; exit 1; \
+	fi
+	@docker buildx imagetools inspect $(VERSION_IMAGE) >/dev/null 2>&1 \
+	  || { echo '$(RED)$(VERSION_IMAGE) not found — run `make release` first$(NC)'; exit 1; }
+	@# Scan the exact image being promoted, every platform, BEFORE it reaches the public registry
+	@# (repo.release_scans_candidate). `imagetools create` then copies that SAME digest.
+	@set -e; ref='$(or $(LUXAUDIT_IMAGE),$(LUXAUDIT))'; \
+	if [ -z "$$ref" ]; then echo "REFUSING: set LUXAUDIT_IMAGE to the pinned luxaudit; the image must be scanned before it is pushed"; exit 2; fi; \
+	T=$$(mktemp); trap 'rm -f "$$T"' EXIT INT TERM; \
+	for plat in $(subst $(comma), ,$(PLATFORM)); do \
+	  docker pull -q --platform $$plat $(VERSION_IMAGE) >/dev/null; \
+	  docker save $(VERSION_IMAGE) -o "$$T"; chmod 644 "$$T"; \
+	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
+	    "$$ref" --image-archive /candidate.tar --image-label "$(VERSION_IMAGE) ($$plat)"; \
+	done
 	docker buildx imagetools create \
 	  -t $(GHCR_IMAGE):$(VERSION) -t $(GHCR_IMAGE):latest \
-	  $(LOCAL_IMAGE):$(VERSION)
-	@echo '$(GREEN)Promoted $(LOCAL_IMAGE):$(VERSION) -> $(GHCR_IMAGE):$(VERSION) + :latest (same digest)$(NC)'
+	  $(VERSION_IMAGE)
+	@echo '$(GREEN)Promoted $(VERSION_IMAGE) -> $(GHCR_IMAGE):$(VERSION) + :latest (same digest)$(NC)'
 	@$(MAKE) --no-print-directory github-release
 
 .PHONY: docker-pull-cache
@@ -548,52 +574,6 @@ build-dev: validate-version validate-structure ## Build the local :dev image fro
 		.
 	@echo '$(GREEN)Built $(LOCAL_IMAGE):dev — a dev stack runs it with TAG=dev + PULL_POLICY=never. Re-run after code changes.$(NC)'
 
-.PHONY: docker-push-local
-docker-push-local: validate-version validate-structure buildx-setup docker-pull-cache ## Build and push to local registry (multi-arch: amd64 + arm64)
-	@echo '$(BLUE)Building and pushing to local registry (multi-arch)...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
-		--platform $(PLATFORM) \
-		--build-arg BUILDKIT_INLINE_CACHE=1 \
-		--cache-from $(LOCAL_IMAGE):latest \
-		--build-arg BUILD_VERSION=$(VERSION) \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		--label "org.opencontainers.image.created=$(CREATED)" \
-		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=luxupt" \
-		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
-		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(LOCAL_IMAGE):$(VERSION) \
-		-t $(LOCAL_IMAGE):latest \
-		--push \
-		.
-	@echo '$(GREEN)Pushed $(LOCAL_IMAGE):$(VERSION)$(NC)'
-
-
-.PHONY: docker-push-ghcr
-docker-push-ghcr: validate-version validate-structure buildx-setup docker-login-ghcr ## Build and push to GHCR (multi-arch: amd64 + arm64)
-	@echo '$(BLUE)Building and pushing to GHCR (multi-arch)...$(NC)'
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
-		--platform $(PLATFORM) \
-		--cache-from type=registry,ref=$(GHCR_IMAGE):cache \
-		--cache-to type=registry,ref=$(GHCR_IMAGE):cache,mode=max \
-		--build-arg BUILD_VERSION=$(VERSION) \
-		--build-arg BUILD_TIMESTAMP=$(CREATED) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		--label "org.opencontainers.image.created=$(CREATED)" \
-		--label "org.opencontainers.image.version=$(VERSION)" \
-		--label "org.opencontainers.image.title=luxupt" \
-		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
-		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
-		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(GHCR_IMAGE):$(VERSION) \
-		--push \
-		.
-	@echo '$(GREEN)Pushed $(GHCR_IMAGE):$(VERSION)$(NC)'
-
-.PHONY: docker-push-all
-
 .PHONY: github-release
 github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this version's notes
 	@# A git tag is NOT a Release: without this the /releases page is empty and
@@ -615,14 +595,52 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 	  gh release create "v$(VERSION)" --title "$(VERSION)" --notes-file "app/release_notes/$(VERSION).md"; \
 	fi
 
+# v5 shape (luxarch --emit image-block), multi-arch: the build PUSHES a `candidate-<commit>` tag
+# nothing pins, each platform of it is pulled + saved + scanned, and only then are the release tags
+# created FROM that digest — so what ships is byte-for-byte what the scan passed
+# (repo.release_scans_candidate). A dirty tree is refused: the tags name HEAD, the build reads the
+# working directory (repo.deploy_tag_is_immutable).
 .PHONY: release
-release: docker-push-local ## Build + push :$(VERSION) AND :latest (multi-arch) to the private registry
+release: validate-version validate-structure buildx-setup docker-pull-cache ## Build, SCAN, then push :$(VERSION) + :sha-<commit> + :latest (multi-arch) to the private registry
+	@if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then \
+	  echo "REFUSING: the working tree is dirty, so sha-$(COMMIT) would not describe these bits:"; \
+	  git status --short | sed 's/^/    /'; \
+	  echo "Commit first, then release."; \
+	  exit 1; \
+	fi
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
+		--platform $(PLATFORM) \
+		--build-arg BUILDKIT_INLINE_CACHE=1 \
+		--cache-from $(IMAGE):latest \
+		$(BUILD_ARGS) \
+		--label "org.opencontainers.image.created=$(CREATED)" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.title=luxupt" \
+		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
+		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
+		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
+		-t $(CANDIDATE_IMAGE) \
+		--push \
+		.
+	@# SCAN THE CANDIDATE, THEN TAG IT. Refuses on any fixable HIGH/CRITICAL in any platform.
+	@set -e; ref='$(or $(LUXAUDIT_IMAGE),$(LUXAUDIT))'; \
+	if [ -z "$$ref" ]; then echo "REFUSING: set LUXAUDIT_IMAGE to the pinned luxaudit; the candidate must be scanned before it is pushed"; exit 2; fi; \
+	T=$$(mktemp); trap 'rm -f "$$T"' EXIT INT TERM; \
+	for plat in $(subst $(comma), ,$(PLATFORM)); do \
+	  docker pull -q --platform $$plat $(CANDIDATE_IMAGE) >/dev/null; \
+	  docker save $(CANDIDATE_IMAGE) -o "$$T"; chmod 644 "$$T"; \
+	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
+	    "$$ref" --image-archive /candidate.tar --image-label "$(CANDIDATE_IMAGE) ($$plat)"; \
+	done
+	docker buildx imagetools create -t $(SHA_IMAGE) -t $(VERSION_IMAGE) $(CANDIDATE_IMAGE)
+	@# The alias moves LAST and carries nothing: a label on an already-published artifact.
+	docker buildx imagetools create -t $(IMAGE):latest $(SHA_IMAGE)
 	@echo ''
-	@echo '$(GREEN)Released $(VERSION) to the private registry$(NC)'
-	@echo '    $(LOCAL_IMAGE):$(VERSION)'
-	@echo '    $(LOCAL_IMAGE):latest'
+	@echo '$(GREEN)Released $(VERSION) to the private registry (candidate scanned clean)$(NC)'
+	@echo '    $(VERSION_IMAGE)'
+	@echo '    $(SHA_IMAGE)'
 	@echo ''
-	@echo '$(BLUE)Public repo? promote + publish the notes:$(NC)  make release-public'
+	@echo '$(BLUE)Public repo? scan + promote + publish the notes:$(NC)  make release-public'
 
 .PHONY: run
 run: ## Run the application locally with Poetry
@@ -677,7 +695,7 @@ info: validate-version ## Show project information
 # -----------------------------------------------------------------------------
 # repo prod/ is the SOURCE OF TRUTH; prod-sync pushes it, prod-deploy runs it.
 # Prod keeps its OWN tiered storage (local NVMe + NAS videos) — NEVER the dev NFS.
-# Release flow:  make docker-push-ghcr  ->  (bump prod/compose.yaml default tag)
+# Release flow:  make release && make release-public  ->  (bump prod/compose.yaml default tag)
 #                ->  make prod-sync  ->  make prod-deploy
 #
 # This Makefile is COMMITTED to a PUBLIC repo, so it is environment-agnostic: every
