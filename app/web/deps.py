@@ -16,13 +16,11 @@ from app.services.core.job_core_service import JobCoreService
 from app.services.core.settings_core_service import SettingsCoreService
 from app.services.core.timelapse_browser_core_service import TimelapseBrowserCoreService
 from app.services.core.user_core_service import UserCoreService
-from app.services.views import (
-    CamerasViewService,
-    ImagesViewService,
-    SystemViewService,
-    TimelapsesViewService,
-    UsersViewService,
-)
+from app.services.views.cameras_view_service import CamerasViewService
+from app.services.views.images_view_service import ImagesViewService
+from app.services.views.system_view_service import SystemViewService
+from app.services.views.timelapses_view_service import TimelapsesViewService
+from app.services.views.users_view_service import UsersViewService
 
 # The request-scoped session: get_db owns its transaction (commit on success, rollback on raise).
 DbSession = Annotated[AsyncSession, Depends(get_db)]

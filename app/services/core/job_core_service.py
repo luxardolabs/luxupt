@@ -1,7 +1,6 @@
 """Job service for timelapse job management and processing."""
 
 import asyncio
-import json as json_module
 import os
 import signal
 import subprocess
@@ -22,7 +21,7 @@ from app.services.core.historical_fetch_core_service import (
     HistoricalFetchCoreService,
     HistoricalJobCanceled,
 )
-from app.utils import async_fs
+from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone
 from app.workers.timelapse_service import EncodingSettings, TimelapseService
 
@@ -569,7 +568,9 @@ class JobProcessor:
                 duration_seconds,
                 resolution,
                 frame_count,
-            ) = await self._probe_video_metadata(output_path, frame_rate, probe_timeout)
+            ) = await ffmpeg.probe_video_metadata(
+                output_path, frame_rate, probe_timeout
+            )
 
             # Decode-validation: ffprobe only reads container headers. To catch corrupted
             # encoded streams (e.g. from a concurrent write collision), actually decode
@@ -600,7 +601,7 @@ class JobProcessor:
                 return
 
             # Generate thumbnail
-            thumbnail_path = await self._generate_thumbnail(
+            thumbnail_path = await ffmpeg.generate_thumbnail(
                 output_path, duration_seconds, probe_timeout
             )
 
@@ -702,102 +703,6 @@ class JobProcessor:
             )
             return False
         return True
-
-    async def _probe_video_metadata(
-        self, output_path: Path, frame_rate: int, probe_timeout: int
-    ) -> tuple[float, str | None, int]:
-        """Probe video file for metadata. Returns (duration, resolution, frame_count)."""
-        duration_seconds = 0.0
-        resolution = None
-        frame_count = 0
-
-        def run_ffprobe() -> subprocess.CompletedProcess[str]:
-            """Run ffprobe to extract duration, resolution, and frame count from the video."""
-            return subprocess.run(
-                [
-                    "ffprobe",
-                    "-v",
-                    "quiet",
-                    "-print_format",
-                    "json",
-                    "-show_format",
-                    "-show_streams",
-                    str(output_path),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=probe_timeout,
-            )
-
-        try:
-            result = await asyncio.to_thread(run_ffprobe)
-            if result.returncode == 0:
-                probe_data = json_module.loads(result.stdout)
-
-                if "format" in probe_data and "duration" in probe_data["format"]:
-                    duration_seconds = float(probe_data["format"]["duration"])
-
-                for stream in probe_data.get("streams", []):
-                    if stream.get("codec_type") == "video":
-                        width = stream.get("width", 0)
-                        height = stream.get("height", 0)
-                        if width and height:
-                            resolution = f"{width}x{height}"
-                        if "nb_frames" in stream:
-                            frame_count = int(stream["nb_frames"])
-                        elif duration_seconds > 0:
-                            frame_count = int(duration_seconds * frame_rate)
-                        break
-        except Exception as e:
-            logger.warning("Could not probe video metadata", extra={"error": str(e)})
-
-        return duration_seconds, resolution, frame_count
-
-    async def _generate_thumbnail(
-        self, output_path: Path, duration_seconds: float, probe_timeout: int
-    ) -> str | None:
-        """Generate thumbnail from video. Returns thumbnail path or None."""
-        thumb_filename = output_path.stem + "_thumb.jpg"
-        thumb_path = output_path.parent / thumb_filename
-
-        seek_time = min(1.0, duration_seconds * 0.1) if duration_seconds > 0 else 0
-
-        def run_ffmpeg_thumb() -> subprocess.CompletedProcess[str]:
-            """Run ffmpeg to extract a single frame as a JPEG thumbnail."""
-            return subprocess.run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-ss",
-                    str(seek_time),
-                    "-i",
-                    str(output_path),
-                    "-vframes",
-                    "1",
-                    "-vf",
-                    "scale=480:-1",
-                    "-q:v",
-                    "3",
-                    str(thumb_path),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=probe_timeout,
-            )
-
-        try:
-            result = await asyncio.to_thread(run_ffmpeg_thumb)
-            if result.returncode == 0 and await async_fs.path_exists(thumb_path):
-                logger.info("Generated thumbnail", extra={"path": str(thumb_path)})
-                return str(thumb_path)
-            else:
-                logger.warning(
-                    "Thumbnail generation failed", extra={"stderr": result.stderr}
-                )
-        except Exception as e:
-            logger.warning("Could not generate thumbnail", extra={"error": str(e)})
-
-        return None
 
 
 # Global job processor instance

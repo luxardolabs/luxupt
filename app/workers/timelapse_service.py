@@ -1,11 +1,8 @@
 """FFmpeg-based timelapse video generation with progress tracking and thumbnail extraction."""
 
 import asyncio
-import json as json_module
 import os
-import re
 import signal
-import subprocess
 import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -31,7 +28,7 @@ from app.db.database import get_db_context
 from app.models.enum_model import ScheduleSource
 from app.models.timelapse_model import Timelapse
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
-from app.utils import async_fs
+from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone, to_display
 
 # Module logger
@@ -441,7 +438,9 @@ class TimelapseService:
                         duration_seconds = (end_time - start_time).total_seconds()
                         logger.info(
                             "Scheduled timelapse creation completed",
-                            extra={"duration": self._format_duration(duration_seconds)},
+                            extra={
+                                "duration": ffmpeg.format_duration(duration_seconds)
+                            },
                         )
                     else:
                         # Calculate time until next run for logging
@@ -944,72 +943,25 @@ class TimelapseService:
         # Estimate video duration for better progress tracking
         estimated_video_seconds = total_frames / encoding_settings.frame_rate
 
-        # Build FFmpeg input args — concat demuxer for explicit lists, glob otherwise
+        # Input: the concat demuxer for an explicit frame list, a glob otherwise
         if frame_files is not None:
             concat_file = output_path.with_suffix(".concat.txt")
-
-            # Write a plain concat list (no per-file `duration` lines). Instead we set
-            # the input framerate with `-r` so each image maps 1:1 to an output frame.
-            # Using per-file durations caused cumulative floating-point drift that
-            # dropped ~16% of frames on long sequences.
-            def _write_concat() -> None:
-                with concat_file.open("w", encoding="utf-8") as f:
-                    f.write("ffconcat version 1.0\n")
-                    for src in image_files:
-                        escaped = str(src.resolve()).replace("'", "'\\''")
-                        f.write(f"file '{escaped}'\n")
-
-            await asyncio.to_thread(_write_concat)
-            input_args: list[str] = [
-                "-r",
-                str(encoding_settings.frame_rate),
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                str(concat_file),
-            ]
+            input_args = await ffmpeg.concat_input_args(
+                concat_file, image_files, encoding_settings.frame_rate
+            )
         else:
-            input_pattern = str(images_path / f"{camera_safe_name}_*.{image_format}")
-            input_args = [
-                "-r",
-                str(encoding_settings.frame_rate),
-                "-pattern_type",
-                "glob",
-                "-i",
-                input_pattern,
-            ]
+            input_args = ffmpeg.glob_input_args(
+                str(images_path / f"{camera_safe_name}_*.{image_format}"),
+                encoding_settings.frame_rate,
+            )
 
-        ffmpeg_command = [
-            "ffmpeg",
-            "-y",  # Always overwrite (we check existence before calling this)
-            "-loglevel",
-            "warning",  # Reduce noise but keep some info
-            "-nostats",  # Disable stats on stderr (progress comes from -progress pipe:1)
-            "-progress",
-            "pipe:1",  # Progress to stdout
-            *input_args,
-            "-c:v",
-            "libx265",
-            "-x265-params",
-            f"log-level=0:crf={encoding_settings.crf}",
-            "-preset",
-            encoding_settings.preset,
-            "-pix_fmt",
-            encoding_settings.pixel_format,
-            "-tag:v",
-            "hvc1",
-            "-movflags",
-            "+faststart",
-            "-color_primaries",
-            "bt709",
-            "-color_trc",
-            "bt709",
-            "-colorspace",
-            "bt709",
-            str(output_path),
-        ]
+        ffmpeg_command = ffmpeg.encode_command(
+            input_args,
+            output_path,
+            crf=encoding_settings.crf,
+            preset=encoding_settings.preset,
+            pixel_format=encoding_settings.pixel_format,
+        )
 
         logger.info(
             "Starting timelapse encoding",
@@ -1054,10 +1006,12 @@ class TimelapseService:
             stderr_task: asyncio.Task[str] | None = None
             if process.stdout is not None:
                 progress_task = asyncio.create_task(
-                    self._track_progress(process.stdout, progress_tracker)
+                    ffmpeg.read_progress(
+                        process.stdout, progress_tracker.update_progress
+                    )
                 )
             if process.stderr is not None:
-                stderr_task = asyncio.create_task(self._drain_stderr(process.stderr))
+                stderr_task = asyncio.create_task(ffmpeg.drain_stderr(process.stderr))
 
             # Wait for process completion with timeout
             try:
@@ -1080,14 +1034,11 @@ class TimelapseService:
                     progress_task.cancel()
                 if stderr_task is not None:
                     stderr_task.cancel()
-                await self._clear_process_pid(job_key)  # Clear PID on timeout
-                error_msg = (
-                    f"FFmpeg timed out after {encoding_settings.ffmpeg_timeout}s"
+                return await self._fail_video(
+                    job_key,
+                    output_path,
+                    f"FFmpeg timed out after {encoding_settings.ffmpeg_timeout}s",
                 )
-                await self._update_progress(
-                    job_key, -1, error_msg
-                )  # -1 indicates failure
-                return False
 
             # Stop progress tracking and collect stderr
             if progress_task is not None:
@@ -1105,7 +1056,7 @@ class TimelapseService:
                     str(output_path)
                 )
                 if exists:
-                    formatted_size = self._format_file_size(file_size)
+                    formatted_size = ffmpeg.format_file_size(file_size)
 
                     # Success!
                     await self._update_progress(
@@ -1117,24 +1068,16 @@ class TimelapseService:
                         extra={
                             "camera": camera_safe_name,
                             "interval": interval,
-                            "duration": self._format_duration(duration_seconds),
+                            "duration": ffmpeg.format_duration(duration_seconds),
                             "file_size": formatted_size,
                         },
                     )
                     await self._clear_process_pid(job_key)  # Clear PID on success
                     self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
                     return True
-                else:
-                    error_msg = "Output file not created or empty"
-                    await self._update_progress(
-                        job_key, -1, error_msg
-                    )  # -1 indicates failure
-                    await async_fs.path_unlink(
-                        output_path, missing_ok=True
-                    )  # Remove partial file
-                    await self._clear_process_pid(job_key)  # Clear PID on failure
-                    self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
-                    return False
+                return await self._fail_video(
+                    job_key, output_path, "Output file not created or empty"
+                )
             else:
                 logger.debug(
                     "FFmpeg timelapse full stderr",
@@ -1151,9 +1094,6 @@ class TimelapseService:
                     )
                 else:
                     error_msg = stderr[:500]
-                await self._update_progress(
-                    job_key, -1, error_msg
-                )  # -1 indicates failure
                 logger.error(
                     "FFmpeg failed",
                     extra={
@@ -1162,16 +1102,9 @@ class TimelapseService:
                         "error": error_msg,
                     },
                 )
-                await async_fs.path_unlink(
-                    output_path, missing_ok=True
-                )  # Remove partial file
-                await self._clear_process_pid(job_key)  # Clear PID on FFmpeg error
-                self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
-                return False
+                return await self._fail_video(job_key, output_path, error_msg)
 
         except Exception as e:
-            error_msg = f"Video creation error: {str(e)}"
-            await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
             logger.exception(
                 "Error creating video",
                 extra={
@@ -1180,12 +1113,9 @@ class TimelapseService:
                     "error": str(e),
                 },
             )
-            await async_fs.path_unlink(
-                output_path, missing_ok=True
-            )  # Remove partial file
-            await self._clear_process_pid(job_key)  # Clear PID on exception
-            self._job_key_to_id.pop(job_key, None)  # Cleanup mapping
-            return False
+            return await self._fail_video(
+                job_key, output_path, f"Video creation error: {str(e)}"
+            )
         finally:
             # Concat file is a per-run side artifact; delete on any exit path.
             if concat_file is not None:
@@ -1196,6 +1126,19 @@ class TimelapseService:
                         "Could not delete concat file",
                         extra={"path": str(concat_file), "error": str(unlink_error)},
                     )
+
+    async def _fail_video(
+        self, job_key: str, output_path: Path, error_msg: str
+    ) -> bool:
+        """End a failed encode: report -1 progress, drop the partial file, release the job.
+
+        Returns False so a failure path can ``return await self._fail_video(...)``.
+        """
+        await self._update_progress(job_key, -1, error_msg)  # -1 indicates failure
+        await async_fs.path_unlink(output_path, missing_ok=True)
+        await self._clear_process_pid(job_key)
+        self._job_key_to_id.pop(job_key, None)
+        return False
 
     async def create_combined_timelapse_for_range(
         self,
@@ -1298,61 +1241,6 @@ class TimelapseService:
             frame_files=all_frames,
         )
 
-    async def _drain_stderr(self, stderr: asyncio.StreamReader) -> str:
-        """Drain stderr to prevent pipe buffer deadlock.
-
-        FFmpeg blocks if stderr pipe buffer fills up (64KB). This task
-        reads stderr concurrently during encoding so that never happens.
-        Returns collected output for error reporting on failure.
-        """
-        chunks: list[str] = []
-        try:
-            while True:
-                chunk = await stderr.read(4096)
-                if not chunk:
-                    break
-                chunks.append(chunk.decode("utf-8", errors="ignore"))
-        except asyncio.CancelledError:
-            # The drain task is cancelled when the process ends -- expected, not a failure.
-            pass
-        except OSError as read_error:
-            logger.warning(
-                "Failed reading ffmpeg stderr", extra={"error": str(read_error)}
-            )
-        return "".join(chunks)
-
-    async def _track_progress(
-        self, stdout: asyncio.StreamReader, progress_tracker: ProgressTracker
-    ) -> None:
-        """Parse FFmpeg progress output and update status."""
-        frame_pattern = re.compile(r"frame=\s*(\d+)")
-
-        try:
-            buffer = ""
-            while True:
-                chunk = await stdout.read(1024)
-                if not chunk:
-                    break
-
-                buffer += chunk.decode("utf-8", errors="ignore")
-
-                # Process complete lines
-                lines = buffer.split("\n")
-                buffer = lines[-1]  # Keep incomplete line
-
-                for line in lines[:-1]:
-                    # Look for frame count
-                    frame_match = frame_pattern.search(line)
-                    if frame_match:
-                        current_frame = int(frame_match.group(1))
-                        await progress_tracker.update_progress(current_frame)
-
-        except asyncio.CancelledError:
-            # Normal when process completes
-            pass
-        except Exception as e:
-            logger.exception("Error tracking FFmpeg progress", extra={"error": str(e)})
-
     async def _update_progress(
         self,
         job_key: str,
@@ -1418,27 +1306,6 @@ class TimelapseService:
                 "Failed to clear FFmpeg PID", extra={"job_id": job_id, "error": str(e)}
             )
 
-    def _format_file_size(self, size_bytes: int) -> str:
-        """Format file size in human-readable format."""
-        size = float(size_bytes)
-        for unit in ["B", "KB", "MB", "GB"]:
-            if size < 1024:
-                return f"{size:.1f} {unit}"
-            size /= 1024
-        return f"{size:.1f} TB"
-
-    def _format_duration(self, seconds: float) -> str:
-        """Format duration in human-readable format."""
-        hours, remainder = divmod(int(seconds), 3600)
-        minutes, secs = divmod(remainder, 60)
-
-        if hours > 0:
-            return f"{hours}h {minutes}m {secs}s"
-        elif minutes > 0:
-            return f"{minutes}m {secs}s"
-        else:
-            return f"{secs}s"
-
     async def _create_timelapse_record(
         self,
         db: AsyncSession,
@@ -1461,12 +1328,12 @@ class TimelapseService:
         output_filename = output_path.name
 
         # Probe video metadata
-        duration_seconds, resolution, frame_count = await self._probe_video_metadata(
+        duration_seconds, resolution, frame_count = await ffmpeg.probe_video_metadata(
             output_path, encoding_settings.frame_rate, encoding_settings.ffmpeg_timeout
         )
 
         # Generate thumbnail
-        thumbnail_path = await self._generate_thumbnail(
+        thumbnail_path = await ffmpeg.generate_thumbnail(
             output_path, duration_seconds, encoding_settings.ffmpeg_timeout
         )
 
@@ -1497,102 +1364,6 @@ class TimelapseService:
                 "interval": interval,
             },
         )
-
-    async def _probe_video_metadata(
-        self, output_path: Path, frame_rate: int, probe_timeout: int
-    ) -> tuple[float, str | None, int]:
-        """Probe video file for metadata. Returns (duration, resolution, frame_count)."""
-        duration_seconds = 0.0
-        resolution = None
-        frame_count = 0
-
-        def run_ffprobe() -> subprocess.CompletedProcess[str]:
-            """Run ffprobe to extract duration, resolution, and frame count from the video."""
-            return subprocess.run(
-                [
-                    "ffprobe",
-                    "-v",
-                    "quiet",
-                    "-print_format",
-                    "json",
-                    "-show_format",
-                    "-show_streams",
-                    str(output_path),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=probe_timeout,
-            )
-
-        try:
-            result = await asyncio.to_thread(run_ffprobe)
-            if result.returncode == 0:
-                probe_data = json_module.loads(result.stdout)
-
-                if "format" in probe_data and "duration" in probe_data["format"]:
-                    duration_seconds = float(probe_data["format"]["duration"])
-
-                for stream in probe_data.get("streams", []):
-                    if stream.get("codec_type") == "video":
-                        width = stream.get("width", 0)
-                        height = stream.get("height", 0)
-                        if width and height:
-                            resolution = f"{width}x{height}"
-                        if "nb_frames" in stream:
-                            frame_count = int(stream["nb_frames"])
-                        elif duration_seconds > 0:
-                            frame_count = int(duration_seconds * frame_rate)
-                        break
-        except Exception as e:
-            logger.warning("Could not probe video metadata", extra={"error": str(e)})
-
-        return duration_seconds, resolution, frame_count
-
-    async def _generate_thumbnail(
-        self, output_path: Path, duration_seconds: float, probe_timeout: int
-    ) -> str | None:
-        """Generate thumbnail from video. Returns thumbnail path or None."""
-        thumb_filename = output_path.stem + "_thumb.jpg"
-        thumb_path = output_path.parent / thumb_filename
-
-        seek_time = min(1.0, duration_seconds * 0.1) if duration_seconds > 0 else 0
-
-        def run_ffmpeg_thumb() -> subprocess.CompletedProcess[str]:
-            """Run ffmpeg to extract a single frame as a JPEG thumbnail."""
-            return subprocess.run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-ss",
-                    str(seek_time),
-                    "-i",
-                    str(output_path),
-                    "-vframes",
-                    "1",
-                    "-vf",
-                    "scale=480:-1",
-                    "-q:v",
-                    "3",
-                    str(thumb_path),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=probe_timeout,
-            )
-
-        try:
-            result = await asyncio.to_thread(run_ffmpeg_thumb)
-            if result.returncode == 0 and await async_fs.path_exists(thumb_path):
-                logger.info("Generated thumbnail", extra={"path": str(thumb_path)})
-                return str(thumb_path)
-            else:
-                logger.warning(
-                    "Thumbnail generation failed", extra={"stderr": result.stderr}
-                )
-        except Exception as e:
-            logger.warning("Could not generate thumbnail", extra={"error": str(e)})
-
-        return None
 
     async def create_timelapse_now(self, days_ago: int = 1) -> None:
         """
