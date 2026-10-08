@@ -88,7 +88,7 @@ LOGGING_FORMAT = os.getenv("LOGGING_FORMAT", "json").lower()
 _module_levels_str = os.getenv("LOGGING_MODULE_LEVELS", "{}")
 try:
     LOGGING_MODULE_LEVELS: dict[str, str] = json.loads(_module_levels_str)
-except json.JSONDecodeError, TypeError:
+except (json.JSONDecodeError, TypeError):
     LOGGING_MODULE_LEVELS = {}
 
 # =============================================================================
@@ -109,6 +109,9 @@ WEB_TRUST_PROXY_HEADERS = os.getenv("WEB_TRUST_PROXY_HEADERS", "True").lower() i
     "1",
     "yes",
 ]
+
+# Cookie security mode: "auto", "always", "never"
+WEB_COOKIE_SECURE_MODE = os.getenv("WEB_COOKIE_SECURE_MODE", "auto").lower()
 
 # Environment-based authentication (backward compatibility)
 # If both are set, env auth takes priority over database users
