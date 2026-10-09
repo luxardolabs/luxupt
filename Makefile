@@ -924,7 +924,7 @@ info: validate-version ## Show project information
 PROD_NODE     ?= prod-node
 PROD_SITE     ?= site
 PROD_DIR      ?= /opt/luxupt
-PROD_PORT     ?= 8888
+PROD_PORT     ?= 11000
 PROD_DATA_ROOT ?= /mnt/docker/luxupt
 PROD_VIDEO_ROOT ?= /mnt/video/Timelapse
 PROD_SSH  := ssh -o BatchMode=yes $(PROD_NODE)
