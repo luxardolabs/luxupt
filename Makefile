@@ -770,7 +770,9 @@ dev-pin: ## Point .env.$(SITE)-dev at an ALREADY-PUBLISHED tag and restart it (r
 	@docker buildx imagetools inspect $(IMAGE):$(TAG) >/dev/null 2>&1 || \
 	  { echo "$(IMAGE):$(TAG) is not in the registry — publish it before pinning a stack to it"; exit 1; }
 	@$(call pin_env_tag,$(DEV_ENV),$(TAG))
-	docker compose --env-file $(DEV_ENV) up -d
+	@# --wait: return only once the container's healthcheck passes, so the smoke that follows probes
+	@# a started app, not one still migrating (a 502 then is the deploy racing itself).
+	docker compose --env-file $(DEV_ENV) up -d --wait --wait-timeout 180
 
 # ── Smoke settings (above the emitted block; its own lines are `?=` defaults) ──────────────────
 # Each site's dev stack sits behind its own nginx port, so the URL is per SITE. The hosts live in
