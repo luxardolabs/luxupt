@@ -250,6 +250,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Startup
     logger.info("Starting web interface")
+    if not config.ALLOWED_HOSTS_NAMED:
+        # Fail-closed is silent from outside: the container health check (localhost) stays green
+        # while every request through nginx gets a 400. Say so where an operator will look.
+        logger.warning(
+            "ALLOWED_HOSTS is not set: only localhost is answered, every other Host gets 400",
+            extra={"allowed_hosts": config.ALLOWED_HOSTS},
+        )
 
     # Initialize database
     logger.info("Initializing database")
@@ -429,9 +436,10 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(AuthRedirectMiddleware)
-    app.add_middleware(RequestLoggingMiddleware)
-    # Outermost: refuse a forged Host before anything else sees the request (make smoke probes it).
+    # Refuse a forged Host before any app middleware or route sees the request (make smoke probes
+    # it). Request logging wraps it, so a refusal is logged like every other 4xx.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.ALLOWED_HOSTS)
+    app.add_middleware(RequestLoggingMiddleware)
 
     # Static files
     # Static assets live at the fleet-canonical app/static/ (app-wide, a sibling of web/),

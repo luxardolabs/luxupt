@@ -666,7 +666,7 @@ define refuse_released
 	@out=$$(docker manifest inspect $(1) 2>&1) && { \
 	  echo "REFUSING: $(1) is already RELEASED. A released version is immutable: bump VERSION."; exit 1; } || \
 	case "$$out" in \
-	  *[Nn]"o such manifest"*|*"manifest unknown"*|*"not found"*) ;; \
+	  *[Nn]"o such manifest"*|*"manifest unknown"*) ;; \
 	  *) echo "REFUSING: cannot verify $(1) is unreleased: $$out"; exit 1 ;; \
 	esac
 endef
@@ -709,10 +709,16 @@ publish-sha: validate-version validate-structure buildx-setup docker-pull-cache 
 
 .PHONY: release
 release: ## Build, SCAN, then push :sha-<commit> + :$(VERSION) + :latest (multi-arch) to the private registry
+	@if docker manifest inspect $(VERSION_IMAGE) >/dev/null 2>&1; then echo "REFUSING: $(VERSION_IMAGE) is already released"; exit 1; fi
 	$(call refuse_released,$(VERSION_IMAGE))
-	@t=$$(git rev-parse -q --verify "refs/tags/v$(VERSION)^{commit}" 2>/dev/null); \
+	@# The tag is checked on ORIGIN, not only here: a clone without tags would otherwise pass while
+	@# origin has v$(VERSION) at another commit. Unreachable origin refuses (fail closed).
+	@r=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)^{}" "refs/tags/v$(VERSION)") || { \
+	  echo "REFUSING: cannot read tags from origin to verify v$(VERSION) is unreleased"; exit 1; }; \
+	t=$$(printf '%s\n' "$$r" | awk '/\^\{\}$$/{print $$1}'); \
+	[ -n "$$t" ] || t=$$(printf '%s\n' "$$r" | awk 'NF{print $$1; exit}'); \
 	if [ -n "$$t" ] && [ "$$t" != "$$(git rev-parse HEAD)" ]; then \
-	  echo "REFUSING: v$(VERSION) is already tagged at $$t, not HEAD: bump VERSION."; exit 1; \
+	  echo "REFUSING: v$(VERSION) is already tagged on origin at $$t, not HEAD: bump VERSION."; exit 1; \
 	fi
 	@$(MAKE) --no-print-directory publish-sha
 	@# :$(VERSION) is created from the sha publish-sha just scanned — same digest, no rebuild.
@@ -772,6 +778,9 @@ dev-pin: ## Point .env.$(SITE)-dev at an ALREADY-PUBLISHED tag and restart it (r
 SMOKE_URL         := $(SMOKE_URL_$(SITE))
 SMOKE_ENV_FILE    := $(DEV_ENV)
 SMOKE_STATIC_PATH := /static/css/app.css
+# /health/live names the commit and answers 200 whatever a dependency does: /health is rightly 503
+# while a site's Protect controller is down, and that is not "the stack is not running this build".
+SMOKE_HEALTH_PATH := /health/live
 # Both entry points: the CLI (python -m app.main) and the uvicorn target entrypoint.sh starts.
 SMOKE_ENTRY_MODULES := app.main app.web.main
 

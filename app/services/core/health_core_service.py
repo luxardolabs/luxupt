@@ -203,6 +203,7 @@ class HealthCoreService:
         return LivenessReport(
             status=HealthStatus.HEALTHY,
             timestamp=datetime.now(UTC).isoformat(),
+            commit=config.BUILD_COMMIT,
         )
 
     async def get_readiness(self, db: AsyncSession) -> ReadinessReport:

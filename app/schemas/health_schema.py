@@ -38,6 +38,9 @@ class LivenessReport(BaseModel):
 
     status: HealthStatus
     timestamp: str
+    # The build's short git SHA: `make smoke` reads it here, where a dependency's outage
+    # (the Protect controller) cannot turn a correct deploy into a 503.
+    commit: str
 
 
 class ReadinessReport(BaseModel):

@@ -32,3 +32,11 @@ async def test_readiness_matches_contract(client: AsyncClient) -> None:
     resp = await client.get("/health/ready")
     report = ReadinessReport.model_validate(resp.json())
     assert resp.status_code == (503 if report.status == HealthStatus.UNHEALTHY else 200)
+
+
+async def test_liveness_names_the_build_commit(client: AsyncClient) -> None:
+    # make smoke proves the deployed stack runs THIS build from /health/live, which answers 200
+    # whatever a dependency (the Protect controller) is doing; /health may rightly be 503.
+    resp = await client.get("/health/live")
+    report = LivenessReport.model_validate(resp.json())
+    assert report.commit
