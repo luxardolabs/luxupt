@@ -109,6 +109,13 @@ LOG_LEVELS: dict[str, str] = {
 # =============================================================================
 
 WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
+
+# Host headers the app answers (comma list), enforced by TrustedHostMiddleware. nginx forwards the
+# client's Host unchanged, so without this the app answers any name pointed at it. Unset, it fails
+# CLOSED to localhost: the container health check still works, a real deployment must name itself.
+ALLOWED_HOSTS: list[str] = [
+    h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()
+] or ["localhost", "127.0.0.1"]
 WEB_DEV_RELOAD = os.getenv("WEB_DEV_RELOAD", "False").lower() in ["true", "1", "yes"]
 WEB_SESSION_SECRET = os.getenv("WEB_SESSION_SECRET", "")  # Auto-generated if empty
 WEB_CORS_ORIGINS = (

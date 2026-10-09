@@ -17,6 +17,7 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import (
     PlainTextResponse,
     Response,
@@ -417,8 +418,8 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-    # Add middleware (order matters - first added = outermost = runs first on request, last on response)
-    # CORS must be outermost to handle preflight requests
+    # Add middleware. Starlette wraps each new middleware AROUND the ones already added, so the
+    # LAST added is outermost and runs first on a request.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.WEB_CORS_ORIGINS,
@@ -429,6 +430,8 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(AuthRedirectMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
+    # Outermost: refuse a forged Host before anything else sees the request (make smoke probes it).
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.ALLOWED_HOSTS)
 
     # Static files
     # Static assets live at the fleet-canonical app/static/ (app-wide, a sibling of web/),

@@ -103,11 +103,12 @@ That second part is not cosmetic. Images and videos are filed in folders by date
 
 ### Web Server
 
-| Variable                  | Description                                     | Default |
-| ------------------------- | ----------------------------------------------- | ------- |
-| `WEB_PORT`                | Port for the web interface                      | `8080`  |
-| `WEB_CORS_ORIGINS`        | Allowed CORS origins (comma-separated)          | —       |
-| `WEB_TRUST_PROXY_HEADERS` | Trust X-Forwarded-\* headers from reverse proxy | `true`  |
+| Variable                  | Description                                                           | Default               |
+| ------------------------- | --------------------------------------------------------------------- | --------------------- |
+| `WEB_PORT`                | Port for the web interface                                            | `8080`                |
+| `WEB_CORS_ORIGINS`        | Allowed CORS origins (comma-separated)                                | —                     |
+| `WEB_TRUST_PROXY_HEADERS` | Trust X-Forwarded-\* headers from reverse proxy                       | `true`                |
+| `ALLOWED_HOSTS`           | Comma list of Host headers the app answers; any other Host gets a 400 | `localhost,127.0.0.1` |
 
 ### Logging
 

@@ -65,6 +65,8 @@ os.environ.setdefault("THUMBNAIL_CACHE_PATH", str(_TMP / "thumbnails"))
 os.environ.setdefault(
     "WEB_SESSION_SECRET", "test-only-session-secret-not-for-production"
 )
+# The suite's client sends Host: test (base_url https://test); localhost for anything in-process.
+os.environ.setdefault("ALLOWED_HOSTS", "test,localhost,127.0.0.1")
 os.environ.setdefault("WEB_USERNAME", "testadmin")
 os.environ.setdefault("WEB_PASSWORD", "test-password-123")
 
