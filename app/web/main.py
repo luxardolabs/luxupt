@@ -6,6 +6,7 @@ the timelapse system without impacting core functionality.
 """
 
 import asyncio
+import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -26,7 +27,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.clients.camera_manager import CameraManager, CameraManagerSettings
 from app.core import config
-from app.core.logging_config import get_logger, setup_logging
+from app.core.logging_config import configure_logging
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import close_db, get_db, get_db_context, init_db
@@ -45,7 +46,7 @@ from .middleware import (
 from .templates import templates
 
 # Module logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Resolved once at import, not inside the async server entrypoint: os.path.abspath touches
 # the filesystem (getcwd), and a blocking path call in an async def stalls the event loop
@@ -223,8 +224,11 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
         logger.exception("Failed to sync cameras to database", extra={"error": str(e)})
 
 
-# Configure logging immediately at module load
-setup_logging()
+# Configure logging at module load: uvicorn imports this module as the service entrypoint
+# (entrypoint.sh runs `uvicorn app.web.main:app`).
+configure_logging(
+    service=config.SERVICE_NAME, version=config.BUILD_VERSION, levels=config.LOG_LEVELS
+)
 
 
 @asynccontextmanager
@@ -354,8 +358,8 @@ def create_app() -> FastAPI:
         description="Web interface for monitoring and managing time-lapse operations",
         version=os.getenv("BUILD_VERSION", "dev"),
         lifespan=lifespan,
-        docs_url="/docs" if config.LOGGING_LEVEL == "DEBUG" else None,
-        redoc_url="/redoc" if config.LOGGING_LEVEL == "DEBUG" else None,
+        docs_url="/docs" if config.LOG_LEVEL == "DEBUG" else None,
+        redoc_url="/redoc" if config.LOG_LEVEL == "DEBUG" else None,
     )
 
     # Exception handlers — return HTML error pages, not JSON
@@ -566,8 +570,8 @@ async def start_web_server() -> None:
     uvicorn_kwargs: dict[str, Any] = {
         "host": "0.0.0.0",
         "port": config.WEB_PORT,
-        "log_level": "info" if config.LOGGING_LEVEL == "DEBUG" else "warning",
-        "access_log": config.LOGGING_LEVEL == "DEBUG",
+        "log_level": "info" if config.LOG_LEVEL == "DEBUG" else "warning",
+        "access_log": config.LOG_LEVEL == "DEBUG",
     }
 
     if config.WEB_DEV_RELOAD:
@@ -586,6 +590,7 @@ async def start_web_server() -> None:
     else:
         uvicorn_kwargs["app"] = app
 
-    server_config = uvicorn.Config(**uvicorn_kwargs)
+    # log_config=None: uvicorn would otherwise re-apply its own text config over the fleet one.
+    server_config = uvicorn.Config(**uvicorn_kwargs, log_config=None)
     server = uvicorn.Server(server_config)
     await server.serve()

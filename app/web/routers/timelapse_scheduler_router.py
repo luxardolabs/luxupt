@@ -4,16 +4,16 @@ Split out of timelapses_router.py by domain: the scheduler is the daily-automati
 distinct from timelapse artifacts and from the job lifecycle. Mounted under /timelapses.
 """
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["timelapses"])
 

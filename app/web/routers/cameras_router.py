@@ -1,16 +1,16 @@
 """Camera routes for camera management and HTMX partials."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import CamerasViewDep, TemplatesDep
 from app.web.query_params import IntFilter
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["cameras"])
 

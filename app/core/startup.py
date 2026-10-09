@@ -2,15 +2,15 @@
 
 """Startup utilities for banner and configuration display."""
 
+import logging
 import os
 import platform
 from datetime import UTC, datetime
 
 from app.core import config
-from app.core.logging_config import get_logger
 from app.utils.timezones import to_display
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def print_banner() -> None:
@@ -64,7 +64,6 @@ def print_configuration() -> None:
             "image_path": str(config.IMAGE_OUTPUT_PATH),
             "video_path": str(config.VIDEO_OUTPUT_PATH),
             "thumbnail_path": str(config.THUMBNAIL_CACHE_PATH),
-            "log_level": config.LOGGING_LEVEL,
-            "log_format": config.LOGGING_FORMAT,
+            "log_level": config.LOG_LEVEL,
         },
     )

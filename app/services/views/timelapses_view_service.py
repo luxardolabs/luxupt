@@ -1,5 +1,6 @@
 """Timelapses view service for preparing timelapse template data."""
 
+import logging
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,6 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.protect_client import ProtectClient
-from app.core.logging_config import get_logger
 from app.db.post_commit import after_commit
 from app.models.enum_model import ScheduleSource
 from app.schemas.pagination_schema import build_pagination
@@ -29,7 +29,7 @@ from app.services.views._camera_options import (
 )
 from app.utils.timezones import business_day, display_zone, to_display
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TimelapsesViewService:

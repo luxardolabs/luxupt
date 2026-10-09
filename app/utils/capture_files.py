@@ -6,14 +6,14 @@ fw.side_effects_after_commit), so a rollback never leaves capture rows pointing 
 files. Runs in a worker thread — never inline on the request path.
 """
 
+import logging
 import shutil
 from pathlib import Path
 from typing import Any
 
 from app.core import config
-from app.core.logging_config import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def delete_capture_files(file_info: list[dict[str, Any]]) -> tuple[int, int]:

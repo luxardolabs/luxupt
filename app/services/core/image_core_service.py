@@ -11,6 +11,7 @@ Thumbnail storage structure (mirrors image storage):
 
 import asyncio
 import contextlib
+import logging
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -18,9 +19,8 @@ from typing import Any
 from PIL import Image
 
 from app.core import config
-from app.core.logging_config import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ImageCoreService:

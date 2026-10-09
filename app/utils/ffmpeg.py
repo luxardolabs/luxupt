@@ -8,15 +8,15 @@ the probe and thumbnail code.
 
 import asyncio
 import json
+import logging
 import re
 import subprocess
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from app.core.logging_config import get_logger
 from app.utils import async_fs
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 _FRAME_PATTERN = re.compile(r"frame=\s*(\d+)")
 

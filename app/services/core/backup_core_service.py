@@ -1,16 +1,16 @@
 """Database backup service for periodic SQLite backups."""
 
 import asyncio
+import logging
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.core.logging_config import get_logger
 from app.crud.backup_settings_crud import backup_settings_crud
 from app.db.database import DATABASE_PATH, OUTPUT_DIR, get_db_context
 from app.utils import async_fs
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BackupCoreService:

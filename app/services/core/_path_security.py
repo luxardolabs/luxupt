@@ -1,12 +1,11 @@
 """Path security utilities to prevent path traversal attacks."""
 
+import logging
 from pathlib import Path
-from typing import Any
 
 from app.core import config
-from app.core.logging_config import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def is_safe_image_path(file_path: str | None) -> bool:
@@ -45,7 +44,7 @@ def _is_safe_path(file_path: str, allowed_base: Path) -> bool:
 
 
 def validate_image_path(
-    file_path: str | None, context: dict[str, Any] | None = None
+    file_path: str | None, *, camera_id: str, timestamp: int
 ) -> str | None:
     """Validate an image path and return it if safe, None otherwise."""
     if not file_path:
@@ -54,7 +53,7 @@ def validate_image_path(
     if not is_safe_image_path(file_path):
         logger.warning(
             "Path traversal attempt blocked for image",
-            extra={"path": file_path, **(context or {})},
+            extra={"path": file_path, "camera_id": camera_id, "timestamp": timestamp},
         )
         return None
 
@@ -62,7 +61,7 @@ def validate_image_path(
 
 
 def validate_video_path(
-    file_path: str | None, context: dict[str, Any] | None = None
+    file_path: str | None, *, timelapse_id: int, kind: str = "video"
 ) -> str | None:
     """Validate a video path and return it if safe, None otherwise."""
     if not file_path:
@@ -71,16 +70,14 @@ def validate_video_path(
     if not is_safe_video_path(file_path):
         logger.warning(
             "Path traversal attempt blocked for video",
-            extra={"path": file_path, **(context or {})},
+            extra={"path": file_path, "timelapse_id": timelapse_id, "kind": kind},
         )
         return None
 
     return file_path
 
 
-def validate_thumbnail_path(
-    file_path: str | None, context: dict[str, Any] | None = None
-) -> str | None:
+def validate_thumbnail_path(file_path: str | None, *, timelapse_id: int) -> str | None:
     """Validate a thumbnail path and return it if safe, None otherwise."""
     if not file_path:
         return None
@@ -88,7 +85,7 @@ def validate_thumbnail_path(
     if not is_safe_thumbnail_path(file_path):
         logger.warning(
             "Path traversal attempt blocked for thumbnail",
-            extra={"path": file_path, **(context or {})},
+            extra={"path": file_path, "timelapse_id": timelapse_id},
         )
         return None
 

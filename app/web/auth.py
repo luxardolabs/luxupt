@@ -17,6 +17,7 @@ Security features:
 - SameSite=Strict for CSRF protection
 """
 
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -27,13 +28,12 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import config
-from app.core.logging_config import get_logger
 from app.crud.user_crud import user_crud
 from app.db.database import get_db_context
 from app.utils.password_hash import hash_password, verify_password
 from app.web.rate_limit import client_ip
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Password hashing lives in one home — app/utils/password_hash.py (argon2, no length limit).
 

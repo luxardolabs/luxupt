@@ -15,13 +15,13 @@ browser and stats services see historical frames the same as live ones.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time as time_module
 from datetime import datetime, time, timedelta
 from pathlib import Path
 
 from app.clients.protect_client import ProtectClient, ProtectRequestError
 from app.core import config
-from app.core.logging_config import get_logger
 from app.crud.camera_crud import camera_crud
 from app.crud.capture_crud import capture_crud
 from app.crud.job_crud import job_crud
@@ -33,7 +33,7 @@ from app.services.core.settings_core_service import SettingsCoreService
 from app.utils.async_fs import path_mkdir
 from app.utils.timezones import business_day, display_zone
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 DEFAULT_CONCURRENCY = 8
 # Recording-write lag — `recording-snapshot?ts=now()` returns 404. Reject any

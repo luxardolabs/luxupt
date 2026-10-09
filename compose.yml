@@ -62,8 +62,8 @@ services:
       # =============================================================================
       # LOGGING (startup-time only)
       # =============================================================================
-      LOGGING_LEVEL: "${LOGGING_LEVEL:-INFO}"
-      LOGGING_FORMAT: "${LOGGING_FORMAT:-json}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      LOG_FORMAT: "${LOG_FORMAT:-json}"
 
       WEB_PORT: "${WEB_PORT:?}"
 

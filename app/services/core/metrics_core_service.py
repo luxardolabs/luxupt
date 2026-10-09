@@ -6,16 +6,16 @@ Focuses on application-specific metrics (cameras, captures, timelapses, jobs).
 Host metrics (CPU, memory, disk) should be collected by dedicated tools like node_exporter.
 """
 
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging_config import get_logger
 from app.crud import camera_crud, job_crud
 from app.crud.capture_crud import capture_crud
 from app.crud.timelapse_crud import timelapse_crud
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class MetricsCoreService:

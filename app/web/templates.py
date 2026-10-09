@@ -50,6 +50,6 @@ templates.env.globals.update(
         "int": int,
         "str": str,
         "float": float,
-        "dev_mode": config.LOGGING_LEVEL == "DEBUG",
+        "dev_mode": config.LOG_LEVEL == "DEBUG",
     }
 )

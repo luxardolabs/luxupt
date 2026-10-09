@@ -4,14 +4,13 @@ Middleware for the web interface.
 Contains security headers, request logging, and authentication middleware.
 """
 
+import logging
 import time
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
-
-from app.core.logging_config import get_logger
 
 from .auth import (
     COOKIE_NAME,
@@ -21,7 +20,7 @@ from .auth import (
     uses_env_auth,
 )
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

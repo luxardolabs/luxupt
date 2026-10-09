@@ -1,6 +1,7 @@
 """Periodic snapshot capture service with rate limiting, retry logic, and scheduling."""
 
 import asyncio
+import logging
 import time
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -15,7 +16,6 @@ from app.clients.camera_manager import (
     calculate_consecutive_offsets,
 )
 from app.core import config
-from app.core.logging_config import get_logger
 from app.crud import activity_crud, camera_crud, capture_crud, fetch_settings_crud
 from app.db.database import get_db_context, init_db
 from app.models.enum_model import ActivityType, CaptureMethod, CaptureStatus
@@ -24,7 +24,7 @@ from app.services.core.image_core_service import image_service
 from app.utils.timezones import business_day, to_display
 
 # Module logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def current_aligned_timestamp(now: int, interval: int) -> int:

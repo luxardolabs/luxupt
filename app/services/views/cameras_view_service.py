@@ -1,5 +1,6 @@
 """Cameras view service for preparing camera template data."""
 
+import logging
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -14,7 +15,6 @@ from app.clients.protect_client import (
     ProtectClient,
     ProtectRequestError,
 )
-from app.core.logging_config import get_logger
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -25,7 +25,7 @@ from app.services.views._camera_options import (
 )
 from app.workers.fetch_service import FetchService
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Bucket sizes for capture statistics time series (period -> seconds per bucket)
 CAPTURE_STATS_BUCKET_SIZES = {

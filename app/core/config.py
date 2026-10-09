@@ -7,7 +7,6 @@ This file only contains settings that MUST be known at startup before the databa
 is available, or settings that cannot change at runtime (like file paths).
 """
 
-import json
 import os
 from pathlib import Path
 
@@ -81,15 +80,27 @@ DATABASE_POOL_MAX_OVERFLOW = int(os.getenv("DATABASE_POOL_MAX_OVERFLOW", "40"))
 # LOGGING CONFIGURATION (startup-time)
 # =============================================================================
 
-LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO").upper()
-LOGGING_FORMAT = os.getenv("LOGGING_FORMAT", "json").lower()
+# The fleet logging module (app/core/logging_config.py) reads LOG_LEVEL, LOG_FORMAT and
+# LOG_MODULE_LEVELS itself; LOG_LEVEL is mirrored here because DEBUG also gates dev-only pages.
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-# Per-module log level overrides (JSON dict)
-_module_levels_str = os.getenv("LOGGING_MODULE_LEVELS", "{}")
-try:
-    LOGGING_MODULE_LEVELS: dict[str, str] = json.loads(_module_levels_str)
-except json.JSONDecodeError, TypeError:
-    LOGGING_MODULE_LEVELS = {}
+SERVICE_NAME = "luxupt"
+# Stamped into the image as BUILD_VERSION (FLEET-BUILD-DEPLOY-STANDARD); "dev" outside an image.
+BUILD_VERSION = os.getenv("BUILD_VERSION", "dev")
+
+# The code's default per-logger levels: third-party chatter down to WARNING. LOG_MODULE_LEVELS
+# (a JSON object) overrides any of these at runtime without a deploy.
+LOG_LEVELS: dict[str, str] = {
+    "uvicorn": "WARNING",
+    "uvicorn.access": "WARNING",
+    "uvicorn.error": "INFO",
+    "httpx": "WARNING",
+    "httpcore": "WARNING",
+    "aiosqlite": "WARNING",
+    "sqlalchemy": "WARNING",
+    "asyncio": "WARNING",
+    "PIL": "WARNING",
+}
 
 # =============================================================================
 # WEB INTERFACE CONFIGURATION (startup-time)

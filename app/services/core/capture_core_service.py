@@ -70,7 +70,8 @@ class CaptureCoreService:
         # Validate path is within allowed directory
         validated_path = validate_image_path(
             capture.file_path,
-            context={"camera": camera_id, "timestamp": timestamp},
+            camera_id=camera_id,
+            timestamp=timestamp,
         )
 
         if not validated_path:

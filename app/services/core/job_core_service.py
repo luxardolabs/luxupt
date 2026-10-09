@@ -1,6 +1,7 @@
 """Job service for timelapse job management and processing."""
 
 import asyncio
+import logging
 import os
 import signal
 import subprocess
@@ -12,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import CameraManager, CameraManagerSettings
 from app.core import config
-from app.core.logging_config import get_logger
 from app.crud import job_crud, scheduler_settings_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import get_db_context
@@ -25,7 +25,7 @@ from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone
 from app.workers.timelapse_service import EncodingSettings, TimelapseService
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class JobCoreService:

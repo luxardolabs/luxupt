@@ -1,12 +1,12 @@
 """The business/display zone — the one place an instant becomes a human day."""
 
+import logging
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core import config
-from app.core.logging_config import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def display_zone() -> ZoneInfo:

@@ -1,11 +1,11 @@
 """Users view service for preparing user management template data."""
 
+import logging
 from typing import Any
 
-from app.core.logging_config import get_logger
 from app.services.core.user_core_service import UserCoreService
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class UsersViewService:

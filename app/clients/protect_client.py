@@ -19,6 +19,7 @@ app, injected via deps), not constructed per-request.
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,10 +29,9 @@ from urllib.parse import urlparse
 import httpx
 import urllib3
 
-from app.core.logging_config import get_logger
 from app.utils.async_fs import path_mkdir
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Progress callbacks for streaming downloads.
 # Args: (current_bytes, total_bytes_or_None). Must be async.

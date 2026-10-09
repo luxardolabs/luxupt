@@ -1,18 +1,18 @@
 """Capture cleanup service for deleting images, thumbnails, and DB records."""
 
 import asyncio
+import logging
 from datetime import date
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging_config import get_logger
 from app.crud import capture_crud
 from app.db import maintenance as db_maintenance
 from app.db.post_commit import after_commit
 from app.utils.capture_files import delete_capture_files
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class CaptureCleanupCoreService:

@@ -107,7 +107,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Default environment (can be overridden)
 # WEB_PORT: Port to listen on (default 8080)
 # UVICORN_RELOAD: Set to "true" for hot reload in dev (default false)
-# LOGGING_LEVEL: DEBUG, INFO, WARNING, ERROR (default INFO)
+# LOG_LEVEL: DEBUG, INFO, WARNING, ERROR (default INFO)
 ENV WEB_PORT=8080
 
 # Run via entrypoint script which builds uvicorn command from env vars

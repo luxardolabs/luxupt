@@ -128,7 +128,7 @@ class TimelapseBrowserCoreService:
         # Validate path is within allowed directory
         validated_path = validate_video_path(
             timelapse.file_path,
-            context={"timelapse_id": timelapse_id},
+            timelapse_id=timelapse_id,
         )
         if not validated_path:
             return None
@@ -149,7 +149,8 @@ class TimelapseBrowserCoreService:
         if timelapse.thumbnail_path:
             validated_thumb = validate_video_path(
                 timelapse.thumbnail_path,
-                context={"timelapse_id": timelapse_id, "type": "thumbnail"},
+                timelapse_id=timelapse_id,
+                kind="thumbnail",
             )
             if validated_thumb:
                 thumb_path = Path(validated_thumb)
@@ -160,7 +161,7 @@ class TimelapseBrowserCoreService:
         if timelapse.file_path:
             validated_video = validate_video_path(
                 timelapse.file_path,
-                context={"timelapse_id": timelapse_id},
+                timelapse_id=timelapse_id,
             )
             if validated_video:
                 video_path = Path(validated_video)

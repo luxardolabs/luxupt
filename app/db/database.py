@@ -1,6 +1,7 @@
 """The engine, the two session owners (get_db / get_db_context) and schema bootstrap."""
 
 import asyncio
+import logging
 import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
@@ -16,6 +17,8 @@ from app.core import config
 from app.crud.backup_settings_crud import backup_settings_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
+
+logger = logging.getLogger(__name__)
 
 # Database path - separate from output to allow local SSD for DB, NFS for images
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "output"))
@@ -98,11 +101,12 @@ async def get_db_context() -> AsyncIterator[AsyncSession]:
             raise
 
 
-def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
+def _run_migrations() -> None:
     """Run Alembic migrations to upgrade the database schema.
 
     This ensures existing databases get schema updates when upgrading to new versions.
-    Migrations are idempotent - they check if changes are needed before applying.
+    Migrations are idempotent - they check if changes are needed before applying. env.py
+    configures the fleet logging module (idempotent), so the app's loggers survive the run.
     """
     # Get path to alembic.ini relative to this file
     app_dir = Path(__file__).parent.parent
@@ -115,38 +119,22 @@ def _run_migrations(logger) -> None:  # type: ignore[no-untyped-def]
         )
         return
 
-    try:
-        alembic_cfg = AlembicConfig(str(alembic_ini))
-        # Override the script location to be absolute
-        alembic_cfg.set_main_option(
-            "script_location", str(app_dir / "db" / "migrations")
-        )
-        # Name the database explicitly: env.py honours a caller-supplied URL, so the engine
-        # and the migration can never disagree about which file they mean.
-        alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+    alembic_cfg = AlembicConfig(str(alembic_ini))
+    # Override the script location to be absolute
+    alembic_cfg.set_main_option("script_location", str(app_dir / "db" / "migrations"))
+    # Name the database explicitly: env.py honours a caller-supplied URL, so the engine
+    # and the migration can never disagree about which file they mean.
+    alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
 
-        # The migration chain IS the schema (fw.schema_from_migrations) -- there is no
-        # create_all fallback, so a failed upgrade must stop startup, never be logged past.
-        logger.info("Running database migrations")
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Database migrations complete")
-    finally:
-        # Alembic's env.py calls fileConfig(alembic.ini) which replaces the root logger
-        # with a WARN-level stderr handler and disables all existing app loggers.
-        # Re-initialize our logging to restore the JSON/text handler on stdout at INFO level.
-        from app.core.logging_config import (  # noqa: PLC0415
-            setup_logging,
-        )
-
-        setup_logging()
+    # The migration chain IS the schema (fw.schema_from_migrations) -- there is no
+    # create_all fallback, so a failed upgrade must stop startup, never be logged past.
+    logger.info("Running database migrations")
+    command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations complete")
 
 
 async def init_db() -> None:
     """Initialize database tables."""
-    from app.core.logging_config import get_logger  # noqa: PLC0415 (lazy, migration path)
-
-    logger = get_logger(__name__)
-
     # Off the event loop: a blocking pathlib call in an async def stalls EVERY concurrent
     # request on this worker (ruff ASYNC240). asyncio.to_thread is the asyncio fix --
     # ruff's message suggests trio/anyio, which does not apply to this fleet.
@@ -173,7 +161,7 @@ async def init_db() -> None:
 
         # Build/upgrade the schema from the migration chain -- the ONE construction, the same
         # on a fresh deploy and an existing database (fw.schema_from_migrations).
-        _run_migrations(logger)
+        _run_migrations()
 
         await seed_singleton_settings()
     except Exception as e:

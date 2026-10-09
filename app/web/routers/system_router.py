@@ -1,5 +1,6 @@
 """System and settings routes."""
 
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -7,13 +8,12 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Res
 from fastapi.responses import HTMLResponse
 
 from app.core import config
-from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from app.web.main import get_start_time
 from app.web.query_params import IntFilter
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["system"])
 
@@ -100,7 +100,7 @@ async def components_page(
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the component library page (dev mode only)."""
-    if config.LOGGING_LEVEL != "DEBUG":
+    if config.LOG_LEVEL != "DEBUG":
         raise HTTPException(status_code=404, detail="Not found")
 
     return templates.TemplateResponse(
@@ -121,7 +121,7 @@ async def components_panel_demo(
 
     Loaded via HTMX by panel_trigger so the fixed-overlay panel macros
     (panel_shell / panel_backdrop / panel_drawer) are exercised for real."""
-    if config.LOGGING_LEVEL != "DEBUG":
+    if config.LOG_LEVEL != "DEBUG":
         raise HTTPException(status_code=404, detail="Not found")
 
     return templates.TemplateResponse(

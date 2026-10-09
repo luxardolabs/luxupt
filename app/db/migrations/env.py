@@ -3,7 +3,6 @@
 import asyncio
 import os
 import sys
-from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context
@@ -15,6 +14,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 # Import all models to ensure they're registered with Base.metadata
+from app.core import config as app_config
+from app.core.logging_config import configure_logging
 from app.db.base import Base
 from app.models import (  # noqa: F401
     Activity,
@@ -31,12 +32,14 @@ from app.models import (  # noqa: F401
 # Alembic Config object
 config = context.config
 
-# Configure logging from alembic.ini
-# disable_existing_loggers=False prevents Alembic from killing app loggers.
-# Without this, fileConfig sets disabled=True on every existing logger,
-# silently dropping ALL application logs after migrations run.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name, disable_existing_loggers=False)
+# alembic runs this file INSIDE the server when the app upgrades at startup; fileConfig would
+# disable every logger already created. The fleet module is idempotent (it replaces its handler),
+# so configuring here is right for both a bare `alembic upgrade` and the in-app upgrade.
+configure_logging(
+    service=app_config.SERVICE_NAME,
+    version=app_config.BUILD_VERSION,
+    levels=app_config.LOG_LEVELS,
+)
 
 # SQLAlchemy metadata for autogenerate support
 target_metadata = Base.metadata

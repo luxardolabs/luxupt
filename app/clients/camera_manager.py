@@ -1,6 +1,7 @@
 """UniFi Protect camera communication, discovery, snapshot capture, and rate limiting."""
 
 import asyncio
+import logging
 import os
 import tempfile
 import time as time_module
@@ -12,11 +13,10 @@ import httpx
 import urllib3
 from PIL import Image
 
-from app.core.logging_config import get_logger
 from app.utils import async_fs
 
 # Module logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass

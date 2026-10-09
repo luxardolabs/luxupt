@@ -4,6 +4,7 @@ Health check service.
 Provides comprehensive health checks for the application.
 """
 
+import logging
 import os
 from datetime import UTC, datetime
 from typing import Any
@@ -12,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import CameraManager
 from app.core import config
-from app.core.logging_config import get_logger
 from app.db import maintenance as db_maintenance
 from app.models.enum_model import HealthStatus
 from app.schemas.health_schema import (
@@ -22,7 +22,7 @@ from app.schemas.health_schema import (
     ReadinessReport,
 )
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class HealthCoreService:

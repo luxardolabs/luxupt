@@ -111,10 +111,13 @@ That second part is not cosmetic. Images and videos are filed in folders by date
 
 ### Logging
 
-| Variable         | Description                                        | Default |
-| ---------------- | -------------------------------------------------- | ------- |
-| `LOGGING_LEVEL`  | Log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` | `INFO`  |
-| `LOGGING_FORMAT` | Log format: `json` or `text`                       | `json`  |
+| Variable            | Description                                                                     | Default |
+| ------------------- | ------------------------------------------------------------------------------- | ------- |
+| `LOG_LEVEL`         | Log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR`                              | `INFO`  |
+| `LOG_FORMAT`        | Log format: `json` or `text`                                                    | `json`  |
+| `LOG_MODULE_LEVELS` | JSON object of per-logger levels, e.g. `{"app.workers.fetch_service": "DEBUG"}` | `{}`    |
+
+Renamed from `LOGGING_LEVEL` / `LOGGING_FORMAT` / `LOGGING_MODULE_LEVELS` when the app moved to the fleet logging module. Each JSON line carries the envelope (`timestamp`, `level`, `logger`, `message`, `service`, `version`, …) at the top level and every caller field under `attributes`, so query a field as `attributes.<key>`.
 
 ### Performance
 

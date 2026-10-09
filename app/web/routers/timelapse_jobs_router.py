@@ -6,14 +6,15 @@ same /timelapses prefix. Safe alongside the artifact router's int-typed /{timela
 (the /jobs and /job/{job_id} paths are non-numeric / multi-segment, so they never collide).
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.core.logging_config import get_logger
 from app.web.auth import get_current_user
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["timelapses"])
 

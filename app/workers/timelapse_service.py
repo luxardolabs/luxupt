@@ -1,6 +1,7 @@
 """FFmpeg-based timelapse video generation with progress tracking and thumbnail extraction."""
 
 import asyncio
+import logging
 import os
 import signal
 import time
@@ -19,7 +20,6 @@ import contextlib
 
 from app.clients.camera_manager import CameraManager, CameraManagerSettings
 from app.core import config
-from app.core.logging_config import get_logger
 from app.crud import camera_crud, job_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
@@ -32,7 +32,7 @@ from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone, to_display
 
 # Module logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass

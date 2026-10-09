@@ -15,17 +15,23 @@ This module provides CLI commands for testing and maintenance:
 """
 
 import asyncio
+import logging
 import sys
 
 from app.cli.commands import handle_cli_command, show_help
-from app.core.logging_config import get_logger, setup_logging
+from app.core import config
+from app.core.logging_config import configure_logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
     """CLI entry point."""
-    setup_logging()
+    configure_logging(
+        service=config.SERVICE_NAME,
+        version=config.BUILD_VERSION,
+        levels=config.LOG_LEVELS,
+    )
 
     # Must have a command
     if len(sys.argv) < 2:
