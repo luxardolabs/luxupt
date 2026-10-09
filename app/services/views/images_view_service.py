@@ -87,13 +87,16 @@ class ImagesViewService:
         )
 
     @staticmethod
-    def _build_image_card_urls(
-        images: Sequence[CaptureIdentity],
+    def _build_image_cards[C: CaptureIdentity](
+        images: Sequence[C],
         *,
         camera: str | None,
         date_str: str | None,
-    ) -> dict[int, str]:
-        """Lightbox URL per capture, keyed by capture id (fw.url_assembly_in_view).
+    ) -> list[dict[str, C | str]]:
+        """Each capture paired with its lightbox URL (fw.url_assembly_in_view).
+
+        Paired rather than handed over as a map keyed by capture id: indexing that map per
+        card is a dynamic lookup in the render layer (fw.no_template_logic).
 
         The card macro used to assemble this itself: three conditional appends, a join, and a
         concat — real logic in the render layer. Each URL carries the active filters so
@@ -103,7 +106,7 @@ class ImagesViewService:
         value to put in the URL. urlencode escapes the values; the string concatenation did
         not.
         """
-        urls: dict[int, str] = {}
+        cards: list[dict[str, C | str]] = []
         for image in images:
             query = urlencode(
                 {
@@ -116,10 +119,11 @@ class ImagesViewService:
                     if value
                 }
             )
-            urls[image.id] = (
+            lightbox_url = (
                 f"/images/lightbox/{image.camera_safe_name}/{image.timestamp}?{query}"
             )
-        return urls
+            cards.append({"capture": image, "lightbox_url": lightbox_url})
+        return cards
 
     async def get_browser_context(
         self,
@@ -166,7 +170,7 @@ class ImagesViewService:
 
         return {
             "images": images,
-            "image_urls": self._build_image_card_urls(
+            "image_cards": self._build_image_cards(
                 images, camera=camera, date_str=date_str
             ),
             "cameras": cameras,
@@ -217,7 +221,7 @@ class ImagesViewService:
 
         return {
             "images": images,
-            "image_urls": self._build_image_card_urls(
+            "image_cards": self._build_image_cards(
                 images, camera=camera, date_str=date_str
             ),
             "filters": {

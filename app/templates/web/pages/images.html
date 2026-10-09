@@ -42,10 +42,10 @@
 {# Image Browser Section #}
 {% call section("Image Browser", "photo") %}
 <div id="image-grid">
-    {% if images %}
+    {% if image_cards %}
     <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {% for capture in images %}
-        {{ image_card(capture, filters, lightbox_url=image_urls[capture.id]) }}
+        {% for card in image_cards %}
+        {{ image_card(card.capture, filters, lightbox_url=card.lightbox_url) }}
         {% endfor %}
     </div>
 

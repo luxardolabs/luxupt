@@ -1,31 +1,32 @@
 {% from "macros/icons.html" import icon %}
+{% from "macros/cards.html" import running_job_card, pending_job_card %}
 
 {# Running jobs - grid adapts to concurrent_jobs setting (max 4) #}
 {# Parent container polls every 5s to move jobs between sections #}
-{% if running_jobs %}
+{% if running_job_cards %}
 <div class="mb-4">
     <div class="flex items-center gap-2 mb-2">
         <span class="text-xs font-medium text-primary-400 uppercase tracking-wide">Running</span>
-        <span class="text-xs text-surface-200">({{ running_jobs|length }})</span>
+        <span class="text-xs text-surface-200">({{ running_job_cards|length }})</span>
     </div>
     <div class="grid gap-3 grid-cols-1 {% if concurrent_jobs == 2 %}sm:grid-cols-2{% elif concurrent_jobs == 3 %}sm:grid-cols-2 md:grid-cols-3{% elif concurrent_jobs >= 4 %}sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4{% endif %}">
-        {% for job in running_jobs %}
-        {% include "partials/timelapses/job_progress.html" %}
+        {% for card in running_job_cards %}
+        {{ running_job_card(card.job, urls=card.urls) }}
         {% endfor %}
     </div>
 </div>
 {% endif %}
 
 {# Pending jobs #}
-{% if pending_jobs %}
+{% if pending_job_cards %}
 <div class="mb-4">
     <div class="flex items-center gap-2 mb-2">
         <span class="text-xs font-medium text-warning-400 uppercase tracking-wide">Pending</span>
-        <span class="text-xs text-surface-200">({{ pending_jobs|length }})</span>
+        <span class="text-xs text-surface-200">({{ pending_job_cards|length }})</span>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {% for job in pending_jobs %}
-        {% include "partials/timelapses/job_progress.html" %}
+        {% for card in pending_job_cards %}
+        {{ pending_job_card(card.job, urls=card.urls) }}
         {% endfor %}
     </div>
 </div>
@@ -34,6 +35,6 @@
 {# Recently completed - re-rendered when parent container refreshes every 5s #}
 {% include "partials/timelapses/recently_completed.html" %}
 
-{% if not running_jobs and not pending_jobs and not completed_jobs %}
+{% if not running_job_cards and not pending_job_cards and not completed_job_cards %}
 <p class="text-sm text-surface-200 text-center py-4">No job activity</p>
 {% endif %}

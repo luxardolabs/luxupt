@@ -21,7 +21,7 @@ class ActivityCoreService:
         self,
         *,
         limit: int = config.DEFAULT_PAGE_SIZE,
-        offset: int = 0,
+        skip: int = 0,
         activity_types: list[str] | None = None,
         camera_id: str | None = None,
         since: datetime | None = None,
@@ -30,7 +30,7 @@ class ActivityCoreService:
         return await activity_crud.get_recent(
             self.db,
             limit=limit,
-            offset=offset,
+            skip=skip,
             activity_types=activity_types,
             camera_id=camera_id,
             since=since,

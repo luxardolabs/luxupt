@@ -1,10 +1,10 @@
 {% from "macros/cards.html" import timelapse_card, empty_state %}
 {% from "macros/navigation.html" import pagination_controls %}
 
-{% if timelapses %}
+{% if timelapse_cards %}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-    {% for timelapse in timelapses %}
-    {{ timelapse_card(timelapse, urls=timelapse_urls[timelapse.id]) }}
+    {% for card in timelapse_cards %}
+    {{ timelapse_card(card.timelapse, urls=card.urls) }}
     {% endfor %}
 </div>
 

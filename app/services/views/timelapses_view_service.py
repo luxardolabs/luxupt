@@ -23,8 +23,9 @@ from app.services.views._camera_options import (
     PRESET_OPTIONS,
     build_camera_options,
     build_date_options,
-    build_job_card_urls,
-    build_timelapse_card_urls,
+    build_job_cards,
+    build_timelapse_cards,
+    job_card_urls,
 )
 from app.utils.timezones import business_day, display_zone, to_display
 
@@ -171,7 +172,7 @@ class TimelapsesViewService:
         return {
             "job": job,
             "action": action,
-            "job_urls": build_job_card_urls([job.job_id] if job else []),
+            "job_card_urls": job_card_urls(job.job_id) if job else None,
         }
 
     async def cancel_or_delete_job(self, job_id: str) -> tuple[bool, str]:
@@ -198,8 +199,7 @@ class TimelapsesViewService:
         """
         completed_jobs = await self.job_service.get_completed(limit=limit)
         return {
-            "completed_jobs": completed_jobs,
-            "job_urls": build_job_card_urls([j.job_id for j in completed_jobs]),
+            "completed_job_cards": build_job_cards(completed_jobs),
         }
 
     async def cleanup_stale_jobs_and_build_context(self) -> dict[str, Any]:
@@ -796,7 +796,7 @@ class TimelapsesViewService:
 
         return {
             "timelapses": timelapses,
-            "timelapse_urls": build_timelapse_card_urls(timelapses),
+            "timelapse_cards": build_timelapse_cards(timelapses),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
@@ -804,12 +804,9 @@ class TimelapsesViewService:
             "available_intervals": available_intervals,
             "stats": stats,
             "job_stats": job_stats,
-            "running_jobs": running_jobs,
-            "pending_jobs": pending_jobs,
-            "completed_jobs": completed_jobs,
-            "job_urls": build_job_card_urls(
-                [j.job_id for j in (*running_jobs, *pending_jobs, *completed_jobs)]
-            ),
+            "running_job_cards": build_job_cards(running_jobs),
+            "pending_job_cards": build_job_cards(pending_jobs),
+            "completed_job_cards": build_job_cards(completed_jobs),
             "filters": {
                 "camera": camera,
                 "date": timelapse_date,
@@ -837,12 +834,9 @@ class TimelapsesViewService:
         concurrent_jobs = min(scheduler_settings.concurrent_jobs, 4)
 
         return {
-            "running_jobs": running_jobs,
-            "pending_jobs": pending_jobs,
-            "completed_jobs": completed_jobs,
-            "job_urls": build_job_card_urls(
-                [j.job_id for j in (*running_jobs, *pending_jobs, *completed_jobs)]
-            ),
+            "running_job_cards": build_job_cards(running_jobs),
+            "pending_job_cards": build_job_cards(pending_jobs),
+            "completed_job_cards": build_job_cards(completed_jobs),
             "summary": summary,
             "concurrent_jobs": concurrent_jobs,
         }

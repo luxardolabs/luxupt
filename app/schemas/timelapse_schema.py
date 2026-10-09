@@ -27,7 +27,9 @@ class TimelapseCreate(TimelapseBase):
     file_name: str | None = Field(default=None, max_length=255)
     file_size: int | None = None
     resolution: str | None = Field(default=None, max_length=32)
+    thumbnail_path: str | None = Field(default=None, max_length=512)
     status: TimelapseStatus = TimelapseStatus.PENDING
+    completed_at: datetime | None = None
 
 
 class TimelapseUpdate(BaseModel):

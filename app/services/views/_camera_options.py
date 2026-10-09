@@ -37,6 +37,13 @@ class _HasTimelapseIdentity(Protocol):
     def id(self) -> int: ...
 
 
+class _HasJobIdentity(Protocol):
+    """The field a job card's URLs are built from."""
+
+    @property
+    def job_id(self) -> str: ...
+
+
 class _HasCameraIdentity(Protocol):
     """The two fields a camera option is built from."""
 
@@ -104,32 +111,39 @@ def build_camera_card_urls(camera_id: str) -> dict[str, str]:
     }
 
 
-def build_job_card_urls(job_ids: Sequence[str]) -> dict[str, dict[str, str]]:
-    """URLs for each job card, keyed by job_id (fw.url_assembly_in_view).
-
-    Returned as a MAP rather than attached per item so the templates keep their existing
-    loops: they index `job_urls[job.job_id]`, which is a lookup, not URL assembly.
-    """
+def job_card_urls(job_id: str) -> dict[str, str]:
+    """URLs for one job card (fw.url_assembly_in_view)."""
     return {
-        job_id: {
-            "poll": f"/timelapses/partials/job/{job_id}",
-            "cancel": f"/timelapses/job/{job_id}",
-            "target": f"#job-{job_id}",
-        }
-        for job_id in job_ids
+        "poll": f"/timelapses/partials/job/{job_id}",
+        "cancel": f"/timelapses/job/{job_id}",
+        "target": f"#job-{job_id}",
     }
 
 
-def build_timelapse_card_urls(
-    timelapses: Sequence[_HasTimelapseIdentity],
-) -> dict[int, dict[str, str]]:
-    """URLs for each timelapse card, keyed by id (fw.url_assembly_in_view)."""
-    return {
-        t.id: {
-            "lightbox": f"/timelapses/{t.id}/lightbox",
-            "video": f"/timelapses/{t.id}/video",
-            "delete": f"/timelapses/{t.id}",
-            "target": f"#timelapse-{t.id}",
+def build_job_cards[J: _HasJobIdentity](
+    jobs: Sequence[J],
+) -> list[dict[str, J | dict[str, str]]]:
+    """Each job paired with its card URLs, ready for the card macro.
+
+    Paired here rather than handed over as a map keyed by job_id: indexing that map per item
+    is a dynamic lookup in the render layer (fw.no_template_logic).
+    """
+    return [{"job": job, "urls": job_card_urls(job.job_id)} for job in jobs]
+
+
+def build_timelapse_cards[T: _HasTimelapseIdentity](
+    timelapses: Sequence[T],
+) -> list[dict[str, T | dict[str, str]]]:
+    """Each timelapse paired with its card URLs (fw.url_assembly_in_view)."""
+    return [
+        {
+            "timelapse": t,
+            "urls": {
+                "lightbox": f"/timelapses/{t.id}/lightbox",
+                "video": f"/timelapses/{t.id}/video",
+                "delete": f"/timelapses/{t.id}",
+                "target": f"#timelapse-{t.id}",
+            },
         }
         for t in timelapses
-    }
+    ]

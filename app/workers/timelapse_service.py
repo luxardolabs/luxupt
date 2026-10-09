@@ -25,8 +25,8 @@ from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
 from app.db.database import get_db_context
-from app.models.enum_model import ScheduleSource
-from app.models.timelapse_model import Timelapse
+from app.models.enum_model import ScheduleSource, TimelapseStatus
+from app.schemas.timelapse_schema import TimelapseCreate
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone, to_display
@@ -1337,24 +1337,25 @@ class TimelapseService:
             output_path, duration_seconds, encoding_settings.ffmpeg_timeout
         )
 
-        # Create timelapse record
-        timelapse = Timelapse(
-            camera_id="",
-            camera_safe_name=camera_safe_name,
-            timelapse_date=target_date.date(),
-            interval=interval,
-            frame_count=frame_count,
-            frame_rate=encoding_settings.frame_rate,
-            duration_seconds=duration_seconds,
-            file_path=str(output_path),
-            file_name=output_filename,
-            file_size=file_size,
-            resolution=resolution,
-            thumbnail_path=thumbnail_path,
-            status="completed",
-            completed_at=datetime.now(UTC),
+        await timelapse_crud.create(
+            db,
+            obj_in=TimelapseCreate(
+                camera_id="",
+                camera_safe_name=camera_safe_name,
+                timelapse_date=target_date.date(),
+                interval=interval,
+                frame_count=frame_count,
+                frame_rate=encoding_settings.frame_rate,
+                duration_seconds=duration_seconds,
+                file_path=str(output_path),
+                file_name=output_filename,
+                file_size=file_size,
+                resolution=resolution,
+                thumbnail_path=thumbnail_path,
+                status=TimelapseStatus.COMPLETED,
+                completed_at=datetime.now(UTC),
+            ),
         )
-        db.add(timelapse)
 
         logger.info(
             "Created timelapse record",

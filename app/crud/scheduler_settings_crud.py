@@ -30,6 +30,12 @@ class CRUDSchedulerSettings:
 
         return settings
 
+    async def seed_default(self, db: AsyncSession) -> None:
+        """Insert the singleton scheduler settings row (id=1) if it is absent; never overwrite."""
+        if await db.get(SchedulerSettings, 1) is None:
+            db.add(SchedulerSettings(id=1))
+            await db.flush()
+
     async def update_settings(
         self,
         db: AsyncSession,

@@ -16,7 +16,7 @@ from app.core.logging_config import get_logger
 from .auth import (
     COOKIE_NAME,
     AuthService,
-    _is_https_request,
+    is_https_request,
     needs_setup,
     uses_env_auth,
 )
@@ -69,7 +69,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Add HSTS header only when accessed via HTTPS
         # This tells browsers to always use HTTPS in the future
-        if _is_https_request(request):
+        if is_https_request(request):
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
             )

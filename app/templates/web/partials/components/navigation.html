@@ -1,8 +1,8 @@
 {# =========================================================================
-   NAVIGATION - page_header(), breadcrumb(), tab_nav(), collapsible_section(),
+   NAVIGATION - page_header(), breadcrumb(), tab_nav(), section(), collapsible_section(),
                 pagination_controls(), and the top nav bar (nav_* macros)
    ========================================================================= #}
-{% from "macros/navigation.html" import page_header, breadcrumb, tab_nav, collapsible_section, pagination_controls %}
+{% from "macros/navigation.html" import page_header, breadcrumb, tab_nav, section, collapsible_section, pagination_controls %}
 {% from "macros/nav.html" import nav_logo, nav_link, nav_status, nav_action, nav_user %}
 {% from "macros/buttons.html" import primary, secondary %}
 
@@ -54,6 +54,14 @@
                 {{ nav_action('#', 'New', icon_name='plus') }}
                 {{ nav_user('admin') }}
             </div>
+        </div>
+
+        {# ===== SECTION ===== #}
+        <div>
+            <p class="text-xs font-medium text-surface-200 uppercase mb-3">section</p>
+            {% call section('Recent activity', icon_name='clock') %}
+            <p class="text-sm text-surface-200">A titled container for one block of a page.</p>
+            {% endcall %}
         </div>
 
         {# ===== COLLAPSIBLE SECTION ===== #}

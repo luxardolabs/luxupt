@@ -27,7 +27,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
         db: AsyncSession,
         *,
         limit: int = config.DEFAULT_PAGE_SIZE,
-        offset: int = 0,
+        skip: int = 0,
         activity_types: list[str] | None = None,
         camera_id: str | None = None,
         since: datetime | None = None,
@@ -40,7 +40,7 @@ class CRUDActivity(CRUDBase[Activity, ActivityCreate, ActivityUpdate]):
             query = query.where(Activity.camera_id == camera_id)
         if since:
             query = query.where(Activity.timestamp >= since)
-        query = query.order_by(Activity.timestamp.desc()).offset(offset).limit(limit)
+        query = query.order_by(Activity.timestamp.desc()).offset(skip).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
 

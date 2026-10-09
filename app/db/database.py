@@ -5,7 +5,6 @@ import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -14,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
 from app.core import config
+from app.crud.backup_settings_crud import backup_settings_crud
+from app.crud.fetch_settings_crud import fetch_settings_crud
+from app.crud.scheduler_settings_crud import scheduler_settings_crud
 
 # Database path - separate from output to allow local SSD for DB, NFS for images
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "output"))
@@ -194,18 +196,10 @@ async def seed_singleton_settings() -> None:
     attached. Seeding here keeps the read path genuinely read-only -- the writer owns the
     write. Idempotent: an existing row is left untouched.
     """
-    from app.models import BackupSettings, FetchSettings, SchedulerSettings  # noqa: PLC0415
-
-    defaults: list[Any] = [
-        FetchSettings(id=1, intervals=[15, 30, 60, 120, 300]),
-        SchedulerSettings(id=1),
-        BackupSettings(id=1),
-    ]
     async with get_db_context() as db:
-        for row in defaults:
-            existing = await db.get(type(row), 1)
-            if existing is None:
-                db.add(row)
+        await fetch_settings_crud.seed_default(db)
+        await scheduler_settings_crud.seed_default(db)
+        await backup_settings_crud.seed_default(db)
 
 
 async def close_db() -> None:

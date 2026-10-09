@@ -50,7 +50,7 @@ ALGORITHM = "HS256"
 COOKIE_NAME = f"access_token_{config.WEB_PORT}"
 
 
-def _is_https_request(request: Request) -> bool:
+def is_https_request(request: Request) -> bool:
     """
     Detect if the request came over HTTPS.
 

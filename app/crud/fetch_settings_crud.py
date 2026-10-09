@@ -29,6 +29,12 @@ class CRUDFetchSettings:
 
         return settings
 
+    async def seed_default(self, db: AsyncSession) -> None:
+        """Insert the singleton fetch settings row (id=1) if it is absent; never overwrite."""
+        if await db.get(FetchSettings, 1) is None:
+            db.add(FetchSettings(id=1, intervals=[15, 30, 60, 120, 300]))
+            await db.flush()
+
     async def update_settings(
         self,
         db: AsyncSession,
