@@ -31,8 +31,29 @@ RUN poetry install --only main --no-root --no-directory
 COPY app ./app
 COPY README.md ./
 
-# Stage 2: Runtime stage
-FROM python:3.14-slim
+# Dev dependency group for the TEST stage only (pytest, coverage): it never reaches production,
+# which copies its venv from `builder`.
+FROM builder AS builder-dev
+RUN poetry install --with dev --no-root --no-directory
+
+# luxarch:css-stage asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit css-stage`.
+# ---- css: compile the stylesheet; only its output reaches the app image (luxarch --doc FLEET-BUILD-DEPLOY-STANDARD) ----
+# Paste above your app stage, then copy ONLY the output into it:
+#   COPY --from=css /build/app/static/css/app.css /app/app/static/css/app.css
+# Node, node_modules and the Tailwind toolchain never reach the runtime image. In a monorepo the paths
+# are relative to the app's build context (apps/backend/).
+FROM node:24-slim AS css
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY . .
+RUN npm run build:css
+# ---- end css stage ----
+
+# Stage 2: the runtime app — everything production ships. `test` and `production` both build FROM
+# it, so the suite runs on exactly the layers that ship, and `production` stays the LAST stage: a
+# bare `docker build` produces the deployable, never the dev-tooled test image.
+FROM python:3.14-slim AS app
 
 # Static environment variables (don't change between builds)
 ENV PYTHONUNBUFFERED=1 \
@@ -80,6 +101,9 @@ COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Copy the app/ package (imported as `app.*`; PYTHONPATH=/app/luxupt) + the entrypoint
 COPY --from=builder --chown=appuser:appuser /app/app ./app
+# The stylesheet comes ONLY from the css stage, after the app copy, so nothing from the build
+# context can overwrite it (fw.generated_assets_built_in_image).
+COPY --from=css --chown=appuser:appuser /build/app/static/css/app.css ./app/static/css/app.css
 COPY --chown=appuser:appuser entrypoint.sh ./
 
 # Create output directories
@@ -113,3 +137,15 @@ ENV WEB_PORT=8080
 # Run via entrypoint script which builds uvicorn command from env vars
 # CLI commands available via: docker exec <container> python -m app.main <command>
 ENTRYPOINT ["./entrypoint.sh"]
+
+# Stage 3: the TEST image (`make test-build`, luxarch test-block): the app layers production ships
+# plus the dev group's venv. Never pushed, never a deploy tag. The suite runs against the source
+# mounted at /repo, so PYTHONPATH is cleared: imports resolve from the mount, not the baked copy.
+FROM app AS test
+COPY --from=builder-dev --chown=appuser:appuser /app/.venv /app/.venv
+ENV PYTHONPATH=
+# The suite's command is given by `make test`; production's uvicorn entrypoint would swallow it.
+ENTRYPOINT []
+
+# Stage 4: what ships — the app stage, unchanged. Deploy builds name it (`--target production`).
+FROM app AS production

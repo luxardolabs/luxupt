@@ -87,6 +87,8 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 SERVICE_NAME = "luxupt"
 # Stamped into the image as BUILD_VERSION (FLEET-BUILD-DEPLOY-STANDARD); "dev" outside an image.
 BUILD_VERSION = os.getenv("BUILD_VERSION", "dev")
+# The short git SHA the image was built from (also the OCI revision and the cache-bust token).
+BUILD_COMMIT = os.getenv("BUILD_COMMIT", "dev")
 
 # The code's default per-logger levels: third-party chatter down to WARNING. LOG_MODULE_LEVELS
 # (a JSON object) overrides any of these at runtime without a deploy.

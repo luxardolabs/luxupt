@@ -570,13 +570,13 @@
         },
         {
           "rule": "fw.no_session_mutation_outside_crud",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.2.0",
-          "violations": 2,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Move db.add/add_all/merge/flush/refresh/delete into the model's crud.",
+          "fix": "",
           "example": ""
         },
         {
@@ -614,14 +614,14 @@
         },
         {
           "rule": "fw.no_private_cross_module_imports",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.2.0",
-          "violations": 2,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "A leading `_` marks an implementation detail: a `_` name is private to its module, and a `_` module or package is private to its parent package and that package's children. Code outside (a test included) that imports it, patches it, or reaches it as an attribute or by a string depends on that detail, so the detail can no longer change without breaking that code. Decide what the private thing is (the playbook's one question): an implementation detail, so test the public behaviour that runs it and fake only what crosses the app's boundary (HTTP, clock, storage); a real capability, so extract it to a public service and test that; or shared data or config wearing an underscore, so make it public where it belongs. Never make it public just so a test can reach it, and never swap the import for a string-path patch, an attribute access or a getattr: that is the same coupling, hidden.",
-          "example": "red     from app.services.core._oidc import _pkce_pair\n        monkeypatch.setattr(\"app.services.core._oidc._discover\", fake_discover)\n\n        def test_pkce_pair():\n            verifier, challenge = _pkce_pair()\n            assert challenge == s256(verifier)\n\nclears  from app.services.core.auth import build_login_redirect   # the public seam\n\n        def test_login_redirect_carries_an_s256_challenge(httpx_mock):\n            httpx_mock.add_response(url=DISCOVERY_URL, json=DISCOVERY)  # fake the IdP, not _oidc\n            url = build_login_redirect(state=\"s\")\n            q = parse_qs(urlparse(url).query)\n            assert q[\"code_challenge_method\"] == [\"S256\"]\n\nThe PKCE coverage survives: it is asserted through the URL the user is sent to, which is\nthe behaviour that matters, and _oidc can now be rewritten without touching a test."
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.paginated_responses_subclass_base",
@@ -691,12 +691,12 @@
         },
         {
           "rule": "fw.no_reserved_logging_keys",
-          "status": "PASS",
+          "status": "INERT",
           "since": "0.2.0",
           "violations": 0,
           "deferred": false,
-          "inert": false,
-          "inert_reason": "",
+          "inert": true,
+          "inert_reason": "the fleet logging module (app/core/logging_config.py) is installed: a colliding `extra=` key is written under `attributes` by its own name instead of raising",
           "fix": "",
           "example": ""
         },
@@ -812,13 +812,13 @@
         },
         {
           "rule": "fw.no_template_logic",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.12.0",
-          "violations": 11,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Move the computation into the view service and pass the finished value to the template (the view assembles state; the template renders it). See --playbook template-logic.",
+          "fix": "",
           "example": ""
         },
         {
@@ -834,13 +834,13 @@
         },
         {
           "rule": "fw.component_registry",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.15.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Register every PUBLIC component macro in the component index (the catalogue agents discover macros from) \u2014 or _-prefix it if it's an internal helper. The library is the ONE branded source of a component; an unregistered macro is invisible, so the next agent reinvents it (a 'generic button' when btn_* already exist). Declare the registry with [components].index (a file, a dir, or a LIST of them if the library is split by audience); missing one \u2192 create it. A macro is registered when the index names it IN CODE, tied to its file \u2014 `{% from \"macros/x.html\" import name %}` (then show it: `{{ name(\u2026) }}`), or `{% import \"macros/x.html\" as x %}` and `x.name(\u2026)`. A mention in prose, a table of names, a comment or a CSS class is not a registration. Point at the ACTUAL catalogue(s), never a broad parent dir \u2014 a broad parent makes a macro merely USED beneath it count as registered (a false green). Never a generic/parallel macro. See --playbook component-macros.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1208,13 +1208,13 @@
         },
         {
           "rule": "fw.crud_paginated_signature",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.90.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Any crud method taking a page window names the offset `skip` and makes it keyword-only (`*, skip, limit`), so callers can't transpose skip/limit. A `*_paginated` method also returns a `(rows, total)` tuple: `async def list_x_paginated(self, db, *, skip, limit, ...) -> tuple[list[X], int]`. See --playbook pagination.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1560,13 +1560,13 @@
         },
         {
           "rule": "fw.committed_artifacts_declared",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.226.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Declare in .luxarch.toml: `[build] artifacts_committed = [\"<repo-relative path>\", \u2026]` plus `evidence = \"<who builds the image and why it cannot run the asset toolchain>\"`. Only for a repo whose image is built outside its control (external CI / k8s); otherwise build the asset in the image and gitignore it. See FLEET-BUILD-DEPLOY-STANDARD, 'Generated JS/CSS'.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1681,13 +1681,13 @@
         },
         {
           "rule": "fw.generated_assets_built_in_image",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.262.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Add the Node stage to the Dockerfile (`luxarch --emit css-stage`) and COPY only its output into the app stage; gitignore the output; for live changes `make css-watch` (`luxarch --emit css-watch`), never npm on the host or a node service in compose. An image built by a pipeline this repo does not own declares `[build].artifacts_committed` with evidence instead. See luxarch --doc FLEET-BUILD-DEPLOY-STANDARD.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1703,11 +1703,11 @@
         }
       ],
       "summary": {
-        "PASS": 125,
-        "FAIL": 7,
+        "PASS": 131,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 22
+        "INERT": 23
       }
     }
   ],
@@ -1825,24 +1825,24 @@
       },
       {
         "rule": "repo.logging_canonical",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.254.0",
-        "violations": 8,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "`luxarch --emit logging > <app>/core/logging_config.py` (unedited), call `configure_logging(service=..., version=...)` once in the target's entrypoint (`main.py` / `__main__.py`), and delete every other setup this names. Existing `logger.info(..., extra={...})` calls keep working, and colliding keys no longer crash. See --playbook logging.",
+        "fix": "",
         "example": ""
       },
       {
         "rule": "repo.log_fields_explicit",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.269.0",
-        "violations": 3,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Name every field at the call site: `logger.info(\"evt\", extra={\"order_id\": o.id, \"status\": s})`, directives (`exc_info=True`) on the call itself, identifiers rather than whole objects. A splat, a mapping built elsewhere or a `model_dump()` can carry personal data no reviewer sees; the redactor is the backstop, not the control. No exceptions. See --playbook logging.",
+        "fix": "",
         "example": ""
       },
       {
@@ -1902,24 +1902,24 @@
       },
       {
         "rule": "repo.image_name_declares_provenance",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.197.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "adopt the canonical block: `luxarch --emit image-block`. A registry-qualified tag you BUILD must also be PUSHED (never split them \u2014 a built-but-unpushed deployable name is a local-only image that a prune silently deletes), and a verification image must be BARE (`$(notdir $(IMAGE_NAME)):test`) so it cannot be pushed or mistaken for a deployable. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
         "rule": "repo.deploy_tag_is_immutable",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.197.0",
-        "violations": 2,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "pin an immutable identifier in `.env.<env>` (compose) or the overlay's `images: newTag:` (kustomize): `sha-<commit>` (every build, no ceremony \u2014 the sha is already computed for BUILD_COMMIT) or `TAG=<version>` for a cut release. A moving tag cannot be a deployment record: you cannot say which bits are running and you cannot roll back to them. `luxarch --emit image-block` prints the canonical scheme, where `:dev` survives only as a human-readable alias nothing pins. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -1979,13 +1979,13 @@
       },
       {
         "rule": "repo.luxpm_backlog_triaged",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.252.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "run `/luxpm-audit` (`luxarch --emit luxpm-audit-skill > .claude/skills/luxpm-audit/SKILL.md`): verify each open issue against the code and close it with evidence, park it `on_hold` with `waiting_on`, merge it into its duplicate, or comment what remains; backfill a summary on each unexplained close; then re-issue the receipt. Never close live work to move the count, and leave escalations to the guard maintainer.",
+        "fix": "",
         "example": ""
       },
       {
@@ -2023,13 +2023,13 @@
       },
       {
         "rule": "repo.makefile_test_db_harness",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.102.0",
-        "violations": 0,
+        "violations": 1,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "",
+        "fix": "test: test-db-up so the DB/durability suite always runs against a throwaway DB `make test` starts (a skipped suite must not read as a pass); + a test-db-up/test-db-down lifecycle (start / stop+wipe). Or, the fleet way since 0.271.0: `luxarch --emit test-block`, which runs that lifecycle inside `make test`. See --doc FLEET-MAKEFILE-STANDARD.",
         "example": ""
       },
       {
@@ -2265,24 +2265,24 @@
       },
       {
         "rule": "repo.stack_smoke_wired",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.268.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Paste `luxarch --emit smoke` below the image block, set SMOKE_URL (and the probe paths) for this app, and let `make dev-deploy` end with `$(MAKE) smoke`, unguarded, so a FAIL fails the deploy. See --doc FLEET-VERIFICATION-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
         "rule": "repo.test_block_wired",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.271.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Paste `luxarch --emit test-block` below the image block and delete the hand-written `test` (keep `test-db-up`/`test-db-down` only if another target, such as db-verify, calls them); set TEST_SERVICES (the backing services) and TEST_ENV (their URLs) above it, and never commit PYTEST_ARGS. Each test service: a healthcheck that is only the probe (Postgres: `pg_isready -h 127.0.0.1 -U <user> -d <db>`); no `container_name`, fixed host port, `network_mode`, bind-mounted or named volume, or named or shared network. See --doc FLEET-MAKEFILE-STANDARD \u00a71.",
+        "fix": "",
         "example": ""
       },
       {
@@ -2419,20 +2419,20 @@
       }
     ],
     "summary": {
-      "PASS": 55,
-      "FAIL": 7,
+      "PASS": 61,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 2
     }
   },
   "summary": {
-    "PASS": 180,
-    "FAIL": 14,
+    "PASS": 192,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 24
+    "INERT": 25
   },
-  "commit": "6cf0cecfec20e5ce871a58713341b1a1da0df0d6",
-  "generated_at": "2026-10-09T18:33:21Z"
+  "commit": "a32681eae52c47dcf6f071df25eac16751a08b6d",
+  "generated_at": "2026-10-09T18:56:05Z"
 }

@@ -137,16 +137,10 @@
     },
     {
       "rule": "test.coverage_floor_set",
-      "status": "FAIL",
+      "status": "PASS",
       "since": "0.62.0",
-      "violations": 1,
-      "sites": [
-        {
-          "path": ".luxlint.toml",
-          "line": null,
-          "detail": "no `[test].coverage_min`: the coverage ratchet runs and passes whatever the suite covers. Set the floor to the figure `make test` measures"
-        }
-      ],
+      "violations": 0,
+      "sites": [],
       "deferred": false
     },
     {
@@ -191,13 +185,13 @@
     }
   ],
   "summary": {
-    "PASS": 21,
-    "FAIL": 1,
+    "PASS": 22,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 0
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "6cf0cecfec20e5ce871a58713341b1a1da0df0d6",
-  "generated_at": "2026-10-09T18:33:21Z"
+  "commit": "a32681eae52c47dcf6f071df25eac16751a08b6d",
+  "generated_at": "2026-10-09T18:56:05Z"
 }

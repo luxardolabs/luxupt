@@ -80,3 +80,6 @@ Makefile.local
 
 # Claude Code hook session state (luxarch --emit hooks)
 .claude/.luxpm-searched.json
+
+# Generated stylesheet: the image builds its own (Dockerfile css stage); make css-watch for local dev.
+app/static/css/app.css

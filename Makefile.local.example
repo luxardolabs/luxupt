@@ -16,3 +16,7 @@ PROD_NODE       ?= <ssh-host>
 PROD_SITE       ?= <site-name>
 PROD_DATA_ROOT  ?= /mnt/docker/luxupt
 PROD_VIDEO_ROOT ?= /mnt/<nas-host>/video/Timelapse
+
+# Where each site's DEV stack is reachable from the build host (make smoke, run by make dev-deploy).
+# One line per site, named after the SITE= you deploy with:
+SMOKE_URL_<site>     ?= https://<dev-host>:<nginx-port>

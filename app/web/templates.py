@@ -4,7 +4,6 @@
 ``TemplatesDep`` in ``app.web.deps``.
 """
 
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -40,7 +39,7 @@ templates.env.globals.update(
         # Cache-bust token for first-party static assets (fw.static_assets_cache_busted):
         # the OCI revision (short git SHA), stamped as BUILD_COMMIT in the image
         # (cache-busting playbook — one value shared with org.opencontainers.image.revision).
-        "static_version": os.getenv("BUILD_COMMIT", "dev"),
+        "static_version": config.BUILD_COMMIT,
         "len": len,
         "enumerate": enumerate,
         "range": range,

@@ -27,6 +27,8 @@ class HealthReport(BaseModel):
     status: HealthStatus
     timestamp: str
     version: str
+    # The build's short git SHA: `make smoke` proves the deployed stack runs THIS commit.
+    commit: str
     uptime_seconds: int
     checks: dict[str, HealthCheckResult]
 

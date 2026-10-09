@@ -189,7 +189,8 @@ class HealthCoreService:
         return HealthReport(
             status=overall_status,
             timestamp=datetime.now(UTC).isoformat(),
-            version=os.getenv("BUILD_VERSION", "dev"),
+            version=config.BUILD_VERSION,
+            commit=config.BUILD_COMMIT,
             uptime_seconds=int(uptime_seconds),
             checks={
                 name: HealthCheckResult.model_validate(check)

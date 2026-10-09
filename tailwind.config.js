@@ -2,10 +2,9 @@
 export default {
   darkMode: 'class',
   content: [
-    './app/web/templates/**/*.html',
-    './app/web/templates/**/*.jinja',
-    './app/web/**/*.py',
-    './app/web/static/js/**/*.js',
+    './app/templates/**/*.html',
+    './app/**/*.py',
+    './app/static/js/**/*.js',
   ],
   /* Safelist for Alpine.js dynamic classes that Tailwind can't detect at build time */
   safelist: [

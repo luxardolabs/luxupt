@@ -40,3 +40,8 @@ globals = ["htmx", "echarts"]   # ambient vendor libs, loaded before app.js in b
 [[pytest.filterwarnings_ignore]]
 warning = "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:slowapi.extension"
 reason = "slowapi 0.1.10 Limiter.limit calls the deprecated asyncio.iscoroutinefunction (upstream laurentS/slowapi#263, fix PRs unmerged). Scoped to the exact message AND module. REMOVE when slowapi ships the fix — on Python 3.16 the call becomes an AttributeError at startup, so this carve-out is a deadline, not a resolution. See luxarch --doc FLEET-RATE-LIMIT-STANDARD §4. Tracked in LUXUPT-83."
+
+# Coverage floor (test.coverage_floor_set): the branch coverage `make test` measured when the
+# emitted test block was adopted (54% on 2026-10-09). It only goes up.
+[test]
+coverage_min = 54

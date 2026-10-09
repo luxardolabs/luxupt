@@ -42,6 +42,9 @@ DOCKER_HUB_USER := luxardolabs
 GITHUB_USER := luxardolabs
 LOCAL_IMAGE := $(LOCAL_REGISTRY)/$(DOCKER_HUB_USER)/$(PROJECT_NAME)
 GHCR_IMAGE := ghcr.io/$(GITHUB_USER)/$(PROJECT_NAME)
+# LOCAL inspection build — BARE on purpose (repo.image_name_declares_provenance): it is never
+# pushed, so it must not wear a registry name a stack could pin and a prune could orphan.
+LOCAL_BUILD_IMAGE := $(PROJECT_NAME):local
 
 # Immutable deploy tags (luxarch --emit image-block v5) — the ONLY tags a stack may pin.
 # CANDIDATE is pushed by the build and pinned by nothing: it exists so the exact bits can be
@@ -409,43 +412,110 @@ check: guard-version-check honest lint mypy test db-verify arch audit gitleaks #
 plan: ## The full architecture red board at once (phase-ordered) — the burn-down view, not the gate
 	@docker run --rm -v $(PWD):/repo $(LUXARCH_IMAGE) --plan
 
-# The throwaway test database. luxupt ships on SQLITE, so the "disposable container" the
-# standard describes for a Postgres app is a disposable DIRECTORY here — same invariant: `make test`
-# creates it, the suite runs against it, and it is wiped after, so the suite can never touch the dev
-# database and a skipped DB suite can never read as a pass (repo.makefile_test_db_harness).
-TEST_DB_DIR      ?= $(CURDIR)/.cache/luxupt-test-db
-TEST_DATABASE_URL ?= sqlite+aiosqlite:///$(TEST_DB_DIR)/timelapse.db
+# ── Test image (the image block's verification half; this repo keeps its own site-aware deploy) ──
+# LOCAL verification image — BARE on purpose: it cannot be pushed by accident and cannot be mistaken
+# for a deployable. Rebuilt from source every run: the Dockerfile's `test` stage, which is
+# production's app layers plus the dev group.
+TEST_IMAGE := $(PROJECT_NAME):test
 
-.PHONY: test-db-up
-test-db-up: ## Create the disposable test database (wipes any previous one)
-	@rm -rf $(TEST_DB_DIR)
-	@mkdir -p $(TEST_DB_DIR)
+.PHONY: test-build
+test-build: ## Build the LOCAL test image from source (never pushed, never a deploy tag)
+	@docker build --load --target test $(BUILD_ARGS) -f Dockerfile -t $(TEST_IMAGE) . >/dev/null
 
-.PHONY: test-db-down
-test-db-down: ## Stop + WIPE the disposable test database
-	@rm -rf $(TEST_DB_DIR)
+# ── Test block settings (above the emitted block; its own lines are `?=` defaults) ─────────────
+# luxupt ships on SQLite: there is no backing service to start. The suite's conftest creates its
+# throwaway database in a fresh temp dir inside the container (test.db_isolated), so the run needs
+# no service, no network and no database URL from here.
+TEST_SERVICES :=
+TEST_ENV      :=
 
 .PHONY: test
-test: test-db-up ## Full pytest incl durability, against the throwaway DB — IN DOCKER
-	@# FLEET-BUILD-DEPLOY-STANDARD "Lint & test images": deps come from the LOCK (Dockerfile.test,
-	@# layer-cached on pyproject/poetry.lock), source is over-mounted (never baked), pytest config is
-	@# emitted by luxlint. Nothing runs on the host venv or is inherited from :dev.
-	@set +e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
-	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config pytest > "$$C"; chmod 644 "$$C"; \
-	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null || { echo "test image build failed"; exit 1; }; \
-	docker run --rm -v $(PWD):/w -w /w -v "$$C":/cfg.ini:ro \
-	  -v $(TEST_DB_DIR):$(TEST_DB_DIR) --env TEST_DATABASE_URL=$(TEST_DATABASE_URL) \
-	  $(TEST_DEPS_IMAGE) sh -c 'PYTHONPATH=/w pytest -c /cfg.ini --rootdir=/w tests'; \
-	status=$$?; $(MAKE) --no-print-directory test-db-down; exit $$status
+# luxarch:test-block asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit test-block`.
+# ── Test: THE suite, in the test image, against an isolated stack of real services ───────────────
+# Emitted by `luxarch --emit test-block`; paste below the image block (it uses TEST_IMAGE and
+# test-build from there). Enforced by `repo.test_block_wired`. Settings are `?=` defaults: set them
+# above this block. What the suite can see, and what only `make smoke` sees: --doc
+# FLEET-MAKEFILE-STANDARD §1.
+#
+# Before this block every repo wrote its own `make test`: four repos, four ways (a lint image with
+# the source mounted, the dev image with pytest pip-installed at run time, a repo script, a test
+# image), each with its own readiness loop and coverage wiring, and a coverage pipe under make's
+# /bin/sh that hid pytest's failure. This is the documented practice of the tools instead:
+#   - ISOLATED STACK (Docker Compose): the backing services run in a compose project of their own,
+#     one per run (`-p`), so parallel runs never collide, the suite cannot reach the dev database or
+#     cache at all (it is on another network), and teardown (`down --volumes --remove-orphans`)
+#     removes exactly this run's containers and data, pass or fail, never the dev stack.
+#   - READINESS from each service's own compose healthcheck (`up --wait`), not a sleep or a loop:
+#     the service declares when it is ready. For Postgres, probe over TCP with the real role
+#     (`pg_isready -h 127.0.0.1 -U <user> -d <db>`); over the socket it answers while initdb's
+#     temporary server is still up. `repo.test_stack_parity` checks these are the services prod runs.
+#   - Ctrl-C stops the suite (`--init` forwards the signal; a shell as PID 1 ignores it).
+#   - THE TEST IMAGE built from this source (`test-build`, the image's `--with dev` stage), with the
+#     fleet's pytest config (`luxlint --emit-config pytest`: -ra, strict markers and config,
+#     warnings are errors), readable by the image's non-root user. The source is mounted read-only
+#     and pytest writes no cache into it.
+#   - COVERAGE with coverage.py itself, not pytest-cov: `coverage run --branch` under the sysmon
+#     core (fast branch coverage on Python 3.14), data in /tmp, then `coverage report` judged by
+#     `luxlint --coverage-ratchet` against `[test].coverage_min` (off until you set a floor; it
+#     only ratchets up). `coverage` belongs in the dev dependency group.
+#   - BOTH EXIT CODES reach make: pytest's and the ratchet's. No pipe carries either. The ratchet
+#     reads coverage's own report file, never the suite's output (a printed `TOTAL … 100%` or
+#     pytest's `[100%]` would otherwise pass for a measurement), and a report that measured nothing
+#     fails.
+#   - Each run's project is named from its own `mktemp -d` token, and refuses to run without one (a
+#     PID repeats across containers and CI runners), and everything mounts the makefile's directory ($(CURDIR)), so `make -C` runs the
+#     right suite.
 
-.PHONY: test-coverage
-test-coverage: ## Canonical pytest config + coverage IN DOCKER (coverage config stays in pyproject)
-	@set +e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
-	docker run --rm -v $(PWD):/repo $(LUXLINT_IMAGE) --emit-config pytest > "$$C"; chmod 644 "$$C"; \
-	docker build -q -f Dockerfile.test -t $(TEST_DEPS_IMAGE) . >/dev/null || { echo "test image build failed"; exit 1; }; \
-	docker run --rm -v $(PWD):/w -w /w -v "$$C":/cfg.ini:ro $(TEST_DEPS_IMAGE) \
-	  sh -c 'PYTHONPATH=/w pytest -c /cfg.ini --rootdir=/w tests --cov=app --cov-report=term-missing'; \
-	exit $$?
+# Setting: the compose command, and the profile holding the test services --------------------
+TEST_COMPOSE ?= docker compose
+TEST_PROFILE ?= test
+# Setting: the env file compose interpolates the file with (it reads EVERY service, so an app
+# service's `${TAG:?}` needs a value even when only the test services start) -----------------
+TEST_ENV_FILE ?= $(firstword $(wildcard .env.test .env.dev .env.example))
+# Setting: the backing services the suite needs (each with a healthcheck); empty: none -----------
+TEST_SERVICES ?= db-test
+# Setting: the suite's environment: the test services' URLs, by service name on the test network -
+TEST_ENV ?= -e TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@db-test:5432/postgres
+# Setting: where the suite runs from (a monorepo's apps/backend), and every package coverage
+# measures, comma-separated (`app,collector`): it replaces any [tool.coverage.run] source ---------
+TEST_WORKDIR ?= .
+TEST_COV ?= app
+# Setting: NONE. For a one-off run only, on the command line: `make test PYTEST_ARGS='-k orders'`.
+# A committed value narrows THE suite for everyone (`repo.test_block_wired` reds one) ---------
+PYTEST_ARGS ?=
+
+# One-off pytest arguments reach the container through the environment, never spliced into a quoted
+# command line (`-k 'a or b'` would otherwise split it).
+export PYTEST_ARGS
+
+test: test-build ## THE suite: test image, an isolated stack of real services, coverage ratchet
+	@set -u; \
+	D=$$(mktemp -d); tok=$$(basename "$$D" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9'); \
+	[ $${#tok} -ge 8 ] || { echo "REFUSING: could not make a unique name for this run"; rm -rf "$$D"; exit 2; }; \
+	run="t$$(printf '%s' '$(notdir $(CURDIR))' | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '-')-test-$$tok"; \
+	dc="$(TEST_COMPOSE) -p $$run $(if $(TEST_ENV_FILE),--env-file $(TEST_ENV_FILE)) --profile $(TEST_PROFILE)"; \
+	chmod 777 "$$D"; \
+	trap '$$dc down --volumes --remove-orphans >/dev/null 2>&1; rm -rf "$$D"' EXIT INT TERM; \
+	net=; if [ -n "$(TEST_SERVICES)" ]; then \
+	  $$dc up -d --wait --wait-timeout 120 $(TEST_SERVICES) \
+	    || { echo "FAIL  the test services did not become healthy: $(TEST_SERVICES)"; exit 1; }; \
+	  cid=$$($$dc ps -q $(firstword $(TEST_SERVICES))); net=; \
+	  for n in $$(docker inspect -f '{{range $$k, $$v := .NetworkSettings.Networks}}{{$$k}} {{end}}' $$cid); do \
+	    [ "$$(docker network inspect -f '{{index .Labels "com.docker.compose.project"}}' $$n)" = "$$run" ] && { net=$$n; break; }; done; \
+	  [ -n "$$net" ] || { echo "FAIL  $(firstword $(TEST_SERVICES)) joined no network of this run's own project ($$run)"; exit 1; }; \
+	  net="--network $$net"; fi; \
+	docker run --rm -v $(CURDIR):/repo $(LUXLINT) --emit-config pytest > "$$D/pytest.ini" || exit 2; \
+	chmod 644 "$$D/pytest.ini"; \
+	docker run --rm --init $$net $(TEST_ENV) -e PYTEST_ADDOPTS="$${PYTEST_ARGS:-}" \
+	  -e COVERAGE_CORE=sysmon -e COVERAGE_FILE=/out/.coverage -e PYTHONDONTWRITEBYTECODE=1 \
+	  -v $(CURDIR):/repo:ro -v "$$D":/out -w /repo/$(TEST_WORKDIR) $(TEST_IMAGE) \
+	  sh -c 'python -m coverage run --branch --source=$(TEST_COV) -m pytest -c /out/pytest.ini --rootdir=. -p no:cacheprovider; s=$$?; python -m coverage report --show-missing > /out/coverage.txt; echo $$? > /out/coverage.rc; cat /out/coverage.txt; exit $$s'; \
+	rc=$$?; \
+	[ "$$rc" = 0 ] || { echo "FAIL  the suite failed (exit $$rc)"; exit 1; }; \
+	[ "$$(cat "$$D/coverage.rc" 2>/dev/null)" = 0 ] || { echo "FAIL  coverage measured nothing (coverage report: $$(tail -n 1 "$$D/coverage.txt" 2>/dev/null)): check TEST_COV names the package the suite imports"; exit 1; }; \
+	docker run --rm -i -v $(CURDIR):/repo $(LUXLINT) --coverage-ratchet < "$$D/coverage.txt" > "$$D/ratchet.txt"; crc=$$?; \
+	sed -n '/coverage ratchet/,$$p' "$$D/ratchet.txt"; \
+	[ "$$crc" = 0 ] || { echo "FAIL  the coverage ratchet failed (its verdict is above): add tests, never lower the floor"; exit 1; }
 
 .PHONY: clean
 clean: ## Clean build artifacts
@@ -459,25 +529,16 @@ clean: ## Clean build artifacts
 # Frontend / CSS Build Targets
 # ============================================================================
 
-.PHONY: npm-install
-npm-install: ## Install npm dependencies for Tailwind CSS
-	@echo '$(BLUE)Installing npm dependencies...$(NC)'
-	npm install
-	@echo '$(GREEN)npm dependencies installed!$(NC)'
+# luxarch:css-watch asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit css-watch`.
+# Live stylesheet rebuilds for local development, with Node in a throwaway container: nothing is
+# installed on the host and nothing runs in compose. The output it writes is gitignored; the image
+# builds its own (luxarch --emit css-stage). See luxarch --doc FLEET-BUILD-DEPLOY-STANDARD.
+CSS_NODE_IMAGE ?= node:24-slim
 
-.PHONY: css-build
-css-build: ## Build Tailwind CSS (production, minified)
-	@echo '$(BLUE)Building Tailwind CSS...$(NC)'
-	npm run build:css
-	@echo '$(GREEN)CSS build complete: app/web/static/css/compiled.css$(NC)'
-
-.PHONY: css-dev
-css-dev: ## Watch and rebuild Tailwind CSS on changes
-	@echo '$(BLUE)Starting Tailwind CSS watch mode...$(NC)'
-	npm run dev:css
-
-.PHONY: frontend
-frontend: npm-install css-build ## Install npm deps and build CSS
+.PHONY: css-watch
+css-watch: ## Recompile the stylesheet on change (Node in a throwaway container; output gitignored)
+	docker run --rm -it -v "$(CURDIR)":/w -w /w $(CSS_NODE_IMAGE) \
+	  sh -c 'npm ci --no-audit --no-fund && npm run build:css -- --watch'
 
 # ONE shared fleet buildx builder -- never a per-project <repo>-builder. A per-project
 # builder holds a completely separate cache (no base-layer sharing, its own pip/npm cache
@@ -532,6 +593,9 @@ release-public: ## [PUBLIC REPO] Scan + promote :$(VERSION) + :latest to GHCR, t
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(VERSION_IMAGE) ($$plat)"; \
 	done
+	@# Refuse an already-released public tag: a promotion probes ITS destination (repo.deploy_tag_is_immutable).
+	@if docker manifest inspect $(GHCR_IMAGE):$(VERSION) >/dev/null 2>&1; then echo "REFUSING: $(GHCR_IMAGE):$(VERSION) is already released"; exit 1; fi
+	$(call refuse_released,$(GHCR_IMAGE):$(VERSION))
 	docker buildx imagetools create \
 	  -t $(GHCR_IMAGE):$(VERSION) -t $(GHCR_IMAGE):latest \
 	  $(VERSION_IMAGE)
@@ -548,6 +612,7 @@ docker-build-local: validate-version validate-structure buildx-setup docker-pull
 	@echo '$(BLUE)Building Docker image for local use (amd64 only)...$(NC)'
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
 		--platform $(PLATFORM_DEV) \
+		--target production \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(LOCAL_IMAGE):latest \
 		--build-arg BUILD_VERSION=$(VERSION) \
@@ -559,7 +624,7 @@ docker-build-local: validate-version validate-structure buildx-setup docker-pull
 		--label "org.opencontainers.image.description=A Docker-based solution for creating time-lapse videos from UniFi Protect cameras" \
 		--label "org.opencontainers.image.url=https://github.com/luxardolabs/luxupt" \
 		--label "org.opencontainers.image.source=https://github.com/luxardolabs/luxupt" \
-		-t $(LOCAL_IMAGE):$(VERSION) \
+		-t $(LOCAL_BUILD_IMAGE) \
 		--load \
 		.
 	@echo '$(GREEN)Docker build complete!$(NC)'
@@ -593,6 +658,19 @@ github-release: ## Tag v$(VERSION) and publish the GitHub Release carrying this 
 #
 # Split from `release` on purpose: a DEV deploy publishes only the immutable sha. Re-pushing
 # :$(VERSION) on every dev build would overwrite the released tag with unreleased code.
+# A released version is never re-pushed, not even from its own commit: prod pins it, and a rebuild
+# is different bytes under that name (repo.deploy_tag_is_immutable). Fails CLOSED: `manifest
+# inspect` exits non-zero for "no such manifest" AND for an unreachable registry, so only the
+# registry's own not-found answer reads as unreleased (a DNS blip must not let a re-push through).
+define refuse_released
+	@out=$$(docker manifest inspect $(1) 2>&1) && { \
+	  echo "REFUSING: $(1) is already RELEASED. A released version is immutable: bump VERSION."; exit 1; } || \
+	case "$$out" in \
+	  *[Nn]"o such manifest"*|*"manifest unknown"*|*"not found"*) ;; \
+	  *) echo "REFUSING: cannot verify $(1) is unreleased: $$out"; exit 1 ;; \
+	esac
+endef
+
 .PHONY: publish-sha
 publish-sha: validate-version validate-structure buildx-setup docker-pull-cache ## Build, SCAN, then push :sha-<commit> (multi-arch) — the dev-deploy artifact
 	@if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then \
@@ -603,6 +681,7 @@ publish-sha: validate-version validate-structure buildx-setup docker-pull-cache 
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker buildx build \
 		--platform $(PLATFORM) \
+		--target production \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		--cache-from $(IMAGE):latest \
 		$(BUILD_ARGS) \
@@ -629,7 +708,13 @@ publish-sha: validate-version validate-structure buildx-setup docker-pull-cache 
 	@echo '$(GREEN)Published $(SHA_IMAGE) (candidate scanned clean)$(NC)'
 
 .PHONY: release
-release: publish-sha ## Build, SCAN, then push :sha-<commit> + :$(VERSION) + :latest (multi-arch) to the private registry
+release: ## Build, SCAN, then push :sha-<commit> + :$(VERSION) + :latest (multi-arch) to the private registry
+	$(call refuse_released,$(VERSION_IMAGE))
+	@t=$$(git rev-parse -q --verify "refs/tags/v$(VERSION)^{commit}" 2>/dev/null); \
+	if [ -n "$$t" ] && [ "$$t" != "$$(git rev-parse HEAD)" ]; then \
+	  echo "REFUSING: v$(VERSION) is already tagged at $$t, not HEAD: bump VERSION."; exit 1; \
+	fi
+	@$(MAKE) --no-print-directory publish-sha
 	@# :$(VERSION) is created from the sha publish-sha just scanned — same digest, no rebuild.
 	docker buildx imagetools create -t $(VERSION_IMAGE) $(SHA_IMAGE)
 	@# The alias moves LAST and carries nothing: a label on an already-published artifact.
@@ -665,10 +750,11 @@ define pin_env_tag
 endef
 
 .PHONY: dev-deploy
-dev-deploy: ## Publish THIS commit, pin .env.$(SITE)-dev to it, restart that dev stack (SITE=<site>)
+dev-deploy: ## Publish THIS commit, pin .env.$(SITE)-dev to it, restart that dev stack, smoke it (SITE=<site>)
 	@[ -n "$(SITE)" ] || { echo "usage: make dev-deploy SITE=<site>"; exit 1; }
 	@$(MAKE) --no-print-directory publish-sha
 	@$(MAKE) --no-print-directory dev-pin SITE=$(SITE) TAG=sha-$(COMMIT)
+	@$(MAKE) --no-print-directory smoke SITE=$(SITE)
 
 # The rollback path, and the only one that does not build: name a tag you already published.
 # The registry is checked FIRST, so a stack is never pinned to a name the registry never held.
@@ -679,6 +765,100 @@ dev-pin: ## Point .env.$(SITE)-dev at an ALREADY-PUBLISHED tag and restart it (r
 	  { echo "$(IMAGE):$(TAG) is not in the registry — publish it before pinning a stack to it"; exit 1; }
 	@$(call pin_env_tag,$(DEV_ENV),$(TAG))
 	docker compose --env-file $(DEV_ENV) up -d
+
+# ── Smoke settings (above the emitted block; its own lines are `?=` defaults) ──────────────────
+# Each site's dev stack sits behind its own nginx port, so the URL is per SITE. The hosts live in
+# the gitignored Makefile.local (SMOKE_URL_<site>, one per SITE): this repo is public.
+SMOKE_URL         := $(SMOKE_URL_$(SITE))
+SMOKE_ENV_FILE    := $(DEV_ENV)
+SMOKE_STATIC_PATH := /static/css/app.css
+# Both entry points: the CLI (python -m app.main) and the uvicorn target entrypoint.sh starts.
+SMOKE_ENTRY_MODULES := app.main app.web.main
+
+.PHONY: smoke
+# luxarch:smoke asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit smoke`.
+# ── Smoke: probe the DEPLOYED stack from outside, after every dev deploy ──────────────────────────
+# Emitted by `luxarch --emit smoke`; paste below the image block. `make test` runs the app in-process
+# against its test stack, so it cannot see the proxy, the server, the production image or an entry
+# point other than the app's. One repo shipped four bugs under a green `make check` that only a probe
+# of the deployed stack found: a rate limiter that took the host down, a proxy serving an unstyled UI,
+# a standalone script that crashed on a circular import in the production image, and a Host-header
+# defence no test exercised. Each probe below is aimed at one of them. `make dev-deploy` runs it
+# (`repo.stack_smoke_wired`); a FAIL fails the deploy, and a probe that cannot run says NOT RUN and
+# why, never a silent pass.
+#
+# Settings are `?=` defaults: override them above this block (or in Makefile.local for a host name).
+
+# Setting: where the dev stack is reachable from the build host (e.g. https://dev.example.com) ---
+SMOKE_URL ?=
+# Setting: the health path; its response must name the build's commit (any field name) -------
+SMOKE_HEALTH_PATH ?= /health
+# Setting: a static asset the image serves (empty only if the app serves no static files) -----
+SMOKE_STATIC_PATH ?= /static/css/app.css
+# Setting: a path that needs authentication; the token comes from the SMOKE_AUTH_TOKEN env var -
+SMOKE_AUTH_PATH ?=
+# Setting: the package directory of standalone entry points, and the image's import root -------
+SMOKE_SCRIPTS_DIR ?= app/scripts
+SMOKE_IMPORT_ROOT ?= .
+# Setting: entry-point MODULES outside that directory. The default is every `*_main` module at the
+# app package's root, where the layout standard (fw.module_homes) puts a service's entry points
+# (`app.portal_main`); list them yourself for any other place (v3) ---------------------------
+SMOKE_ENTRY_MODULES ?= $(basename $(subst /,.,$(patsubst $(SMOKE_IMPORT_ROOT)/%,%,$(wildcard $(SMOKE_IMPORT_ROOT)/app/*_main.py))))
+# Setting: the env file the dev stack runs with; each entry point is imported with it, because a
+# module that builds the app's settings needs the config the deployed container has (v2) ---------
+SMOKE_ENV_FILE ?= .env.dev
+# Setting: extra `docker run` options for the entry-point imports (e.g. -e NAME=value) ----------
+SMOKE_RUN_OPTS ?=
+# Setting: extra curl options (e.g. --cacert <file> for a private CA) -------------------------
+SMOKE_CURL_OPTS ?=
+
+smoke: ## Probe the deployed dev stack: build commit, static asset, forged Host refused, auth, standalone entry points
+	@set -u; fail=0; \
+	[ -n "$(SMOKE_URL)" ] || { echo "REFUSING: set SMOKE_URL to the dev stack's address (Makefile.local)"; exit 2; }; \
+	probe() { curl -sS --max-time 15 $(SMOKE_CURL_OPTS) -o "$$B" -w '%{http_code} %{content_type}' "$$@" 2>/dev/null || echo "000 -"; }; \
+	B=$$(mktemp); trap 'rm -f "$$B"' EXIT INT TERM; \
+	sha=$$(git rev-parse --short=7 HEAD 2>/dev/null || true); \
+	r=$$(probe "$(SMOKE_URL)$(SMOKE_HEALTH_PATH)"); \
+	if [ -z "$$sha" ]; then echo "FAIL  cannot read this checkout's commit (git rev-parse failed), so the deployed build cannot be checked"; fail=1; \
+	elif [ "$${r%% *}" = 200 ] && grep -q "$$sha" "$$B"; then echo "PASS  health names this commit ($$sha)"; \
+	else echo "FAIL  $(SMOKE_HEALTH_PATH): $$r, and the response does not name $$sha: the stack is not running this build"; fail=1; fi; \
+	if [ -n "$(SMOKE_STATIC_PATH)" ]; then \
+	  r=$$(probe "$(SMOKE_URL)$(SMOKE_STATIC_PATH)"); ctype=$${r#* }; \
+	  case "$(SMOKE_STATIC_PATH)" in *.css) want=text/css;; *.js|*.mjs) want=javascript;; *) want=;; esac; \
+	  if [ "$${r%% *}" = 200 ] && [ -s "$$B" ] && ! grep -qi '<html' "$$B" && { [ -z "$$want" ] || case "$$ctype" in *"$$want"*) true;; *) false;; esac; }; then echo "PASS  static asset served ($(SMOKE_STATIC_PATH), $$ctype)"; \
+	  else echo "FAIL  $(SMOKE_STATIC_PATH): $$r: the proxy or image does not serve the built asset as $${want:-a file} (a browser refuses a stylesheet or script with the wrong type)"; fail=1; fi; \
+	else echo "NOT RUN  static asset: SMOKE_STATIC_PATH is empty (only right for an app that serves no static files)"; fi; \
+	r=$$(probe -H "Host: smoke-forged.invalid" "$(SMOKE_URL)$(SMOKE_HEALTH_PATH)"); \
+	case "$${r%% *}" in 2??|3??) echo "FAIL  a forged Host header was answered ($$r): the trusted-host defence is not on in the real stack"; fail=1;; \
+	  000) echo "PASS  forged Host refused (connection rejected)";; \
+	  *) echo "PASS  forged Host refused ($${r%% *})";; esac; \
+	if [ -n "$(SMOKE_AUTH_PATH)" ]; then \
+	  r=$$(probe "$(SMOKE_URL)$(SMOKE_AUTH_PATH)"); \
+	  case "$${r%% *}" in 401|403) echo "PASS  $(SMOKE_AUTH_PATH) refuses a request with no credentials ($${r%% *})";; \
+	    *) echo "FAIL  $(SMOKE_AUTH_PATH) answered a request with NO credentials ($$r): it is not protected"; fail=1;; esac; \
+	  if [ -z "$${SMOKE_AUTH_TOKEN:-}" ]; then echo "FAIL  SMOKE_AUTH_PATH is set but SMOKE_AUTH_TOKEN is not in the environment"; fail=1; \
+	  else r=$$(probe -H "Authorization: Bearer $${SMOKE_AUTH_TOKEN}" "$(SMOKE_URL)$(SMOKE_AUTH_PATH)"); \
+	    if [ "$${r%% *}" = 200 ]; then echo "PASS  authenticated request ($(SMOKE_AUTH_PATH))"; \
+	    else echo "FAIL  authenticated $(SMOKE_AUTH_PATH): $$r"; fail=1; fi; fi; \
+	else echo "NOT RUN  authenticated request: SMOKE_AUTH_PATH is empty"; fi; \
+	n=0; mods=; \
+	if [ -d "$(SMOKE_SCRIPTS_DIR)" ]; then for f in $$(find "$(SMOKE_SCRIPTS_DIR)" -name '*.py' ! -name '__init__.py' | sort); do \
+	  rel=$$(realpath --relative-to="$(SMOKE_IMPORT_ROOT)" "$$f"); mods="$$mods $$(printf '%s' "$${rel%.py}" | tr / .)"; done; fi; \
+	mods=$$(printf '%s\n' $$mods $(SMOKE_ENTRY_MODULES) | sort -u); \
+	if [ -n "$$mods" ]; then \
+	  envf=; [ -n "$(SMOKE_ENV_FILE)" ] && [ -f "$(SMOKE_ENV_FILE)" ] && envf="--env-file=$(SMOKE_ENV_FILE)"; \
+	  if ! docker image inspect "$(SHA_IMAGE)" >/dev/null 2>&1 && ! docker pull -q "$(SHA_IMAGE)" >/dev/null 2>&1; then \
+	    echo "FAIL  entry points: $(SHA_IMAGE) is neither built here nor pullable, so no module could be imported (deploy this commit first)"; fail=1; n=-1; \
+	  else for mod in $$mods; do \
+	    n=$$((n + 1)); \
+	    if err=$$(docker run --rm $$envf $(SMOKE_RUN_OPTS) --entrypoint python "$(SHA_IMAGE)" -c "import $$mod" 2>&1 >/dev/null); then echo "PASS  $$mod imports on its own in the production image"; \
+	    else fail=1; why=$$(printf '%s\n' "$$err" | grep -E '^[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Exit)\b' | tail -n 1); why=$${why:-$$(printf '%s\n' "$$err" | grep -v '^[[:space:]]*$$' | tail -n 1)}; \
+	      case "$$err" in *ImportError*|*ModuleNotFoundError*|*"circular import"*) echo "FAIL  $$mod does not import on its own in $(SHA_IMAGE) (a circular or missing import the app's own import order hides): $$why";; \
+	        *) echo "FAIL  $$mod raised at import in $(SHA_IMAGE): $$why"; [ -n "$$envf" ] || echo "      no env file was passed ($(SMOKE_ENV_FILE) not found): set SMOKE_ENV_FILE to the file the stack runs with";; esac; fi; \
+	  done; fi; \
+	fi; \
+	[ "$$n" -ne 0 ] || echo "NOT RUN  entry points: no module under $(SMOKE_SCRIPTS_DIR) and no SMOKE_ENTRY_MODULES"; \
+	exit $$fail
 
 .PHONY: run
 run: ## Run the application locally with Poetry
@@ -692,7 +872,7 @@ run-docker: ## Run the application in Docker
 		-e UNIFI_PROTECT_API_KEY="your_key_here" \
 		-e UNIFI_PROTECT_BASE_URL="https://your-protect/proxy/protect/integration/v1" \
 		-v $(PWD)/output:/app/luxupt/output \
-		$(LOCAL_IMAGE):$(VERSION)
+		$(LOCAL_BUILD_IMAGE)
 
 .PHONY: shell
 shell: ## Open a shell in the Docker container
@@ -700,7 +880,7 @@ shell: ## Open a shell in the Docker container
 	docker run --rm -it \
 		-v $(PWD)/output:/app/luxupt/output \
 		--entrypoint /bin/sh \
-		$(LOCAL_IMAGE):$(VERSION)
+		$(LOCAL_BUILD_IMAGE)
 
 .PHONY: logs
 logs: ## Show Docker logs
