@@ -1,4 +1,4 @@
-# luxarch:exception-handler asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit exception-handler`.
+# luxarch:exception-handler asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit exception-handler`.
 # luxarch:exception-handler example v1 - emitted asset, re-emit to update; do not hand-edit.
 """Canonical fleet exception handler — ONE content-negotiating handler for UNEXPECTED errors.
 
@@ -7,7 +7,7 @@ Emitted by ``luxarch --emit exception-handler``. Wire it in your app factory:
     from app.utils.exception_handlers import general_exception_handler
     app.add_exception_handler(Exception, general_exception_handler)
 
-The fleet ruling (WWWLUXARDO-116, ``luxarch --playbook htmx-error-ux``): a route handler NEVER
+The fleet ruling (``luxarch --playbook htmx-error-ux``): a route handler NEVER
 wraps its body in a broad ``except Exception`` to render an error partial. That idiom (a) reports a
 bug to the user as a normal 200 and to monitoring as a success, and (b) makes ``filterwarnings =
 error`` INERT on that route — a raised DeprecationWarning is caught by the route's own ``except`` and
@@ -81,14 +81,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> Respons
 
     return templates.TemplateResponse(
         request,
-        "pages/500.html",
-        {
-            "request_id": request_id,
-            # The error templates take title+message from whoever renders them. The HTTP
-            # exception handler in web/main always supplies both; this path is the other
-            # renderer, and omitting them is what forced a |default guard into the markup.
-            "title": "Server Error",
-            "message": "An unexpected error occurred. Please try again later.",
-        },
+        "pages/errors/500.html",
+        {"request_id": request_id},
         status_code=500,
     )

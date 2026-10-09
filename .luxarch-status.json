@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.250.1",
+  "guard_version": "0.275.0",
   "repo": "/repo",
   "targets": [
     {
@@ -14,7 +14,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_legacy_routers",
@@ -23,7 +25,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.model_naming",
@@ -32,7 +36,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.crud_naming",
@@ -41,7 +47,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.schema_naming",
@@ -50,7 +58,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.router_naming",
@@ -59,7 +69,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.service_naming",
@@ -68,7 +80,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.core_service_dir",
@@ -77,7 +91,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.view_service_dir",
@@ -86,7 +102,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_stray_services",
@@ -95,7 +113,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.core_service_class",
@@ -104,7 +124,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.view_service_class",
@@ -113,7 +135,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_raw_sql_in_services",
@@ -122,7 +146,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_raw_sql_in_routers",
@@ -131,7 +157,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_raw_sql_outside_crud",
@@ -140,16 +168,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_no_cascading_delete",
-          "status": "PASS",
+          "status": "INERT",
           "since": "0.1.0",
           "violations": 0,
           "deferred": false,
-          "inert": false,
-          "inert_reason": ""
+          "inert": true,
+          "inert_reason": "declare the repo's cascading-delete call patterns to enforce that web routers enqueue them instead of running them inside the request; until then nothing is searched.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.core_no_fastapi",
@@ -158,7 +190,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.crud_no_fastapi",
@@ -167,7 +201,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.views_no_sqlalchemy",
@@ -176,7 +212,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.routers_no_sqlalchemy",
@@ -185,7 +223,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_view_imports_crud",
@@ -194,7 +234,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_crud_imports_crud",
@@ -203,7 +245,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_models_in_routers",
@@ -212,7 +256,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_response_models_in_routers",
@@ -221,7 +267,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_dto_in_routers",
@@ -230,7 +278,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_query_params",
@@ -239,7 +289,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_router_composition",
@@ -248,7 +300,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_inline_imports",
@@ -257,7 +311,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_inline_html",
@@ -266,7 +322,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_model_exists",
@@ -275,7 +333,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_labels",
@@ -284,16 +344,20 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "list enums that must carry member labels under [enums].labelled to enforce it. See --playbook enum-typing."
+          "inert_reason": "list enums that must carry member labels under [enums].labelled to enforce it. See --playbook enum-typing.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.uuid_id_typing",
-          "status": "PASS",
+          "status": "INERT",
           "since": "0.1.0",
           "violations": 0,
           "deferred": false,
-          "inert": false,
-          "inert_reason": ""
+          "inert": true,
+          "inert_reason": "no `Mapped[UUID]` column parsed under models/ (11 file(s) read), so no id name is known to be a UUID and nothing was judged. NOT a clearance if this repo does use UUID keys.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enumish_columns",
@@ -302,7 +366,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.jsonb_shaping",
@@ -311,16 +377,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.hypertable_bounds",
-          "status": "PASS",
+          "status": "INERT",
           "since": "0.1.0",
           "violations": 0,
           "deferred": false,
-          "inert": false,
-          "inert_reason": ""
+          "inert": true,
+          "inert_reason": "no [hypertables] declaration and no `create_hypertable(...)` anywhere in the repo, so no aggregate is over a hypertable.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.worker_sessions_commit",
@@ -329,7 +399,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.template_pagination",
@@ -338,7 +410,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.view_pagination",
@@ -347,7 +421,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.template_table",
@@ -356,7 +432,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.selects_accessible",
@@ -365,7 +443,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_redundant_commit",
@@ -374,7 +454,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.js_no_fetch",
@@ -383,7 +465,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.js_no_reload",
@@ -392,7 +476,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.js_no_alert",
@@ -401,7 +487,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.import_linter_declared",
@@ -410,7 +498,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "half the fleet enforces layering via luxarch's AST rules, not import-linter. Set [importlinter].required = true ONLY if this repo also uses import-linter; then this rule verifies the [tool.importlinter] block exists (the run is the in-repo lint-imports tail)."
+          "inert_reason": "half the fleet enforces layering via luxarch's AST rules, not import-linter. Set [importlinter].required = true ONLY if this repo also uses import-linter; then this rule verifies the [tool.importlinter] block exists (the run is the in-repo lint-imports tail).",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.routers_dont_import_crud",
@@ -419,7 +509,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.views_dont_import_models",
@@ -428,7 +520,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_routers_dont_import_core",
@@ -437,7 +531,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.core_no_outbound_deps",
@@ -446,7 +542,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.crud_dont_import_services",
@@ -455,7 +553,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.routers_no_transaction_control",
@@ -464,16 +564,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_session_mutation_outside_crud",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.2.0",
-          "violations": 0,
+          "violations": 2,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "Move db.add/add_all/merge/flush/refresh/delete into the model's crud.",
+          "example": ""
         },
         {
           "rule": "fw.web_routers_no_nested_functions",
@@ -482,7 +586,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_routers_dont_parse_json",
@@ -491,7 +597,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_naive_utcnow",
@@ -500,16 +608,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_private_cross_module_imports",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.2.0",
-          "violations": 0,
+          "violations": 2,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "A leading `_` marks an implementation detail: a `_` name is private to its module, and a `_` module or package is private to its parent package and that package's children. Code outside (a test included) that imports it, patches it, or reaches it as an attribute or by a string depends on that detail, so the detail can no longer change without breaking that code. Decide what the private thing is (the playbook's one question): an implementation detail, so test the public behaviour that runs it and fake only what crosses the app's boundary (HTTP, clock, storage); a real capability, so extract it to a public service and test that; or shared data or config wearing an underscore, so make it public where it belongs. Never make it public just so a test can reach it, and never swap the import for a string-path patch, an attribute access or a getattr: that is the same coupling, hidden.",
+          "example": "red     from app.services.core._oidc import _pkce_pair\n        monkeypatch.setattr(\"app.services.core._oidc._discover\", fake_discover)\n\n        def test_pkce_pair():\n            verifier, challenge = _pkce_pair()\n            assert challenge == s256(verifier)\n\nclears  from app.services.core.auth import build_login_redirect   # the public seam\n\n        def test_login_redirect_carries_an_s256_challenge(httpx_mock):\n            httpx_mock.add_response(url=DISCOVERY_URL, json=DISCOVERY)  # fake the IdP, not _oidc\n            url = build_login_redirect(state=\"s\")\n            q = parse_qs(urlparse(url).query)\n            assert q[\"code_challenge_method\"] == [\"S256\"]\n\nThe PKCE coverage survives: it is asserted through the URL the user is sent to, which is\nthe behaviour that matters, and _oidc can now be rewritten without touching a test."
         },
         {
           "rule": "fw.paginated_responses_subclass_base",
@@ -518,7 +630,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_browser_confirm_in_templates",
@@ -527,7 +641,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_inline_style_in_pages",
@@ -536,7 +652,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_private_macros_in_pages",
@@ -545,7 +663,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_dto_fields_enum_typed",
@@ -554,7 +674,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.migration_revision_ids_fit",
@@ -563,7 +685,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_reserved_logging_keys",
@@ -572,7 +696,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.restricted_imports",
@@ -581,7 +707,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare packages + their boundary files under [restricted].imports to enforce them; until then this rule has nothing to check."
+          "inert_reason": "declare packages + their boundary files under [restricted].imports to enforce them; until then this rule has nothing to check.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.restricted_calls",
@@ -590,7 +718,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare call patterns + their boundary files under [restricted].calls to enforce them; until then this rule has nothing to check."
+          "inert_reason": "declare call patterns + their boundary files under [restricted].calls to enforce them; until then this rule has nothing to check.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.admin_endpoints_rbac",
@@ -599,7 +729,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [rbac].admin_url_patterns and [rbac].require_names to enforce that admin-tier mutating routes carry an RBAC dependency; until then this rule does not run."
+          "inert_reason": "declare [rbac].admin_url_patterns and [rbac].require_names to enforce that admin-tier mutating routes carry an RBAC dependency; until then this rule does not run.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.fields_wired_into_pipeline",
@@ -608,7 +740,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [field_wiring] specs (class + fields + accessors) to enforce that UI/config-driving fields are actually read by the pipeline; until then this rule has nothing to check."
+          "inert_reason": "declare [field_wiring] specs (class + fields + accessors) to enforce that UI/config-driving fields are actually read by the pipeline; until then this rule has nothing to check.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_aliased_first_party_imports",
@@ -617,7 +751,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.routers_in_router_dirs",
@@ -626,7 +762,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.vendored_js_in_vendor",
@@ -635,7 +773,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_hand_rolled_components_in_pages",
@@ -644,7 +784,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.optional_query_empty_safe",
@@ -653,7 +795,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.crud_orm_over_text",
@@ -662,16 +806,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_template_logic",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.12.0",
-          "violations": 0,
+          "violations": 11,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "Move the computation into the view service and pass the finished value to the template (the view assembles state; the template renders it). See --playbook template-logic.",
+          "example": ""
         },
         {
           "rule": "fw.tenant_scoped",
@@ -680,16 +828,20 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "set [tenant].column to the tenant FK (e.g. organization_id) to enable per-tenant query scoping; until then this rule does not run. See --playbook tenant-scoped."
+          "inert_reason": "set [tenant].column to the tenant FK (e.g. organization_id) to enable per-tenant query scoping; until then this rule does not run. See --playbook tenant-scoped.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.component_registry",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.15.0",
-          "violations": 0,
+          "violations": 1,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "Register every PUBLIC component macro in the component index (the catalogue agents discover macros from) \u2014 or _-prefix it if it's an internal helper. The library is the ONE branded source of a component; an unregistered macro is invisible, so the next agent reinvents it (a 'generic button' when btn_* already exist). Declare the registry with [components].index (a file, a dir, or a LIST of them if the library is split by audience); missing one \u2192 create it. A macro is registered when the index names it IN CODE, tied to its file \u2014 `{% from \"macros/x.html\" import name %}` (then show it: `{{ name(\u2026) }}`), or `{% import \"macros/x.html\" as x %}` and `x.name(\u2026)`. A mention in prose, a table of names, a comment or a CSS class is not a registration. Point at the ACTUAL catalogue(s), never a broad parent dir \u2014 a broad parent makes a macro merely USED beneath it count as registered (a false green). Never a generic/parallel macro. See --playbook component-macros.",
+          "example": ""
         },
         {
           "rule": "fw.layout",
@@ -698,7 +850,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_column_roundtrips",
@@ -707,7 +861,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_hand_rolled_pagination",
@@ -716,7 +872,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_dynamic_column_sort",
@@ -725,7 +883,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_persists_value",
@@ -734,7 +894,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.aware_datetime_columns",
@@ -743,7 +905,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.side_effects_after_commit",
@@ -752,7 +916,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.static_assets_cache_busted",
@@ -761,7 +927,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.commented_enum_columns",
@@ -770,7 +938,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_templates_at_fleet_path",
@@ -779,7 +949,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.static_js_at_fleet_path",
@@ -788,7 +960,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.secure_cookies",
@@ -797,7 +971,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.template_refs_resolve",
@@ -806,7 +982,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_orphan_pages",
@@ -815,7 +993,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "this app renders a page by a computed name (a non-literal TemplateResponse), so an unreferenced page can't be proven dead. Orphan detection runs only when every render uses a literal template name."
+          "inert_reason": "this app renders a page by a computed name (a non-literal TemplateResponse), so an unreferenced page can't be proven dead. Orphan detection runs only when every render uses a literal template name.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.tenant_route_reachability",
@@ -824,7 +1004,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [tenant].column and the [tenant.auth] role markers to turn on the static cross-tenant reachability analysis; until then it does not run. See --playbook tenant-scoped."
+          "inert_reason": "declare [tenant].column and the [tenant.auth] role markers to turn on the static cross-tenant reachability analysis; until then it does not run. See --playbook tenant-scoped.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.state_changing_get",
@@ -833,7 +1015,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enum_not_native_pg",
@@ -842,7 +1026,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.route_smoke_wired",
@@ -851,7 +1037,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.session_minted_in_owner",
@@ -860,7 +1048,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.dev_prod_pool_parity",
@@ -869,7 +1059,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.app_dont_import_scripts",
@@ -878,7 +1070,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enums_in_enum_model",
@@ -887,7 +1081,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.enums_declared",
@@ -896,7 +1092,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_threaded_aliasing",
@@ -905,7 +1103,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_dropped_input",
@@ -914,7 +1114,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_passthrough_view_service",
@@ -923,7 +1125,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_orphan_partials",
@@ -932,7 +1136,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "this app renders a template by a non-literal TemplateResponse, or includes one by a computed name with no pinnable literal prefix ({% include some_var %}), so an unreferenced partial can't be proven dead. (A computed include WITH a literal prefix \u2014 {% include 'x/' ~ v %}, or a var set to one \u2014 is scoped to that subtree, not a global stand-down.) Run `--sweep orphan-templates` to LIST the no-static-reference partials for review (NOT a clearance)."
+          "inert_reason": "this app renders a template by a non-literal TemplateResponse, or includes one by a computed name with no pinnable literal prefix ({% include some_var %}), so an unreferenced partial can't be proven dead. (A computed include WITH a literal prefix \u2014 {% include 'x/' ~ v %}, or a var set to one \u2014 is scoped to that subtree, not a global stand-down.) Run `--sweep orphan-templates` to LIST the no-static-reference partials for review (NOT a clearance).",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.mutating_route_authenticated",
@@ -941,7 +1147,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.annotated_dep_is_depends",
@@ -950,7 +1158,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.feature_flag_is_not_authz",
@@ -959,7 +1169,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "list the feature-gate dependency factories in [features].gate_names (e.g. require_feature) to flag a state-changing route whose ONLY authorization is a feature flag (feature-enabled is not permission \u2014 a mutating route needs a role gate or an ownership scope). See --playbook route-auth."
+          "inert_reason": "list the feature-gate dependency factories in [features].gate_names (e.g. require_feature) to flag a state-changing route whose ONLY authorization is a feature flag (feature-enabled is not permission \u2014 a mutating route needs a role gate or an ownership scope). See --playbook route-auth.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.feature_keys_declared",
@@ -968,7 +1180,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "set [features].registry = 'app.core.features:Feature' \u2014 the canonical closed set \u2014 to enforce that every feature-key literal is a declared member (a typo silently locks everyone out of a surface, or hides a page). ADR-001 for feature keys. See --playbook route-auth."
+          "inert_reason": "set [features].registry = 'app.core.features:Feature' \u2014 the canonical closed set \u2014 to enforce that every feature-key literal is a declared member (a typo silently locks everyone out of a surface, or hides a page). ADR-001 for feature keys. See --playbook route-auth.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_any_typed_service_boundary",
@@ -977,7 +1191,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.strftime_is_display_only",
@@ -986,16 +1202,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.crud_paginated_signature",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.90.0",
-          "violations": 0,
+          "violations": 1,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "Any crud method taking a page window names the offset `skip` and makes it keyword-only (`*, skip, limit`), so callers can't transpose skip/limit. A `*_paginated` method also returns a `(rows, total)` tuple: `async def list_x_paginated(self, db, *, skip, limit, ...) -> tuple[list[X], int]`. See --playbook pagination.",
+          "example": ""
         },
         {
           "rule": "fw.crud_base_single_pattern",
@@ -1004,7 +1224,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.template_role_placement",
@@ -1013,7 +1235,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.api_routers_dont_import_views",
@@ -1022,7 +1246,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.web_routers_single_surface",
@@ -1031,7 +1257,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "target is web_only (no JSON-API surface) \u2014 nothing to split to"
+          "inert_reason": "target is web_only (no JSON-API surface) \u2014 nothing to split to",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.json_routes_typed",
@@ -1040,7 +1268,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.js_in_files",
@@ -1049,7 +1279,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.injected_models_dont_cross_the_seam",
@@ -1058,7 +1290,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.templates_compile",
@@ -1067,7 +1301,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.color_mode_tokens",
@@ -1076,7 +1312,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "no [color_tokens] palette declared \u2014 declare it (token \u2192 tailwind color) to enforce that a hand-rolled light/dark pair uses the token; off until then"
+          "inert_reason": "no [color_tokens] palette declared \u2014 declare it (token \u2192 tailwind color) to enforce that a hand-rolled light/dark pair uses the token; off until then",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_nested_session",
@@ -1085,7 +1323,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.jinja_strict_undefined",
@@ -1094,7 +1334,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_orm_dict_across_seam",
@@ -1103,7 +1345,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_naive_datetime_default",
@@ -1112,7 +1356,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.auth_fails_closed",
@@ -1121,7 +1367,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.url_assembly_in_view",
@@ -1130,7 +1378,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.url_builder_not_in_template",
@@ -1139,7 +1389,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.url_assembly_in_data_layer",
@@ -1148,7 +1400,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.route_no_broad_except",
@@ -1157,7 +1411,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_crud_reach_through",
@@ -1166,7 +1422,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_layer_reach_through",
@@ -1175,7 +1433,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.datetime_display_via_filter",
@@ -1184,7 +1444,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.dto_in_schemas",
@@ -1193,7 +1455,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.paginated_result_unpacked",
@@ -1202,7 +1466,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.test_engine_pool_parity",
@@ -1211,7 +1477,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:202), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids (WWWLUXARDO-139). Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone."
+          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:202), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids. Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.template_context_complete",
@@ -1220,7 +1488,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.asserter_current",
@@ -1229,7 +1499,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.broad_except_is_logged",
@@ -1238,7 +1510,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.core_mutation_checks_permission",
@@ -1247,7 +1521,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [rbac].require_names (the same list the route-level RBAC rules use) to enforce that a mutating core method taking a `user` actually checks that user's permission. Until then this rule does not run."
+          "inert_reason": "declare [rbac].require_names (the same list the route-level RBAC rules use) to enforce that a mutating core method taking a `user` actually checks that user's permission. Until then this rule does not run.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.destructive_macro_gated",
@@ -1256,7 +1532,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [components].destructive (the macros that delete/reindex/revoke) and [rbac].require_names (what a permission check looks like here) to enforce that a destructive control is rendered only inside a permission conditional. The image cannot infer either: a macro NAME does not tell you whether it destroys, and every repo spells its permission check differently. Until both are declared this rule does not run."
+          "inert_reason": "declare [components].destructive (the macros that delete/reindex/revoke) and [rbac].require_names (what a permission check looks like here) to enforce that a destructive control is rendered only inside a permission conditional. The image cannot infer either: a macro NAME does not tell you whether it destroys, and every repo spells its permission check differently. Until both are declared this rule does not run.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.route_dep_matches_surface",
@@ -1265,7 +1543,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "declare [[authz.signature]] rows (`prefix` + `require_dep`) to enforce that a route under a surface carries THAT surface's dependency. `fw.admin_endpoints_rbac` asks whether any gate exists; this asks whether it is the right one \u2014 a bare CurrentUser on /admin is a gate and not an admin gate. Until rows are declared this rule does not run."
+          "inert_reason": "declare [[authz.signature]] rows (`prefix` + `require_dep`) to enforce that a route under a surface carries THAT surface's dependency. `fw.admin_endpoints_rbac` asks whether any gate exists; this asks whether it is the right one \u2014 a bare CurrentUser on /admin is a gate and not an admin gate. Until rows are declared this rule does not run.",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.credential_routes_limited",
@@ -1274,16 +1554,20 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.committed_artifacts_declared",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.226.0",
-          "violations": 0,
+          "violations": 1,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "Declare in .luxarch.toml: `[build] artifacts_committed = [\"<repo-relative path>\", \u2026]` plus `evidence = \"<who builds the image and why it cannot run the asset toolchain>\"`. Only for a repo whose image is built outside its control (external CI / k8s); otherwise build the asset in the image and gitignore it. See FLEET-BUILD-DEPLOY-STANDARD, 'Generated JS/CSS'.",
+          "example": ""
         },
         {
           "rule": "fw.no_reserved_query_params",
@@ -1292,7 +1576,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.surface_separation",
@@ -1301,7 +1587,9 @@
           "violations": 0,
           "deferred": false,
           "inert": true,
-          "inert_reason": "opt-in \u2014 N/A until [surfaces].admin and [surfaces].tenant name the two surfaces' template roots (a repo with an operator surface and a customer surface should declare them)"
+          "inert_reason": "opt-in \u2014 N/A until [surfaces].admin and [surfaces].tenant name the two surfaces' template roots (read: admin=[], tenant=[]). Each is a path prefix, or a list of them, relative to the web templates dir (`admin = \"pages/admin/\"`, `tenant = [\"pages/\", \"partials/\"]`); the admin root may sit inside the tenant one. A repo with an operator surface and a customer surface should declare them",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.auth_surface_declared",
@@ -1310,7 +1598,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.rate_limit_enforced",
@@ -1319,7 +1609,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.module_homes",
@@ -1328,7 +1620,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.file_size",
@@ -1337,7 +1631,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.no_noload_loader",
@@ -1346,7 +1642,9 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.sqlalchemy_21_ready",
@@ -1355,15 +1653,61 @@
           "violations": 0,
           "deferred": false,
           "inert": false,
-          "inert_reason": ""
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.non_request_callers_use_core",
+          "status": "PASS",
+          "since": "0.257.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.service_owns_its_tasks",
+          "status": "PASS",
+          "since": "0.257.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.generated_assets_built_in_image",
+          "status": "FAIL",
+          "since": "0.262.0",
+          "violations": 1,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "Add the Node stage to the Dockerfile (`luxarch --emit css-stage`) and COPY only its output into the app stage; gitignore the output; for live changes `make css-watch` (`luxarch --emit css-watch`), never npm on the host or a node service in compose. An image built by a pipeline this repo does not own declares `[build].artifacts_committed` with evidence instead. See luxarch --doc FLEET-BUILD-DEPLOY-STANDARD.",
+          "example": ""
+        },
+        {
+          "rule": "fw.crud_reads_bounded",
+          "status": "PASS",
+          "since": "0.274.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         }
       ],
       "summary": {
-        "PASS": 131,
-        "FAIL": 0,
+        "PASS": 125,
+        "FAIL": 7,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 19
+        "INERT": 22
       }
     }
   ],
@@ -1376,7 +1720,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.guards_wired",
@@ -1385,7 +1731,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.no_public_ci",
@@ -1394,7 +1742,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.oci_image_labels",
@@ -1403,7 +1753,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.components_declared",
@@ -1412,7 +1764,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.no_piped_installer",
@@ -1421,7 +1775,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.makefile_canonical",
@@ -1430,7 +1786,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.guard_owned_tools_undeclared",
@@ -1439,7 +1797,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.dev_tools_not_in_production",
@@ -1448,7 +1808,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.fleet_skills_present",
@@ -1457,7 +1819,31 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.logging_canonical",
+        "status": "FAIL",
+        "since": "0.254.0",
+        "violations": 8,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "`luxarch --emit logging > <app>/core/logging_config.py` (unedited), call `configure_logging(service=..., version=...)` once in the target's entrypoint (`main.py` / `__main__.py`), and delete every other setup this names. Existing `logger.info(..., extra={...})` calls keep working, and colliding keys no longer crash. See --playbook logging.",
+        "example": ""
+      },
+      {
+        "rule": "repo.log_fields_explicit",
+        "status": "FAIL",
+        "since": "0.269.0",
+        "violations": 3,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Name every field at the call site: `logger.info(\"evt\", extra={\"order_id\": o.id, \"status\": s})`, directives (`exc_info=True`) on the call itself, identifiers rather than whole objects. A splat, a mapping built elsewhere or a `model_dump()` can carry personal data no reviewer sees; the redactor is the backstop, not the control. No exceptions. See --playbook logging.",
+        "example": ""
       },
       {
         "rule": "repo.makefile_no_command_substitution",
@@ -1466,7 +1852,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.makefile_no_fixed_tmp",
@@ -1475,7 +1863,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.guard_pins_not_overridable",
@@ -1484,7 +1874,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.guard_upgrade_verifies_write",
@@ -1493,7 +1885,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.db_verify_image_is_current",
@@ -1502,25 +1896,31 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.image_name_declares_provenance",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.197.0",
-        "violations": 0,
+        "violations": 1,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "adopt the canonical block: `luxarch --emit image-block`. A registry-qualified tag you BUILD must also be PUSHED (never split them \u2014 a built-but-unpushed deployable name is a local-only image that a prune silently deletes), and a verification image must be BARE (`$(notdir $(IMAGE_NAME)):test`) so it cannot be pushed or mistaken for a deployable. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "example": ""
       },
       {
         "rule": "repo.deploy_tag_is_immutable",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.197.0",
-        "violations": 0,
+        "violations": 2,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "pin an immutable identifier in `.env.<env>` (compose) or the overlay's `images: newTag:` (kustomize): `sha-<commit>` (every build, no ceremony \u2014 the sha is already computed for BUILD_COMMIT) or `TAG=<version>` for a cut release. A moving tag cannot be a deployment record: you cannot say which bits are running and you cannot roll back to them. `luxarch --emit image-block` prints the canonical scheme, where `:dev` survives only as a human-readable alias nothing pins. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "example": ""
       },
       {
         "rule": "repo.release_scans_candidate",
@@ -1529,7 +1929,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.makefile_image_ref_well_formed",
@@ -1538,7 +1940,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.alembic_env_honors_caller_url",
@@ -1547,7 +1951,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.emitted_assets_current",
@@ -1556,7 +1962,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.luxpm_receipt_current",
@@ -1565,7 +1973,20 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.luxpm_backlog_triaged",
+        "status": "FAIL",
+        "since": "0.252.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "run `/luxpm-audit` (`luxarch --emit luxpm-audit-skill > .claude/skills/luxpm-audit/SKILL.md`): verify each open issue against the code and close it with evidence, park it `on_hold` with `waiting_on`, merge it into its duplicate, or comment what remains; backfill a summary on each unexplained close; then re-issue the receipt. Never close live work to move the count, and leave escalations to the guard maintainer.",
+        "example": ""
       },
       {
         "rule": "repo.guard_status_current",
@@ -1574,7 +1995,9 @@
         "violations": 0,
         "deferred": false,
         "inert": true,
-        "inert_reason": "this run is WRITING the status files (`make status`), so the files on disk are the ones it is replacing \u2014 judging them would record a red about themselves in the committed snapshot. The next `make check` judges what was written"
+        "inert_reason": "this run is WRITING the status files (`make status`), so the files on disk are the ones it is replacing \u2014 judging them would record a red about themselves in the committed snapshot. The next `make check` judges what was written",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.claude_pointer_present",
@@ -1583,7 +2006,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.gitleaks_scans_identity",
@@ -1592,7 +2017,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.makefile_test_db_harness",
@@ -1601,7 +2028,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.migrations_build_schema",
@@ -1610,7 +2039,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.release_docs_present",
@@ -1619,7 +2050,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.release_docs_current",
@@ -1628,7 +2061,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.github_release_wired",
@@ -1637,7 +2072,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.release_tag_hygiene",
@@ -1646,7 +2083,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.hooks_wired",
@@ -1655,7 +2094,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.hooks_current",
@@ -1664,7 +2105,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.allowlist_wellformed",
@@ -1673,7 +2116,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.python_version_consistent",
@@ -1682,7 +2127,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.fleet_dep_floor",
@@ -1691,7 +2138,20 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.otel_instrumentors_effective",
+        "status": "PASS",
+        "since": "0.275.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.schema_from_migrations",
@@ -1700,7 +2160,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.metadata_naming_convention",
@@ -1709,7 +2171,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.compose_conventions",
@@ -1718,7 +2182,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.compose_command_no_orphan_flags",
@@ -1727,7 +2193,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.shared_buildx_builder",
@@ -1736,7 +2204,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.compose_project_name",
@@ -1745,7 +2215,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.compose_db_ephemeral_volume",
@@ -1754,7 +2226,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.makefile_db_ephemeral_volume",
@@ -1763,7 +2237,64 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.compose_up_selects_services",
+        "status": "PASS",
+        "since": "0.264.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.test_stack_parity",
+        "status": "INERT",
+        "since": "0.268.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "no committed compose stack deploys a backing service (database, cache, queue, object store, search) \u2014 nothing for the test stack to match",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.stack_smoke_wired",
+        "status": "FAIL",
+        "since": "0.268.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Paste `luxarch --emit smoke` below the image block, set SMOKE_URL (and the probe paths) for this app, and let `make dev-deploy` end with `$(MAKE) smoke`, unguarded, so a FAIL fails the deploy. See --doc FLEET-VERIFICATION-STANDARD.",
+        "example": ""
+      },
+      {
+        "rule": "repo.test_block_wired",
+        "status": "FAIL",
+        "since": "0.271.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Paste `luxarch --emit test-block` below the image block and delete the hand-written `test` (keep `test-db-up`/`test-db-down` only if another target, such as db-verify, calls them); set TEST_SERVICES (the backing services) and TEST_ENV (their URLs) above it, and never commit PYTEST_ARGS. Each test service: a healthcheck that is only the probe (Postgres: `pg_isready -h 127.0.0.1 -U <user> -d <db>`); no `container_name`, fixed host port, `network_mode`, bind-mounted or named volume, or named or shared network. See --doc FLEET-MAKEFILE-STANDARD \u00a71.",
+        "example": ""
+      },
+      {
+        "rule": "repo.poetry_version_consistent",
+        "status": "PASS",
+        "since": "0.268.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.alembic_path_separator",
@@ -1772,7 +2303,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.alembic_autogen_comparisons",
@@ -1781,7 +2314,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.migration_notnull_safe",
@@ -1790,7 +2325,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.buildx_builder_gc_capped",
@@ -1799,7 +2336,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.buildx_strays_refused",
@@ -1808,7 +2347,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.version_single_source",
@@ -1817,7 +2358,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.hatchling_build_backend",
@@ -1826,7 +2369,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.hatch_version_source_buildable",
@@ -1835,7 +2380,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.app_version_calver",
@@ -1844,7 +2391,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.dockerfile_provenance_args",
@@ -1853,7 +2402,9 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       },
       {
         "rule": "repo.entrypoint_execs",
@@ -1862,24 +2413,26 @@
         "violations": 0,
         "deferred": false,
         "inert": false,
-        "inert_reason": ""
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
       }
     ],
     "summary": {
-      "PASS": 54,
-      "FAIL": 0,
+      "PASS": 55,
+      "FAIL": 7,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 1
+      "INERT": 2
     }
   },
   "summary": {
-    "PASS": 185,
-    "FAIL": 0,
+    "PASS": 180,
+    "FAIL": 14,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 20
+    "INERT": 24
   },
-  "commit": "0ce28128ac40e647b3f0ea8f7ea711254e9e31fd",
-  "generated_at": "2026-10-03T04:15:48Z"
+  "commit": "6cf0cecfec20e5ce871a58713341b1a1da0df0d6",
+  "generated_at": "2026-10-09T18:33:21Z"
 }

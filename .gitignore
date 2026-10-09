@@ -77,3 +77,6 @@ Makefile.local
 
 # ── Per-run scratch the Makefile keeps in-repo (test / verify databases) ──
 .cache/
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.luxpm-searched.json

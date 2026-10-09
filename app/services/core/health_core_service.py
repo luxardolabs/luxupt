@@ -14,16 +14,15 @@ from app.clients.camera_manager import CameraManager
 from app.core import config
 from app.core.logging_config import get_logger
 from app.db import maintenance as db_maintenance
+from app.models.enum_model import HealthStatus
+from app.schemas.health_schema import (
+    HealthCheckResult,
+    HealthReport,
+    LivenessReport,
+    ReadinessReport,
+)
 
 logger = get_logger(__name__)
-
-
-class HealthStatus:
-    """Health status constants."""
-
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
 
 
 class HealthCoreService:
@@ -141,7 +140,7 @@ class HealthCoreService:
             "services": services,
         }
 
-    async def get_health_status(self, db: AsyncSession) -> dict[str, Any]:
+    async def get_health_status(self, db: AsyncSession) -> HealthReport:
         """Get comprehensive health status."""
         checks = {}
         overall_status = HealthStatus.HEALTHY
@@ -187,32 +186,35 @@ class HealthCoreService:
         # Calculate uptime
         uptime_seconds = (datetime.now(UTC) - self.start_time).total_seconds()
 
-        return {
-            "status": overall_status,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "version": os.getenv("BUILD_VERSION", "dev"),
-            "uptime_seconds": int(uptime_seconds),
-            "checks": checks,
-        }
+        return HealthReport(
+            status=overall_status,
+            timestamp=datetime.now(UTC).isoformat(),
+            version=os.getenv("BUILD_VERSION", "dev"),
+            uptime_seconds=int(uptime_seconds),
+            checks={
+                name: HealthCheckResult.model_validate(check)
+                for name, check in checks.items()
+            },
+        )
 
-    async def get_liveness(self) -> dict[str, Any]:
+    async def get_liveness(self) -> LivenessReport:
         """Simple liveness check (is the application running)."""
-        return {
-            "status": HealthStatus.HEALTHY,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
+        return LivenessReport(
+            status=HealthStatus.HEALTHY,
+            timestamp=datetime.now(UTC).isoformat(),
+        )
 
-    async def get_readiness(self, db: AsyncSession) -> dict[str, Any]:
+    async def get_readiness(self, db: AsyncSession) -> ReadinessReport:
         """Readiness check (is the application ready to serve traffic)."""
         # Check database connectivity
         db_check = await self.check_database(db)
 
         if db_check["status"] == HealthStatus.UNHEALTHY:
-            return {
-                "status": HealthStatus.UNHEALTHY,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "message": "Database not available",
-            }
+            return ReadinessReport(
+                status=HealthStatus.UNHEALTHY,
+                timestamp=datetime.now(UTC).isoformat(),
+                message="Database not available",
+            )
 
         # Check camera manager
         camera_check = await self.check_camera_manager()
@@ -220,14 +222,14 @@ class HealthCoreService:
         # Camera manager being degraded (no cameras) shouldn't block readiness
         # but being unhealthy (error) should
         if camera_check["status"] == HealthStatus.UNHEALTHY:
-            return {
-                "status": HealthStatus.UNHEALTHY,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "message": "Camera manager error",
-            }
+            return ReadinessReport(
+                status=HealthStatus.UNHEALTHY,
+                timestamp=datetime.now(UTC).isoformat(),
+                message="Camera manager error",
+            )
 
-        return {
-            "status": HealthStatus.HEALTHY,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "message": "Application ready",
-        }
+        return ReadinessReport(
+            status=HealthStatus.HEALTHY,
+            timestamp=datetime.now(UTC).isoformat(),
+            message="Application ready",
+        )

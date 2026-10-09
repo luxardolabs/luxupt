@@ -294,13 +294,13 @@ async def durable_db(_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
 
 
-# luxarch:route-smoke asserter v19 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
+# luxarch:route-smoke asserter v20 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
 #
 # WHY THIS FILE EXISTS
 # A dependency deprecates an API; your code keeps working (warning only); a later pin makes it RAISE;
 # `poetry.lock` bumps — and the code is now broken with nothing failing. Not audit (a deprecation is
 # not a CVE), not mypy (the attribute still exists; the behaviour changed), not the lock diff. It bit
-# WWW twice in six weeks (Starlette TemplateResponse arg order; pydantic `model_fields` instance
+# one repo twice in six weeks (Starlette TemplateResponse arg order; pydantic `model_fields` instance
 # access), both caught by luck. The canonical pytest config already has `filterwarnings = error` — the
 # exact mechanism that turns a DeprecationWarning into a failing test one version EARLY. It was inert
 # because no test executed the line. The surfaces where deprecations bite hardest (admin pages, error
@@ -329,7 +329,7 @@ async def durable_db(_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 # `from __future__ import …` is a SyntaxError (it must be the first statement) and any other import is
 # ruff E402 — and luxlint's emitted-asset exemption drops T201/T203/PLC0415, NOT E402. So an import
 # here leaves an adopter choosing between editing a DO-NOT-EDIT block and carrying a permanent red.
-# v9 had none; v11 added two and cost www exactly that (WWWLUXARDO-163). Import inside a function if
+# v9 had none; v11 added two and cost an adopter exactly that. Import inside a function if
 # you ever need one — PLC0415's exemption already covers that.
 
 # --- EDIT THIS: how your app object is imported (the thing that owns the route table). ---
@@ -391,7 +391,7 @@ _HIT: set[int] = (
     set()
 )  # ids of route objects that were exercised (see _patch_route_class)
 _OUTCOMES = {"passed": 0, "failed": 0, "skipped": 0}
-# route id -> the 5xx statuses the suite saw from it. BOUTIQUE-549: --playbook route-smoke line 84
+# route id -> the 5xx statuses the suite saw from it. --playbook route-smoke line 84
 # claims route-smoke "catches ordinary logic bugs that 500 on first request", but nothing recorded
 # status, so that sentence was only true when a test author happened to assert on it. Four prod
 # 500s shipped while this asserter reported PASS. Recording status is NOT a response-SHAPE
@@ -400,23 +400,23 @@ _SERVER_ERRORS: dict[int, set[int]] = {}
 # route id -> the (status, location-path) pairs the suite saw, and the set of routes that produced at
 # least one NON-redirect response. Together these answer "did the handler ever actually run?", which
 # `_HIT` cannot: a 307 from auth middleware records a hit for a handler that never executed
-# (LUXMOMENTU-76). A 4xx counts as rendered — an explicit refusal is the route answering, where a
+# (the logged-out suite above). A 4xx counts as rendered — an explicit refusal is the route answering, where a
 # silent bounce to a login page is not.
 _REDIRECTS: dict[int, set[tuple[int, str]]] = {}
 _RENDERED: set[int] = set()
 # Under `pytest -n` (xdist) every worker is its own process with its own recorder, and the CONTROLLER,
 # where pytest_sessionfinish certifies, runs no test at all: it saw 0 requests and refused a green run
-# (OPENCLAIM-365). Route ids differ per process, so each worker translates its ids to (host, method,
+# outright. Route ids differ per process, so each worker translates its ids to (host, method,
 # path) before handing them back, and the controller maps them onto its own ids.
 _WORKER_PAYLOADS: list[dict[str, list[object]]] = []
 
 
 def pytest_runtest_logreport(report) -> None:  # type: ignore[no-untyped-def]
     # Count outcomes so the 0-hits net can tell "the request suite SKIPPED (e.g. a DB-less run)" from
-    # "tests ran but the recorder saw nothing (real misconfig)" — WWWLUXARDO-70. A real skip is decided
+    # "tests ran but the recorder saw nothing (real misconfig)". A real skip is decided
     # at SETUP. CRITICAL: an xfail RAN — pytest reports it at the CALL phase with outcome=="skipped" and
     # `wasxfail` set, so it must NOT be counted as a skip, or a single xfail (the fleet's own
-    # known-broken idiom) would disarm net #2 and route-smoke would certify nothing (LUXSTATS).
+    # known-broken idiom) would disarm net #2 and route-smoke would certify nothing.
     if report.when == "setup" and report.outcome == "skipped":
         _OUTCOMES["skipped"] += 1
     elif report.when == "call":
@@ -431,7 +431,7 @@ def _patch_route_class(cls, match_full) -> None:  # type: ignore[no-untyped-def]
     # knows its UNPREFIXED path, while the mount prefix lives on the parent wrapper — so a string key
     # could never agree between recording and enumeration (they'd both have to reconstruct the full
     # path, and the recorder can't). Keying on `id(route)` makes the two sides agree BY CONSTRUCTION:
-    # enumeration walks the same objects and records their ids. (LUXSTATS-67: proven end-to-end.)
+    # enumeration walks the same objects and records their ids. (Proven end-to-end on a real repo.)
     # Record on BOTH matches() (fires on a FULL match even if a dep later 403s — import-time deprecations
     # still caught) and handle() (body dispatch). Idempotent per class; `_HIT` is a set so a super()
     # double-record is harmless.
@@ -492,7 +492,7 @@ def _install_recorder() -> None:
     # dispatches by calling `original_route.handle(...)` on the APIRoute directly — so patching only
     # the Starlette parent Route recorded ZERO hits (v1 patched handle, v2 added matches; both missed).
     # Patch APIRoute FIRST, then the Starlette Route (WebSocketRoute etc. still go through Route). The
-    # `Match.FULL` enum is shared. (WWWLUXARDO-67: root-caused + fix confirmed live by the www agent.)
+    # `Match.FULL` enum is shared. (Root-caused, and the fix confirmed live in an adopting repo.)
     import starlette.routing as _r
 
     _patch_route_class(_r.Route, _r.Match.FULL)
@@ -514,9 +514,9 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
     # recorder by construction). The HOST is carried down so shadow-detection keys on (host, method,
     # path): a Host()-composed app reaches the SAME route object once per hostname, and different
     # sub-apps legitimately share `/`, `/docs`, … — neither is a shadow, because Starlette matches
-    # exactly ONE host per request (BOUTIQUE-410 v8 false-positive). The prefix is NOT on the route —
+    # exactly ONE host per request (the v8 false positive). The prefix is NOT on the route —
     # it's on the wrapper: `_IncludedRouter.include_context.prefix` (empty on `.original_router.prefix`)
-    # and `Mount.path`. (LUXSTATS-67.)
+    # and `Mount.path`.
     mod, _, attr = APP_IMPORT.partition(":")
     import importlib
 
@@ -543,7 +543,7 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
                 # exemptable either, because the exemption read as stale. The one surface this
                 # asserter cannot check was also the one it refused to let you document, and the
                 # message said "describing a route that does not exist" about a route that was
-                # serving 200s (LUXTASTE-334).
+                # serving 200s.
                 #
                 # The sentinel keeps it out of the COVERAGE requirement — a third-party ASGI app's
                 # internals are not this asserter's business — while making it visible to the stale
@@ -593,7 +593,7 @@ _MIN_PLAUSIBLE_ROUTES = 5
 def _session_is_narrowed(session) -> bool:  # type: ignore[no-untyped-def]
     """True when this run deliberately selected a SUBSET of the suite.
 
-    LUXTASTE-307: net #2 exists to catch a blind RECORDER on a run where request tests ran and
+    Net #2 exists to catch a blind RECORDER on a run where request tests ran and
     recorded nothing. A focused run (`pytest tests/unit/x.py`, `-k`, a node id) selects no request
     tests at all, so zero hits is the correct outcome — not evidence of misconfiguration. The only
     stand-down signal was the skip count, and a narrowed selection has 0 skips, so every focused
@@ -627,7 +627,7 @@ def _session_is_narrowed(session) -> bool:  # type: ignore[no-untyped-def]
         return True
     import os.path
 
-    # LUXSTATS-111: the string comparison below reported EVERY run as narrowed under the fleet's own
+    # The string comparison below once reported EVERY run as narrowed under the fleet's own
     # canonical config, so route-smoke certified nothing on any repo using it — while
     # fw.route_smoke_wired stayed green and the stand-down message read like normal operation ("run
     # the full suite to certify", when the full suite is what ran). The reporter's probe on a real
@@ -647,11 +647,11 @@ def _session_is_narrowed(session) -> bool:  # type: ignore[no-untyped-def]
     if len(args) == 1 and os.path.normpath(args[0]).rstrip("/") in {root, here}:
         return False
     # v16 also had an "ini file outside the rootdir -> not narrowed" leg here. It is GONE, because it
-    # was redundant AND harmful (LUXPM-233). Redundant: the rootdir/cwd check above already handles
-    # every case LUXSTATS-111 reported — verified against their probe. Harmful: it returned
+    # was redundant AND harmful. Redundant: the rootdir/cwd check above already handles
+    # every case the narrowed-run report raised — verified against the reporter's probe. Harmful: it returned
     # not-narrowed OUTRIGHT, discarding the args, so `pytest -c /cfg/pytest.ini --rootdir=/app
     # tests/test_tool_gate.py` read as the full suite, recorded zero route hits and the zero-hits net
-    # REFUSED. That is LUXTASTE-307's failure — the everyday focused run goes red — coming back
+    # REFUSED. That is the focused-run failure — the everyday focused run goes red — coming back
     # through a new leg. The comment beside it said it should only skip the testpaths COMPARISON; the
     # code switched off the whole determination. Correct intent, broader implementation.
     #
@@ -764,7 +764,7 @@ def _xdist_merge_hook() -> object:
     # needs `pytest`, which this block may only import inside a function (see the NOTE above).
     # v19: built here and bound below rather than registered from a `pytest_configure`. v18 defined
     # `pytest_configure`, and this block is pasted into the repo's own conftest, where Python keeps
-    # only the LAST def of a name: it silently replaced the repo's hook (LUXSWIRL-245: three
+    # only the LAST def of a name: it silently replaced the repo's hook (one repo lost three
     # dynamically registered markers vanished, 12 files failed collection under --strict-markers).
     # This block defines no hook name a repo's conftest would also define.
     import pytest
@@ -784,7 +784,7 @@ pytest_testnodedown = _xdist_merge_hook()
 def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untyped-def]
     # Only CERTIFY on a green run — a red suite's route list is untrustworthy (a failed test may have
     # aborted before its route ran). But say so OUT LOUD: a silent skip lets coverage lapse invisibly
-    # while the suite is red (LUXTASTE route-smoke escalation). Non-enforcing by design; just visible.
+    # while the suite is red. Non-enforcing by design; just visible.
     if exitstatus not in (0, None):
         print(
             "\nluxarch route-smoke: INERT — suite exitstatus="
@@ -813,7 +813,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
     # shadowed one is dead/unreachable). Keyed on HOST because a Host()-composed app reaches the same
     # route under N hostnames and different sub-apps share `/`, `/docs`, … — those are not shadows
     # (Starlette matches exactly one host per request), so keying on (method, path) alone false-flagged
-    # thousands (BOUTIQUE-410 v8). A collision is real only when two DIFFERENT route ids share it.
+    # thousands (v8). A collision is real only when two DIFFERENT route ids share it.
     seen: dict[tuple[str, str, str], int] = {}
     shadowed: set[tuple[str, str, str]] = set()
     for h, m, p, rid in entries:
@@ -832,7 +832,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
     # Loud-fail net #1: implausibly few (INCLUDING ZERO) routes → the enumerator is mis-walking, NOT a
     # 2-route app. ZERO is the most certain "the walk is broken" signal, so it must fail LOUDEST — the
     # old `0 < len(entries)` guard excluded zero, so a walk-to-nothing certified GREEN silently, the exact
-    # hollow green this net exists to prevent (BOUTIQUE-410).
+    # hollow green this net exists to prevent.
     if not entries:
         raise SystemExit(
             "luxarch route-smoke: enumerated 0 routes — the walk found NOTHING, so this run certifies "
@@ -849,7 +849,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
             "hollow green. Update the asserter (luxarch --emit route-smoke). See --playbook route-smoke."
         )
     # Loud-fail net #2: routes exist but NOTHING was recorded. Two cases, cleanly separable by the skip
-    # count (WWWLUXARDO-70): if the request suite SKIPPED (a DB-less `make test` → 0 hits / many skipped),
+    # count: if the request suite SKIPPED (a DB-less `make test` → 0 hits / many skipped),
     # route-smoke simply wasn't exercised this run — that's NOT a misconfiguration; stand down (the
     # DB-full run enforces coverage). Only when tests actually RAN and still recorded nothing is the
     # recorder blind (wrong app / bypassing TestClient) — THAT is the misconfig to fail on.
@@ -881,7 +881,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
             "(luxarch --emit route-smoke) before hunting (a). Refusing to certify on zero requests "
             "either way. See --playbook route-smoke."
         )
-    # Loud-fail net #4: a route the suite REQUESTED returned 5xx. BOUTIQUE-549 — `--playbook
+    # Loud-fail net #4: a route the suite REQUESTED returned 5xx. `--playbook
     # route-smoke` line 84 claims route-smoke "catches ordinary logic bugs that 500 on first request",
     # but nothing looked at status, so the claim held only where a test author happened to assert on
     # it. A test that requests POST /vendors and gets a 500 satisfied the old asserter completely;
@@ -905,7 +905,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
                 "a test drives it to an error deliberately, add the path to EXPECT_5XX with a reason:"
                 "\n  " + "\n  ".join(bad) + "\nSee luxarch --playbook route-smoke."
             )
-    # Loud-fail net #5: every response a GET route gave the suite was a REDIRECT (LUXMOMENTU-76).
+    # Loud-fail net #5: every response a GET route gave the suite was a REDIRECT.
     # `_HIT` records that the route MATCHED, which an auth bounce satisfies — the middleware ran and
     # the handler did not. A reporting repo logged its session-scoped client out in one test file, and
     # because the smoke file sorts alphabetically after it, all 46 authenticated routes were requested
@@ -960,7 +960,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
         )
     # Covered iff THAT route object was exercised (id match) — the two sides agree by construction. One
     # route object reached under N hostnames is ONE route to cover, so collapse on route identity (rid)
-    # — else a Host()-composed app reports the same uncovered route once per host (BOUTIQUE-410 v8).
+    # — else a Host()-composed app reports the same uncovered route once per host (the v8 false positive).
     # The INVERSE check, and it is the more dangerous direction. Subtracting EXEMPT from the
     # registered routes trusted the list without ever asking whether the exempted route EXISTS. A
     # repo carried `/metrics` in EXEMPT from onboarding, commented "prometheus scrape — no behaviour
@@ -969,7 +969,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
     # `fw.route_smoke_wired` reporting PASS throughout, and was found only by reading /metrics by
     # hand. The exemption did not merely fail to catch the gap — it is WHY nothing looked wrong: a
     # missing route with no exemption reads as untested or absent, while a missing route WITH one
-    # reads as a deliberate, reviewed decision (LUXMOMENTU-61).
+    # reads as a deliberate, reviewed decision.
     #
     # Deliberately NOT skipped on a narrowed run: a subset selection still REGISTERS every route, so
     # unlike `missing` this count is meaningful even from one test.
@@ -979,7 +979,7 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
     # shape, so accept either spelling in EXEMPT rather than making the trailing slash load-bearing.
     registered_paths |= {p.rstrip("/") for p in registered_paths}
     registered_paths |= {p + "/" for p in registered_paths if not p.endswith("/")}
-    # Every path list gets this, not just EXEMPT. LUXMOMENTU-61 was about EXEMPT, but EXPECT_5XX has
+    # Every path list gets this, not just EXEMPT. The `/metrics` case was about EXEMPT, but EXPECT_5XX has
     # carried the identical hazard since it was added and nothing checked it: a path naming no
     # registered route reads as a reviewed decision while actually hiding the route's absence. Fixing
     # one instance of a class and leaving its siblings is how the same bug gets reported twice.

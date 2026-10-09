@@ -1,6 +1,6 @@
 {
   "guard": "luxlint",
-  "guard_version": "0.60.1",
+  "guard_version": "0.62.2",
   "repo": "/repo",
   "source": [
     "app",
@@ -136,6 +136,20 @@
       "deferred": false
     },
     {
+      "rule": "test.coverage_floor_set",
+      "status": "FAIL",
+      "since": "0.62.0",
+      "violations": 1,
+      "sites": [
+        {
+          "path": ".luxlint.toml",
+          "line": null,
+          "detail": "no `[test].coverage_min`: the coverage ratchet runs and passes whatever the suite covers. Set the floor to the figure `make test` measures"
+        }
+      ],
+      "deferred": false
+    },
+    {
       "rule": "test.no_handrolled_cleanup",
       "status": "PASS",
       "since": "0.36.0",
@@ -178,12 +192,12 @@
   ],
   "summary": {
     "PASS": 21,
-    "FAIL": 0,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 0
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "0ce28128ac40e647b3f0ea8f7ea711254e9e31fd",
-  "generated_at": "2026-10-03T04:15:48Z"
+  "commit": "6cf0cecfec20e5ce871a58713341b1a1da0df0d6",
+  "generated_at": "2026-10-09T18:33:21Z"
 }

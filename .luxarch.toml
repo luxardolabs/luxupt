@@ -9,7 +9,7 @@ web_only = true
 [enums]
 declared = [
   "ActivityType", "CaptureMethod", "CaptureStatus",
-  "JobStatus", "JobType", "ScheduleSource", "TimelapseStatus",
+  "HealthStatus", "JobStatus", "JobType", "ScheduleSource", "TimelapseStatus",
 ]
 
 [allowlist]

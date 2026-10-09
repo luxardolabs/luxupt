@@ -1,7 +1,7 @@
-// luxarch:htmx-error-swap asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit htmx-error-swap`.
+// luxarch:htmx-error-swap asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit htmx-error-swap`.
 // Canonical fleet HTMX error swap — emitted by `luxarch --emit htmx-error-swap`.
 //
-// Fleet ruling (WWWLUXARDO-116, `luxarch --playbook htmx-error-ux`): an unexpected error propagates
+// Fleet ruling (`luxarch --playbook htmx-error-ux`): an unexpected error propagates
 // to the global exception handler (`luxarch --emit exception-handler`), which returns status 500 with
 // an HTML error PARTIAL and the header `HX-Error-Swap: true` when the request was an HX-Request.
 //

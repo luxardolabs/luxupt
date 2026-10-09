@@ -43,6 +43,14 @@ class TimelapseStatus(StrEnum):
     FAILED = "failed"
 
 
+class HealthStatus(StrEnum):
+    """Outcome of a health probe or one of its subsystem checks."""
+
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+
+
 class JobType(StrEnum):
     """Kind of timelapse job."""
 

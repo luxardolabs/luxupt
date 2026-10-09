@@ -62,7 +62,7 @@ class TestAuthenticatedPages:
 
     async def test_unknown_path_is_handled(self, auth_client: AsyncClient) -> None:
         # An unmatched route is FastAPI's default 404 (JSON) — not the custom
-        # pages/404.html handler, which only fires on an in-app raise HTTPException(404).
+        # pages/errors/404.html handler, which only fires on an in-app raise HTTPException(404).
         # The value here is that an unknown path is handled gracefully, never a 500.
         resp = await auth_client.get("/no/such/route", follow_redirects=True)
         assert resp.status_code == 404

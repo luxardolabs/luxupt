@@ -17,13 +17,11 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
-    JSONResponse,
     PlainTextResponse,
     Response,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from jinja2 import StrictUndefined
 from slowapi.errors import RateLimitExceeded
 
 from app.clients.camera_manager import CameraManager, CameraManagerSettings
@@ -32,8 +30,9 @@ from app.core.logging_config import get_logger, setup_logging
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import close_db, get_db, get_db_context, init_db
-from app.models.enum_model import ActivityType
-from app.services.core.health_core_service import HealthCoreService, HealthStatus
+from app.models.enum_model import ActivityType, HealthStatus
+from app.schemas.health_schema import HealthReport, LivenessReport, ReadinessReport
+from app.services.core.health_core_service import HealthCoreService
 from app.services.core.metrics_core_service import MetricsCoreService
 from app.utils.exception_handlers import general_exception_handler
 from app.web.rate_limit import limiter, rate_limit_exceeded_handler
@@ -43,7 +42,7 @@ from .middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
-from .template_helpers import paginated_url
+from .templates import templates
 
 # Module logger
 logger = get_logger(__name__)
@@ -386,9 +385,9 @@ def create_app() -> FastAPI:
         # Use dedicated error page if available, fall back to generic
         dedicated_pages = {401, 403, 404, 500, 503}
         template_name = (
-            f"pages/{exc.status_code}.html"
+            f"pages/errors/{exc.status_code}.html"
             if exc.status_code in dedicated_pages
-            else "pages/error.html"
+            else "pages/errors/error.html"
         )
         return templates_inst.TemplateResponse(
             request,
@@ -433,48 +432,7 @@ def create_app() -> FastAPI:
     static_path = Path(__file__).parent.parent / "static"
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
-    # Templates live at the fleet-canonical app/templates/web/ (app-wide, a sibling of static/;
-    # email/llm would be peer subdirs). __file__ is app/web/main.py, so go up to app/.
-    templates_path = Path(__file__).parent.parent / "templates" / "web"
-    # StrictUndefined: a missing/renamed/typo'd template variable RAISES instead of rendering
-    # an empty string. Jinja's default silently renders "" -- a dropped view->template value or
-    # a stale context key then looks fine and busts nothing (fw.jinja_strict_undefined).
-    templates = Jinja2Templates(directory=str(templates_path))
-    templates.env.undefined = StrictUndefined
-
-    # Register custom template filters
-    from .template_filters import register_filters  # noqa: PLC0415 (lazy, app-factory)
-
-    register_filters(templates)
-
-    # partials/nav.html reads `user` on every page that extends the base layout, so it is
-    # a GLOBAL, not a per-route key. Declaring the default here clears it everywhere at
-    # once; a route with a real user overrides it via its own context.
-    templates.env.globals["user"] = None
-
-    # Add template globals
-    templates.env.globals.update(
-        {
-            "config": config,
-            "datetime": datetime,
-            "paginated_url": paginated_url,
-            # Cache-bust token for first-party static assets (fw.static_assets_cache_busted):
-            # the OCI revision (short git SHA), stamped as BUILD_COMMIT in the image
-            # (cache-busting playbook — one value shared with org.opencontainers.image.revision).
-            "static_version": os.getenv("BUILD_COMMIT", "dev"),
-            "len": len,
-            "enumerate": enumerate,
-            "range": range,
-            "max": max,
-            "min": min,
-            "round": round,
-            "int": int,
-            "str": str,
-            "float": float,
-            "dev_mode": config.LOGGING_LEVEL == "DEBUG",
-        }
-    )
-
+    # The one shared Jinja instance lives in its §2 home (app/web/templates.py).
     app.state.templates = templates
 
     # Import and include HTMX routers (SQLite + view services architecture)
@@ -537,9 +495,9 @@ app = create_app()
 
 
 # Health check endpoints
-@app.get("/health")
-async def health_check(request: Request) -> JSONResponse:
-    """Comprehensive health check endpoint."""
+@app.get("/health", response_model=HealthReport, response_model_exclude_none=True)
+async def health_check(request: Request, response: Response) -> HealthReport:
+    """Comprehensive health check endpoint (503 when unhealthy)."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
     health_service = HealthCoreService(camera_manager=camera_manager)
 
@@ -547,25 +505,21 @@ async def health_check(request: Request) -> JSONResponse:
         health_status = await health_service.get_health_status(db)
         break
 
-    # Return appropriate HTTP status code
-    if health_status["status"] == HealthStatus.UNHEALTHY:
-        return JSONResponse(content=health_status, status_code=503)
-    elif health_status["status"] == HealthStatus.DEGRADED:
-        return JSONResponse(content=health_status, status_code=200)
-    else:
-        return JSONResponse(content=health_status, status_code=200)
+    if health_status.status == HealthStatus.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return health_status
 
 
-@app.get("/health/live")
-async def liveness_check() -> dict[str, str]:
+@app.get("/health/live", response_model=LivenessReport)
+async def liveness_check() -> LivenessReport:
     """Kubernetes liveness probe endpoint."""
     health_service = HealthCoreService()
     return await health_service.get_liveness()
 
 
-@app.get("/health/ready")
-async def readiness_check(request: Request) -> JSONResponse:
-    """Kubernetes readiness probe endpoint."""
+@app.get("/health/ready", response_model=ReadinessReport)
+async def readiness_check(request: Request, response: Response) -> ReadinessReport:
+    """Kubernetes readiness probe endpoint (503 when not ready)."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
     health_service = HealthCoreService(camera_manager=camera_manager)
 
@@ -573,9 +527,9 @@ async def readiness_check(request: Request) -> JSONResponse:
         readiness = await health_service.get_readiness(db)
         break
 
-    if readiness["status"] == HealthStatus.UNHEALTHY:
-        return JSONResponse(content=readiness, status_code=503)
-    return JSONResponse(content=readiness, status_code=200)
+    if readiness.status == HealthStatus.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return readiness
 
 
 @app.get("/metrics")
