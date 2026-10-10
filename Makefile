@@ -584,19 +584,21 @@ release-public: ## [PUBLIC REPO] Scan + promote :$(VERSION) + :latest to GHCR, t
 	  || { echo '$(RED)$(VERSION_IMAGE) not found — run `make release` first$(NC)'; exit 1; }
 	@# Scan the exact image being promoted, every platform, BEFORE it reaches the public registry
 	@# (repo.release_scans_candidate). `imagetools create` then copies that SAME digest.
+	@# Each platform is pulled and saved BY DIGEST: a `--platform` pull of the TAG left the last
+	@# platform (arm64) under it locally, and compose then ran it on this amd64 host (exec format
+	@# error). A digest pull never retags, so no failure or interrupt mid-loop can leave it wrong.
 	@set -e; ref='$(or $(LUXAUDIT_IMAGE),$(LUXAUDIT))'; \
 	if [ -z "$$ref" ]; then echo "REFUSING: set LUXAUDIT_IMAGE to the pinned luxaudit; the image must be scanned before it is pushed"; exit 2; fi; \
 	T=$$(mktemp); trap 'rm -f "$$T"' EXIT INT TERM; \
 	for plat in $(subst $(comma), ,$(PLATFORM)); do \
-	  docker pull -q --platform $$plat $(VERSION_IMAGE) >/dev/null; \
-	  docker save $(VERSION_IMAGE) -o "$$T"; chmod 644 "$$T"; \
+	  d=$$(docker buildx imagetools inspect $(VERSION_IMAGE) --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{.Digest}}{{"\n"}}{{end}}' | awk -v p="$$plat" '$$1==p {print $$2; exit}'); \
+	  [ -n "$$d" ] || { echo "REFUSING: $(VERSION_IMAGE) has no $$plat image to scan"; exit 1; }; \
+	  img="$$(printf '%s' '$(VERSION_IMAGE)' | sed 's/:[^:/]*$$//')@$$d"; \
+	  docker pull -q "$$img" >/dev/null; \
+	  docker save "$$img" -o "$$T"; chmod 644 "$$T"; \
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(VERSION_IMAGE) ($$plat)"; \
-	done; \
-	docker pull -q $(VERSION_IMAGE) >/dev/null
-	@# ^ Each per-platform pull above leaves THAT platform under the tag locally; the last one is a
-	@# foreign arch on this host, and compose then runs it without pulling (exec format error).
-	@# Pulling once more with no --platform restores the host's own.
+	done
 	@# Refuse an already-released public tag: a promotion probes ITS destination (repo.deploy_tag_is_immutable).
 	@if docker manifest inspect $(GHCR_IMAGE):$(VERSION) >/dev/null 2>&1; then echo "REFUSING: $(GHCR_IMAGE):$(VERSION) is already released"; exit 1; fi
 	$(call refuse_released,$(GHCR_IMAGE):$(VERSION))
@@ -699,19 +701,21 @@ publish-sha: validate-version validate-structure buildx-setup docker-pull-cache 
 		--push \
 		.
 	@# SCAN THE CANDIDATE, THEN TAG IT. Refuses on any fixable HIGH/CRITICAL in any platform.
+	@# Each platform is pulled and saved BY DIGEST: a `--platform` pull of the TAG left the last
+	@# platform (arm64) under it locally, and compose then ran it on this amd64 host (exec format
+	@# error). A digest pull never retags, so no failure or interrupt mid-loop can leave it wrong.
 	@set -e; ref='$(or $(LUXAUDIT_IMAGE),$(LUXAUDIT))'; \
 	if [ -z "$$ref" ]; then echo "REFUSING: set LUXAUDIT_IMAGE to the pinned luxaudit; the candidate must be scanned before it is pushed"; exit 2; fi; \
 	T=$$(mktemp); trap 'rm -f "$$T"' EXIT INT TERM; \
 	for plat in $(subst $(comma), ,$(PLATFORM)); do \
-	  docker pull -q --platform $$plat $(CANDIDATE_IMAGE) >/dev/null; \
-	  docker save $(CANDIDATE_IMAGE) -o "$$T"; chmod 644 "$$T"; \
+	  d=$$(docker buildx imagetools inspect $(CANDIDATE_IMAGE) --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{.Digest}}{{"\n"}}{{end}}' | awk -v p="$$plat" '$$1==p {print $$2; exit}'); \
+	  [ -n "$$d" ] || { echo "REFUSING: $(CANDIDATE_IMAGE) has no $$plat image to scan"; exit 1; }; \
+	  img="$$(printf '%s' '$(CANDIDATE_IMAGE)' | sed 's/:[^:/]*$$//')@$$d"; \
+	  docker pull -q "$$img" >/dev/null; \
+	  docker save "$$img" -o "$$T"; chmod 644 "$$T"; \
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(CANDIDATE_IMAGE) ($$plat)"; \
-	done; \
-	docker pull -q $(CANDIDATE_IMAGE) >/dev/null
-	@# ^ Each per-platform pull above leaves THAT platform under the tag locally; the last one is a
-	@# foreign arch on this host, and compose then runs it without pulling (exec format error).
-	@# Pulling once more with no --platform restores the host's own.
+	done
 	docker buildx imagetools create -t $(SHA_IMAGE) $(CANDIDATE_IMAGE)
 	@echo '$(GREEN)Published $(SHA_IMAGE) (candidate scanned clean)$(NC)'
 
