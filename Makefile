@@ -592,7 +592,11 @@ release-public: ## [PUBLIC REPO] Scan + promote :$(VERSION) + :latest to GHCR, t
 	  docker save $(VERSION_IMAGE) -o "$$T"; chmod 644 "$$T"; \
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(VERSION_IMAGE) ($$plat)"; \
-	done
+	done; \
+	docker pull -q $(VERSION_IMAGE) >/dev/null
+	@# ^ Each per-platform pull above leaves THAT platform under the tag locally; the last one is a
+	@# foreign arch on this host, and compose then runs it without pulling (exec format error).
+	@# Pulling once more with no --platform restores the host's own.
 	@# Refuse an already-released public tag: a promotion probes ITS destination (repo.deploy_tag_is_immutable).
 	@if docker manifest inspect $(GHCR_IMAGE):$(VERSION) >/dev/null 2>&1; then echo "REFUSING: $(GHCR_IMAGE):$(VERSION) is already released"; exit 1; fi
 	$(call refuse_released,$(GHCR_IMAGE):$(VERSION))
@@ -703,7 +707,11 @@ publish-sha: validate-version validate-structure buildx-setup docker-pull-cache 
 	  docker save $(CANDIDATE_IMAGE) -o "$$T"; chmod 644 "$$T"; \
 	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	    "$$ref" --image-archive /candidate.tar --image-label "$(CANDIDATE_IMAGE) ($$plat)"; \
-	done
+	done; \
+	docker pull -q $(CANDIDATE_IMAGE) >/dev/null
+	@# ^ Each per-platform pull above leaves THAT platform under the tag locally; the last one is a
+	@# foreign arch on this host, and compose then runs it without pulling (exec format error).
+	@# Pulling once more with no --platform restores the host's own.
 	docker buildx imagetools create -t $(SHA_IMAGE) $(CANDIDATE_IMAGE)
 	@echo '$(GREEN)Published $(SHA_IMAGE) (candidate scanned clean)$(NC)'
 
