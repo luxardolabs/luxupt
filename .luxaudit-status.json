@@ -14,7 +14,7 @@
   "banned": [],
   "not_audited": [],
   "image": {
-    "ref": "luxardolabs/luxupt:2026.10.0",
+    "ref": "luxardolabs/luxupt:2026.10.1",
     "inert": false,
     "inert_reason": "",
     "error": "",
@@ -22,6 +22,6 @@
     "vulnerable": [],
     "deferred": []
   },
-  "commit": "1d8bc0ecdecb08a05a393bea66b11a1d43a8bc36",
-  "generated_at": "2026-10-10T02:27:14Z"
+  "commit": "14c75273f4f800f5dc85d1befa0b1701bad79812",
+  "generated_at": "2026-10-10T04:27:49Z"
 }
