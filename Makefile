@@ -258,7 +258,7 @@ gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
 	  $(GITLEAKS_IMAGE) protect --staged /repo -c /gl.toml --redact -v
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION := 0.62.3
+LUXLINT_VERSION := 0.63.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
