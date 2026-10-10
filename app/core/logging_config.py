@@ -1,4 +1,4 @@
-# luxarch:logging asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
+# luxarch:logging asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
 """The fleet's ONE logging setup: standard-library `logging`, one JSON line per record on stdout.
 
 Why the standard library (sources in `luxarch --playbook logging`): every log platform the fleet might
@@ -319,10 +319,12 @@ def _extras(record: logging.LogRecord) -> dict[str, Any]:
         and k not in own
         and k != _FIELD_KEYS
     }
+    # v6: `_DROPPED` applies to the caller's fields too. uvicorn passes `color_message` through
+    # `extra=`, so it arrived here, and every uvicorn line carried ANSI escapes under `attributes`.
     fields = {
         name: record.__dict__[key]
         for name, key in names.items()
-        if key in record.__dict__
+        if key in record.__dict__ and name not in _DROPPED
     }
     return {**other, **fields}
 
