@@ -168,7 +168,7 @@ poetry-install: ## Verify deps resolve + install from lock in a throwaway contai
 
 # --- Secret scanning: the fleet privacy gate (content + commit identity) ---
 .PHONY: gitleaks gitleaks-staged
-# luxarch:gitleaks asset v11 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
+# luxarch:gitleaks asset v12 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
 # ── The privacy gate: BOTH surfaces ─────────────────────────────────────────────────────────────
 # Emitted by `luxarch --emit gitleaks`. Drop in verbatim.
 #
@@ -195,7 +195,10 @@ poetry-install: ## Verify deps resolve + install from lock in a throwaway contai
 # `<x@users.noreply.github.com.attacker.test>` would have been allowed.
 # v11: the noreply address is `<local@users.noreply.github.com>`, and the local part has no `@`. v10's
 # `<[^>]*users…` admitted `<dev.real@gmail.com.users.noreply.github.com>`, a real address in the clear.
-GIT_IDENTITY_OK ?= <[^@<> ]+@users\.noreply\.github\.com>$$|<noreply@github\.com>$$
+# v12: the fleet ACCOUNT, not any noreply address. v11 accepted `<anyone@users.noreply.github.com>`, so a
+# stranger's (or a second account's) noreply committer passed. Measured: the fleet's whole history holds
+# exactly two noreply identities, the fleet account and GitHub's web-UI committer.
+GIT_IDENTITY_OK ?= <214140984\+luxardolabs@users\.noreply\.github\.com>$$|<noreply@github\.com>$$
 
 # The secret scanner, PINNED and MIRRORED in the fleet registry. The fleet bans a moving tag
 # everywhere it can see one, and this used to ship `ghcr.io/gitleaks/gitleaks:latest` inside the asset every
@@ -220,7 +223,28 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@set -e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	docker run --rm -v $(PWD):/repo -v "$$C":/gl.toml:ro -w /repo \
-	  $(GITLEAKS_IMAGE) git /repo -c /gl.toml --redact -v
+	  $(GITLEAKS_IMAGE) git /repo -c /gl.toml --redact -v --ignore-gitleaks-allow
+	@# v12: what `gitleaks git` never reads. It scans git's PATCHES, and git prints no patch for a file it
+	@# treats as binary: a NUL byte, UTF-16 (a `Localizable.strings`), or a `binary` / `-diff` attribute.
+	@# A token in any of them reached the remote with "no leaks found". So every path git ever showed as
+	@# binary is re-read as text, NULs stripped, and scanned by path (the config's path allowlists hold).
+	@set -e; C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
+	docker run --rm -v $(PWD):/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	git -c core.quotePath=false log --branches --tags HEAD --format= -p --no-ext-diff --no-textconv \
+	  > "$$D/patches"; \
+	sed -n 's|^Binary files .* and b/\(.*\) differ$$|\1|p' "$$D/patches" | sort -u > "$$D/binary"; \
+	if [ -s "$$D/binary" ]; then \
+	  mkdir "$$D/t" "$$D/none"; \
+	  while IFS= read -r f; do \
+	    mkdir -p "$$D/t/$$(dirname "$$f")"; \
+	    git -c core.quotePath=false log --branches --tags HEAD --format= -p --text --no-ext-diff \
+	      --no-textconv -- "$$f" > "$$D/p"; \
+	    grep -a '^+' "$$D/p" | tr -d '\000' > "$$D/t/$$f"; \
+	  done < "$$D/binary"; \
+	  docker run --rm -v "$$D/t":/scan:ro -w /scan -v "$$D/none":/none:ro -v "$$C":/gl.toml:ro \
+	    $(GITLEAKS_IMAGE) dir . -c /gl.toml --redact -v --ignore-gitleaks-allow \
+	    --gitleaks-ignore-path /none; \
+	fi
 	@# The identity pass — the half gitleaks structurally cannot do. Cheap: one `git log`.
 	@# Walks what THIS repo publishes (branches, tags, HEAD), NOT `--all`: a remote-tracking ref caches the
 	@# remote's state, which during a scrub is by definition the un-rewritten history you are about to
@@ -251,11 +275,27 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 # another user's file in sticky /tmp even for root), so the privacy gate failed every commit or push
 # after a user switch (2 of 2 measured). Two repos scanning at once also shared one file, so one could
 # scan with the other's carve-outs. The full-history scan now also passes `-w /repo`, like the staged one.
+# v12: the staged bytes are read on the HOST and scanned as files, by path. v11 ran `protect --staged`
+# inside the container, which read `.git/index`, not the temporary index git hands the hook in
+# `$$GIT_INDEX_FILE`: `git commit -a` and `git commit <path>` were never scanned. It also read git's
+# patches, which skip binary, NUL, UTF-16 and `-diff` files, and it honoured a `# gitleaks:allow` on
+# the secret's own line and a committed `.gitleaksignore`, so a commit's author could waive their own
+# leak. New content gets no waiver: `.gitleaksignore` stays a ledger for the full-history scan only.
 gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
-	@set -e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
+	@set -e; C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
 	docker run --rm -v $(PWD):/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
-	docker run --rm -v $(PWD):/repo -v "$$C":/gl.toml:ro -w /repo \
-	  $(GITLEAKS_IMAGE) protect --staged /repo -c /gl.toml --redact -v
+	mkdir "$$D/t" "$$D/none"; \
+	git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR -z > "$$D/names"; \
+	tr '\000' '\n' < "$$D/names" | while IFS= read -r f; do \
+	  [ -n "$$f" ] || continue; \
+	  mkdir -p "$$D/t/$$(dirname "$$f")"; \
+	  git -c core.quotePath=false diff --cached --text --no-ext-diff --no-textconv -U0 -- "$$f" \
+	    > "$$D/p"; \
+	  grep -a '^+' "$$D/p" | tr -d '\000' > "$$D/t/$$f"; \
+	done; \
+	docker run --rm -v "$$D/t":/scan:ro -w /scan -v "$$D/none":/none:ro -v "$$C":/gl.toml:ro \
+	  $(GITLEAKS_IMAGE) dir . -c /gl.toml --redact -v --ignore-gitleaks-allow \
+	  --gitleaks-ignore-path /none
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
 LUXLINT_VERSION := 0.63.0
@@ -291,7 +331,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.275.5
+LUXARCH_VERSION   := 0.276.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -792,7 +832,7 @@ SMOKE_HEALTH_PATH := /health/live
 SMOKE_ENTRY_MODULES := app.main app.web.main
 
 .PHONY: smoke
-# luxarch:smoke asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit smoke`.
+# luxarch:smoke asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit smoke`.
 # ── Smoke: probe the DEPLOYED stack from outside, after every dev deploy ──────────────────────────
 # Emitted by `luxarch --emit smoke`; paste below the image block. `make test` runs the app in-process
 # against its test stack, so it cannot see the proxy, the server, the production image or an entry
@@ -828,6 +868,9 @@ SMOKE_RUN_OPTS ?=
 # Setting: extra curl options (e.g. --cacert <file> for a private CA) -------------------------
 SMOKE_CURL_OPTS ?=
 
+# v4: a 502/503/504 on the forged-Host probe is the PROXY answering for an app that did not, not a refusal.
+# v3 printed "PASS  forged Host refused (502)" while the stack was still starting, beside two FAILs that
+# said the same thing; the probe can only pass on an answer from the app itself.
 smoke: ## Probe the deployed dev stack: build commit, static asset, forged Host refused, auth, standalone entry points
 	@set -u; fail=0; \
 	[ -n "$(SMOKE_URL)" ] || { echo "REFUSING: set SMOKE_URL to the dev stack's address (Makefile.local)"; exit 2; }; \
@@ -847,6 +890,7 @@ smoke: ## Probe the deployed dev stack: build commit, static asset, forged Host 
 	r=$$(probe -H "Host: smoke-forged.invalid" "$(SMOKE_URL)$(SMOKE_HEALTH_PATH)"); \
 	case "$${r%% *}" in 2??|3??) echo "FAIL  a forged Host header was answered ($$r): the trusted-host defence is not on in the real stack"; fail=1;; \
 	  000) echo "PASS  forged Host refused (connection rejected)";; \
+	  502|503|504) echo "FAIL  the forged-Host probe got $${r%% *} from the proxy: the app did not answer, so whether it refuses a forged Host is unknown"; fail=1;; \
 	  *) echo "PASS  forged Host refused ($${r%% *})";; esac; \
 	if [ -n "$(SMOKE_AUTH_PATH)" ]; then \
 	  r=$$(probe "$(SMOKE_URL)$(SMOKE_AUTH_PATH)"); \
