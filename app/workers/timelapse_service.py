@@ -25,8 +25,7 @@ from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
 from app.db import maintenance as db_maintenance
 from app.db.database import get_db_context
-from app.models.enum_model import ScheduleSource, TimelapseStatus
-from app.schemas.timelapse_schema import TimelapseCreate
+from app.models.enum_model import ScheduleSource
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.utils import async_fs, ffmpeg
 from app.utils.timezones import display_zone, to_display
@@ -1305,66 +1304,6 @@ class TimelapseService:
             logger.warning(
                 "Failed to clear FFmpeg PID", extra={"job_id": job_id, "error": str(e)}
             )
-
-    async def _create_timelapse_record(
-        self,
-        db: AsyncSession,
-        camera_safe_name: str,
-        target_date: datetime,
-        interval: int,
-        output_path: Path,
-        encoding_settings: EncodingSettings,
-    ) -> None:
-        """Create a timelapse record in the database after successful video creation."""
-        if not await async_fs.path_exists(output_path):
-            logger.warning(
-                "Cannot create timelapse record - file not found",
-                extra={"path": str(output_path)},
-            )
-            return
-
-        stat_result = await async_fs.path_stat(output_path)
-        file_size = stat_result.st_size
-        output_filename = output_path.name
-
-        # Probe video metadata
-        duration_seconds, resolution, frame_count = await ffmpeg.probe_video_metadata(
-            output_path, encoding_settings.frame_rate, encoding_settings.ffmpeg_timeout
-        )
-
-        # Generate thumbnail
-        thumbnail_path = await ffmpeg.generate_thumbnail(
-            output_path, duration_seconds, encoding_settings.ffmpeg_timeout
-        )
-
-        await timelapse_crud.create(
-            db,
-            obj_in=TimelapseCreate(
-                camera_id="",
-                camera_safe_name=camera_safe_name,
-                timelapse_date=target_date.date(),
-                interval=interval,
-                frame_count=frame_count,
-                frame_rate=encoding_settings.frame_rate,
-                duration_seconds=duration_seconds,
-                file_path=str(output_path),
-                file_name=output_filename,
-                file_size=file_size,
-                resolution=resolution,
-                thumbnail_path=thumbnail_path,
-                status=TimelapseStatus.COMPLETED,
-                completed_at=datetime.now(UTC),
-            ),
-        )
-
-        logger.info(
-            "Created timelapse record",
-            extra={
-                "camera": camera_safe_name,
-                "date": target_date.strftime("%Y-%m-%d"),
-                "interval": interval,
-            },
-        )
 
     async def create_timelapse_now(self, days_ago: int = 1) -> None:
         """
