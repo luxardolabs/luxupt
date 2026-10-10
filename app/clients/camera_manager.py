@@ -19,6 +19,27 @@ from app.utils import async_fs
 logger = logging.getLogger(__name__)
 
 
+class ProtectApiUnavailableError(Exception):
+    """The Protect URL answered, but not with the integration API (e.g. a console's web UI)."""
+
+
+def _protect_json(response: httpx.Response) -> Any:
+    """The response body as JSON, or a ProtectApiUnavailableError that says what came back.
+
+    A UniFi OS console without Protect (or whose Protect moved to another console) answers every
+    `/proxy/protect/...` path with 200 and its own web page; parsing that raised a bare
+    JSONDecodeError that named neither the host nor the cause.
+    """
+    content_type = response.headers.get("content-type", "")
+    if "json" not in content_type.lower():
+        raise ProtectApiUnavailableError(
+            f"Protect integration API not available at {response.url.host}: got "
+            f"{content_type or 'no content-type'} (HTTP {response.status_code}). Check that "
+            f"Protect runs on that console and that the base URL names the console running it."
+        )
+    return response.json()
+
+
 @dataclass
 class CaptureResult:
     """Result of a snapshot capture operation."""
@@ -250,7 +271,7 @@ class CameraManager:
                 url, headers=self.settings.get_json_headers()
             )
             response.raise_for_status()
-            cameras_data = response.json()
+            cameras_data = _protect_json(response)
 
             # Convert API response to Camera objects
             all_cameras = [
@@ -577,7 +598,7 @@ class CameraManager:
             )
 
             if response.status_code == 200:
-                streams = response.json()
+                streams = _protect_json(response)
                 rtsps_url = streams.get(quality)
 
                 if rtsps_url:
