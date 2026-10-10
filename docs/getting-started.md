@@ -31,7 +31,7 @@ Create a `compose.yml` file:
 ```yaml
 services:
   luxupt:
-    image: ghcr.io/luxardolabs/luxupt:2026.09.0
+    image: ghcr.io/luxardolabs/luxupt:2026.10.1
     container_name: luxupt
     restart: always
     ports:
@@ -40,6 +40,7 @@ services:
       - ./output:/app/luxupt/output
     environment:
       TZ: America/Chicago  # Your timezone — see the note below
+      ALLOWED_HOSTS: luxupt.example.com,192.168.1.50  # How you reach it — see below
 ```
 
 Pin a version rather than using `:latest`. `:latest` moves under you, so a restart can pick up a different build than the one you tested — and you have no way to say which version you are running when something goes wrong.
@@ -52,14 +53,19 @@ docker compose up -d
 
 ### What Each Setting Does
 
-| Setting           | Purpose                                                              |
-| ----------------- | -------------------------------------------------------------------- |
-| `image`           | The LuxUPT Docker image from GHCR                                    |
-| `container_name`  | Name for your container (used in commands like `docker logs luxupt`) |
-| `restart: always` | Automatically restart if the container stops or system reboots       |
-| `ports`           | Maps port 8080 inside the container to your host                     |
-| `volumes`         | Where images, videos, and the database are stored                    |
-| `TZ`              | Your timezone — see below; it decides which day a capture belongs to |
+| Setting           | Purpose                                                                    |
+| ----------------- | -------------------------------------------------------------------------- |
+| `image`           | The LuxUPT Docker image from GHCR                                          |
+| `container_name`  | Name for your container (used in commands like `docker logs luxupt`)       |
+| `restart: always` | Automatically restart if the container stops or system reboots             |
+| `ports`           | Maps port 8080 inside the container to your host                           |
+| `volumes`         | Where images, videos, and the database are stored                          |
+| `TZ`              | Your timezone — see below; it decides which day a capture belongs to       |
+| `ALLOWED_HOSTS`   | The hostname(s) or IP address(es) you type in the browser, comma-separated |
+
+### About `ALLOWED_HOSTS`
+
+LuxUPT only answers requests addressed to a name you list, so nobody can point another name at it. List every way you reach it: a hostname, the machine's IP address, or both (`localhost` is always allowed). If it is missing, the browser shows **"Invalid host header"** on every page, while `docker ps` still reports the container healthy; the container log says `ALLOWED_HOSTS is not set` at startup.
 
 ### About `TZ`
 
