@@ -8,6 +8,7 @@ connection. Written while rehearsing the 1.1.5 -> 2026.10.1 prod upgrade on a co
 """
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -32,7 +33,8 @@ def test_timestamp_shift_is_committed(
     cfg = _config(f"sqlite+aiosqlite:///{db_file}")
     command.upgrade(cfg, BEFORE_SHIFT)
 
-    with sqlite3.connect(db_file) as conn:
+    # closing(): sqlite3's own context manager commits but never closes the connection.
+    with closing(sqlite3.connect(db_file)) as conn, conn:
         conn.execute(
             "INSERT INTO activities (timestamp, activity_type, message) "
             "VALUES ('2026-10-09 00:33:36.220867', 'capture_success', 'written by 1.1.5')"
@@ -42,7 +44,7 @@ def test_timestamp_shift_is_committed(
     monkeypatch.setenv("DISPLAY_TIMEZONE", "America/Chicago")
     command.upgrade(cfg, "head")
 
-    with sqlite3.connect(db_file) as reader:
+    with closing(sqlite3.connect(db_file)) as reader:
         (stored,) = reader.execute("SELECT timestamp FROM activities").fetchone()
         (version,) = reader.execute(
             "SELECT version_num FROM alembic_version"
