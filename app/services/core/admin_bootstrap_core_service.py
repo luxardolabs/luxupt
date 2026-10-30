@@ -89,6 +89,8 @@ MIN_PASSWORD_LENGTH = 12
 # --- EDIT THIS: the app's own password policy, after the length check: a message for a password it
 # refuses, "" for one it accepts. Point it at the rules every later change of the account must meet,
 # so the first admin (the most privileged account) cannot be created with a password they refuse.
+# dropped-input: this app's whole policy is MIN_PASSWORD_LENGTH, checked before this runs and by
+# every user form (users_view_service), so there is nothing further to judge the password by
 async def password_policy_problem(db: AsyncSession, password: str) -> str:
     return ""
 
