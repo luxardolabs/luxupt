@@ -1813,13 +1813,13 @@
         },
         {
           "rule": "fw.urls_from_route_names",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.297.0",
-          "violations": 117,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Build every link to an app route from the route's NAME, in the view service: `request.app.url_path_for(\"<area>.<entity>.<action>\", **params)` (a relative path; `request.url_for` is absolute and carries the internal scheme and host behind a proxy). Put the finished string on the view model and render `{{ item.urls.detail }}`. A redirect, an `HX-Redirect` header and a path comparison resolve the name the same way. JavaScript cannot resolve a name: render the URL into the markup (an `hx-*` attribute, or `data-url` read as `el.dataset.url`); a nav or config file lists route NAMES, resolved in the view. Code with no request (a job's email, a device payload built in core) resolves the name through `luxarch --emit route-urls`: `absolute_url(settings.base_url, <name>, **params)`. Name the routes first (fw.route_names_unique). While the literals burn down, `luxarch --emit route-links` is the runtime net: it fails on any template link the live route table does not serve. See --playbook url-in-view.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1857,8 +1857,8 @@
         }
       ],
       "summary": {
-        "PASS": 140,
-        "FAIL": 1,
+        "PASS": 141,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -1979,13 +1979,13 @@
       },
       {
         "rule": "repo.agent_push_declared",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.296.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Add to .luxarch.toml: `[agents]` then `push = \"agent\"` (the agent pushes when its work lands: every repo an agent can push to, public included) or `push = \"owner\"` (an airgapped repo: the agent stops at the commit and the owner transfers it). The owner decides which; an agent asks once and writes the answer down. `unpushed-stop-guard` and `/wrap-up` read it. See --doc FLEET-AGENT-CONDUCT-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -2617,20 +2617,20 @@
       }
     ],
     "summary": {
-      "PASS": 63,
-      "FAIL": 2,
+      "PASS": 64,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 3
     }
   },
   "summary": {
-    "PASS": 203,
-    "FAIL": 3,
+    "PASS": 205,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 30
   },
-  "commit": "3809aea568949d30ddee0d9222f154f66e1c033f",
-  "generated_at": "2026-10-30T05:04:46Z"
+  "commit": "de5e90f3c1ecc3184ed9754e500df43ff5a6fbee",
+  "generated_at": "2026-10-30T05:45:17Z"
 }
