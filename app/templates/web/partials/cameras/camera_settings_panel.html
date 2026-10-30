@@ -82,7 +82,7 @@
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-medium text-surface-200">Detected Capabilities</h3>
                         {{ ghost("Re-detect", size="sm", icon_name="arrow-path",
-                                 hx_attrs={"hx-post": "/cameras/{{ camera.camera_id }}/detect",
+                                 hx_attrs={"hx-post": camera_detect_url,
                                            "hx-target": "#camera-settings-result",
                                            "hx-swap": "innerHTML"}) }}
                     </div>
@@ -110,7 +110,7 @@
                     <div class="text-center">
                         <p class="text-sm text-surface-200 mb-2">Capabilities not detected yet</p>
                         {{ ghost("Run Detection", size="sm", icon_name="play",
-                                 hx_attrs={"hx-post": "/cameras/{{ camera.camera_id }}/detect",
+                                 hx_attrs={"hx-post": camera_detect_url,
                                            "hx-target": "#camera-settings-result",
                                            "hx-swap": "innerHTML"}) }}
                     </div>

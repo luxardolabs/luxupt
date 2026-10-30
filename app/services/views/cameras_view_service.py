@@ -137,6 +137,11 @@ class CamerasViewService:
             "camera_settings_post_url": str(
                 self.path("cameras.save_camera_settings", camera_id=camera.camera_id)
             ),
+            "camera_detect_url": str(
+                self.path(
+                    "cameras.detect_camera_capabilities", camera_id=camera.camera_id
+                )
+            ),
         }
 
     async def get_capture_stats_context(self) -> dict[str, Any]:

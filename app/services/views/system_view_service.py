@@ -25,6 +25,7 @@ from app.services.views._camera_options import (
     job_card_urls,
     with_query,
 )
+from app.services.views._system_tabs import system_tabs
 from app.utils.timezones import business_day, to_display
 
 
@@ -91,6 +92,7 @@ class SystemViewService:
         version_info = self._get_version_info()
 
         return {
+            "tabs": system_tabs(self.path),
             "backup_settings_url": str(self.path("system.backup_settings_panel")),
             "system_info": system_info,
             "storage_info": storage_info,
@@ -404,6 +406,7 @@ class SystemViewService:
         today = business_day(now).isoformat()
 
         return {
+            "tabs": system_tabs(self.path),
             "demo_urls": {
                 "home": str(self.path("pages.root_redirect")),
                 "cameras": str(self.path("cameras.cameras_page")),

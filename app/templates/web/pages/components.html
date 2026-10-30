@@ -53,10 +53,6 @@ BORDER RADIUS:
 {% from "macros/navigation.html" import page_header, tab_nav %}
 {% from "macros/tables.html" import data_table %}
 
-{% set tabs = [
-    {"id": "status", "label": "Status", "href": "/system", "icon_name": "server"},
-    {"id": "users", "label": "Users", "href": "/system/users", "icon_name": "users"}
-] + ([{"id": "components", "label": "Components", "href": "/system/components", "icon_name": "swatch"}] if dev_mode else []) %}
 
 {% block title %}Component Library - LuxUPT{% endblock %}
 

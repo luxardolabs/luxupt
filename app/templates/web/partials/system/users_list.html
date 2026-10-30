@@ -10,7 +10,8 @@
         {"label": "Username"}, {"label": "Role"},
         {"label": "Last Login"}, {"label": "Created"}, {"label": "Actions", "align": "right"}
     ]) %}
-            {% for u in users %}
+            {% for row in user_rows %}
+            {% set u = row.user %}
             <tr class="hover:bg-surface-700/30 transition-colors">
                 <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-3">
@@ -43,11 +44,11 @@
                 <td class="px-4 py-3 whitespace-nowrap text-right">
                     <div class="flex items-center justify-end gap-2">
                         {{ icon_button("pencil", "Edit", size="sm", variant="primary",
-                                        hx_attrs={"hx-get": "/system/partials/user-form?user_id={{ u.id }}",
+                                        hx_attrs={"hx-get": row.edit_url,
                                                   "hx-target": "#panel-container",
                                                   "hx-swap": "innerHTML"}) }}
                         {{ icon_button("trash", "Delete", size="sm", variant="danger",
-                                        hx_attrs={"hx-get": "/system/partials/user-delete-confirm/{{ u.id }}",
+                                        hx_attrs={"hx-get": row.delete_url,
                                                   "hx-target": "#panel-container",
                                                   "hx-swap": "innerHTML"}) }}
                     </div>

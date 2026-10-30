@@ -2,11 +2,13 @@
 
 import logging
 from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import Request
 
 from app.services.core.admin_bootstrap_core_service import MIN_PASSWORD_LENGTH
 from app.services.core.user_core_service import UserCoreService
+from app.services.views._system_tabs import system_tabs
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +24,22 @@ class UsersViewService:
     async def get_users_context(self) -> dict[str, Any]:
         """Get context for users list page."""
         users = await self.user_service.get_all()
+        form = str(self.path("system.user_form_panel"))
         return {
             "users": users,
-            "user_form_url": str(self.path("system.user_form_panel")),
+            "tabs": system_tabs(self.path),
+            "user_form_url": form,
+            # Each row carries its own Edit and Delete targets (fw.urls_from_route_names).
+            "user_rows": [
+                {
+                    "user": u,
+                    "edit_url": f"{form}?{urlencode({'user_id': u.id})}",
+                    "delete_url": str(
+                        self.path("system.user_delete_confirm_panel", user_id=str(u.id))
+                    ),
+                }
+                for u in users
+            ],
         }
 
     def form_result_context(

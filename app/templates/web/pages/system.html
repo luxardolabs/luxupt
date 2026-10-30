@@ -6,10 +6,6 @@
 {% from "macros/data.html" import data_row, data_row_stacked, data_row_status, progress_bar, section_title, divider %}
 {% from "macros/navigation.html" import page_header, tab_nav, section %}
 
-{% set tabs = [
-    {"id": "status", "label": "Status", "href": "/system", "icon_name": "server"},
-    {"id": "users", "label": "Users", "href": "/system/users", "icon_name": "users"}
-] + ([{"id": "components", "label": "Components", "href": "/system/components", "icon_name": "swatch"}] if dev_mode else []) %}
 
 {% block title %}System - LuxUPT{% endblock %}
 
