@@ -13,6 +13,7 @@ from app.clients.protect_client import ProtectClient
 from app.db.post_commit import after_commit
 from app.models.enum_model import ScheduleSource
 from app.schemas.pagination_schema import build_pagination
+from app.schemas.scheduler_settings_schema import SchedulerSettingsUpdate
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.job_core_service import JobCoreService, get_job_processor
@@ -27,6 +28,7 @@ from app.services.views._camera_options import (
     build_timelapse_cards,
     job_urls,
 )
+from app.services.views._settings_validation import settings_problem
 from app.utils.timezones import business_day, display_zone, to_display
 
 logger = logging.getLogger(__name__)
@@ -345,6 +347,10 @@ class TimelapsesViewService:
         update_data.update(
             {k: v for k, v in optional_encoding.items() if v is not None and v != ""}
         )
+
+        problem = settings_problem(SchedulerSettingsUpdate, update_data)
+        if problem:
+            return {"success": False, "error": problem}
 
         await self.update_scheduler_settings(update_data)
         return {

@@ -12,11 +12,13 @@ from typing import Any
 
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import get_db_context
+from app.models.fetch_settings_model import FetchSettings
 
 
-async def save_fetch_settings_durable(settings: dict[str, Any]) -> None:
+async def save_fetch_settings_durable(settings: dict[str, Any]) -> FetchSettings:
     """Save fetch settings and commit in an owned transaction, so a separate reader
-    (the FetchService worker) sees the new values."""
+    (the FetchService worker) sees the new values. Returns the saved row."""
     async with get_db_context() as db:
-        await fetch_settings_crud.update_settings(db, obj_in=settings)
+        saved = await fetch_settings_crud.update_settings(db, obj_in=settings)
         await db.commit()
+    return saved

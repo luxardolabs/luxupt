@@ -6,10 +6,16 @@ every page that reads it into a 500, the settings panel that could repair it inc
 adversarial pass reproduced it; each case below pairs a refused value with an accepted control.
 """
 
+import logging
+import time
+
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import app.workers.fetch_service as fetch_service_module
+from app.core import config
+from app.crud.user_crud import user_crud
 from app.models.camera_model import Camera
 from app.models.enum_model import CaptureMethod
 from app.web.main import app
@@ -84,3 +90,90 @@ async def test_camera_settings_save_keeps_the_cameras_page_rendering(
     )
     page = await auth_client.get(app.url_path_for("cameras.cameras_page"))
     assert page.status_code < 500, page.status_code
+
+
+@pytest.mark.parametrize("preset", ["medium", "x" * 17])
+async def test_scheduler_save_refuses_an_out_of_range_value(
+    auth_client: AsyncClient, preset: str
+) -> None:
+    resp = await auth_client.post(
+        app.url_path_for("timelapse_scheduler.save_scheduler_settings"),
+        data={
+            "run_time": "01:00",
+            "days_ago": "1",
+            "source": "captured",
+            "concurrent_jobs": "1",
+            "preset": preset,
+        },
+    )
+    assert resp.status_code < 500, resp.status_code
+
+
+async def test_fetch_settings_save_keeps_zero_and_logs_no_credential(
+    auth_client: AsyncClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    secret = "S3cret-Protect-Pw"
+    with caplog.at_level(logging.INFO):
+        resp = await auth_client.post(
+            app.url_path_for("cameras.save_fetch_settings"),
+            data={
+                **FETCH_FORM,
+                "max_retries": "0",
+                "username": "u",
+                "password": secret,
+            },
+        )
+    assert resp.status_code < 500, resp.status_code
+    assert "Settings saved" in resp.text, resp.text[:300]
+    assert secret not in caplog.text
+
+
+class _NoCamerasProtect:
+    """A reachable Protect console with no cameras, and no network."""
+
+    def __init__(self, *_: object, **__: object) -> None:
+        pass
+
+    async def __aenter__(self) -> _NoCamerasProtect:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    async def get_cameras(self, force_refresh: bool = False) -> list[object]:
+        return []
+
+
+async def test_saving_protect_settings_syncs_cameras_without_waiting_on_itself(
+    client: AsyncClient,
+    durable_db: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The save commits in its own session and then syncs cameras, which opens another. If the
+    # request's own session had begun a transaction first, the sync's session would wait for its
+    # write lock until busy_timeout, then fail: "Settings saved, but connection failed."
+    monkeypatch.setattr(config, "DATABASE_BUSY_TIMEOUT", 1500)
+    monkeypatch.setattr(fetch_service_module, "CameraManager", _NoCamerasProtect)
+    async with durable_db() as s:
+        await user_crud.create_user(
+            s, username="sync-owner", password="a-long-enough-password"
+        )
+        await s.commit()
+    login = await client.post(
+        app.url_path_for("pages.login_submit"),
+        data={"username": "sync-owner", "password": "a-long-enough-password"},
+    )
+    assert login.status_code in (200, 302, 303)
+
+    started = time.monotonic()
+    resp = await client.post(
+        app.url_path_for("cameras.save_fetch_settings"),
+        data={
+            **FETCH_FORM,
+            "base_url": "https://protect.invalid",
+            "api_key": "test-api-key",
+        },
+    )
+
+    assert "Found 0 camera" in resp.text, resp.text[:600]
+    assert time.monotonic() - started < 1.0

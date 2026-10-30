@@ -7,7 +7,6 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from fastapi import Request
-from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import Camera as ApiCamera
@@ -30,6 +29,7 @@ from app.services.views._camera_options import (
     thumbnail_url,
     with_query,
 )
+from app.services.views._settings_validation import settings_problem
 from app.workers.fetch_service import FetchService
 
 logger = logging.getLogger(__name__)
@@ -493,28 +493,20 @@ class CamerasViewService:
         update_data["verify_ssl"] = verify_ssl == "true"
 
         # Reliability settings (None means use env var defaults)
-        update_data["max_retries"] = max_retries if max_retries else None
-        update_data["retry_delay"] = retry_delay if retry_delay else None
-        update_data["request_timeout"] = request_timeout if request_timeout else None
+        update_data["max_retries"] = max_retries
+        update_data["retry_delay"] = retry_delay
+        update_data["request_timeout"] = request_timeout
 
         # Rate limiting
-        update_data["rate_limit"] = rate_limit if rate_limit else None
-        update_data["rate_limit_buffer"] = (
-            rate_limit_buffer if rate_limit_buffer else None
-        )
+        update_data["rate_limit"] = rate_limit
+        update_data["rate_limit_buffer"] = rate_limit_buffer
 
         # Camera distribution
-        update_data["min_offset_seconds"] = (
-            min_offset_seconds if min_offset_seconds else None
-        )
-        update_data["max_offset_seconds"] = (
-            max_offset_seconds if max_offset_seconds else None
-        )
+        update_data["min_offset_seconds"] = min_offset_seconds
+        update_data["max_offset_seconds"] = max_offset_seconds
 
         # Other settings
-        update_data["camera_refresh_interval"] = (
-            camera_refresh_interval if camera_refresh_interval else None
-        )
+        update_data["camera_refresh_interval"] = camera_refresh_interval
         update_data["high_quality_snapshots"] = (
             high_quality_snapshots == "true" if high_quality_snapshots else None
         )
@@ -526,11 +518,16 @@ class CamerasViewService:
         update_data["png_compression_level"] = (
             png_compression_level if png_compression_level is not None else None
         )
-        update_data["rtsp_capture_timeout"] = (
-            rtsp_capture_timeout if rtsp_capture_timeout else None
-        )
+        update_data["rtsp_capture_timeout"] = rtsp_capture_timeout
 
-        problem = _settings_problem(FetchSettingsUpdate, update_data)
+        # A field the form left empty keeps its stored value: those columns are NOT NULL, so a
+        # None would fail the write. Only the Protect credentials may be cleared.
+        update_data = {
+            k: v
+            for k, v in update_data.items()
+            if v is not None or k in _CLEARABLE_FETCH_FIELDS
+        }
+        problem = settings_problem(FetchSettingsUpdate, update_data)
         if problem:
             return False, problem, None, False
 
@@ -565,7 +562,7 @@ class CamerasViewService:
             # Empty list means use all (null)
             "enabled_intervals": enabled_intervals if enabled_intervals else None,
         }
-        problem = _settings_problem(CameraUpdate, update_data)
+        problem = settings_problem(CameraUpdate, update_data)
         if problem:
             return False, problem
         success, message = await self.update_camera_settings(camera_id, update_data)
@@ -652,10 +649,12 @@ class CamerasViewService:
             # Persist settings in their OWN committed transaction so the FetchService worker
             # (a separate session) reads the new values before sync_cameras() runs (§5e
             # cross-process read). This view stays transaction-agnostic (fw.no_redundant_commit).
-            await self.settings_service.save_fetch_settings_durable(update_data)
-
-            # Check if we have API settings to test (core service handles env var priority)
-            api_config = await self.settings_service.get_effective_api_config()
+            # The effective API config comes back from the save's own session: this request's
+            # session must run nothing before sync_cameras() opens another, or that session waits
+            # for the write lock this one would hold.
+            api_config = await self.settings_service.save_fetch_settings_durable(
+                update_data
+            )
             if not api_config["has_base_url"] or not api_config["has_api_key"]:
                 return True, "Settings saved.", None
 
@@ -831,18 +830,5 @@ class CamerasViewService:
         }
 
 
-def _settings_problem(schema: type[BaseModel], update_data: dict[str, Any]) -> str:
-    """What is wrong with a settings payload, or "" when it fits `schema`.
-
-    The pages read settings back through validated read models with the same bounds, so a value
-    stored past them would turn every page that reads it into a 500. The browser's min/max is
-    only a hint; this is the check.
-    """
-    fields = {k: v for k, v in update_data.items() if k in schema.model_fields}
-    try:
-        schema.model_validate(fields)
-    except ValidationError as e:
-        first = e.errors()[0]
-        field = ".".join(str(part) for part in first["loc"])
-        return f"Not saved: {field}: {first['msg']}"
-    return ""
+# Fetch settings the form may set to nothing (None clears them); every other field is NOT NULL.
+_CLEARABLE_FETCH_FIELDS = frozenset({"api_key", "base_url", "username", "password"})
