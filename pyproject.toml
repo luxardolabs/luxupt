@@ -42,7 +42,7 @@ pyjwt = "^2.15.0"  # replaces unmaintained python-jose (dropped cryptography-PKC
 # unmaintained since 2020, and its argon2 handler reads an argon2-cffi attribute being removed.
 argon2-cffi = "^25.1.0"
 aiofiles = "^25.1.0"
-pillow = "^12.1.0"
+pillow = "^13.0.0"
 sqlalchemy = {version = "^2.1", extras = ["asyncio"]}  # fleet floor: --playbook sqlalchemy-2-1
 aiosqlite = "^0.22.1"
 alembic = "^1.19"  # fleet floor
