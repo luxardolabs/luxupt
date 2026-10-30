@@ -767,6 +767,7 @@ class CamerasViewService:
                 "capture_stats": str(self.path("cameras.capture_stats_panel")),
                 "camera_list": str(self.path("cameras.camera_list_partial")),
             },
+            # post-db-filter: counted off the camera list the page already loaded and shows
             "total_cameras": len(cameras),
             # post-db-filter: counted off the already-loaded camera list
             "connected_cameras": sum(1 for c in cameras if c.is_connected),

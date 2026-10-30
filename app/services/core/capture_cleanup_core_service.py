@@ -77,6 +77,7 @@ class CaptureCleanupCoreService:
             "Capture DB cleanup completed, file cleanup running in background",
             extra={
                 "db_records": count,
+                # post-db-filter: file_info is loaded to delete the files; this counts that list
                 "files_queued": len(file_info),
                 "camera": camera,
                 "date": str(capture_date) if capture_date else None,
@@ -86,6 +87,7 @@ class CaptureCleanupCoreService:
 
         return {
             "db_records_deleted": count,
+            # post-db-filter: counted off the file list already loaded for deletion
             "files_to_clean": len([f for f in file_info if f["file_path"]]),
             "background_cleanup": True,
         }
@@ -108,7 +110,10 @@ class CaptureCleanupCoreService:
             interval=interval,
         )
 
+        # post-db-filter: each preview row is already a SQL COUNT/SUM per group; these add the
+        # handful of groups the page lists anyway
         total_count = sum(item["count"] for item in preview)
+        # post-db-filter: as above, the per-group SQL sums added up
         total_size = sum(item["total_size"] for item in preview)
 
         return {

@@ -136,7 +136,9 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
 
     async def get_available_cameras(self, db: AsyncSession) -> list[str]:
         """Get list of camera_ids with captures."""
+        # DISTINCT camera_id is one row per camera (8 on the larger site), read off its index.
         query = select(Capture.camera_id).distinct().order_by(Capture.camera_id)
+        # unbounded-reads: grows with the cameras, never with the captures
         result = await db.execute(query)
         return [row[0] for row in result.fetchall()]
 

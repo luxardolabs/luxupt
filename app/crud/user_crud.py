@@ -19,6 +19,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
 
     async def get_all(self, db: AsyncSession) -> list[User]:
         """Get all users ordered by username."""
+        # unbounded-reads: the sign-in accounts of one install, created by its admin: a handful
         result = await db.execute(select(User).order_by(User.username))
         return list(result.scalars().all())
 
