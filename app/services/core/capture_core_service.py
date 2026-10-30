@@ -8,8 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import config
 from app.crud import capture_crud
-from app.models.capture_model import Capture
-from app.schemas.capture_schema import CaptureStats
+from app.schemas.capture_schema import CaptureRead, CaptureStats
 from app.services.core._path_security import validate_image_path
 from app.utils import async_fs
 
@@ -24,31 +23,34 @@ class CaptureCoreService:
         """Initialize capture service with database session."""
         self.db = db
 
-    async def get_latest_captures_all(self) -> dict[str, Capture]:
+    async def get_latest_captures_all(self) -> dict[str, CaptureRead]:
         """Get the latest capture for each camera."""
-        return await capture_crud.get_latest_per_camera(self.db)
+        latest = await capture_crud.get_latest_per_camera(self.db)
+        return {camera: CaptureRead.model_validate(c) for camera, c in latest.items()}
 
     async def get_capture_stats(self) -> CaptureStats:
         """Get overall capture statistics."""
         return await capture_crud.get_stats(self.db)
 
-    async def get_latest_by_camera(self, camera_id: str) -> Capture | None:
+    async def get_latest_by_camera(self, camera_id: str) -> CaptureRead | None:
         """Get the latest capture for a camera."""
-        return await capture_crud.get_latest_by_camera(self.db, camera_id)
+        capture = await capture_crud.get_latest_by_camera(self.db, camera_id)
+        return CaptureRead.model_validate(capture) if capture else None
 
     async def get_by_camera_and_timestamp(
         self,
         camera_id: str,
         timestamp: int,
         interval: int | None = None,
-    ) -> Capture | None:
+    ) -> CaptureRead | None:
         """Get a specific capture by camera and timestamp."""
-        return await capture_crud.get_by_camera_and_timestamp(
+        capture = await capture_crud.get_by_camera_and_timestamp(
             self.db,
             camera_id,
             timestamp,
             interval,
         )
+        return CaptureRead.model_validate(capture) if capture else None
 
     async def get_validated_file_path(
         self,
@@ -127,9 +129,9 @@ class CaptureCoreService:
         status: str | None = None,
         skip: int = 0,
         limit: int = config.DEFAULT_PAGE_SIZE,
-    ) -> list[Capture]:
+    ) -> list[CaptureRead]:
         """Get captures matching filters with pagination."""
-        return await capture_crud.get_by_filters(
+        rows = await capture_crud.get_by_filters(
             self.db,
             camera=camera,
             capture_date=capture_date,
@@ -138,12 +140,14 @@ class CaptureCoreService:
             skip=skip,
             limit=limit,
         )
+        return [CaptureRead.model_validate(c) for c in rows]
 
     async def get_recent_failures(
         self, *, limit: int = config.RECENT_ITEMS_LIMIT
-    ) -> list[Capture]:
+    ) -> list[CaptureRead]:
         """Get recent failed captures."""
-        return await capture_crud.get_recent_failures(self.db, limit=limit)
+        rows = await capture_crud.get_recent_failures(self.db, limit=limit)
+        return [CaptureRead.model_validate(c) for c in rows]
 
     async def get_adjacent_image(
         self,
@@ -155,9 +159,9 @@ class CaptureCoreService:
         filter_camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
-    ) -> Capture | None:
+    ) -> CaptureRead | None:
         """Get adjacent image for navigation (prev/next)."""
-        return await capture_crud.get_adjacent_image(
+        capture = await capture_crud.get_adjacent_image(
             self.db,
             camera_id=camera_id,
             timestamp=timestamp,
@@ -167,6 +171,7 @@ class CaptureCoreService:
             capture_date=capture_date,
             interval=interval,
         )
+        return CaptureRead.model_validate(capture) if capture else None
 
     async def get_deletion_preview(
         self,
