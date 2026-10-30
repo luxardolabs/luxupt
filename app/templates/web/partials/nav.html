@@ -7,22 +7,20 @@
     <div class="mx-auto max-w-[1800px] px-4 lg:px-6">
         <div class="flex h-16 items-center justify-between">
             <!-- Logo -->
-            {{ nav_logo() }}
+            {{ nav_logo(nav.home) }}
 
             <!-- Desktop Navigation Links -->
             <div class="hidden md:flex md:items-center md:gap-6">
-                {{ nav_link("/cameras", "Cameras", request.url.path.startswith('/cameras'), 'video-camera') }}
-                {{ nav_link("/images", "Images", request.url.path.startswith('/images'), 'photo') }}
-                {{ nav_link("/timelapses", "Timelapses", request.url.path.startswith('/timelapses'), 'film') }}
-                {{ nav_link("/system/activity", "Activity", request.url.path.startswith('/system/activity'), 'clipboard-document-list') }}
-                {{ nav_link("/system", "System", request.url.path.startswith('/system') and not request.url.path.startswith('/system/activity'), 'cog-6-tooth') }}
+                {% for item in nav.links %}
+                {{ nav_link(item.url, item.label, item.active, item.icon) }}
+                {% endfor %}
             </div>
 
             <!-- Right side -->
             <div class="flex items-center gap-4">
                 {{ nav_status("Running", true) }}
                 {% if user %}{{ nav_user(user) }}{% endif %}
-                {{ nav_action("/logout", "Logout") }}
+                {{ nav_action(nav.logout, "Logout") }}
 
                 <!-- Mobile menu button -->
                 {{ icon_toggle_button('bars-3', 'x-mark', 'Open menu', 'mobileMenuOpen', extra_class='md:hidden') }}
@@ -41,31 +39,13 @@
          class="md:hidden border-t border-surface-400/30 bg-surface-900/98 backdrop-blur-sm"
          @click.outside="mobileMenuOpen = false">
         <div class="px-4 py-3 space-y-1">
-            <a href="/cameras"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/cameras') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
-                {{ icon('video-camera', 'w-5 h-5') }}
-                Cameras
+            {% for item in nav.links %}
+            <a href="{{ item.url }}"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if item.active %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
+                {{ icon(item.icon, 'w-5 h-5') }}
+                {{ item.label }}
             </a>
-            <a href="/images"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/images') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
-                {{ icon('photo', 'w-5 h-5') }}
-                Images
-            </a>
-            <a href="/timelapses"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/timelapses') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
-                {{ icon('film', 'w-5 h-5') }}
-                Timelapses
-            </a>
-            <a href="/system/activity"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system/activity') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
-                {{ icon('clipboard-document-list', 'w-5 h-5') }}
-                Activity
-            </a>
-            <a href="/system"
-               class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors {% if request.url.path.startswith('/system') and not request.url.path.startswith('/system/activity') %}text-primary-400 bg-primary-500/10{% else %}text-surface-200 hover:text-white hover:bg-surface-700{% endif %}">
-                {{ icon('cog-6-tooth', 'w-5 h-5') }}
-                System
-            </a>
+            {% endfor %}
             <div class="border-t border-surface-400/30 mt-2 pt-2">
                 {% if user %}
                 <div class="flex items-center gap-3 px-3 py-2 text-sm text-surface-200">
@@ -73,7 +53,7 @@
                     <span>{{ user }}</span>
                 </div>
                 {% endif %}
-                <a href="/logout"
+                <a href="{{ nav.logout }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium text-surface-200 hover:text-white hover:bg-surface-700 transition-colors">
                     {{ icon('arrow-right-on-rectangle', 'w-5 h-5') }}
                     Logout

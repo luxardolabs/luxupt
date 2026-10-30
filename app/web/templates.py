@@ -7,6 +7,7 @@
 from datetime import datetime
 from pathlib import Path
 
+from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from jinja2 import StrictUndefined
 
@@ -18,7 +19,45 @@ from app.web.template_helpers import paginated_url
 # email/llm would be peer subdirs). __file__ is app/web/templates.py, so go up to app/.
 _TEMPLATES_PATH = Path(__file__).parent.parent / "templates" / "web"
 
-templates = Jinja2Templates(directory=str(_TEMPLATES_PATH))
+# The top navigation: (label, icon, route name). Every page that extends the base layout renders it,
+# so its links are resolved here, once per render, rather than by each page's view service.
+_NAV_ITEMS = (
+    ("Cameras", "video-camera", "cameras.cameras_page"),
+    ("Images", "photo", "images.images_page"),
+    ("Timelapses", "film", "timelapses.timelapses_page"),
+    ("Activity", "clipboard-document-list", "system.activity_log_page"),
+    ("System", "cog-6-tooth", "system.system_page"),
+)
+
+
+def nav_context(request: Request) -> dict[str, object]:
+    """The nav bar's links, each resolved from its route name (fw.urls_from_route_names).
+
+    An item is active when the request is under its path; the longest match wins, so
+    /system/activity lights Activity and not System.
+    """
+    path = request.app.url_path_for
+    current = request.url.path
+    items = [
+        {"label": label, "icon": icon, "url": str(path(name))}
+        for label, icon, name in _NAV_ITEMS
+    ]
+    matches = [i for i in items if current.startswith(str(i["url"]))]
+    active = max(matches, key=lambda i: len(str(i["url"])), default=None)
+    for item in items:
+        item["active"] = item is active
+    return {
+        "nav": {
+            "links": items,
+            "home": str(path("pages.root_redirect")),
+            "logout": str(path("pages.logout_page")),
+        }
+    }
+
+
+templates = Jinja2Templates(
+    directory=str(_TEMPLATES_PATH), context_processors=[nav_context]
+)
 # StrictUndefined: a missing/renamed/typo'd template variable RAISES instead of rendering
 # an empty string. Jinja's default silently renders "" -- a dropped view->template value or
 # a stale context key then looks fine and busts nothing (fw.jinja_strict_undefined).

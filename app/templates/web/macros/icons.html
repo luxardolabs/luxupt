@@ -122,9 +122,10 @@
      - disabled: Disable the button
 
    Usage:
-     {{ icon_btn('eye', 'primary', href='/view/1', title='View') }}
-     {{ icon_btn('arrow-down-tray', 'success', href='/download/1', title='Download', download='file.mp4') }}
-     {{ icon_btn('trash', 'danger', hx_delete='/delete/1', title='Delete') }}
+     {{ icon_btn('eye', 'primary', href=clip.urls.view, title='View') }}
+     {{ icon_btn('arrow-down-tray', 'success', href=clip.urls.download, title='Download', download='file.mp4') }}
+     {{ icon_btn('trash', 'danger', hx_delete=clip.urls.delete, title='Delete') }}
+   Every URL comes from the view model (`luxarch --playbook url-in-view`), never a literal path.
    ============================================================================ #}
 
 {% macro icon_btn(icon_name, color='primary', href=none, title='', hx_get=none, hx_post=none, hx_delete=none, hx_target=none, hx_swap=none, download=none, disabled=false) %}
