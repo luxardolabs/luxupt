@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import config
 from app.crud import camera_crud
 from app.models.camera_model import Camera
+from app.schemas.camera_schema import CameraRead
 
 
 class CameraCoreService:
@@ -16,25 +17,31 @@ class CameraCoreService:
         """Initialize with database session."""
         self.db = db
 
-    async def get_by_safe_name(self, safe_name: str) -> Camera | None:
+    async def get_by_safe_name(self, safe_name: str) -> CameraRead | None:
         """Get a camera by its safe name."""
-        return await camera_crud.get_by_safe_name(self.db, safe_name)
+        camera = await camera_crud.get_by_safe_name(self.db, safe_name)
+        return CameraRead.model_validate(camera) if camera else None
 
-    async def get_by_id(self, camera_id: str) -> Camera | None:
+    async def get_by_id(self, camera_id: str) -> CameraRead | None:
         """Get a camera by its UniFi camera ID."""
-        return await camera_crud.get_by_camera_id(self.db, camera_id)
+        camera = await camera_crud.get_by_camera_id(self.db, camera_id)
+        return CameraRead.model_validate(camera) if camera else None
 
-    async def get_active(self) -> list[Camera]:
+    async def get_active(self) -> list[CameraRead]:
         """Get all active cameras."""
-        return await camera_crud.get_active(self.db)
+        return [
+            CameraRead.model_validate(c) for c in await camera_crud.get_active(self.db)
+        ]
 
-    async def get_inactive(self) -> list[Camera]:
+    async def get_inactive(self) -> list[CameraRead]:
         """Get all inactive (disabled) cameras."""
-        return await camera_crud.get_inactive(self.db)
+        rows = await camera_crud.get_inactive(self.db)
+        return [CameraRead.model_validate(c) for c in rows]
 
-    async def get_all(self, limit: int = config.MAX_PAGE_SIZE) -> list[Camera]:
+    async def get_all(self, limit: int = config.MAX_PAGE_SIZE) -> list[CameraRead]:
         """Get all cameras."""
-        return await camera_crud.get_multi(self.db, limit=limit)
+        rows = await camera_crud.get_multi(self.db, limit=limit)
+        return [CameraRead.model_validate(c) for c in rows]
 
     async def get_connected(self) -> list[Camera]:
         """Get all connected cameras."""
@@ -49,21 +56,23 @@ class CameraCoreService:
         )
 
     async def get_stats_bulk(
-        self, cameras: list[Camera], *, global_intervals: list[int] | None = None
+        self, camera_ids: list[str], *, global_intervals: list[int] | None = None
     ) -> dict[str, dict[str, Any]]:
         """Get statistics for many cameras at once, keyed by camera_id."""
+        cameras = await camera_crud.get_by_camera_ids(self.db, camera_ids)
         return await camera_crud.get_camera_stats_bulk(
             self.db, cameras, global_intervals=global_intervals
         )
 
     async def update_settings(
         self, camera_id: str, settings: dict[str, Any]
-    ) -> Camera | None:
+    ) -> CameraRead | None:
         """Update camera settings."""
         camera = await camera_crud.get_by_camera_id(self.db, camera_id)
         if not camera:
             return None
-        return await camera_crud.update(self.db, db_obj=camera, obj_in=settings)
+        updated = await camera_crud.update(self.db, db_obj=camera, obj_in=settings)
+        return CameraRead.model_validate(updated)
 
     async def update_capability_detection(
         self,
@@ -72,15 +81,16 @@ class CameraCoreService:
         api_max_resolution: str | None = None,
         rtsp_max_resolution: str | None = None,
         recommended_method: str | None = None,
-    ) -> Camera | None:
+    ) -> CameraRead | None:
         """Update capability detection results for a camera."""
-        return await camera_crud.update_capability_detection(
+        camera = await camera_crud.update_capability_detection(
             self.db,
             camera_id,
             api_max_resolution=api_max_resolution,
             rtsp_max_resolution=rtsp_max_resolution,
             recommended_method=recommended_method,
         )
+        return CameraRead.model_validate(camera) if camera else None
 
     async def get_cameras_for_interval(self, interval: int) -> list[Camera]:
         """Get cameras enabled for a specific interval."""

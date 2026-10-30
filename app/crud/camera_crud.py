@@ -27,6 +27,18 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         result = await db.execute(select(Camera).where(Camera.safe_name == safe_name))
         return result.scalar_one_or_none()
 
+    async def get_by_camera_ids(
+        self, db: AsyncSession, camera_ids: list[str]
+    ) -> list[Camera]:
+        """The cameras with these UniFi IDs, in the order given (unknown IDs are skipped)."""
+        if not camera_ids:
+            return []
+        result = await db.execute(
+            select(Camera).where(Camera.camera_id.in_(camera_ids))
+        )
+        by_id = {c.camera_id: c for c in result.scalars().all()}
+        return [by_id[i] for i in camera_ids if i in by_id]
+
     async def get_active(self, db: AsyncSession) -> list[Camera]:
         """Get all active cameras."""
         result = await db.execute(

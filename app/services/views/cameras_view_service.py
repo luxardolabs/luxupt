@@ -744,7 +744,7 @@ class CamerasViewService:
         # per-card `get_stats` was 6 queries x N cameras against a captures table with
         # hundreds of thousands of rows.
         stats_by_camera = await self.camera_service.get_stats_bulk(
-            cameras, global_intervals=global_intervals
+            [c.camera_id for c in cameras], global_intervals=global_intervals
         )
 
         camera_cards = []
