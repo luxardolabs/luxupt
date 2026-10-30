@@ -1,15 +1,17 @@
 ---
 name: luxpm-audit
-description: Audit this repo's whole LuxPM project, not just the issues the current work touched — verify every open issue against the code and close, park, merge or comment on it with evidence, backfill a close summary on every closed issue that lacks one, then re-issue the sync receipt. Use when the receipt shows untriaged or unexplained issues, when repo.luxpm_backlog_triaged is red, or when asked to review/clean up/audit LuxPM.
+description: Audit this repo's whole LuxPM project, not just the issues the current work touched — verify every open issue against the code and close, park, merge or comment on it with evidence, backfill a close summary on every closed issue that lacks one, recover work a closed summary deferred without tracking it, then re-issue the sync receipt. Use when the receipt shows untriaged or unexplained issues, when repo.luxpm_backlog_triaged is red, or when asked to review/clean up/audit LuxPM.
 ---
 
-<!-- luxarch:luxpm-audit-skill asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit luxpm-audit-skill`. -->
+<!-- luxarch:luxpm-audit-skill asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit luxpm-audit-skill`. -->
 
 # Audit the LuxPM backlog
 
 Emitted from luxarch (`luxarch --emit luxpm-audit-skill`); re-emit, never hand-edit. Standard: `luxarch --doc FLEET-AGENT-CONDUCT-STANDARD` ("LuxPM: required practices") and `luxarch --playbook luxpm-currency`.
 
-**In an iOS repo** (luxios: native, no Docker), luxios installs this file unchanged (`bash $LUXIOS/scripts/install.sh`). Read every `luxarch --doc X` here as the file `$LUXIOS/docs/fleet/X.md`, and every `luxarch --playbook X` as `$LUXIOS/docs/fleet/playbooks/X.md`. The guard there is luxios: its version is `cat $LUXIOS/VERSION`, and its changelog is `$LUXIOS/CHANGELOG.md`.
+**Which agent are you?** In a repo that hosts a luxios app (a nested `apps/ios/` with its own `CLAUDE.md`, beside the backend), there are two agents. If this machine has no Docker (`command -v docker` prints nothing), you are that app's agent: read its `CLAUDE.md` first, follow the iOS reading below, and leave the root guard gates (`make check`, the luxarch, luxlint and luxaudit images) to the backend agent. Never look for a Docker binary to install.
+
+**In an iOS repo, or as the iOS agent of a repo that hosts one** (luxios: native, no Docker), luxios installs this file unchanged (`bash $LUXIOS/scripts/install.sh`). Read every `luxarch --doc X` here as the file `$LUXIOS/docs/fleet/X.md`, and every `luxarch --playbook X` as `$LUXIOS/docs/fleet/playbooks/X.md`. The guard there is luxios: its version is `cat $LUXIOS/VERSION`, and its changelog is `$LUXIOS/CHANGELOG.md`.
 
 `/wrap-up` closes the issues ONE piece of work touched. This is the other half: the whole project. A tracker nobody audits fills with issues that shipped months ago, issues nobody will do, and closes nobody can explain. Each looks like open work to the next agent and the owner.
 
@@ -42,9 +44,24 @@ Read it fully (`luxpm_get_context`: description, comments, linked commits). Then
 
 **Never** delete an issue (deleting is the owner's call — ask), use `administrative_close`, close in bulk without reading each one, bulk-edit fields to reset issues' clocks (a label or priority touched on every issue is not triage, it is gaming the count), or write a summary you did not verify.
 
-## 2. Closed issues with no summary
+## 2. Closed issues: no summary, or deferred work nobody tracks
 
 For each `done`/`cancelled` issue in this project with a blank `close_summary` (list closed issues and read the field): reconstruct what happened from its linked commits, comments and activities, and `git log --grep <KEY>`. Write a `close_summary` (`luxpm_update_issue` with only `close_summary` — the state stays) that says what was done or why it was dropped, and where the evidence is. If nothing can be found, say so honestly: "Closed before summaries were required; no linked commit, comment or code reference found (checked: …)". That is an explanation; an empty field is not.
+
+**Then read every closed summary for deferred work.** A closed issue is in no open list, so "Not built: X" or "Stated limit: Y" written only into its summary is tracked by nothing. Collect each closed issue's full summary (`luxpm_list_issues` with `state` `done`, then `cancelled`, `verbose: true`, paging until exhausted) into a JSON object `{"<KEY>": "<close summary>", …}` in your scratch directory, and run the emitted hook's checker over it:
+
+```sh
+python3 .claude/hooks/luxpm-close-tracks-deferrals.py --scan <scratch>/closed.json
+```
+
+It prints each sentence that defers work without naming another issue or `dropped`, as `<KEY>: <sentence>`. For each one:
+
+- **Read it in context.** A sentence about the ticket itself ("left open for two weeks") defers nothing: note it and move on.
+- **Check the code.** Work done since (`git log -S <symbol>`, the file it names) needs no issue.
+- **Search LuxPM** (`luxpm_semantic_search`, two phrasings). Work an open issue already covers gets a comment there naming the closed key.
+- **File the rest** as its own open issue (label `recovered-deferral`), saying where it was found. Then amend the closed summary to name the new key beside the sentence (`luxpm_update_issue` with only `close_summary`, the state unchanged).
+
+A summary that ends mid-word was stored cut off. Rebuild what is missing from the issue's comments, its commits and the changelog, and write it back whole.
 
 ## 3. Checklists and activities
 

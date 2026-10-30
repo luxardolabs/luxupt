@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.289.3",
+  "guard_version": "0.331.0",
   "repo": "/repo",
   "targets": [
     {
@@ -1076,24 +1076,24 @@
         },
         {
           "rule": "fw.enums_in_enum_model",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.68.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Move the Enum class to app/models/enum_model.py (or enums.py), or to its domain submodule of the package app/models/enum_model/ (import from the submodule, no re-export), and import it where used \u2014 enums cross every layer by design (ADR-001) so they have one home, and a stray enum is caught only by ricochet off another rule (or not at all, if only a core/service imports it). If it's genuinely NOT a model enum (error-infrastructure core owns, not DB-persisted, and moving it makes an import cycle), exempt it: [allowlist].enum_placement = [{ enum, evidence }]. See --playbook enum-typing.",
+          "fix": "",
           "example": ""
         },
         {
           "rule": "fw.enums_declared",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.69.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Add each enum to `[enums].declared` in .luxarch.toml. Placement (enums_in_enum_model) gives it one home; declaration is what makes the value/column rules examine it \u2014 without it the enum is invisible to enforcement, so a move without a declaration only relocates the problem. Declaring a column-less enum is harmless (those rules stay inert for it). See --playbook enum-typing.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1450,13 +1450,13 @@
         },
         {
           "rule": "fw.dto_in_schemas",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.155.0",
-          "violations": 2,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Move the DTO to `app/schemas/<domain>_schema.py` and import it where it's built. A DTO defined inside a service is invisible to the schema-scanning rules \u2014 most importantly fw.enum_dto_fields_enum_typed \u2014 so its closed-set fields go unchecked and the enum family reads green over untyped data. Relocation is mechanical: the type moves, the boundary stays typed. Do this BEFORE fw.no_inline_imports \u2014 a lazy import usually exists to dodge the circular dependency a misplaced DTO created, and lifts on its own once the DTO moves. Internal value types never returned outward are not flagged. See --playbook burn-down-order \u00a72.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1472,12 +1472,12 @@
         },
         {
           "rule": "fw.test_engine_pool_parity",
-          "status": "INERT",
+          "status": "PASS",
           "since": "0.160.0",
           "violations": 0,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "the harness isolates by holding ONE connection and rolling it back (tests/conftest.py:202), so a pooled test engine cannot work here \u2014 each pytest-asyncio test gets its own loop and a pooled connection belongs to the loop that opened it. **This INERT is the correct END STATE for such a harness, not a todo.** Do NOT migrate to DELETE/TRUNCATE-per-test to satisfy this rule: luxlint's test.no_handrolled_cleanup exists to red exactly that, and rollback isolation is the better pattern (faster, no table-ordering bugs, nothing to forget). An earlier version of this message named that migration as the prerequisite and was wrong \u2014 it pointed at something another fleet guard forbids. Measured, pursuing pooling here costs you: 0 failures on NullPool, 139 pooled, 366 pooled+dispose. And you lose nothing in DETECTION \u2014 the cross-session visibility class this rule guards is caught by durability locks that read on a SEPARATE connection, which works whatever the pool class. Pool the APP engine (fw.dev_prod_pool_parity); leave the test engine alone.",
+          "inert": false,
+          "inert_reason": "",
           "fix": "",
           "example": ""
         },
@@ -1788,11 +1788,77 @@
           "inert_reason": "declare the cookie(s) this app authenticates by in [csrf].session_cookies so its authentication POSTs can be found",
           "fix": "",
           "example": ""
+        },
+        {
+          "rule": "fw.request_owner_commits_before_response",
+          "status": "PASS",
+          "since": "0.290.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.route_names_unique",
+          "status": "PASS",
+          "since": "0.297.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.urls_from_route_names",
+          "status": "FAIL",
+          "since": "0.297.0",
+          "violations": 117,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "Build every link to an app route from the route's NAME, in the view service: `request.app.url_path_for(\"<area>.<entity>.<action>\", **params)` (a relative path; `request.url_for` is absolute and carries the internal scheme and host behind a proxy). Put the finished string on the view model and render `{{ item.urls.detail }}`. A redirect, an `HX-Redirect` header and a path comparison resolve the name the same way. JavaScript cannot resolve a name: render the URL into the markup (an `hx-*` attribute, or `data-url` read as `el.dataset.url`); a nav or config file lists route NAMES, resolved in the view. Code with no request (a job's email, a device payload built in core) resolves the name through `luxarch --emit route-urls`: `absolute_url(settings.base_url, <name>, **params)`. Name the routes first (fw.route_names_unique). While the literals burn down, `luxarch --emit route-links` is the runtime net: it fails on any template link the live route table does not serve. See --playbook url-in-view.",
+          "example": ""
+        },
+        {
+          "rule": "fw.adversarial_wired",
+          "status": "INERT",
+          "since": "0.302.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "a read/derive app proves its reads hold against dirty data only through the adversarial sweep, and it is off here. To turn it ON: set [adversarial].enabled = true, then emit `adversarial`, `adversarial-invariants` and `adversarial-sweep` (this rule then enforces they are wired). See --doc FLEET-ADVERSARIAL-TESTING-STANDARD.",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.test_sessions_isolated",
+          "status": "PASS",
+          "since": "0.304.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.no_concurrent_session_use",
+          "status": "PASS",
+          "since": "0.328.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         }
       ],
       "summary": {
-        "PASS": 132,
-        "FAIL": 3,
+        "PASS": 140,
+        "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -1909,6 +1975,17 @@
         "inert": false,
         "inert_reason": "",
         "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.agent_push_declared",
+        "status": "FAIL",
+        "since": "0.296.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Add to .luxarch.toml: `[agents]` then `push = \"agent\"` (the agent pushes when its work lands: every repo an agent can push to, public included) or `push = \"owner\"` (an airgapped repo: the agent stops at the commit and the owner transfers it). The owner decides which; an agent asks once and writes the answer down. `unpushed-stop-guard` and `/wrap-up` read it. See --doc FLEET-AGENT-CONDUCT-STANDARD.",
         "example": ""
       },
       {
@@ -2056,23 +2133,23 @@
       },
       {
         "rule": "repo.luxpm_receipt_current",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.211.0",
-        "violations": 0,
+        "violations": 1,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "",
+        "fix": "re-issue it and commit the text VERBATIM: `luxpm_issue_sync_receipt` for this project, written to `.luxpm-receipt`. Editing any byte invalidates the signature, which is the point \u2014 the counts are the TRACKER's statement, not the repo's. If it names a different repository_url it was copied from a sibling and attests nothing about this one.",
         "example": ""
       },
       {
         "rule": "repo.luxpm_backlog_triaged",
-        "status": "PASS",
+        "status": "INERT",
         "since": "0.252.0",
         "violations": 0,
         "deferred": false,
-        "inert": false,
-        "inert_reason": "",
+        "inert": true,
+        "inert_reason": "`.luxpm-receipt` is stale or undated (issued 2026-10-10T21:19:03+00:00) \u2014 the backlog counts are only trusted from a verified receipt (`repo.luxpm_receipt_current` says what to fix). NOT a clearance",
         "fix": "",
         "example": ""
       },
@@ -2122,13 +2199,13 @@
       },
       {
         "rule": "repo.makefile_test_db_harness",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.102.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "test: test-db-up so the DB/durability suite always runs against a throwaway DB `make test` starts (a skipped suite must not read as a pass); + a test-db-up/test-db-down lifecycle (start / stop+wipe). Or, the fleet way since 0.271.0: `luxarch --emit test-block`, which runs that lifecycle inside `make test`. See --doc FLEET-MAKEFILE-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -2397,13 +2474,13 @@
       },
       {
         "rule": "repo.image_block_wired",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.280.0",
-        "violations": 6,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Paste `luxarch --emit image-block` into the Makefile and delete the hand-written publish and deploy targets; set its settings ABOVE it (REGISTRY, and as needed RELEASE_REGISTRY, PLATFORMS for a multi-arch image, PUBLIC_REGISTRY for a public copy, IMAGE_NAME, BUILD_CONTEXT, IMAGES for more than one image). Where the block cannot serve this repo, escalate to the luxarch maintainer and leave this red lit: a hand-written copy is the drift the block exists to end. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -2544,16 +2621,16 @@
       "FAIL": 2,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 2
+      "INERT": 3
     }
   },
   "summary": {
-    "PASS": 195,
-    "FAIL": 5,
+    "PASS": 203,
+    "FAIL": 3,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 29
+    "INERT": 30
   },
-  "commit": "58dd62a40faa27252a6f2a7fc2eb4c80f0902d02",
-  "generated_at": "2026-10-13T04:01:50Z"
+  "commit": "3809aea568949d30ddee0d9222f154f66e1c033f",
+  "generated_at": "2026-10-30T05:04:46Z"
 }

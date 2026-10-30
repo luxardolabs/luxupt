@@ -48,6 +48,8 @@ from zoneinfo import ZoneInfo
 import sqlalchemy as sa
 from alembic import op
 
+from app.core.sql_allowlist import sql_choice
+
 revision: str = "c4e7b1a90f22"
 down_revision: str | None = "9f3d0d41053d"
 branch_labels: str | Sequence[str] | None = None
@@ -69,6 +71,36 @@ APP_WRITTEN: tuple[tuple[str, str], ...] = (
     ("timelapses", "started_at"),
     ("timelapses", "completed_at"),
     ("users", "last_login_at"),
+)
+
+# The identifiers APP_WRITTEN names, as literal sets: a table or column name cannot be a bound
+# parameter, so each one spliced into the statements below is chosen from these (sql_choice).
+_TABLES = frozenset(
+    {
+        "activities",
+        "cameras",
+        "captures",
+        "jobs",
+        "scheduler_settings",
+        "timelapses",
+        "users",
+    }
+)
+_COLUMNS = frozenset(
+    {
+        "capture_datetime",
+        "completed_at",
+        "created_at",
+        "end_at",
+        "first_discovered_at",
+        "last_capture_at",
+        "last_login_at",
+        "last_run_at",
+        "last_seen_at",
+        "start_at",
+        "started_at",
+        "timestamp",
+    }
 )
 
 _STORAGE = "%Y-%m-%d %H:%M:%S.%f"
@@ -106,9 +138,11 @@ def _shift(to_utc: bool) -> None:
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
 
-    for table, column in APP_WRITTEN:
-        if table not in tables:
+    for written_table, written_column in APP_WRITTEN:
+        if written_table not in tables:
             continue
+        table = sql_choice(written_table, _TABLES)
+        column = sql_choice(written_column, _COLUMNS)
         rows = bind.execute(
             sa.text(f"SELECT rowid, {column} FROM {table} WHERE {column} IS NOT NULL")
         ).fetchall()

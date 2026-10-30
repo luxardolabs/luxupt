@@ -15,7 +15,11 @@ router = APIRouter(tags=["account"])
 TEMPLATE = "pages/account_password.html"
 
 
-@router.get("/account/password", response_class=HTMLResponse)
+@router.get(
+    "/account/password",
+    name="account.change_password_page",
+    response_class=HTMLResponse,
+)
 async def change_password_page(
     request: Request,
     templates: TemplatesDep,
@@ -27,7 +31,11 @@ async def change_password_page(
     return templates.TemplateResponse(request, TEMPLATE, context)
 
 
-@router.post("/account/password", response_class=HTMLResponse)
+@router.post(
+    "/account/password",
+    name="account.change_password_submit",
+    response_class=HTMLResponse,
+)
 @limiter.limit(LOGIN_RATE)
 async def change_password_submit(
     request: Request,

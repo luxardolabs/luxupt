@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
+# luxarch:admin-bootstrap asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
 """How the first admin comes to exist, and how a locked-out owner gets back in.
 
 `luxarch --emit admin-bootstrap`. Drop this in at `app/services/core/admin_bootstrap_core_service.py`.
@@ -15,13 +15,15 @@ The standard it implements is `luxarch --doc FLEET-ADMIN-BOOTSTRAP-STANDARD`; re
 | `admin-bootstrap-cli`        | `app/cli.py`                                               | owner  |
 | `admin-bootstrap-form`       | `app/templates/web/partials/admin_setup_form.html`         | markup |
 
-Wiring, three lines in code you own:
+Wiring, four lines in code you own:
 
 - the app's lifespan awaits `bootstrap_on_startup()` from `app.cli` (it owns its own transaction:
   list `app/cli.py` in `[allowlist].non_request_files`);
 - the app includes `admin_bootstrap_router.router`;
 - the login handler sends a signed-in user to `AdminBootstrapViewService().login_destination(...)`,
-  and the login page to `login_page_redirect(...)` while there are no users.
+  and the login page to `login_page_redirect(...)` while there are no users;
+- the app's authentication redirects every request to `forced_change_redirect(...)` when it returns a
+  path (v3), so a seeded or reset account reaches only the change form and logout.
 
 ## What runs, in order
 
@@ -38,7 +40,19 @@ Wiring, three lines in code you own:
    temporary password once and sets `must_change_password`. Shell access is the proof of ownership;
    there is no email dependency.
 4. **Sign-in.** `login_destination` sends a user whose `must_change_password` is set to the change
-   form before anything else.
+   form before anything else, and the app's authentication calls `forced_change_redirect` on every
+   request so that user reaches nothing else until they change it.
+
+v3, from adopters' adversarial passes: the app's own password policy is consulted
+(`password_policy_problem`), a change to the current password is refused, a password the hasher
+refuses (bcrypt past 72 bytes) is a policy error on `/setup` and a change, not a 500, a login longer
+than 254 characters is refused before it reaches a column, every password set ends the user's
+sessions (the crud's `_end_sessions`; a user's own change signs them in again with a fresh cookie),
+and `/setup` no longer deletes the token inside its transaction: a commit that failed left `/setup`
+open with no token that worked. The token is discarded once the transaction that created the admin
+commits, and wherever users are seen to exist (`setup_open`).
+The forced change is enforced on every request by the view's `forced_change_redirect`, called from
+the app's authentication, not only at the login redirect.
 
 What is deliberately absent: an environment password applied on every boot. Once a user exists the
 database is authoritative. Re-applying the environment silently reverts the owner's own change.
@@ -57,6 +71,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # isort: split
@@ -69,6 +84,14 @@ logger = logging.getLogger(__name__)
 
 # --- EDIT THIS: the shortest password the seed, /setup and a change accept.
 MIN_PASSWORD_LENGTH = 12
+
+
+# --- EDIT THIS: the app's own password policy, after the length check: a message for a password it
+# refuses, "" for one it accepts. Point it at the rules every later change of the account must meet,
+# so the first admin (the most privileged account) cannot be created with a password they refuse.
+async def password_policy_problem(db: AsyncSession, password: str) -> str:
+    return ""
+
 
 # --- EDIT THIS: where the one-time setup token lives while there are no users. Every worker in one
 # container reads the same file, so whichever worker serves POST /setup knows the token in the log.
@@ -86,6 +109,9 @@ _LOGIN_SHAPE = {
     "email": re.compile(r"^[^@\s]+@[^@\s]+$"),
     "username": re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$"),
 }
+# The longest address SMTP carries (RFC 5321): a longer login would overflow the user table's column
+# inside the insert, and the failing statement's parameters (the hash among them) reach the log.
+_MAX_LOGIN = 254
 
 
 class BootstrapOutcome(StrEnum):
@@ -142,6 +168,8 @@ def _login_problem(login: str) -> str:
     shape = _LOGIN_SHAPE.get(LOGIN_KIND)
     if shape is None:
         return f"LOGIN_KIND is {LOGIN_KIND!r}, not 'email' or 'username'"
+    if len(login) > _MAX_LOGIN:
+        return f"the login is longer than {_MAX_LOGIN} characters"
     if shape.match(login):
         return ""
     return (
@@ -151,10 +179,21 @@ def _login_problem(login: str) -> str:
     )
 
 
-def _password_problem(password: str) -> str:
+async def _password_problem(db: AsyncSession, password: str) -> str:
     if len(password) < MIN_PASSWORD_LENGTH:
         return f"the password is shorter than {MIN_PASSWORD_LENGTH} characters"
-    return ""
+    return await password_policy_problem(db, password)
+
+
+def _hash(password: str) -> str:
+    """The hash, or PasswordPolicyError when the hasher refuses the password (length, encoding)."""
+    try:
+        hashed: str = get_password_hash(password)
+    except ValueError as exc:
+        raise PasswordPolicyError(
+            f"the password was refused by the hasher: {exc}"
+        ) from None
+    return hashed
 
 
 def _issue_token(path: Path) -> str:
@@ -187,6 +226,10 @@ def _discard_token(path: Path) -> None:
     path.unlink(missing_ok=True)
 
 
+def _discard_setup_token(_session: object) -> None:
+    _discard_token(SETUP_TOKEN_FILE)
+
+
 class AdminBootstrapCoreService:
     """First boot, `/setup`, recovery and the forced change. Transport-agnostic: the view, the CLI
     and the startup hook all call these methods; none of them opens a transaction here."""
@@ -212,13 +255,15 @@ class AdminBootstrapCoreService:
             )
         if not problem and not (login and password):
             problem = f"set both {SEED_LOGIN} and {SEED_PASSWORD}"
-        problem = problem or _login_problem(login) or _password_problem(password)
+        problem = (
+            problem or _login_problem(login) or await _password_problem(db, password)
+        )
         password_hash = ""
         if not problem:
             try:
-                password_hash = get_password_hash(password)
-            except ValueError as exc:  # the hasher refused it (length, encoding)
-                problem = f"the password was refused by the hasher: {exc}"
+                password_hash = _hash(password)
+            except PasswordPolicyError as exc:
+                problem = str(exc)
         if problem:
             return await self._open_setup(BootstrapOutcome.SEED_REJECTED, problem)
         await admin_bootstrap_crud.add_admin(
@@ -233,8 +278,12 @@ class AdminBootstrapCoreService:
         )
 
     async def setup_open(self, db: AsyncSession) -> bool:
-        """`/setup` exists only while there are zero users."""
+        """`/setup` exists only while there are zero users. Once users exist the one-time token is
+        discarded here, so a token from an earlier empty state cannot claim the install again if its
+        users are later removed (`/setup` itself leaves it until its transaction has landed)."""
         users: int = await admin_bootstrap_crud.count_users(db)
+        if users:
+            await asyncio.to_thread(_discard_token, SETUP_TOKEN_FILE)
         return users == 0
 
     async def create_first_admin(
@@ -244,6 +293,7 @@ class AdminBootstrapCoreService:
         caller's transaction, that there is still no user, then checks the one-time token."""
         await admin_bootstrap_crud.lock_first_boot(db)
         if await admin_bootstrap_crud.count_users(db) > 0:
+            await asyncio.to_thread(_discard_token, SETUP_TOKEN_FILE)
             raise SetupClosedError
         expected = await asyncio.to_thread(_read_token, SETUP_TOKEN_FILE)
         if not expected or not hmac.compare_digest(
@@ -251,14 +301,17 @@ class AdminBootstrapCoreService:
         ):
             logger.warning("admin_setup_token_refused", extra={"login": login})
             raise SetupTokenError
-        problem = _login_problem(login) or _password_problem(password)
+        problem = _login_problem(login) or await _password_problem(db, password)
         if problem:
             raise PasswordPolicyError(problem)
         # The admin chose this password, so no forced change follows.
         await admin_bootstrap_crud.add_admin(
-            db, login, get_password_hash(password), must_change_password=False
+            db, login, _hash(password), must_change_password=False
         )
-        await asyncio.to_thread(_discard_token, SETUP_TOKEN_FILE)
+        # The token goes only once the admin row has landed: a failed transaction leaves it working
+        # (v2 deleted it first, so a retry got 403 until a restart), a landed one leaves no token from
+        # this empty state to claim the install with should its users later be removed.
+        event.listen(db.sync_session, "after_commit", _discard_setup_token, once=True)
         logger.info("admin_setup_completed", extra={"login": login})
 
     async def reset_password(self, db: AsyncSession, login: str) -> str:
@@ -269,7 +322,7 @@ class AdminBootstrapCoreService:
             raise UnknownUserError(login)
         temporary = secrets.token_urlsafe(15)
         await admin_bootstrap_crud.set_password(
-            db, user, get_password_hash(temporary), must_change_password=True
+            db, user, _hash(temporary), must_change_password=True
         )
         logger.warning("password_reset_to_temporary", extra={"login": login})
         return temporary
@@ -277,19 +330,21 @@ class AdminBootstrapCoreService:
     async def change_password(
         self, db: AsyncSession, login: str, current_password: str, new_password: str
     ) -> None:
-        """A user's own change: the current password is required, and the forced change clears."""
+        """A user's own change: the current password is required, the new one must differ from it,
+        and the forced change clears. Every session ends (the caller signs the user in again)."""
         user = await admin_bootstrap_crud.get_by_login(db, login)
         if user is None:
             raise UnknownUserError(login)
-        if not verify_password(
-            current_password, admin_bootstrap_crud.password_hash_of(user)
-        ):
+        stored = admin_bootstrap_crud.password_hash_of(user)
+        if not verify_password(current_password, stored):
             raise CurrentPasswordError
-        problem = _password_problem(new_password)
+        problem = await _password_problem(db, new_password)
+        if not problem and verify_password(new_password, stored):
+            problem = "the new password is the current one"
         if problem:
             raise PasswordPolicyError(problem)
         await admin_bootstrap_crud.set_password(
-            db, user, get_password_hash(new_password), must_change_password=False
+            db, user, _hash(new_password), must_change_password=False
         )
 
     async def needs_password_change(self, db: AsyncSession, login: str) -> bool:

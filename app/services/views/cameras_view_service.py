@@ -108,7 +108,8 @@ class CamerasViewService:
         try:
             parsed = urlparse(url)
             return f"{parsed.scheme}://{parsed.netloc}/..."
-        except Exception:
+        except ValueError:
+            # urlparse refuses a malformed netloc (an unclosed IPv6 bracket): show no part of it.
             return "configured"
 
     async def get_camera_settings_context(self, camera_id: str) -> dict[str, Any]:

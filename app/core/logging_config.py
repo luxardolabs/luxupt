@@ -1,4 +1,4 @@
-# luxarch:logging asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
+# luxarch:logging asset v7 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
 """The fleet's ONE logging setup: standard-library `logging`, one JSON line per record on stdout.
 
 Why the standard library (sources in `luxarch --playbook logging`): every log platform the fleet might
@@ -43,6 +43,12 @@ line goes through it before it is written: `configure_logging(..., redact=scrub)
 the line as a dict and returns the dict to write. It sees the message, the bound context, every
 `extra=` field and the traceback, in JSON and text mode alike. If it raises, the line is written with
 its fixed fields only and a `redaction_error`: never the unscrubbed content, never lost.
+
+Trace ids on every line logged inside a span: pass the tracing module's source,
+`configure_logging(..., trace_ids=current_trace_ids)` (`luxarch --emit telemetry`), and each record made
+while a span is current carries `trace_id` and `span_id`; outside a span, neither. The source is called
+when the record is made, in the caller's context, so a line formatted later still names its own span. A
+source that raises costs the line its ids, never the line.
 
 `LOG_LEVEL` sets the root level (default INFO). Per-logger levels: pass
 `configure_logging(..., levels={"sqlalchemy.engine": "WARNING"})` for the code's defaults, and set
@@ -120,6 +126,9 @@ _SysExcInfo = (
 # envelope and on `attributes`, so it sees every caller field under its own name, never nested.
 # See `configure_logging(redact=)`.
 Redactor = Callable[[dict[str, Any]], Mapping[str, Any]]
+# The current span's (trace id, span id) as hex, or None outside a span. See `configure_logging(trace_ids=)`.
+TraceIds = Callable[[], tuple[str, str] | None]
+_trace_ids: list[TraceIds | None] = [None]
 # What survives a redactor that raised: only fields the module itself wrote and no caller controls.
 _SAFE_ON_FAILURE = ("timestamp", "level", "logger", "service", "version", "environment")
 
@@ -182,6 +191,19 @@ def _make_record(
     )
     names: dict[str, str] = {}
     record.__dict__[_FIELD_KEYS] = names
+    source = _trace_ids[0]
+    if source is not None:
+        # Any exception, not a list: a tracing defect must never cost the application its log line.
+        try:
+            ids = cast(object, source())
+        except Exception:
+            ids = None
+        if (
+            isinstance(ids, tuple)
+            and len(ids) == 2
+            and all(isinstance(i, str) for i in ids)
+        ):
+            record.__dict__["otelTraceID"], record.__dict__["otelSpanID"] = ids
     for key, value in (extra or {}).items():
         free = _free_key(key, record.__dict__)
         record.__dict__[free] = value
@@ -297,11 +319,15 @@ class TextFormatter(logging.Formatter):
             line["exception"] = self.formatException(record.exc_info)
         if record.stack_info:
             line["stack"] = self.formatStack(record.stack_info)
-        line, attributes = _redacted(line, {**_bound(), **_extras(record)}, self.redact)
+        extras = _extras(record)
+        for otel, ours in _TRACE_FIELDS.items():
+            if otel in extras:
+                line[ours] = extras.pop(otel)
+        line, attributes = _redacted(line, {**_bound(), **extras}, self.redact)
         message = line.pop("message", "")
         trace = [str(line.pop(k)) for k in ("exception", "stack") if k in line]
         head = f"{self.formatTime(record)} {record.levelname} {record.name} {message}"
-        tail = " ".join(f"{k}={v}" for k, v in {**line, **attributes}.items())
+        tail = " ".join(f"{k}={v}" for k, v in [*line.items(), *attributes.items()])
         return "\n".join([f"{head} {tail}" if tail else head, *trace])
 
 
@@ -389,6 +415,7 @@ def configure_logging(
     levels: Mapping[str, str | int] | None = None,
     environment: str | None = None,
     redact: Redactor | None = None,
+    trace_ids: TraceIds | None = None,
 ) -> None:
     """Install the fleet's logging: JSON to stdout, the collision fix, server loggers routed through it.
 
@@ -406,11 +433,15 @@ def configure_logging(
     `extra=`, flat, under their own names); each returns the dict to write. If either raises, the line
     keeps its fixed fields and says the redaction failed; the unscrubbed content is dropped.
 
+    `trace_ids` is the tracing module's `current_trace_ids`: every record made inside a span gets
+    `trace_id` and `span_id`.
+
     Idempotent: calling it again replaces the handler instead of adding a second one.
     """
     # The documented override point (Python docs: "can be overridden in subclasses"), installed on the
     # base class so loggers created before this call, and third-party ones, are covered as well.
     setattr(logging.Logger, _OVERRIDDEN, _make_record)
+    _trace_ids[0] = trace_ids
     formatter: logging.Formatter
     if os.environ.get("LOG_FORMAT", "json").lower() == "text":
         formatter = TextFormatter(redact)

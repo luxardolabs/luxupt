@@ -86,3 +86,12 @@ app/static/css/app.css
 
 # Claude Code hook session state (luxarch --emit hooks)
 .claude/.session-commits.json
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.luxpm-search-terms.json
+.claude/.release-guides-read.json
+.claude/hooks/__pycache__/
+.claude/worktrees/
+.claude/.*.lock
+.claude/.*.tmp
+.claude/.*.unreadable-*

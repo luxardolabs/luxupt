@@ -5,8 +5,8 @@ its own session) sees the new values. Bite: break the write (the crud update) an
 is invisible cross-connection (the reader falls back to the old value).
 
 Test-isolation (FLEET-VERIFICATION-STANDARD): the helper opens the app's real session owner,
-``get_db_context``. The ``_engine`` fixture behind ``durable_db`` already points the app's
-session maker at this test's private database, so the helper is exercised unpatched through
+``get_db_context``. ``durable_db`` is the app's own session maker in a ``real_commits`` test, so
+the helper's session commits for real on the run's database and is exercised unpatched through
 its public seam: nothing private is reached.
 """
 

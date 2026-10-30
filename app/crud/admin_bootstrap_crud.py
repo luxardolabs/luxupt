@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap-crud asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-crud`.
+# luxarch:admin-bootstrap-crud asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-crud`.
 """The user-table half of the admin bootstrap. `luxarch --emit admin-bootstrap-crud`.
 
 Drop this in at `app/crud/admin_bootstrap_crud.py`. It is the ONLY module of the bootstrap that
@@ -14,11 +14,18 @@ regions onto a newer version.
 turns on: the seed applies only then, `/setup` exists only then. A count with a filter on it (no
 ADMIN users, no user with THIS id) is a different fact. With it, an install whose admins were all
 removed would re-create one from an environment password that is still set.
+
+v3: every password set (a recovery reset, a change) ends the user's other sessions through
+`_end_sessions` (FLEET-AUTH-SESSION-STANDARD §2.5): an owner resets because someone else got in, and
+v2 left that someone signed in. On SQLite, `lock_first_boot` takes the database's write lock: v2's
+lock was PostgreSQL-only, so two concurrent `/setup` submissions both saw zero users.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import ColumnElement, func, select
+from datetime import UTC, datetime
+
+from sqlalchemy import ColumnElement, delete, false, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # isort: split
@@ -53,7 +60,15 @@ def _store_password(
 ) -> None:
     user.password_hash = password_hash
     user.must_change_password = must_change_password
-    user.session_version += 1  # a reset or a change ends the sessions issued before it
+
+
+# --- EDIT THIS: end every session this user holds (FLEET-AUTH-SESSION-STANDARD §2.1 and §2.5). The
+# fleet default is a `sessions_valid_after` the auth dependency compares with a token's issued-at; a
+# session table deletes the user's rows here instead. It runs in the same transaction as the new hash.
+async def _end_sessions(db: AsyncSession, user: User) -> None:
+    # A token carries the session_version it was issued under (app/web/auth.py); bumping it refuses
+    # every token issued before this password.
+    user.session_version += 1
 
 
 # --- EDIT THIS: the stored hash, for checking the current password on a change.
@@ -69,13 +84,18 @@ def password_change_required(user: User) -> bool:
 
 
 async def lock_first_boot(db: AsyncSession) -> None:
-    """Hold the first-boot lock until this transaction ends (PostgreSQL; a no-op elsewhere).
+    """Hold the first-boot lock until this transaction ends.
 
     The count-then-insert that follows is only a re-check if nobody else can insert in between.
-    Under READ COMMITTED two transactions both see zero users and both insert; the advisory lock
-    makes the second one wait, then see the first one's admin, then stop."""
-    if db.get_bind().dialect.name == "postgresql":
+    Under READ COMMITTED two transactions both see zero users and both insert; the lock makes the
+    second one wait, then see the first one's admin, then stop. PostgreSQL: an advisory lock.
+    SQLite: a write that matches no row, which takes the database's write lock for the rest of the
+    transaction (a second writer waits, up to its busy timeout)."""
+    dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
         await db.execute(select(func.pg_advisory_xact_lock(_FIRST_BOOT_LOCK)))
+    elif dialect == "sqlite":
+        await db.execute(delete(User).where(false()))
 
 
 async def count_users(db: AsyncSession) -> int:
@@ -100,4 +120,5 @@ async def set_password(
     db: AsyncSession, user: User, password_hash: str, *, must_change_password: bool
 ) -> None:
     _store_password(user, password_hash, must_change_password=must_change_password)
+    await _end_sessions(db, user)
     await db.flush()

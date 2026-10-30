@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["timelapses"])
 
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", name="timelapses.timelapses_page", response_class=HTMLResponse)
 async def timelapses_page(
     request: Request,
     templates: TemplatesDep,
@@ -45,7 +45,9 @@ async def timelapses_page(
     )
 
 
-@router.get("/create", response_class=HTMLResponse)
+@router.get(
+    "/create", name="timelapses.create_timelapse_panel", response_class=HTMLResponse
+)
 async def create_timelapse_panel(
     request: Request,
     templates: TemplatesDep,
@@ -63,7 +65,11 @@ async def create_timelapse_panel(
     )
 
 
-@router.get("/historical", response_class=HTMLResponse)
+@router.get(
+    "/historical",
+    name="timelapses.historical_timelapse_panel",
+    response_class=HTMLResponse,
+)
 async def historical_timelapse_panel(
     request: Request,
     templates: TemplatesDep,
@@ -86,7 +92,11 @@ async def historical_timelapse_panel(
     )
 
 
-@router.post("/historical", response_class=HTMLResponse)
+@router.post(
+    "/historical",
+    name="timelapses.create_historical_timelapse",
+    response_class=HTMLResponse,
+)
 async def create_historical_timelapse(
     request: Request,
     templates: TemplatesDep,
@@ -129,7 +139,7 @@ async def create_historical_timelapse(
     )
 
 
-@router.post("/create", response_class=HTMLResponse)
+@router.post("/create", name="timelapses.create_timelapse", response_class=HTMLResponse)
 async def create_timelapse(
     request: Request,
     templates: TemplatesDep,
@@ -156,7 +166,11 @@ async def create_timelapse(
     )
 
 
-@router.get("/partials/dates", response_class=HTMLResponse)
+@router.get(
+    "/partials/dates",
+    name="timelapses.dates_select_partial",
+    response_class=HTMLResponse,
+)
 async def dates_select_partial(
     request: Request,
     templates: TemplatesDep,
@@ -174,7 +188,11 @@ async def dates_select_partial(
     )
 
 
-@router.get("/partials/intervals", response_class=HTMLResponse)
+@router.get(
+    "/partials/intervals",
+    name="timelapses.intervals_select_partial",
+    response_class=HTMLResponse,
+)
 async def intervals_select_partial(
     request: Request,
     templates: TemplatesDep,
@@ -193,7 +211,9 @@ async def intervals_select_partial(
     )
 
 
-@router.get("/partials/preview", response_class=HTMLResponse)
+@router.get(
+    "/partials/preview", name="timelapses.preview_partial", response_class=HTMLResponse
+)
 async def preview_partial(
     request: Request,
     templates: TemplatesDep,
@@ -219,7 +239,11 @@ async def preview_partial(
     )
 
 
-@router.get("/partials/list", response_class=HTMLResponse)
+@router.get(
+    "/partials/list",
+    name="timelapses.timelapse_list_partial",
+    response_class=HTMLResponse,
+)
 async def timelapse_list_partial(
     request: Request,
     templates: TemplatesDep,
@@ -250,7 +274,9 @@ async def timelapse_list_partial(
     )
 
 
-@router.get("/partials/stats", response_class=HTMLResponse)
+@router.get(
+    "/partials/stats", name="timelapses.stats_partial", response_class=HTMLResponse
+)
 async def stats_partial(
     request: Request,
     templates: TemplatesDep,
@@ -267,7 +293,11 @@ async def stats_partial(
     )
 
 
-@router.get("/{timelapse_id}/lightbox", response_class=HTMLResponse)
+@router.get(
+    "/{timelapse_id}/lightbox",
+    name="timelapses.timelapse_lightbox",
+    response_class=HTMLResponse,
+)
 async def timelapse_lightbox(
     timelapse_id: int,
     request: Request,
@@ -288,7 +318,7 @@ async def timelapse_lightbox(
     )
 
 
-@router.get("/{timelapse_id}/video")
+@router.get("/{timelapse_id}/video", name="timelapses.serve_timelapse_video")
 async def serve_timelapse_video(
     timelapse_id: int,
     view_service: TimelapsesViewDep,
@@ -307,7 +337,7 @@ async def serve_timelapse_video(
     )
 
 
-@router.get("/{timelapse_id}/thumbnail")
+@router.get("/{timelapse_id}/thumbnail", name="timelapses.serve_timelapse_thumbnail")
 async def serve_timelapse_thumbnail(
     timelapse_id: int,
     view_service: TimelapsesViewDep,
@@ -317,7 +347,9 @@ async def serve_timelapse_thumbnail(
     return await view_service.serve_thumbnail(timelapse_id)
 
 
-@router.delete("/{timelapse_id}", response_class=HTMLResponse)
+@router.delete(
+    "/{timelapse_id}", name="timelapses.delete_timelapse", response_class=HTMLResponse
+)
 async def delete_timelapse(
     timelapse_id: int,
     request: Request,

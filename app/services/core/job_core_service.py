@@ -689,6 +689,7 @@ class JobProcessor:
             except subprocess.TimeoutExpired:
                 return 1, "decode validation timed out"
             except Exception as e:
+                logger.exception("Decode validation crashed")
                 return 1, f"decode validation crashed: {e!r}"
 
         rc, stderr = await asyncio.to_thread(run)

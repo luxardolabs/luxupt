@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap-router asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-router`.
+# luxarch:admin-bootstrap-router asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-router`.
 """`/setup`: the first admin, claimed with the token from the server log.
 
 `luxarch --emit admin-bootstrap-router`. Drop this in at `app/web/routers/admin_bootstrap_router.py`
@@ -7,7 +7,8 @@ and include `router` in the app. HTTP only: every decision is in the view servic
 `luxarch --doc FLEET-ADMIN-BOOTSTRAP-STANDARD`.
 
 Both routes are public by nature (nobody can be signed in when there are no users), so declare
-`/setup` among your public routes. The POST accepts a credential (the token), so it carries a rate
+`/setup` among your public routes. They share the route name `admin.setup`, which the view service
+resolves wherever it sends a visitor to the form (`fw.urls_from_route_names`). The POST accepts a credential (the token), so it carries a rate
 limit (`fw.credential_routes_limited`; `--doc FLEET-RATE-LIMIT-STANDARD`). On Python 3.14+ the
 slowapi decorator needs that standard's §4 carve-out.
 
@@ -46,9 +47,11 @@ setup_limiter: Limiter = limiter
 router = APIRouter(tags=["setup"])
 
 
-@router.get("/setup", response_class=HTMLResponse, include_in_schema=False)
+@router.get(
+    "/setup", name="admin.setup", response_class=HTMLResponse, include_in_schema=False
+)
 async def setup_page(
-    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
+    request: Request, db: Annotated[AsyncSession, Depends(get_db, scope="function")]
 ) -> Response:
     context = await AdminBootstrapViewService().setup_page(db)
     if context is None:
@@ -57,7 +60,9 @@ async def setup_page(
     return page
 
 
-@router.post("/setup", response_class=HTMLResponse, include_in_schema=False)
+@router.post(
+    "/setup", name="admin.setup", response_class=HTMLResponse, include_in_schema=False
+)
 @setup_limiter.limit("5/minute")
 async def submit_setup(
     request: Request,
@@ -65,10 +70,10 @@ async def submit_setup(
     login: Annotated[str, Form()],
     password: Annotated[str, Form()],
     password_confirm: Annotated[str, Form()],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> Response:
     outcome = await AdminBootstrapViewService().submit_setup(
-        db, SetupForm(token, login, password, password_confirm)
+        request, db, SetupForm(token, login, password, password_confirm)
     )
     if outcome.closed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

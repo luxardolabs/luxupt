@@ -1,25 +1,22 @@
 """Shared test fixtures for luxupt (fastapi-web, sqlite + HTML rendering).
 
-The DB harness is luxlint's canonical one (`luxlint --emit-config conftest`), adapted for SQLite
--- the «EDIT» points plus the two places a file database differs from a Postgres server:
+The repo's half of the fleet test harness (`luxlint --emit-config conftest`, adapted for SQLite). The
+other half is luxarch's test-db-bound block in the repo-root `conftest.py`: for every test it binds
+the app's own `async_session` to one connection in a transaction that is rolled back, so a route's
+`get_db`, a background job's `get_db_context()` and the test's own `db` session all write inside it.
+Nothing here overrides `get_db` or swaps the maker (`luxarch --playbook test-isolation`).
 
-* the schema is built ONCE from the MIGRATION CHAIN (`alembic upgrade head`, never create_all --
-  fw.schema_from_migrations) into a template file, and every test gets its own COPY of it. For
-  Postgres the canonical harness rejects a TEMPLATE clone (it needs exclusive access to the
-  template while cloning); a SQLite file copy has no such coordination and costs microseconds, so
-  every test -- durability locks included -- starts from the same migrated schema and leaks
-  nothing, whichever owner committed.
-* under xdist each worker builds its own template file instead of its own database.
-
-Env is set BEFORE importing anything under ``app``: ``app/db/database.py`` builds its engine from
-``DATABASE_DIR`` at import time, so setting it here keeps even the never-used import-time engine
-off the dev database. ``auth_client`` seeds one database user and logs in through the REAL login
-route (the database is the only credential store).
+* The schema is built ONCE per run from the MIGRATION CHAIN (`alembic upgrade head`, never
+  create_all -- fw.schema_from_migrations) into this run's own SQLite file.
+* Env is set BEFORE importing anything under ``app``: ``app/db/database.py`` builds its engine from
+  ``DATABASE_DIR`` at import time, so the app's engine is on that same file.
+* The singleton settings rows are seeded per test, inside the test's transaction: the block refuses a
+  write made while no test holds one.
+* ``auth_client`` seeds one database user and logs in through the REAL login route (the database is
+  the only credential store).
 """
 
-import asyncio
 import os
-import shutil
 import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -29,8 +26,7 @@ import pytest_asyncio
 
 # --- the dedicated test database (luxlint test.db_isolated) ---------------------------
 # ONE fleet mechanism: the suite sources a dedicated TEST_DATABASE_URL with a throwaway
-# default -- NEVER the app's DATABASE_DIR/DATABASE_URL. `make test` provides it (pointing at
-# the disposable dir it creates and wipes); a bare `pytest` falls back to a fresh temp dir.
+# default -- NEVER the app's DATABASE_DIR/DATABASE_URL. A run without one gets a fresh temp dir.
 _TMP = Path(tempfile.mkdtemp(prefix="luxupt-test-"))
 TEST_DATABASE_URL = os.environ.setdefault(
     "TEST_DATABASE_URL", f"sqlite+aiosqlite:///{_TMP / 'timelapse.db'}"
@@ -40,23 +36,26 @@ TEST_DATABASE_URL = os.environ.setdefault(
 def _guard_not_the_dev_database(url: str) -> None:
     """Refuse to run the suite against anything but a throwaway test database.
 
-    The suite really commits (the durability locks must), so pointing it at the dev database
-    mutates real data -- and a FAILING test skips its cleanup, so a stale row can sit in dev
-    for a week. The URL must be visibly test-scoped.
+    The durability locks really commit, so pointing the suite at the dev database mutates real
+    data. The URL must be visibly test-scoped.
     """
     if "test" not in url.rsplit("/", 1)[-1].lower() and "-test" not in url.lower():
         raise RuntimeError(
             f"TEST_DATABASE_URL does not look like a disposable test database: {url!r}. "
-            "The suite must NEVER point at the dev database -- `make test` creates the "
-            "throwaway one (make test-db-up)."
+            "The suite must NEVER point at the dev database."
         )
 
 
 _guard_not_the_dev_database(TEST_DATABASE_URL)
 
-# app/db/database.py builds its engine from DATABASE_DIR at import time, so point that at the
-# directory the dedicated test URL names -- the test URL stays the single source of truth.
+# app/db/database.py builds its engine from DATABASE_DIR/timelapse.db at import time, so point it at
+# the directory the dedicated test URL names -- the test URL stays the single source of truth.
 _TEST_DB_PATH = Path(TEST_DATABASE_URL.split("///", 1)[1])
+if _TEST_DB_PATH.name != "timelapse.db":
+    raise RuntimeError(
+        f"TEST_DATABASE_URL must name a file called timelapse.db (the app's engine opens "
+        f"DATABASE_DIR/timelapse.db), got {TEST_DATABASE_URL!r}"
+    )
 _TEST_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 os.environ["DATABASE_DIR"] = str(_TEST_DB_PATH.parent)
 os.environ.setdefault("IMAGE_OUTPUT_PATH", str(_TMP / "images"))
@@ -70,27 +69,19 @@ os.environ.setdefault("ALLOWED_HOSTS", "test,localhost,127.0.0.1")
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import (  # noqa: E402
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
 
-# «EDIT» — the module holding the app's module-level `async_sessionmaker`, and its name. Every
-# fixture that gives the test a database points this maker at it, so app code opening its own
-# session (`get_db_context()`, the scheduler, durable modules) lands in the SAME database the
-# test reads.
-import app.db.database as _appdb  # noqa: E402
-
-# «EDIT» — the FastAPI dependency the routes use to get a session
-from app.db.database import get_db, seed_singleton_settings  # noqa: E402
+# «EDIT» — the app's sessionmaker (the one the root conftest's TEST_DB_SESSION_FACTORY names) and
+# its seeder
+from app.db.database import async_session, seed_singleton_settings  # noqa: E402
 
 # «EDIT» — the app instance (module-level: create_app() registers process-global state such as
 # the Prometheus collectors, so it is built once, exactly as in production)
 from app.web.main import app  # noqa: E402
 from app.web.rate_limit import limiter  # noqa: E402
-
-_APP_MAKER = "async_session"  # «EDIT» the maker's attribute name in that module
 
 # «EDIT» — alembic.ini and the migration scripts, by absolute path (the suite runs from the root)
 _APP_DIR = Path(__file__).resolve().parents[1] / "app"
@@ -104,8 +95,7 @@ def _build_test_schema(url: str) -> None:
 
     `Base.metadata.create_all` is banned on an alembic repo (fw.schema_from_migrations): it builds
     from the models, not the chain, so the suite would run on a schema that can silently diverge
-    from a real deploy. env.py honours the URL set here (repo.alembic_env_honors_caller_url), so
-    this migrates THIS file and never the one DATABASE_DIR would pick.
+    from a real deploy. env.py honours the URL set here (repo.alembic_env_honors_caller_url).
     """
     from alembic import command
     from alembic.config import Config
@@ -116,125 +106,53 @@ def _build_test_schema(url: str) -> None:
     command.upgrade(cfg, "head")  # sync API — env.py drives the async URL itself
 
 
-async def _seed_template(url: str) -> None:
-    """Seed the singleton settings rows exactly as init_db() does in production.
+# The schema is built ONCE per run, SYNCHRONOUSLY — no event loop is involved, so nothing created
+# here can outlive the loop that made it.
+@pytest.fixture(scope="session", autouse=True)
+def _schema() -> str:
+    """Build this run's database from the migration chain, once. Returns its URL."""
+    _guard_not_the_dev_database(TEST_DATABASE_URL)
+    _TEST_DB_PATH.unlink(missing_ok=True)
+    _build_test_schema(TEST_DATABASE_URL)
+    return TEST_DATABASE_URL
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _seed_settings(_schema: str) -> None:
+    """Seed the singleton settings rows exactly as init_db() does in production, in every test.
 
     The read path deliberately does NOT create them (a GET must not write --
     fw.state_changing_get), so a suite that skipped seeding would exercise a shape production
-    never has. Seeded through the app's own seeder, pointed at the template.
+    never has. Seeded through the app's own seeder, inside this test's transaction (or, in a
+    `real_commits` test, committed and emptied with the rest afterwards).
     """
-    engine = create_async_engine(url)
-    original = getattr(_appdb, _APP_MAKER)
-    setattr(_appdb, _APP_MAKER, async_sessionmaker(bind=engine, expire_on_commit=False))
-    try:
-        await seed_singleton_settings()
-    finally:
-        setattr(_appdb, _APP_MAKER, original)
-        await engine.dispose()
-
-
-@pytest.fixture(scope="session")
-def worker_db_url() -> str:
-    """This worker's OWN template database — "gw0"/"gw1"/... under `-n`, the plain URL when serial.
-
-    Read from the ENV VAR xdist sets, not from xdist's `worker_id` fixture, so the suite never
-    depends on the plugin being installed.
-    """
-    worker = os.environ.get("PYTEST_XDIST_WORKER", "master")
-    if worker == "master":
-        return TEST_DATABASE_URL
-    base, name = TEST_DATABASE_URL.rsplit("/", 1)
-    stem, _, ext = name.partition(".")
-    return f"{base}/{stem}_{worker}.{ext or 'db'}"
-
-
-# The schema is built ONCE per worker, SYNCHRONOUSLY — no event loop is involved, so nothing
-# created here can outlive the loop that made it. The engine is deliberately NOT session-scoped.
-@pytest.fixture(scope="session")
-def _schema(worker_db_url: str) -> Path:
-    """Build this worker's TEMPLATE database from the migration chain, once. Returns its path."""
-    _guard_not_the_dev_database(worker_db_url)
-    path = Path(worker_db_url.split("///", 1)[1])
-    path.unlink(missing_ok=True)
-    _build_test_schema(worker_db_url)
-    asyncio.run(_seed_template(worker_db_url))
-    return path
+    await seed_singleton_settings()
 
 
 @pytest_asyncio.fixture
-async def _engine(_schema: Path, tmp_path: Path) -> AsyncIterator[AsyncEngine]:
-    """An engine PER TEST on a private COPY of the migrated template, created and disposed in the
-    test's OWN event loop — the one engine `db`, `owner_session`, `separate_connection` and
-    `durable_db` all draw from.
+async def db() -> AsyncIterator[AsyncSession]:
+    """A session from the app's OWN sessionmaker, bound by the block to this test's transaction.
 
-    It also points the app's module-level maker at this engine for as long as the test runs, so
-    app code writing through `get_db_context()` and a test reading through `separate_connection`
-    agree on one database. Because the file is this test's own, a durability lock's real commits
-    vanish with it — nothing to clean up, no unique key seeded twice.
+    What the test writes here, and what any app code writes, is visible to both and gone after the
+    test. App code calling `commit()` commits a SAVEPOINT; the outer transaction is rolled back.
     """
-    db_file = tmp_path / "test.db"
-    shutil.copyfile(_schema, db_file)
-    engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}")
-    original = getattr(_appdb, _APP_MAKER)
-    setattr(
-        _appdb,
-        _APP_MAKER,
-        async_sessionmaker(bind=engine, expire_on_commit=False, autoflush=False),
-    )
-    try:
-        yield engine
-    finally:
-        setattr(_appdb, _APP_MAKER, original)
-        await engine.dispose()
-
-
-@pytest_asyncio.fixture
-async def db(_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    """One connection, one outer transaction, and a SAVEPOINT that EVERY session joins.
-
-    `join_transaction_mode="create_savepoint"`: app code calling `commit()` commits a SAVEPOINT
-    and the outer transaction survives to be rolled back. The module-level MAKER is swapped too,
-    not just the FastAPI dependency, so a session opened by `get_db_context()` joins the same
-    transaction instead of escaping the rollback.
-    """
-    connection = await _engine.connect()
-    trans = await connection.begin()
-    maker = async_sessionmaker(
-        bind=connection,
-        expire_on_commit=False,
-        autoflush=False,
-        join_transaction_mode="create_savepoint",
-    )
-    # Over `_engine`'s real-commit maker for this test; restored to it (not to the app's original).
-    previous = getattr(_appdb, _APP_MAKER)
-    setattr(_appdb, _APP_MAKER, maker)
-    session = maker()
-    try:
+    async with async_session() as session:
         yield session
-    finally:
-        setattr(_appdb, _APP_MAKER, previous)
-        await session.close()
-        await trans.rollback()  # undo everything this test wrote, through EITHER owner
-        await connection.close()
 
 
 @pytest_asyncio.fixture
-async def client(db: AsyncSession) -> AsyncIterator[AsyncClient]:
-    """Unauthenticated ASGI client whose requests use the SAME rolled-back session.
+async def client() -> AsyncIterator[AsyncClient]:
+    """Unauthenticated ASGI client over the app as it is: no dependency override.
 
-    Uses ASGITransport, which does not run the app lifespan — so the fetch service / camera
-    manager never start. ``app.state.templates`` is wired in ``create_app()`` (not the
-    lifespan), so rendering still works. HTTPS base URL: the app is served over HTTPS behind
-    nginx and issues Secure session cookies (fw.secure_cookies), which httpx only sends back
-    over https.
+    Its `get_db` opens sessions from the same sessionmaker, so a request and the test's assertions
+    see one transaction. ASGITransport does not run the app lifespan — so the fetch service /
+    camera manager never start. ``app.state.templates`` is wired in ``create_app()`` (not the
+    lifespan), so rendering still works. HTTPS base URL: the app issues Secure session cookies
+    (fw.secure_cookies), which httpx only sends back over https.
     """
-    app.dependency_overrides[get_db] = lambda: db
     transport = ASGITransport(app=app)
-    try:
-        async with AsyncClient(transport=transport, base_url="https://test") as ac:
-            yield ac
-    finally:
-        app.dependency_overrides.clear()
+    async with AsyncClient(transport=transport, base_url="https://test") as ac:
+        yield ac
 
 
 @pytest.fixture(autouse=True)
@@ -266,38 +184,39 @@ async def auth_client(client: AsyncClient, db: AsyncSession) -> AsyncClient:
 
 
 # ── durability fixtures ─────────────────────────────────────────────────────────────────────────
-# `db` SWALLOWS a commit() into its outer transaction — invisible to any other connection — so it
-# CANNOT prove cross-session durability. A durability lock needs a session that REALLY commits plus
-# a SEPARATE connection that sees only committed rows (`luxarch --playbook db-mutations` §7).
+# Inside the rolled-back transaction nothing commits, so it CANNOT prove cross-session durability. A
+# durability lock asks for the block's `real_commits`: its sessions REALLY commit on this run's
+# database, and the block empties the tables after it (`luxarch --playbook db-mutations` §7).
 @pytest_asyncio.fixture
-async def owner_session(_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    """A session that REALLY commits (its own connection, no outer rollback) — the writer."""
-    maker = async_sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
-    async with maker() as s:
+async def owner_session(real_commits: None) -> AsyncIterator[AsyncSession]:
+    """A session that REALLY commits: the writer in a durability lock."""
+    async with async_session() as s:
         yield s
 
 
 @pytest_asyncio.fixture
-async def separate_connection(_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+async def separate_connection(real_commits: None) -> AsyncIterator[AsyncSession]:
     """A DISTINCT connection that sees only COMMITTED rows — the reader in a durability lock."""
-    maker = async_sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
-    async with maker() as s:
-        yield s
+    engine = create_async_engine(TEST_DATABASE_URL)
+    try:
+        async with AsyncSession(engine, expire_on_commit=False) as s:
+            yield s
+    finally:
+        await engine.dispose()
 
 
-@pytest_asyncio.fixture
-async def durable_db(_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
-    """A REAL-commit maker on this test's private database, for locks that need several sessions.
+@pytest.fixture
+def durable_db(real_commits: None) -> async_sessionmaker[AsyncSession]:
+    """The app's own sessionmaker in a `real_commits` test, for locks that need several sessions.
 
-    The owner/reader pair above is one session each; a lock that seeds, acts and then reads back
-    from a fresh connection opens them as separate ``maker()`` sessions instead. Mirrors the app
-    maker (``expire_on_commit=False``, ``autoflush=False``) so a service behaves exactly as in
-    production.
+    Each ``durable_db()`` session is a separate connection from the app's pool that REALLY commits,
+    so a lock can seed, act and then read back from a fresh connection, with the app's own maker
+    settings (``expire_on_commit=False``, ``autoflush=False``).
     """
-    return async_sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
+    return async_session
 
 
-# luxarch:route-smoke asserter v20 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
+# luxarch:route-smoke asserter v21 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
 #
 # WHY THIS FILE EXISTS
 # A dependency deprecates an API; your code keeps working (warning only); a later pin makes it RAISE;
@@ -467,12 +386,26 @@ def _patch_route_class(cls, match_full) -> None:  # type: ignore[no-untyped-def]
                     status = int(message.get("status", 0))
                     if status >= 500:
                         _SERVER_ERRORS.setdefault(id(self), set()).add(status)
-                    if 300 <= status < 400:
-                        loc = ""
-                        for k, v in message.get("headers") or ():
-                            if k.lower() == b"location":
-                                loc = v.decode("latin-1", "replace")
-                                break
+                    headers: dict[bytes, str] = {}
+                    for k, v in message.get("headers") or ():
+                        # The first of a repeated header, as a client reads `Location`.
+                        headers.setdefault(k.lower(), v.decode("latin-1", "replace"))
+                    # An htmx request is bounced with 200 + `HX-Redirect` (or `HX-Location`), because
+                    # htmx would follow a 3xx inside its XHR and swap the target page into the
+                    # fragment. The handler did not render either way, so both are redirects.
+                    hx = headers.get(b"hx-redirect") or headers.get(b"hx-location")
+                    if 300 <= status < 400 or (hx and status < 400):
+                        loc = hx or headers.get(b"location", "")
+                        if loc.lstrip().startswith("{"):
+                            # HX-Location's JSON form: {"path": "/login", "target": ...}
+                            import json
+
+                            try:
+                                parsed = json.loads(loc)
+                            except ValueError:
+                                parsed = None
+                            if isinstance(parsed, dict):
+                                loc = str(parsed.get("path", ""))
                         # Query string dropped: `?next=/admin/users` differs per route and would
                         # hide that a dozen routes all bounce to the SAME page.
                         _REDIRECTS.setdefault(id(self), set()).add(
@@ -928,7 +861,14 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
         and p_ not in EXPECT_3XX
         and p_ not in EXEMPT
     }
-    if bounced:
+    if bounced and _session_is_narrowed(session):
+        # A whole-suite verdict: a subset may request a route only signed out while the full suite
+        # also requests it signed in.
+        print(
+            f"luxarch route-smoke: not evaluated — {len(bounced)} GET route(s) saw only redirects, "
+            "but this run selected a SUBSET of the suite. Run the full suite to certify."
+        )
+    elif bounced:
         # Group by target. One route redirecting is business logic; a dozen routes redirecting to the
         # SAME page is a gate, and naming that page turns a list of failures into one diagnosis.
         targets: dict[str, int] = {}
@@ -974,8 +914,9 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
     # missing route with no exemption reads as untested or absent, while a missing route WITH one
     # reads as a deliberate, reviewed decision.
     #
-    # Deliberately NOT skipped on a narrowed run: a subset selection still REGISTERS every route, so
-    # unlike `missing` this count is meaningful even from one test.
+    # A whole-suite verdict too, so a narrowed run does not give it: a test module may mount a route
+    # for its own duration (a deliberate-500 router for the error handler), and a subset that skips
+    # that module never registers it.
     # Mounts included on purpose: a mount IS a registered surface, so exempting one is legitimate.
     registered_paths = {p for (_h, _m, p, _rid) in entries}
     # `app.mount("/metrics", ...)` serves at `/metrics/`; a redirect from `/metrics` is the normal
@@ -995,7 +936,13 @@ def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untype
         )
         for path in paths - registered_paths
     )
-    if stale:
+    if stale and _session_is_narrowed(session):
+        print(
+            f"luxarch route-smoke: not evaluated — {len(stale)} exemption path(s) match no route "
+            "registered by this run, which selected a SUBSET of the suite. Run the full suite to "
+            "certify."
+        )
+    elif stale:
         session.exitstatus = 1
         raise SystemExit(
             "luxarch route-smoke: "

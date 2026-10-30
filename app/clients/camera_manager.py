@@ -526,7 +526,8 @@ class CameraManager:
                 try:
                     error_data = response.json()
                     error_msg = error_data.get("message", "Unknown error")
-                except Exception:
+                except ValueError, AttributeError:
+                    # Not JSON (ValueError), or JSON that is not an object: the status says it all.
                     error_msg = f"HTTP {response.status_code}"
 
                 logger.error(

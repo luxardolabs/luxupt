@@ -65,9 +65,9 @@ def is_https_request(request: Request) -> bool:
     return request.url.scheme == "https"
 
 
-async def needs_setup(db: AsyncSession) -> bool:
+async def needs_setup(request: Request, db: AsyncSession) -> bool:
     """True while there are no users: the login page and the auth redirect go to /setup."""
-    return bool(await AdminBootstrapViewService().login_page_redirect(db))
+    return bool(await AdminBootstrapViewService().login_page_redirect(request, db))
 
 
 class AuthService:
@@ -199,7 +199,7 @@ async def login_form(request: Request) -> Response:
     """Display login form, or redirect to setup if no users exist."""
     # While there are no users there is nobody to sign in as: the login page is /setup.
     async with get_db_context() as db:
-        setup_path = await AdminBootstrapViewService().login_page_redirect(db)
+        setup_path = await AdminBootstrapViewService().login_page_redirect(request, db)
     if setup_path:
         return RedirectResponse(url=setup_path, status_code=302)
 
@@ -269,7 +269,7 @@ async def login(
     # (fw.secure_cookies): the app is always served over HTTPS behind nginx.
     # A seeded, reset or admin-assigned password goes to the change form before any other page.
     destination = await AdminBootstrapViewService().login_destination(
-        db, username, "/cameras"
+        request, db, username, request.app.url_path_for("cameras.cameras_page")
     )
     response = RedirectResponse(url=destination, status_code=302)
     response.set_cookie(
@@ -286,6 +286,8 @@ async def login(
 
 async def logout(request: Request) -> Response:
     """Logout user."""
-    response = RedirectResponse(url="/login", status_code=302)
+    response = RedirectResponse(
+        url=request.app.url_path_for("pages.login_page"), status_code=302
+    )
     response.delete_cookie(COOKIE_NAME)
     return response

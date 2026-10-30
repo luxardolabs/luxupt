@@ -250,14 +250,32 @@ class FetchService:
                         extra={"camera_count": len(new_connected)},
                     )
 
-                    async def _detect_one(camera: ApiCamera) -> None:
+                    # Only the detection calls (HTTP to each camera) run at the same time; the
+                    # results are written to `db` one after another, because one session is one
+                    # connection and SQLAlchemy forbids two tasks using it at once.
+                    async def _detect_one(
+                        camera: ApiCamera,
+                    ) -> tuple[ApiCamera, dict[str, Any] | None]:
                         try:
-                            capabilities = (
+                            return camera, (
                                 await self.camera_manager.detect_camera_capabilities(
                                     camera
                                 )
                             )
+                        except Exception as e:
+                            logger.warning(
+                                "Failed to detect capabilities",
+                                extra={"camera": camera.name, "error": str(e)},
+                            )
+                            return camera, None
 
+                    detected = await asyncio.gather(
+                        *[_detect_one(cam) for cam in new_connected]
+                    )
+                    for camera, capabilities in detected:
+                        if capabilities is None:
+                            continue
+                        try:
                             await camera_crud.update_capability_detection(
                                 db,
                                 camera.id,
@@ -271,30 +289,27 @@ class FetchService:
                                     "recommended_method"
                                 ),
                             )
-
-                            logger.info(
-                                "Detected camera capabilities",
-                                extra={
-                                    "camera": camera.name,
-                                    "api_resolution": capabilities.get(
-                                        "api_max_resolution"
-                                    ),
-                                    "rtsp_resolution": capabilities.get(
-                                        "rtsp_max_resolution"
-                                    ),
-                                    "recommended_method": capabilities.get(
-                                        "recommended_method"
-                                    ),
-                                },
-                            )
-
                         except Exception as e:
                             logger.warning(
-                                "Failed to detect capabilities",
+                                "Failed to store detected capabilities",
                                 extra={"camera": camera.name, "error": str(e)},
                             )
-
-                    await asyncio.gather(*[_detect_one(cam) for cam in new_connected])
+                            continue
+                        logger.info(
+                            "Detected camera capabilities",
+                            extra={
+                                "camera": camera.name,
+                                "api_resolution": capabilities.get(
+                                    "api_max_resolution"
+                                ),
+                                "rtsp_resolution": capabilities.get(
+                                    "rtsp_max_resolution"
+                                ),
+                                "recommended_method": capabilities.get(
+                                    "recommended_method"
+                                ),
+                            },
+                        )
                     await db.commit()
                     logger.info("Capability detection complete")
 

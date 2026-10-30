@@ -232,6 +232,11 @@ class HistoricalFetchCoreService:
                             failure_kind = "error"
                         error_msg = err_str[:500]
                     except Exception as e:
+                        logger.warning(
+                            "Historical snapshot failed; recording a failed capture",
+                            extra={"camera": camera.name, "timestamp": ts.isoformat()},
+                            exc_info=True,
+                        )
                         status = CaptureStatus.FAILED
                         failure_kind = "error"
                         error_msg = f"{type(e).__name__}: {str(e)[:500]}"

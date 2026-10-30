@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.services.views.admin_bootstrap_view_service import AdminBootstrapViewService
+
 from .auth import (
     COOKIE_NAME,
     is_https_request,
@@ -131,18 +133,28 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
     - Page requests redirect to login page if not authenticated
     """
 
-    # Paths that don't require authentication
-    PUBLIC_PATHS = {"/login", "/setup", "/health", "/metrics", "/static"}
-    # The only pages a user who must change their password can reach.
-    CHANGE_PASSWORD_PATH = "/account/password"
-    FORCED_CHANGE_PATHS = (CHANGE_PASSWORD_PATH, "/logout", "/static")
+    # The routes that don't require authentication, by NAME (fw.urls_from_route_names): sign-in,
+    # first-run setup, and the health and metrics probes. Static files are the `static` mount.
+    PUBLIC_ROUTES = (
+        "pages.login_page",
+        "admin.setup",
+        "health.health_check",
+        "health.liveness_check",
+        "health.readiness_check",
+        "health.prometheus_metrics",
+    )
+
+    def _is_public(self, request: Request) -> bool:
+        path = request.url.path
+        if path.startswith(request.url_for("static", path="").path):
+            return True
+        return path in {request.url_for(name).path for name in self.PUBLIC_ROUTES}
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         """Check authentication and redirect to login or setup if needed."""
-        # Check if this is a public path or static file
-        if any(request.url.path.startswith(path) for path in self.PUBLIC_PATHS):
+        if self._is_public(request):
             return await call_next(request)
 
         # Check authentication
@@ -156,21 +168,22 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
         # opens its own session, never nested.
         from app.db.database import get_db_context  # noqa: PLC0415
 
-        is_admin = must_change = False
+        # A seeded, reset or admin-assigned password is changed before ANY other page, not just
+        # at sign-in: the same cookie must not reach the rest of the app on a temporary password.
+        forced = ""
         async with get_db_context() as db:
             user = await session_user(db, token)
             if user is not None:
-                is_admin, must_change = user.is_admin, user.must_change_password
+                request.state.session_is_admin = user.is_admin
+                forced = await AdminBootstrapViewService().forced_change_redirect(
+                    request, db, user.username, request.url.path
+                )
         if user is None:
             response = await self._create_auth_redirect(request)
             response.delete_cookie(COOKIE_NAME)
             return response
-        request.state.session_is_admin = is_admin
-
-        # A seeded, reset or admin-assigned password is changed before ANY other page, not just
-        # at sign-in: the same cookie must not reach the rest of the app on a temporary password.
-        if must_change and not request.url.path.startswith(self.FORCED_CHANGE_PATHS):
-            return self._redirect(request, self.CHANGE_PASSWORD_PATH)
+        if forced:
+            return self._redirect(request, forced)
 
         return await call_next(request)
 
@@ -178,21 +191,20 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
         """Check if this is an HTMX request."""
         return request.headers.get("HX-Request") == "true"
 
-    async def _needs_setup_check(self) -> bool:
+    async def _needs_setup_check(self, request: Request) -> bool:
         """Check if setup is needed: there are no users yet."""
         from app.db.database import (  # noqa: PLC0415
             get_db_context,
         )
 
         async with get_db_context() as db:
-            return await needs_setup(db)
+            return await needs_setup(request, db)
 
     async def _create_auth_redirect(self, request: Request) -> Response:
         """Create appropriate redirect based on request type and auth state."""
-        # Check if setup is needed
-        setup_needed = await self._needs_setup_check()
-        redirect_url = "/setup" if setup_needed else "/login"
-        return self._redirect(request, redirect_url)
+        setup_needed = await self._needs_setup_check(request)
+        name = "admin.setup" if setup_needed else "pages.login_page"
+        return self._redirect(request, request.url_for(name).path)
 
     def _redirect(self, request: Request, redirect_url: str) -> Response:
         """A full-page redirect: HX-Redirect for an HTMX request, else a 302."""

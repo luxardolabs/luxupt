@@ -9,7 +9,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
-from sqlalchemy import event, text
+from sqlalchemy import Connection, event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
@@ -57,6 +57,21 @@ def _set_sqlite_pragmas(dbapi_connection, connection_record):  # type: ignore[no
     cursor.execute(f"PRAGMA mmap_size={config.DATABASE_MMAP_SIZE}")
     cursor.execute(f"PRAGMA cache_size=-{config.DATABASE_CACHE_SIZE_KB}")
     cursor.close()
+    # SQLAlchemy's pysqlite/aiosqlite transaction recipe, part 1: the driver stops managing
+    # transactions itself. Left to it, the driver emits BEGIN only before the first INSERT/UPDATE/
+    # DELETE, so a transaction's reads run outside it and a SAVEPOINT is not nested in anything.
+    dbapi_connection.isolation_level = None
+
+
+@event.listens_for(engine.sync_engine, "begin")
+def _begin_transaction(conn: Connection) -> None:
+    """Recipe part 2: SQLAlchemy's transaction begins the SQLite transaction, reads included.
+
+    Each transaction is then one SQLite transaction from its first statement, and a nested
+    `begin_nested()` is a real SAVEPOINT inside it (the test harness's per-test rollback relies on
+    that). WAL mode lets readers proceed beside a writer as before.
+    """
+    conn.exec_driver_sql("BEGIN")
 
 
 # Session factory

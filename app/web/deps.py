@@ -22,8 +22,9 @@ from app.services.views.system_view_service import SystemViewService
 from app.services.views.timelapses_view_service import TimelapsesViewService
 from app.services.views.users_view_service import UsersViewService
 
-# The request-scoped session: get_db owns its transaction (commit on success, rollback on raise).
-DbSession = Annotated[AsyncSession, Depends(get_db)]
+# The request's session: get_db owns its transaction (commit on success, rollback on raise), and
+# scope="function" runs that commit when the route returns, before the response is sent.
+DbSession = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 # Core service dependencies

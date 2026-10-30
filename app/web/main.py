@@ -521,7 +521,12 @@ app = create_app()
 
 
 # Health check endpoints
-@app.get("/health", response_model=HealthReport, response_model_exclude_none=True)
+@app.get(
+    "/health",
+    name="health.health_check",
+    response_model=HealthReport,
+    response_model_exclude_none=True,
+)
 async def health_check(request: Request, response: Response) -> HealthReport:
     """Comprehensive health check endpoint (503 when unhealthy)."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
@@ -536,14 +541,14 @@ async def health_check(request: Request, response: Response) -> HealthReport:
     return health_status
 
 
-@app.get("/health/live", response_model=LivenessReport)
+@app.get("/health/live", name="health.liveness_check", response_model=LivenessReport)
 async def liveness_check() -> LivenessReport:
     """Kubernetes liveness probe endpoint."""
     health_service = HealthCoreService()
     return await health_service.get_liveness()
 
 
-@app.get("/health/ready", response_model=ReadinessReport)
+@app.get("/health/ready", name="health.readiness_check", response_model=ReadinessReport)
 async def readiness_check(request: Request, response: Response) -> ReadinessReport:
     """Kubernetes readiness probe endpoint (503 when not ready)."""
     camera_manager = getattr(request.app.state, "camera_manager", None)
@@ -558,7 +563,7 @@ async def readiness_check(request: Request, response: Response) -> ReadinessRepo
     return readiness
 
 
-@app.get("/metrics")
+@app.get("/metrics", name="health.prometheus_metrics")
 async def prometheus_metrics(request: Request) -> PlainTextResponse:
     """Prometheus metrics endpoint."""
     start_time = getattr(request.app.state, "start_time", datetime.now(UTC))

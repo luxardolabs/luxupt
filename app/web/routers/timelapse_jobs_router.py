@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["timelapses"])
 
 
-@router.get("/jobs", response_class=HTMLResponse)
+@router.get(
+    "/jobs", name="timelapse_jobs.timelapses_jobs_page", response_class=HTMLResponse
+)
 async def timelapses_jobs_page(
     request: Request,
     templates: TemplatesDep,
@@ -38,7 +40,9 @@ async def timelapses_jobs_page(
     )
 
 
-@router.get("/partials/jobs", response_class=HTMLResponse)
+@router.get(
+    "/partials/jobs", name="timelapse_jobs.jobs_partial", response_class=HTMLResponse
+)
 async def jobs_partial(
     request: Request,
     templates: TemplatesDep,
@@ -55,7 +59,11 @@ async def jobs_partial(
     )
 
 
-@router.get("/partials/completed", response_class=HTMLResponse)
+@router.get(
+    "/partials/completed",
+    name="timelapse_jobs.completed_jobs_partial",
+    response_class=HTMLResponse,
+)
 async def completed_jobs_partial(
     request: Request,
     templates: TemplatesDep,
@@ -72,7 +80,11 @@ async def completed_jobs_partial(
     )
 
 
-@router.get("/partials/job/{job_id}", response_class=HTMLResponse)
+@router.get(
+    "/partials/job/{job_id}",
+    name="timelapse_jobs.job_progress_partial",
+    response_class=HTMLResponse,
+)
 async def job_progress_partial(
     job_id: str,
     request: Request,
@@ -104,7 +116,9 @@ async def job_progress_partial(
     return response
 
 
-@router.delete("/job/{job_id}", response_class=HTMLResponse)
+@router.delete(
+    "/job/{job_id}", name="timelapse_jobs.delete_job", response_class=HTMLResponse
+)
 async def delete_job(
     job_id: str,
     request: Request,
@@ -133,7 +147,11 @@ async def delete_job(
     )
 
 
-@router.post("/jobs/cleanup-stale", response_class=HTMLResponse)
+@router.post(
+    "/jobs/cleanup-stale",
+    name="timelapse_jobs.cleanup_stale_jobs",
+    response_class=HTMLResponse,
+)
 async def cleanup_stale_jobs(
     request: Request,
     templates: TemplatesDep,

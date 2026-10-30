@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
 import contextlib
 
+from sqlalchemy.exc import OperationalError
+
 from app.clients.camera_manager import CameraManager, CameraManagerSettings
 from app.core import config
 from app.crud import camera_crud, job_crud, timelapse_crud
@@ -350,7 +352,7 @@ class TimelapseService:
                             # Cleanup any stale jobs from previous runs
                             await self._cleanup_stale_jobs(db)
                             db_ready = True
-                    except Exception as db_error:
+                    except OperationalError as db_error:
                         # Database not ready yet (table doesn't exist)
                         if "no such table" in str(db_error).lower():
                             if db_ready or not hasattr(self, "_db_wait_logged"):

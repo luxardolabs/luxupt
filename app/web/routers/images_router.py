@@ -13,7 +13,7 @@ from app.web.query_params import ThumbnailSizeFilter
 router = APIRouter(tags=["images"])
 
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", name="images.images_page", response_class=HTMLResponse)
 async def images_page(
     request: Request,
     templates: TemplatesDep,
@@ -47,7 +47,9 @@ async def images_page(
     )
 
 
-@router.get("/partials/grid", response_class=HTMLResponse)
+@router.get(
+    "/partials/grid", name="images.image_grid_partial", response_class=HTMLResponse
+)
 async def image_grid_partial(
     request: Request,
     templates: TemplatesDep,
@@ -80,7 +82,11 @@ async def image_grid_partial(
     )
 
 
-@router.get("/partials/filters", response_class=HTMLResponse)
+@router.get(
+    "/partials/filters",
+    name="images.image_filters_partial",
+    response_class=HTMLResponse,
+)
 async def image_filters_partial(
     request: Request,
     templates: TemplatesDep,
@@ -112,7 +118,11 @@ async def image_filters_partial(
 # =============================================================================
 
 
-@router.get("/lightbox/{camera_safe_name}/{timestamp}", response_class=HTMLResponse)
+@router.get(
+    "/lightbox/{camera_safe_name}/{timestamp}",
+    name="images.image_lightbox",
+    response_class=HTMLResponse,
+)
 async def image_lightbox(
     camera_safe_name: str,
     timestamp: int,
@@ -159,7 +169,9 @@ async def image_lightbox(
 
 
 @router.get(
-    "/lightbox/{camera_safe_name}/{timestamp}/content", response_class=HTMLResponse
+    "/lightbox/{camera_safe_name}/{timestamp}/content",
+    name="images.image_lightbox_content",
+    response_class=HTMLResponse,
 )
 async def image_lightbox_content(
     camera_safe_name: str,
@@ -209,7 +221,7 @@ async def image_lightbox_content(
 # =============================================================================
 
 
-@router.get("/file/{camera}/{interval}/{timestamp}")
+@router.get("/file/{camera}/{interval}/{timestamp}", name="images.get_image_file")
 async def get_image_file(
     camera: str,
     interval: int,
@@ -233,7 +245,10 @@ async def get_image_file(
     )
 
 
-@router.get("/thumbnail/{camera}/{interval}/{capture_date}/{timestamp}")
+@router.get(
+    "/thumbnail/{camera}/{interval}/{capture_date}/{timestamp}",
+    name="images.get_image_thumbnail",
+)
 async def get_image_thumbnail(
     camera: str,
     interval: int,
@@ -261,7 +276,7 @@ async def get_image_thumbnail(
 # =============================================================================
 
 
-@router.get("/delete", response_class=HTMLResponse)
+@router.get("/delete", name="images.delete_images_panel", response_class=HTMLResponse)
 async def delete_images_panel(
     request: Request,
     templates: TemplatesDep,
@@ -278,7 +293,9 @@ async def delete_images_panel(
     )
 
 
-@router.get("/delete/preview", response_class=HTMLResponse)
+@router.get(
+    "/delete/preview", name="images.delete_images_preview", response_class=HTMLResponse
+)
 async def delete_images_preview(
     request: Request,
     templates: TemplatesDep,
@@ -307,7 +324,7 @@ async def delete_images_preview(
     )
 
 
-@router.delete("/delete", response_class=HTMLResponse)
+@router.delete("/delete", name="images.delete_images", response_class=HTMLResponse)
 async def delete_images(
     request: Request,
     templates: TemplatesDep,

@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["timelapses"])
 
 
-@router.get("/scheduler", response_class=HTMLResponse)
+@router.get(
+    "/scheduler",
+    name="timelapse_scheduler.scheduler_panel",
+    response_class=HTMLResponse,
+)
 async def scheduler_panel(
     request: Request,
     templates: TemplatesDep,
@@ -35,7 +39,11 @@ async def scheduler_panel(
     )
 
 
-@router.post("/scheduler", response_class=HTMLResponse)
+@router.post(
+    "/scheduler",
+    name="timelapse_scheduler.save_scheduler_settings",
+    response_class=HTMLResponse,
+)
 async def save_scheduler_settings(
     request: Request,
     templates: TemplatesDep,

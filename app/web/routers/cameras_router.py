@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["cameras"])
 
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", name="cameras.cameras_page", response_class=HTMLResponse)
 async def cameras_page(
     request: Request,
     templates: TemplatesDep,
@@ -36,7 +36,9 @@ async def cameras_page(
     )
 
 
-@router.get("/partials/list", response_class=HTMLResponse)
+@router.get(
+    "/partials/list", name="cameras.camera_list_partial", response_class=HTMLResponse
+)
 async def camera_list_partial(
     request: Request,
     templates: TemplatesDep,
@@ -52,7 +54,11 @@ async def camera_list_partial(
     )
 
 
-@router.get("/partials/card/{camera_safe_name}", response_class=HTMLResponse)
+@router.get(
+    "/partials/card/{camera_safe_name}",
+    name="cameras.camera_card_partial",
+    response_class=HTMLResponse,
+)
 async def camera_card_partial(
     camera_safe_name: str,
     request: Request,
@@ -70,7 +76,9 @@ async def camera_card_partial(
     )
 
 
-@router.get("/fetch-settings", response_class=HTMLResponse)
+@router.get(
+    "/fetch-settings", name="cameras.fetch_settings_panel", response_class=HTMLResponse
+)
 async def fetch_settings_panel(
     request: Request,
     templates: TemplatesDep,
@@ -87,7 +95,9 @@ async def fetch_settings_panel(
     )
 
 
-@router.post("/fetch-settings", response_class=HTMLResponse)
+@router.post(
+    "/fetch-settings", name="cameras.save_fetch_settings", response_class=HTMLResponse
+)
 async def save_fetch_settings(
     request: Request,
     templates: TemplatesDep,
@@ -178,7 +188,11 @@ async def save_fetch_settings(
     return response
 
 
-@router.post("/fetch-settings/test-protect-connection", response_class=HTMLResponse)
+@router.post(
+    "/fetch-settings/test-protect-connection",
+    name="cameras.test_protect_connection",
+    response_class=HTMLResponse,
+)
 async def test_protect_connection(
     request: Request,
     templates: TemplatesDep,
@@ -199,7 +213,9 @@ async def test_protect_connection(
     )
 
 
-@router.get("/capture-stats", response_class=HTMLResponse)
+@router.get(
+    "/capture-stats", name="cameras.capture_stats_panel", response_class=HTMLResponse
+)
 async def capture_stats_panel(
     request: Request,
     templates: TemplatesDep,
@@ -216,7 +232,11 @@ async def capture_stats_panel(
     )
 
 
-@router.get("/capture-stats/charts", response_class=HTMLResponse)
+@router.get(
+    "/capture-stats/charts",
+    name="cameras.capture_stats_charts",
+    response_class=HTMLResponse,
+)
 async def capture_stats_charts(
     request: Request,
     templates: TemplatesDep,
@@ -242,7 +262,11 @@ async def capture_stats_charts(
     )
 
 
-@router.get("/{camera_id}/settings", response_class=HTMLResponse)
+@router.get(
+    "/{camera_id}/settings",
+    name="cameras.camera_settings_panel",
+    response_class=HTMLResponse,
+)
 async def camera_settings_panel(
     camera_id: str,
     request: Request,
@@ -267,7 +291,11 @@ async def camera_settings_panel(
     )
 
 
-@router.post("/{camera_id}/settings", response_class=HTMLResponse)
+@router.post(
+    "/{camera_id}/settings",
+    name="cameras.save_camera_settings",
+    response_class=HTMLResponse,
+)
 async def save_camera_settings(
     camera_id: str,
     request: Request,
@@ -305,7 +333,11 @@ async def save_camera_settings(
     return response
 
 
-@router.post("/{camera_id}/detect", response_class=HTMLResponse)
+@router.post(
+    "/{camera_id}/detect",
+    name="cameras.detect_camera_capabilities",
+    response_class=HTMLResponse,
+)
 async def detect_camera_capabilities(
     camera_id: str,
     request: Request,
@@ -338,7 +370,9 @@ async def detect_camera_capabilities(
     return response
 
 
-@router.delete("/{camera_id}", response_class=HTMLResponse)
+@router.delete(
+    "/{camera_id}", name="cameras.delete_camera", response_class=HTMLResponse
+)
 async def delete_camera(
     camera_id: str,
     request: Request,
@@ -368,7 +402,11 @@ async def delete_camera(
     return response
 
 
-@router.get("/{camera_safe_name}/panel", response_class=HTMLResponse)
+@router.get(
+    "/{camera_safe_name}/panel",
+    name="cameras.camera_panel",
+    response_class=HTMLResponse,
+)
 async def camera_panel(
     camera_safe_name: str,
     request: Request,
@@ -393,7 +431,11 @@ async def camera_panel(
     )
 
 
-@router.get("/{camera_safe_name}", response_class=HTMLResponse)
+@router.get(
+    "/{camera_safe_name}",
+    name="cameras.camera_detail_page",
+    response_class=HTMLResponse,
+)
 async def camera_detail_page(
     camera_safe_name: str,
     request: Request,

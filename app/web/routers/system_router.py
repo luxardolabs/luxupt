@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["system"])
 
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", name="system.system_page", response_class=HTMLResponse)
 async def system_page(
     request: Request,
     templates: TemplatesDep,
@@ -35,7 +35,7 @@ async def system_page(
     )
 
 
-@router.get("/activity", response_class=HTMLResponse)
+@router.get("/activity", name="system.activity_log_page", response_class=HTMLResponse)
 async def activity_log_page(
     request: Request,
     templates: TemplatesDep,
@@ -61,7 +61,11 @@ async def activity_log_page(
     )
 
 
-@router.get("/partials/activity", response_class=HTMLResponse)
+@router.get(
+    "/partials/activity",
+    name="system.activity_feed_partial",
+    response_class=HTMLResponse,
+)
 async def activity_feed_partial(
     request: Request,
     templates: TemplatesDep,
@@ -92,7 +96,7 @@ async def activity_feed_partial(
 # =============================================================================
 
 
-@router.get("/components", response_class=HTMLResponse)
+@router.get("/components", name="system.components_page", response_class=HTMLResponse)
 async def components_page(
     request: Request,
     templates: TemplatesDep,
@@ -110,7 +114,11 @@ async def components_page(
     )
 
 
-@router.get("/components/panel-demo", response_class=HTMLResponse)
+@router.get(
+    "/components/panel-demo",
+    name="system.components_panel_demo",
+    response_class=HTMLResponse,
+)
 async def components_panel_demo(
     request: Request,
     templates: TemplatesDep,
@@ -131,7 +139,7 @@ async def components_panel_demo(
     )
 
 
-@router.get("/about", response_class=HTMLResponse)
+@router.get("/about", name="system.about_page", response_class=HTMLResponse)
 async def about_page(
     request: Request,
     templates: TemplatesDep,
@@ -156,7 +164,7 @@ async def about_page(
 # =============================================================================
 
 
-@router.get("/users", response_class=HTMLResponse)
+@router.get("/users", name="system.users_page", response_class=HTMLResponse)
 async def users_page(
     request: Request,
     templates: TemplatesDep,
@@ -173,7 +181,9 @@ async def users_page(
     )
 
 
-@router.get("/partials/users", response_class=HTMLResponse)
+@router.get(
+    "/partials/users", name="system.users_list_partial", response_class=HTMLResponse
+)
 async def users_list_partial(
     request: Request,
     templates: TemplatesDep,
@@ -190,7 +200,9 @@ async def users_list_partial(
     )
 
 
-@router.get("/partials/user-form", response_class=HTMLResponse)
+@router.get(
+    "/partials/user-form", name="system.user_form_panel", response_class=HTMLResponse
+)
 async def user_form_panel(
     request: Request,
     templates: TemplatesDep,
@@ -208,7 +220,7 @@ async def user_form_panel(
     )
 
 
-@router.post("/users", response_class=HTMLResponse)
+@router.post("/users", name="system.create_user", response_class=HTMLResponse)
 async def create_user(
     request: Request,
     templates: TemplatesDep,
@@ -263,7 +275,7 @@ async def create_user(
     )
 
 
-@router.post("/users/{user_id}", response_class=HTMLResponse)
+@router.post("/users/{user_id}", name="system.update_user", response_class=HTMLResponse)
 async def update_user(
     user_id: int,
     request: Request,
@@ -312,7 +324,11 @@ async def update_user(
     )
 
 
-@router.get("/partials/user-delete-confirm/{user_id}", response_class=HTMLResponse)
+@router.get(
+    "/partials/user-delete-confirm/{user_id}",
+    name="system.user_delete_confirm_panel",
+    response_class=HTMLResponse,
+)
 async def user_delete_confirm_panel(
     user_id: int,
     request: Request,
@@ -330,7 +346,9 @@ async def user_delete_confirm_panel(
     )
 
 
-@router.delete("/users/{user_id}", response_class=HTMLResponse)
+@router.delete(
+    "/users/{user_id}", name="system.delete_user", response_class=HTMLResponse
+)
 async def delete_user(
     user_id: int,
     request: Request,
@@ -362,7 +380,11 @@ async def delete_user(
 # =============================================================================
 
 
-@router.get("/partials/backup-settings", response_class=HTMLResponse)
+@router.get(
+    "/partials/backup-settings",
+    name="system.backup_settings_panel",
+    response_class=HTMLResponse,
+)
 async def backup_settings_panel(
     request: Request,
     templates: TemplatesDep,
@@ -379,7 +401,11 @@ async def backup_settings_panel(
     )
 
 
-@router.post("/backup-settings", response_class=HTMLResponse)
+@router.post(
+    "/backup-settings",
+    name="system.update_backup_settings",
+    response_class=HTMLResponse,
+)
 async def update_backup_settings(
     request: Request,
     templates: TemplatesDep,

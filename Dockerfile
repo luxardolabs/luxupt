@@ -96,7 +96,9 @@ LABEL org.opencontainers.image.version="$BUILD_VERSION" \
       org.opencontainers.image.created="$BUILD_TIMESTAMP" \
       org.opencontainers.image.revision="$BUILD_COMMIT" \
       org.opencontainers.image.source="https://github.com/luxardolabs/luxupt" \
-      org.opencontainers.image.title="luxupt"
+      org.opencontainers.image.url="https://github.com/luxardolabs/luxupt" \
+      org.opencontainers.image.title="luxupt" \
+      org.opencontainers.image.description="A Docker-based solution for creating time-lapse videos from UniFi Protect cameras"
 
 # Set working directory
 WORKDIR /app/luxupt

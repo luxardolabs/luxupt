@@ -3,8 +3,9 @@
 # The canonical ruff.toml / mypy.ini live byte-identical in the image.
 
 [source]
-paths = ["app", "scripts"]   # the app package + repo scripts — lint + format-check + mypy target
-                             # scripts/ holds the EMITTED migration-chain verifier; emitted fleet
+paths = ["app", "scripts", "conftest.py"]   # the app package + repo scripts — lint + format-check + mypy target
+                             # scripts/ holds the EMITTED migration-chain verifier, and the root
+                             # conftest.py the EMITTED test-db-bound block; emitted fleet
                              # assets are designed lint/mypy-clean, so it is covered, not excluded
                              # (lint.source_declared: an unscanned .py is a hollow green).
 # No `exclude` for .claude/hooks: luxlint 0.46.0 drops `.claude/` from lint.source_declared for

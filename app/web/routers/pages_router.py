@@ -12,25 +12,27 @@ from app.web.rate_limit import LOGIN_RATE, limiter
 router = APIRouter(tags=["pages"])
 
 
-@router.get("/", response_class=RedirectResponse)
+@router.get("/", name="pages.root_redirect", response_class=RedirectResponse)
 async def root_redirect() -> Response:
     """Redirect root to cameras page."""
     return RedirectResponse(url="/cameras", status_code=302)
 
 
-@router.get("/dashboard", response_class=RedirectResponse)
+@router.get(
+    "/dashboard", name="pages.dashboard_redirect", response_class=RedirectResponse
+)
 async def dashboard_redirect() -> Response:
     """Redirect old dashboard URL to cameras page."""
     return RedirectResponse(url="/cameras", status_code=302)
 
 
-@router.get("/login", response_class=HTMLResponse)
+@router.get("/login", name="pages.login_page", response_class=HTMLResponse)
 async def login_page(request: Request) -> Response:
     """Login page."""
     return await login_form(request)
 
 
-@router.post("/login")
+@router.post("/login", name="pages.login_submit")
 @limiter.limit(LOGIN_RATE)
 async def login_submit(request: Request, db: DbSession) -> Response:
     """Process login."""
@@ -40,7 +42,7 @@ async def login_submit(request: Request, db: DbSession) -> Response:
     return await login(request, db, username, password)
 
 
-@router.get("/logout")
+@router.get("/logout", name="pages.logout_page")
 async def logout_page(request: Request) -> Response:
     """Logout."""
     return await logout(request)

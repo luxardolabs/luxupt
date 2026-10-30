@@ -1,10 +1,15 @@
-# luxarch:admin-bootstrap-view asset v2 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
+# luxarch:admin-bootstrap-view asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
 """The web seam of the admin bootstrap. `luxarch --emit admin-bootstrap-view`.
 
 Drop this in at `app/services/views/admin_bootstrap_view_service.py`. It turns the `/setup` form into
 a call on the core service (`luxarch --emit admin-bootstrap`) and the core's refusals into what the
 page shows. It also answers the two questions a login handler asks: where does the login page go
 while there are no users, and where does a user who just signed in go.
+
+Every path it hands back is resolved from a route NAME through the request (`request.url_for(name)`,
+its path only), so a page that moves, a mount prefix and the app's `root_path` all reach every
+redirect and every comparison with the path the request arrived on (`fw.urls_from_route_names`,
+`luxarch --playbook url-in-view`).
 
 The standard is `luxarch --doc FLEET-ADMIN-BOOTSTRAP-STANDARD`.
 """
@@ -13,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # isort: split
@@ -25,16 +31,23 @@ from app.services.core.admin_bootstrap_core_service import (
     SetupTokenError,
 )
 
-# --- EDIT THIS: where your app keeps these pages.
-SETUP_PATH = "/setup"
-LOGIN_PATH = "/login?setup_complete=1"
-CHANGE_PASSWORD_PATH = "/account/password"
+# The name both `/setup` routes register (`luxarch --emit admin-bootstrap-router`).
+SETUP_ROUTE = "admin.setup"
+
+# --- EDIT THIS: the route NAMES of your login page and password-change form.
+LOGIN_ROUTE = "pages.login_page"
+CHANGE_PASSWORD_ROUTE = "account.change_password_page"
+
+
+# --- EDIT THIS: the route name of logout, which a user who must change their password may still
+# reach.
+LOGOUT_ROUTE = "pages.logout_page"
 
 
 @dataclass(frozen=True)
 class SetupForm:
     token: str
-    login: str  # v2: what the user signs in with, an email or a username per LOGIN_KIND
+    login: str  # what the user signs in with, an email or a username per LOGIN_KIND
     password: str
     password_confirm: str
 
@@ -59,7 +72,9 @@ class AdminBootstrapViewService:
             return None
         return {"login": "", "login_kind": LOGIN_KIND, "error": ""}
 
-    async def submit_setup(self, db: AsyncSession, form: SetupForm) -> SetupOutcome:
+    async def submit_setup(
+        self, request: Request, db: AsyncSession, form: SetupForm
+    ) -> SetupOutcome:
         login = form.login.strip()
         if form.password != form.password_confirm:
             return self._again(login, "The passwords do not match.", 400)
@@ -73,21 +88,36 @@ class AdminBootstrapViewService:
             )
         except PasswordPolicyError as exc:
             return self._again(login, f"Not accepted: {exc}.", 400)
-        return SetupOutcome(redirect=LOGIN_PATH)
+        return SetupOutcome(redirect=_path(request, LOGIN_ROUTE))
 
-    async def login_page_redirect(self, db: AsyncSession) -> str:
-        """Where the login page sends a visitor instead of rendering: `/setup` while there are no
-        users to sign in as, otherwise "" (render the login page)."""
-        return SETUP_PATH if await self.core.setup_open(db) else ""
+    async def login_page_redirect(self, request: Request, db: AsyncSession) -> str:
+        """Where the login page sends a visitor instead of rendering: the setup form while there are
+        no users to sign in as, otherwise "" (render the login page)."""
+        return _path(request, SETUP_ROUTE) if await self.core.setup_open(db) else ""
 
     async def login_destination(
-        self, db: AsyncSession, login: str, next_path: str
+        self, request: Request, db: AsyncSession, login: str, next_path: str
     ) -> str:
         """Where a user goes straight after signing in. A seeded or reset account goes to the change
-        form first: `must_change_password` is enforced AT LOGIN, before any other page."""
+        form first."""
         if await self.core.needs_password_change(db, login):
-            return CHANGE_PASSWORD_PATH
+            return _path(request, CHANGE_PASSWORD_ROUTE)
         return next_path
+
+    async def forced_change_redirect(
+        self, request: Request, db: AsyncSession, login: str, path: str
+    ) -> str:
+        """Where an authenticated request for `path` goes instead, "" to let it through. The app's
+        authentication (the dependency or middleware that loads the signed-in user) calls this on
+        EVERY request: a seeded or reset account reaches only the change form and logout until it
+        changes the password. A redirect at login alone is a suggestion: the session cookie it set
+        opens every other page and the API."""
+        if not await self.core.needs_password_change(db, login):
+            return ""
+        change = _path(request, CHANGE_PASSWORD_ROUTE)
+        if path in (change, _path(request, LOGOUT_ROUTE)):
+            return ""
+        return change
 
     @staticmethod
     def _again(login: str, error: str, status_code: int) -> SetupOutcome:
@@ -95,3 +125,9 @@ class AdminBootstrapViewService:
             status_code=status_code,
             context={"login": login, "login_kind": LOGIN_KIND, "error": error},
         )
+
+
+def _path(request: Request, name: str) -> str:
+    """The route's path as the browser addresses it: the outermost router resolves the name (so a
+    mount prefix is included) and the request's base adds the app's `root_path`."""
+    return request.url_for(name).path
