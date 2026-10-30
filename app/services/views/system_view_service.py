@@ -1,6 +1,7 @@
 """System view service for preparing system/settings template data."""
 
 import asyncio
+import logging
 import os
 import platform
 import shutil
@@ -9,11 +10,13 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import Request
+from pydantic import ValidationError
 
 from app.core import config
 from app.db.database import DATABASE_PATH
 from app.models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
 from app.schemas.pagination_schema import build_pagination
+from app.schemas.settings_form_schema import BackupSettingsForm
 from app.services.core.activity_core_service import ActivityCoreService
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -26,8 +29,11 @@ from app.services.views._camera_options import (
     thumbnail_url,
     with_query,
 )
+from app.services.views._settings_validation import validation_message
 from app.services.views._system_tabs import system_tabs
 from app.utils.timezones import business_day, to_display
+
+logger = logging.getLogger(__name__)
 
 
 class SystemViewService:
@@ -153,22 +159,39 @@ class SystemViewService:
         }
 
     async def save_backup_settings(
-        self, *, retention: int, interval_seconds: int, backup_dir: str
-    ) -> None:
-        """Persist the backup settings the form submitted.
+        self,
+        *,
+        enabled: str | None,
+        retention: int,
+        interval_hours: int,
+        backup_dir: str,
+        updated_by: str,
+    ) -> tuple[dict[str, Any], int]:
+        """Validate the backup form and save it: (result partial context, HTTP status)."""
+        try:
+            form = BackupSettingsForm.model_validate(
+                {
+                    "enabled": enabled,
+                    "retention": retention,
+                    "interval_hours": interval_hours,
+                    "backup_dir": backup_dir,
+                }
+            )
+        except ValidationError as e:
+            return {"success": False, "errors": [validation_message(e)]}, 400
 
-        The router calls the VIEW; the view calls CORE. Reaching
-        `view_service.settings_service` from the router skipped this seam
-        (fw.no_layer_reach_through) — the import ban cannot see it because core is reached
-        through a held reference rather than imported.
-        """
-        await self.settings_service.update_backup_settings(
-            {
-                "retention": retention,
-                "interval": interval_seconds,
-                "backup_dir": backup_dir.strip() or "backups",
-            }
+        update = form.to_update()
+        await self.settings_service.update_backup_settings(update)
+        logger.info(
+            "Backup settings updated",
+            extra={
+                "enabled": form.enabled,
+                "retention": update["retention"],
+                "interval_hours": form.interval_hours,
+                "updated_by": updated_by,
+            },
         )
+        return {"success": True, "message": "Backup settings saved"}, 200
 
     async def get_backup_settings_context(self) -> dict[str, Any]:
         """Get data for backup settings panel."""

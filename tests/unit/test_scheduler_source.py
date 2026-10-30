@@ -8,6 +8,7 @@ undefined source.
 """
 
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -31,8 +32,8 @@ def _make_service() -> tuple[TimelapsesViewService, AsyncMock]:
     return svc, settings_service.update_scheduler_settings
 
 
-async def _save(svc: TimelapsesViewService, source: str) -> None:
-    await svc.save_scheduler_settings(
+async def _save(svc: TimelapsesViewService, source: str) -> dict[str, Any]:
+    return await svc.save_scheduler_settings(
         enabled="true",
         run_time="01:00",
         days_ago=1,
@@ -67,11 +68,12 @@ class TestSchedulerSource:
         assert payload["source"] is ScheduleSource.CAPTURED
 
     @pytest.mark.asyncio
-    async def test_unknown_source_falls_back_to_captured(self) -> None:
+    async def test_unknown_source_is_refused_and_nothing_saved(self) -> None:
         svc, update = _make_service()
-        await _save(svc, "not-a-real-source")
-        payload = update.await_args.args[0]
-        assert payload["source"] is ScheduleSource.CAPTURED
+        result = await _save(svc, "not-a-real-source")
+        assert result["success"] is False
+        assert "source" in result["error"]
+        update.assert_not_awaited()
 
 
 def _service_for_context(

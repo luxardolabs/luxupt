@@ -7,13 +7,14 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.protect_client import ProtectClient
 from app.db.post_commit import after_commit
 from app.models.enum_model import ScheduleSource
 from app.schemas.pagination_schema import build_pagination
-from app.schemas.scheduler_settings_schema import SchedulerSettingsUpdate
+from app.schemas.settings_form_schema import SchedulerSettingsForm
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.job_core_service import JobCoreService, get_job_processor
@@ -28,7 +29,7 @@ from app.services.views._camera_options import (
     build_timelapse_cards,
     job_urls,
 )
-from app.services.views._settings_validation import settings_problem
+from app.services.views._settings_validation import validation_message
 from app.utils.timezones import business_day, display_zone, to_display
 
 logger = logging.getLogger(__name__)
@@ -305,58 +306,33 @@ class TimelapsesViewService:
 
         Returns context for scheduler_result.html.
         """
-        # Convert checkbox "on" value to bool (checkbox is present = enabled)
-        is_enabled = enabled is not None
-
-        # Frame source for the nightly run; unknown values fall back to captured.
         try:
-            source_choice = ScheduleSource(source)
-        except ValueError:
-            source_choice = ScheduleSource.CAPTURED
+            form = SchedulerSettingsForm.model_validate(
+                {
+                    "enabled": enabled,
+                    "run_time": run_time,
+                    "days_ago": days_ago,
+                    "source": source,
+                    "concurrent_jobs": concurrent_jobs,
+                    "keep_images": keep_images,
+                    "recreate_existing": recreate_existing,
+                    "enabled_cameras": enabled_cameras,
+                    "enabled_intervals": enabled_intervals,
+                    "frame_rate": frame_rate,
+                    "crf": crf,
+                    "preset": preset,
+                    "pixel_format": pixel_format,
+                    "ffmpeg_timeout": ffmpeg_timeout,
+                }
+            )
+        except ValidationError as e:
+            return {"success": False, "error": validation_message(e)}
 
-        update_data = {
-            "enabled": is_enabled,
-            # Convert run_time string from form to time object
-            # A recurring WALL CLOCK ("run at 02:00"), not an instant — parsed as a time,
-            # so there is no zone to get wrong. strptime here built a naive 1900-01-01.
-            "run_time": time.fromisoformat(run_time),
-            "days_ago": days_ago,
-            "source": source_choice,
-            "concurrent_jobs": concurrent_jobs,
-            "keep_images": keep_images is not None,
-            "recreate_existing": recreate_existing is not None,
-            "enabled_cameras": enabled_cameras if enabled_cameras else None,
-            # Convert interval strings to integers
-            "enabled_intervals": [int(i) for i in enabled_intervals]
-            if enabled_intervals
-            else None,
-        }
-
-        # The FFmpeg settings are NOT-NULL columns carrying DB defaults, so "leave it as it
-        # is" has to mean OMITTING the key — `update_settings` only setattr's what the dict
-        # contains. Writing None instead, as this did, is an IntegrityError: every scheduler
-        # save from a form that does not carry the encoding fields was a 500. (crf=0 is a
-        # valid value, hence the `is not None` test rather than a truthiness one.)
-        optional_encoding: dict[str, Any] = {
-            "frame_rate": frame_rate,
-            "crf": crf,
-            "preset": preset,
-            "pixel_format": pixel_format,
-            "ffmpeg_timeout": ffmpeg_timeout,
-        }
-        update_data.update(
-            {k: v for k, v in optional_encoding.items() if v is not None and v != ""}
-        )
-
-        problem = settings_problem(SchedulerSettingsUpdate, update_data)
-        if problem:
-            return {"success": False, "error": problem}
-
-        await self.update_scheduler_settings(update_data)
+        await self.update_scheduler_settings(form.to_update())
         return {
             "success": True,
-            "enabled": is_enabled,
-            "run_time": update_data["run_time"],
+            "enabled": form.enabled,
+            "run_time": form.run_time,
         }
 
     async def get_lightbox_context(self, timelapse_id: int) -> dict[str, Any]:

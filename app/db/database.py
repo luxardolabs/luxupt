@@ -29,9 +29,12 @@ DATABASE_URL = f"sqlite+aiosqlite:///{DATABASE_PATH}"
 # Create async engine with SQLite-specific settings
 # QueuePool: keeps connections alive so SQLite page cache stays warm across requests.
 # Combined with mmap, the entire DB lives in process memory — reads are memory reads, not syscalls.
+# hide_parameters: a database error's message and traceback never carry the bound values, which
+# include the Protect API key and password, so an error can be logged in full.
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
+    hide_parameters=True,
     poolclass=AsyncAdaptedQueuePool,
     pool_size=config.DATABASE_POOL_SIZE,
     max_overflow=config.DATABASE_POOL_MAX_OVERFLOW,

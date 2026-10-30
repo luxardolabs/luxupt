@@ -410,55 +410,23 @@ async def update_backup_settings(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    enabled: Annotated[bool, Form()] = False,
+    enabled: Annotated[str | None, Form()] = None,
     retention: Annotated[int, Form()] = 5,
     interval_hours: Annotated[int, Form()] = 1,
     backup_dir: Annotated[str, Form()] = "backups",
     user: str = Depends(get_current_user),
 ) -> Response:
     """Update backup settings."""
-    # Convert interval from hours to seconds
-    interval_seconds = interval_hours * 3600
-
-    # If disabled, set retention to 0; otherwise use the submitted value
-    effective_retention = retention if enabled else 0
-
-    # Validate retention when enabled
-    if enabled and retention < 1:
-        return templates.TemplateResponse(
-            request,
-            "partials/system/backup_form_result.html",
-            {"success": False, "errors": ["Backups to keep must be at least 1"]},
-            status_code=400,
-        )
-
-    # Validate interval (minimum 1 hour)
-    if interval_hours < 1:
-        return templates.TemplateResponse(
-            request,
-            "partials/system/backup_form_result.html",
-            {"success": False, "errors": ["Interval must be at least 1 hour"]},
-            status_code=400,
-        )
-
-    await view_service.save_backup_settings(
-        retention=effective_retention,
-        interval_seconds=interval_seconds,
+    context, status_code = await view_service.save_backup_settings(
+        enabled=enabled,
+        retention=retention,
+        interval_hours=interval_hours,
         backup_dir=backup_dir,
+        updated_by=user,
     )
-
-    logger.info(
-        "Backup settings updated",
-        extra={
-            "enabled": enabled,
-            "retention": effective_retention,
-            "interval_hours": interval_hours,
-            "updated_by": user,
-        },
-    )
-
     return templates.TemplateResponse(
         request,
         "partials/system/backup_form_result.html",
-        {"success": True, "message": "Backup settings saved"},
+        context,
+        status_code=status_code,
     )

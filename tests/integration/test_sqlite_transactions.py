@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.db.database import engine
@@ -82,3 +83,28 @@ async def test_read_then_write_survives_a_writer_committing_in_between(
     finally:
         async with engine.begin() as conn:
             await conn.execute(text("DROP TABLE busy_probe"))
+
+
+async def test_a_failed_write_keeps_its_bound_values_out_of_the_error(
+    real_commits: None,
+) -> None:
+    # A settings write carries the Protect password as a bound value; the error it raises is
+    # logged, so the engine leaves bound values out of every error message.
+    secret = "Never-In-A-Log-123"
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("CREATE TABLE hidden_probe (v TEXT NOT NULL, n TEXT NOT NULL)")
+        )
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("INSERT INTO hidden_probe (v, n) VALUES (:v, :n)"),
+                {"v": secret, "n": None},
+            )
+    except IntegrityError as e:
+        assert secret not in str(e)
+    else:
+        raise AssertionError("the NOT NULL insert did not fail")
+    finally:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP TABLE hidden_probe"))

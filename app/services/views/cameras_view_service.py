@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from fastapi import Request
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import Camera as ApiCamera
@@ -16,9 +17,8 @@ from app.clients.protect_client import (
     ProtectClient,
     ProtectRequestError,
 )
-from app.schemas.camera_schema import CameraUpdate
 from app.schemas.capture_schema import CaptureRead
-from app.schemas.fetch_settings_schema import FetchSettingsUpdate
+from app.schemas.settings_form_schema import CameraSettingsForm, FetchSettingsForm
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -29,7 +29,7 @@ from app.services.views._camera_options import (
     thumbnail_url,
     with_query,
 )
-from app.services.views._settings_validation import settings_problem
+from app.services.views._settings_validation import validation_message
 from app.workers.fetch_service import FetchService
 
 logger = logging.getLogger(__name__)
@@ -471,65 +471,35 @@ class CamerasViewService:
 
         Returns (success, message, cameras_synced, reactivated).
         """
-        update_data: dict[str, Any] = {
-            "enabled": enabled == "true",
-            "default_capture_method": default_capture_method,
-            "default_rtsp_quality": default_rtsp_quality,
-        }
-
-        # Handle intervals - filter out invalid values and sort
-        if intervals:
-            valid_intervals = sorted([i for i in intervals if i >= 5])
-            update_data["intervals"] = valid_intervals if valid_intervals else [60]
-        else:
-            update_data["intervals"] = [60]
-
-        # API connection settings (empty string means clear)
-        update_data["api_key"] = api_key if api_key else None
-        update_data["base_url"] = base_url if base_url else None
-        update_data["username"] = username if username else None
-        update_data["password"] = password if password else None
-        # Checkbox: "true" = checked (verify), absent/None = unchecked (don't verify)
-        update_data["verify_ssl"] = verify_ssl == "true"
-
-        # Reliability settings (None means use env var defaults)
-        update_data["max_retries"] = max_retries
-        update_data["retry_delay"] = retry_delay
-        update_data["request_timeout"] = request_timeout
-
-        # Rate limiting
-        update_data["rate_limit"] = rate_limit
-        update_data["rate_limit_buffer"] = rate_limit_buffer
-
-        # Camera distribution
-        update_data["min_offset_seconds"] = min_offset_seconds
-        update_data["max_offset_seconds"] = max_offset_seconds
-
-        # Other settings
-        update_data["camera_refresh_interval"] = camera_refresh_interval
-        update_data["high_quality_snapshots"] = (
-            high_quality_snapshots == "true" if high_quality_snapshots else None
-        )
-
-        # RTSP settings
-        update_data["rtsp_output_format"] = (
-            rtsp_output_format if rtsp_output_format else None
-        )
-        update_data["png_compression_level"] = (
-            png_compression_level if png_compression_level is not None else None
-        )
-        update_data["rtsp_capture_timeout"] = rtsp_capture_timeout
-
-        # A field the form left empty keeps its stored value: those columns are NOT NULL, so a
-        # None would fail the write. Only the Protect credentials may be cleared.
-        update_data = {
-            k: v
-            for k, v in update_data.items()
-            if v is not None or k in _CLEARABLE_FETCH_FIELDS
-        }
-        problem = settings_problem(FetchSettingsUpdate, update_data)
-        if problem:
-            return False, problem, None, False
+        try:
+            form = FetchSettingsForm.model_validate(
+                {
+                    "enabled": enabled,
+                    "intervals": intervals,
+                    "default_capture_method": default_capture_method,
+                    "default_rtsp_quality": default_rtsp_quality,
+                    "api_key": api_key,
+                    "base_url": base_url,
+                    "username": username,
+                    "password": password,
+                    "verify_ssl": verify_ssl,
+                    "max_retries": max_retries,
+                    "retry_delay": retry_delay,
+                    "request_timeout": request_timeout,
+                    "rate_limit": rate_limit,
+                    "rate_limit_buffer": rate_limit_buffer,
+                    "min_offset_seconds": min_offset_seconds,
+                    "max_offset_seconds": max_offset_seconds,
+                    "camera_refresh_interval": camera_refresh_interval,
+                    "high_quality_snapshots": high_quality_snapshots,
+                    "rtsp_output_format": rtsp_output_format,
+                    "png_compression_level": png_compression_level,
+                    "rtsp_capture_timeout": rtsp_capture_timeout,
+                }
+            )
+        except ValidationError as e:
+            return False, validation_message(e), None, False
+        update_data = form.to_update()
 
         success, message, cameras_synced = await self.update_fetch_settings(update_data)
 
@@ -554,17 +524,19 @@ class CamerasViewService:
         enabled_intervals: list[int] | None,
         is_active: str | None,
     ) -> tuple[bool, str]:
-        """Build the per-camera settings payload from raw form values and save."""
-        update_data: dict[str, Any] = {
-            "capture_method": capture_method,
-            "rtsp_quality": rtsp_quality,
-            "is_active": is_active == "true",
-            # Empty list means use all (null)
-            "enabled_intervals": enabled_intervals if enabled_intervals else None,
-        }
-        problem = settings_problem(CameraUpdate, update_data)
-        if problem:
-            return False, problem
+        """Validate the per-camera settings form and save it."""
+        try:
+            form = CameraSettingsForm.model_validate(
+                {
+                    "capture_method": capture_method,
+                    "rtsp_quality": rtsp_quality,
+                    "is_active": is_active,
+                    "enabled_intervals": enabled_intervals,
+                }
+            )
+        except ValidationError as e:
+            return False, validation_message(e)
+        update_data = form.to_update()
         success, message = await self.update_camera_settings(camera_id, update_data)
         if success:
             logger.info(
@@ -672,7 +644,9 @@ class CamerasViewService:
                 return True, "Settings saved, but connection failed.", synced
 
         except Exception as e:
-            logger.exception("Error updating fetch settings", extra={"error": str(e)})
+            logger.exception(
+                "Error updating fetch settings", extra={"error_type": type(e).__name__}
+            )
             return False, str(e), None
 
     async def update_camera_settings(
@@ -689,7 +663,7 @@ class CamerasViewService:
         except Exception as e:
             logger.exception(
                 "Error updating camera settings",
-                extra={"camera_id": camera_id, "error": str(e)},
+                extra={"camera_id": camera_id, "error_type": type(e).__name__},
             )
             return False, str(e)
 
@@ -828,7 +802,3 @@ class CamerasViewService:
             "failed_captures": capture_stats.failed_captures,
             "recent_failures": recent_failures,
         }
-
-
-# Fetch settings the form may set to nothing (None clears them); every other field is NOT NULL.
-_CLEARABLE_FETCH_FIELDS = frozenset({"api_key", "base_url", "username", "password"})
