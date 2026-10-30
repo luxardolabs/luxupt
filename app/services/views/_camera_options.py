@@ -10,12 +10,15 @@ service). Takes any object exposing ``camera_id``/``safe_name`` so the views pac
 does not import an ORM model (fw.views_dont_import_models).
 """
 
-from collections.abc import Callable, Sequence
-from typing import Any, Protocol
+from collections.abc import Sequence
+from typing import Protocol
 from urllib.parse import urlencode
 
-# `request.app.url_path_for`: a route NAME and its path params -> the route's path.
-PathFor = Callable[..., Any]
+
+class PathFor(Protocol):
+    """`request.app.url_path_for`: a route NAME and its path params -> the route's path."""
+
+    def __call__(self, name: str, /, **path_params: object) -> str: ...
 
 
 class CaptureIdentity(Protocol):
