@@ -249,7 +249,7 @@ async def create_user(
         return templates.TemplateResponse(
             request,
             "partials/system/user_form_result.html",
-            {"success": False, "errors": errors},
+            view_service.form_result_context(success=False, errors=errors),
             status_code=400,
         )
 
@@ -266,11 +266,11 @@ async def create_user(
     return templates.TemplateResponse(
         request,
         "partials/system/user_form_result.html",
-        {
-            "success": success,
-            "message": message if success else None,
-            "errors": [message] if not success else None,
-        },
+        view_service.form_result_context(
+            success=success,
+            message=message if success else None,
+            errors=[message] if not success else None,
+        ),
         status_code=200 if success else 500,
     )
 
@@ -297,7 +297,7 @@ async def update_user(
         return templates.TemplateResponse(
             request,
             "partials/system/user_form_result.html",
-            {"success": False, "errors": errors},
+            view_service.form_result_context(success=False, errors=errors),
             status_code=400,
         )
 
@@ -315,11 +315,11 @@ async def update_user(
     return templates.TemplateResponse(
         request,
         "partials/system/user_form_result.html",
-        {
-            "success": success,
-            "message": message if success else None,
-            "errors": [message] if not success else None,
-        },
+        view_service.form_result_context(
+            success=success,
+            message=message if success else None,
+            errors=[message] if not success else None,
+        ),
         status_code=200 if success else 400,
     )
 
@@ -366,11 +366,11 @@ async def delete_user(
     return templates.TemplateResponse(
         request,
         "partials/system/user_form_result.html",
-        {
-            "success": success,
-            "message": message if success else None,
-            "errors": [message] if not success else None,
-        },
+        view_service.form_result_context(
+            success=success,
+            message=message if success else None,
+            errors=[message] if not success else None,
+        ),
         status_code=200 if success else 400,
     )
 

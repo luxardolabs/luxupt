@@ -27,8 +27,8 @@
         <div>
             <p class="text-xs font-medium text-surface-200 uppercase mb-3">breadcrumb</p>
             {{ breadcrumb([
-                {'label': 'Home', 'href': '/'},
-                {'label': 'Timelapses', 'href': '/timelapses'},
+                {'label': 'Home', 'href': demo_urls.home},
+                {'label': 'Timelapses', 'href': demo_urls.timelapses},
                 {'label': 'Front Door'},
             ]) }}
         </div>
@@ -78,7 +78,7 @@
            routes through the paginated_url global so filters ride along. #}
         <div>
             <p class="text-xs font-medium text-surface-200 uppercase mb-3">pagination_controls</p>
-            {{ pagination_controls(demo_pagination, '/system/components', query_params={}) }}
+            {{ pagination_controls(demo_pagination, demo_urls.components, query_params={}) }}
         </div>
 
         <div class="rounded-lg border border-surface-400/20 bg-surface-900/50 p-4">

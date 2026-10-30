@@ -5,24 +5,24 @@
 {% from "macros/navigation.html" import page_header, tab_nav, section %}
 
 {% set tabs = [
-    {"id": "browser", "label": "Browser", "href": "/timelapses", "icon_name": "film"},
-    {"id": "jobs", "label": "Jobs", "href": "/timelapses/jobs", "icon_name": "queue-list"}
+    {"id": "browser", "label": "Browser", "href": page_urls.browser, "icon_name": "film"},
+    {"id": "jobs", "label": "Jobs", "href": page_urls.jobs, "icon_name": "queue-list"}
 ] %}
 
 {% block title %}Timelapse Jobs - LuxUPT{% endblock %}
 
 {% block content %}
 {% call page_header("Timelapses", "Manage timelapse creation jobs") %}
-    {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": "/timelapses/create", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
-    {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": "/timelapses/historical", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
-    {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": "/timelapses/scheduler", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": page_urls.create, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": page_urls.historical, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": page_urls.scheduler, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
 {% endcall %}
 
 {{ tab_nav(tabs, "jobs") }}
 
 {# Stats Section #}
 {% call section("Statistics", "chart-bar") %}
-<div hx-get="/timelapses/partials/stats"
+<div hx-get="{{ page_urls.stats }}"
      hx-trigger="every 5s, job-finished from:body"
      hx-swap="innerHTML">
 {% include "partials/timelapses/stats.html" %}
@@ -32,7 +32,7 @@
 {# Jobs Section #}
 {% call section("Job Queue", "queue-list") %}
 <div id="active-jobs"
-     hx-get="/timelapses/partials/jobs"
+     hx-get="{{ page_urls.jobs_partial }}"
      hx-trigger="every 5s"
      hx-swap="innerHTML">
     {% include "partials/timelapses/job_list.html" %}

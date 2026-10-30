@@ -9,6 +9,7 @@ job row (§5e cross-process read). This locks both properties:
 """
 
 import types
+from unittest.mock import MagicMock
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -32,6 +33,7 @@ def _svc(session: AsyncSession) -> TimelapsesViewService:
         None,  # type: ignore[arg-type]
         JobCoreService(session),
         None,  # type: ignore[arg-type]
+        MagicMock(),
     )
 
 

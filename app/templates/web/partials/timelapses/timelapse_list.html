@@ -9,7 +9,7 @@
 </div>
 
 <div class="mt-4">
-    {{ pagination_controls(pagination, "/timelapses/partials/list", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
+    {{ pagination_controls(pagination, page_urls.list, {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
 </div>
 {% else %}
 {{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters') }}

@@ -43,7 +43,7 @@
                 {% endif %}
 
                 {# Context from AdminBootstrapViewService: login, login_kind, error. #}
-                <form class="space-y-5" action="/setup" method="POST">
+                <form class="space-y-5" action="{{ request.url.path }}" method="POST">
                     {{ text_input("token", label="Setup token", type="text", required=true, autocomplete="off") }}
                     {{ text_input("login", label="Email" if login_kind == "email" else "Username", type="email" if login_kind == "email" else "text", value=login, required=true, autocomplete="username") }}
                     {{ text_input("password", label="Password", type="password", required=true, autocomplete="new-password") }}

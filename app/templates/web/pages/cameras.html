@@ -10,16 +10,16 @@
 {% block content %}
 {% if needs_api_setup %}
 {# Auto-load settings panel when API is not configured #}
-<div hx-get="/cameras/fetch-settings" hx-target="#panel-container" hx-swap="innerHTML" hx-trigger="load"></div>
+<div hx-get="{{ page_urls.fetch_settings }}" hx-target="#panel-container" hx-swap="innerHTML" hx-trigger="load"></div>
 {% endif %}
 {% call page_header("Cameras", "Click on a camera to view details") %}
-    {{ secondary("Capture Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": "/cameras/fetch-settings", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {{ secondary("Capture Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": page_urls.fetch_settings, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
 {% endcall %}
 
 {# Statistics Section #}
 {% call section("Statistics", "chart-bar") %}
 <div class="grid gap-4 grid-cols-2 lg:grid-cols-3">
-    {{ stat_card("Captures", successful_captures, icon_name="photo", color="success", hx_attrs={"hx-get": "/cameras/capture-stats", "hx-target": "#panel-container", "hx-swap": "innerHTML"}, mobile_full=true) }}
+    {{ stat_card("Captures", successful_captures, icon_name="photo", color="success", hx_attrs={"hx-get": page_urls.capture_stats, "hx-target": "#panel-container", "hx-swap": "innerHTML"}, mobile_full=true) }}
     {{ stat_card("Failed", failed_captures, icon_name="exclamation-triangle", color="danger", mobile_full=true) }}
     {{ stat_card("Cameras", total_cameras, icon_name="camera", color="primary", value_prefix=connected_cameras, value_suffix="connected", mobile_full=true) }}
 </div>
@@ -52,7 +52,7 @@
 {% call section("Cameras", "camera") %}
 <div id="camera-list"
      hx-ext="morph"
-     hx-get="/cameras/partials/list"
+     hx-get="{{ page_urls.camera_list }}"
      hx-trigger="every 30s, camera-list-refresh from:body"
      hx-swap="morph:innerHTML">
     {% if camera_cards %}

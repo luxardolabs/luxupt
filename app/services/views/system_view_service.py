@@ -8,6 +8,8 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from fastapi import Request
+
 from app.core import config
 from app.db.database import DATABASE_PATH
 from app.models.enum_model import ACTIVITY_TYPE_LABELS, ActivityType
@@ -21,6 +23,7 @@ from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
     job_card_urls,
+    with_query,
 )
 from app.utils.timezones import business_day, to_display
 
@@ -35,8 +38,10 @@ class SystemViewService:
         timelapse_service: TimelapseBrowserCoreService,
         activity_service: ActivityCoreService,
         settings_service: SettingsCoreService,
+        request: Request,
     ):
-        """Initialize with core services."""
+        """Initialize with core services, and the request every URL is resolved through."""
+        self.path = request.app.url_path_for
         self.camera_service = camera_service
         self.capture_stats_service = capture_stats_service
         self.timelapse_service = timelapse_service
@@ -86,6 +91,7 @@ class SystemViewService:
         version_info = self._get_version_info()
 
         return {
+            "backup_settings_url": str(self.path("system.backup_settings_panel")),
             "system_info": system_info,
             "storage_info": storage_info,
             "db_stats": db_stats,
@@ -169,6 +175,7 @@ class SystemViewService:
         interval_hours = backup_settings.interval // 3600
 
         return {
+            "save_url": str(self.path("system.update_backup_settings")),
             "backup_settings": backup_settings,
             "interval_hours": interval_hours,
         }
@@ -322,6 +329,7 @@ class SystemViewService:
         ]
 
         return {
+            "feed_url": str(self.path("system.activity_feed_partial")),
             "activity_groups": activity_groups,
             "activity_count": len(activities),
             "summary": summary,
@@ -396,16 +404,45 @@ class SystemViewService:
         today = business_day(now).isoformat()
 
         return {
-            "demo_camera_urls": build_camera_card_urls("demo-cam-1"),
+            "demo_urls": {
+                "home": str(self.path("pages.root_redirect")),
+                "cameras": str(self.path("cameras.cameras_page")),
+                "timelapses": str(self.path("timelapses.timelapses_page")),
+                "components": str(self.path("system.components_page")),
+                "fetch_settings": str(self.path("cameras.fetch_settings_panel")),
+                "panel_drawer": with_query(
+                    self.path("system.components_panel_demo"), variant="drawer"
+                ),
+                "panel_shell": with_query(
+                    self.path("system.components_panel_demo"), variant="shell"
+                ),
+                "image_lightbox": with_query(
+                    self.path(
+                        "images.image_lightbox",
+                        camera_safe_name="front_door",
+                        timestamp=1730000000,
+                    ),
+                    interval=60,
+                ),
+            },
+            "demo_camera_urls": build_camera_card_urls(self.path, "demo-cam-1"),
             "demo_timelapse_urls": {
-                "lightbox": "/timelapses/demo-tl-1/lightbox",
-                "video": "/timelapses/demo-tl-1/video",
-                "delete": "/timelapses/demo-tl-1",
+                "lightbox": str(
+                    self.path("timelapses.timelapse_lightbox", timelapse_id="demo-tl-1")
+                ),
+                "video": str(
+                    self.path(
+                        "timelapses.serve_timelapse_video", timelapse_id="demo-tl-1"
+                    )
+                ),
+                "delete": str(
+                    self.path("timelapses.delete_timelapse", timelapse_id="demo-tl-1")
+                ),
                 "target": "#timelapse-demo-tl-1",
             },
-            "demo_running_job_urls": job_card_urls("demo-job-run"),
-            "demo_pending_job_urls": job_card_urls("demo-job-pend"),
-            "demo_completed_job_urls": job_card_urls("demo-job-done"),
+            "demo_running_job_urls": job_card_urls(self.path, "demo-job-run"),
+            "demo_pending_job_urls": job_card_urls(self.path, "demo-job-pend"),
+            "demo_completed_job_urls": job_card_urls(self.path, "demo-job-done"),
             "demo_camera": {
                 "safe_name": "front_door",
                 "camera_id": "demo-cam-1",

@@ -48,7 +48,7 @@ async def change_password_submit(
 ) -> Response:
     """Change the signed-in user's password (rate-limited: it verifies a credential)."""
     outcome = await AccountViewService().submit_change(
-        db, user, current_password, new_password, confirm_password
+        request, db, user, current_password, new_password, confirm_password
     )
     if outcome.redirect:
         return RedirectResponse(outcome.redirect, status_code=status.HTTP_303_SEE_OTHER)

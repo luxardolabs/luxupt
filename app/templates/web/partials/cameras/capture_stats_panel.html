@@ -26,7 +26,8 @@
 
         <!-- Stats and Charts Container - refreshed together via HTMX -->
         <div id="capture-stats-content"
-             hx-get="/cameras/capture-stats/charts"
+             hx-get="{{ charts_url }}"
+             data-url="{{ charts_url }}"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div class="flex items-center justify-center h-64">

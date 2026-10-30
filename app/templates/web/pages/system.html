@@ -80,7 +80,7 @@
         {{ data_row_status("Backup", service_status.backup_enabled) }}
     </div>
     <div class="mt-4 pt-4 border-t border-surface-400/20 flex justify-center">
-        {{ secondary("Backup Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": "/system/partials/backup-settings", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {{ secondary("Backup Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": backup_settings_url, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     </div>
     {% endcall %}
 

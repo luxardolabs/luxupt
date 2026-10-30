@@ -17,7 +17,7 @@
 {# Both filters HTMX-swap the feed in place; hx_attrs keeps this macro-composed
    (no hand-rolled <form>). hx-include pulls both selects on either change. #}
 {% set filter_hx = {
-    "hx-get": "/system/partials/activity",
+    "hx-get": feed_url,
     "hx-target": "#activity-feed",
     "hx-swap": "innerHTML",
     "hx-trigger": "change",

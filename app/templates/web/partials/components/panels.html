@@ -18,8 +18,8 @@
         <div>
             <p class="text-xs font-medium text-surface-200 uppercase mb-3">Live triggers — panel_trigger() → HTMX → fixed-overlay panels</p>
             <div class="flex flex-wrap gap-3">
-                {{ panel_trigger('/system/components/panel-demo?variant=drawer', text='Open drawer panel', icon='☰') }}
-                {{ panel_trigger('/system/components/panel-demo?variant=shell', text='Open shell panel', icon='▦') }}
+                {{ panel_trigger(demo_urls.panel_drawer, text='Open drawer panel', icon='☰') }}
+                {{ panel_trigger(demo_urls.panel_shell, text='Open shell panel', icon='▦') }}
             </div>
             <p class="text-xs text-surface-300 mt-2">
                 The drawer trigger composes panel_backdrop + panel_drawer + panel_header + panel_footer;
@@ -148,7 +148,7 @@
                 Use HTMX attributes to load panel content
             </p>
             <div class="flex gap-3">
-                {{ primary('Open Capture Settings', icon_name='cog-6-tooth', hx_attrs={'hx-get': '/cameras/fetch-settings', 'hx-target': '#panel-container', 'hx-swap': 'innerHTML'}) }}
+                {{ primary('Open Capture Settings', icon_name='cog-6-tooth', hx_attrs={'hx-get': demo_urls.fetch_settings, 'hx-target': '#panel-container', 'hx-swap': 'innerHTML'}) }}
             </div>
         </div>
 

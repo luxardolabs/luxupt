@@ -13,7 +13,7 @@
         <!-- Content -->
         <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
             <form id="fetch-settings-form"
-                  hx-post="/cameras/fetch-settings"
+                  hx-post="{{ save_url }}"
                   hx-target="#fetch-settings-result"
                   hx-swap="innerHTML"
                   hx-indicator="#save-btn"
@@ -156,7 +156,7 @@
                     <!-- Test Connection -->
                     <div class="border-t border-surface-400/20 pt-4">
                         {{ secondary("Test Connection", size="sm", icon_name="arrow-path",
-                                     hx_attrs={"hx-post": "/cameras/fetch-settings/test-protect-connection",
+                                     hx_attrs={"hx-post": test_connection_url,
                                                "hx-target": "#protect-test-result",
                                                "hx-swap": "innerHTML",
                                                "hx-indicator": "#protect-test-indicator"}) }}

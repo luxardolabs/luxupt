@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,14 +43,36 @@ class TimelapsesViewService:
         timelapse_service: TimelapseBrowserCoreService,
         job_service: JobCoreService,
         settings_service: SettingsCoreService,
+        request: Request,
     ):
-        """Initialize with core services."""
+        """Initialize with core services, and the request every URL is resolved through."""
+        self.path = request.app.url_path_for
         self.db = db
         self.camera_service = camera_service
         self.capture_service = capture_service
         self.timelapse_service = timelapse_service
         self.job_service = job_service
         self.settings_service = settings_service
+
+    def _page_urls(self) -> dict[str, str]:
+        """The timelapse pages' and panels' own endpoints, resolved from route names."""
+        names = {
+            "browser": "timelapses.timelapses_page",
+            "jobs": "timelapse_jobs.timelapses_jobs_page",
+            "create": "timelapses.create_timelapse_panel",
+            "create_submit": "timelapses.create_timelapse",
+            "historical": "timelapses.historical_timelapse_panel",
+            "historical_submit": "timelapses.create_historical_timelapse",
+            "scheduler": "timelapse_scheduler.scheduler_panel",
+            "scheduler_submit": "timelapse_scheduler.save_scheduler_settings",
+            "list": "timelapses.timelapse_list_partial",
+            "stats": "timelapses.stats_partial",
+            "jobs_partial": "timelapse_jobs.jobs_partial",
+            "dates": "timelapses.dates_select_partial",
+            "intervals": "timelapses.intervals_select_partial",
+            "preview": "timelapses.preview_partial",
+        }
+        return {key: str(self.path(name)) for key, name in names.items()}
 
     def end_at_for(
         self, day: date, end_t: time, now_local: datetime, lag_seconds: int = 60
@@ -107,6 +129,7 @@ class TimelapsesViewService:
         else:
             available_dates = []
         return {
+            "page_urls": self._page_urls(),
             "available_dates": available_dates,
             "available_date_options": build_date_options(available_dates),
         }
@@ -125,7 +148,10 @@ class TimelapsesViewService:
             )
         else:
             available_intervals = []
-        return {"available_intervals": available_intervals}
+        return {
+            "available_intervals": available_intervals,
+            "page_urls": self._page_urls(),
+        }
 
     async def get_preview_context(
         self,
@@ -172,7 +198,7 @@ class TimelapsesViewService:
         return {
             "job": job,
             "action": action,
-            "job_card_urls": job_card_urls(job.job_id) if job else None,
+            "job_card_urls": job_card_urls(self.path, job.job_id) if job else None,
         }
 
     async def cancel_or_delete_job(self, job_id: str) -> tuple[bool, str]:
@@ -199,7 +225,7 @@ class TimelapsesViewService:
         """
         completed_jobs = await self.job_service.get_completed(limit=limit)
         return {
-            "completed_job_cards": build_job_cards(completed_jobs),
+            "completed_job_cards": build_job_cards(self.path, completed_jobs),
         }
 
     async def cleanup_stale_jobs_and_build_context(self) -> dict[str, Any]:
@@ -239,6 +265,7 @@ class TimelapsesViewService:
             source_selected = ""
 
         return {
+            "page_urls": self._page_urls(),
             "settings": settings,
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
@@ -332,7 +359,9 @@ class TimelapsesViewService:
         return {
             "timelapse": timelapse,
             # Route knowledge lives in the view (fw.url_assembly_in_view).
-            "video_url": f"/timelapses/{timelapse_id}/video",
+            "video_url": str(
+                self.path("timelapses.serve_timelapse_video", timelapse_id=timelapse_id)
+            ),
         }
 
     async def get_video_path(self, timelapse_id: int) -> tuple[str | None, str | None]:
@@ -519,6 +548,7 @@ class TimelapsesViewService:
             default_date = default_d.isoformat()
 
         return {
+            "page_urls": self._page_urls(),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "camera_ranges": camera_ranges,
@@ -795,8 +825,9 @@ class TimelapsesViewService:
         pending_jobs = [j for j in active_jobs if j.status == "pending"]
 
         return {
+            "page_urls": self._page_urls(),
             "timelapses": timelapses,
-            "timelapse_cards": build_timelapse_cards(timelapses),
+            "timelapse_cards": build_timelapse_cards(self.path, timelapses),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,
@@ -804,9 +835,9 @@ class TimelapsesViewService:
             "available_intervals": available_intervals,
             "stats": stats,
             "job_stats": job_stats,
-            "running_job_cards": build_job_cards(running_jobs),
-            "pending_job_cards": build_job_cards(pending_jobs),
-            "completed_job_cards": build_job_cards(completed_jobs),
+            "running_job_cards": build_job_cards(self.path, running_jobs),
+            "pending_job_cards": build_job_cards(self.path, pending_jobs),
+            "completed_job_cards": build_job_cards(self.path, completed_jobs),
             "filters": {
                 "camera": camera,
                 "date": timelapse_date,
@@ -834,9 +865,10 @@ class TimelapsesViewService:
         concurrent_jobs = min(scheduler_settings.concurrent_jobs, 4)
 
         return {
-            "running_job_cards": build_job_cards(running_jobs),
-            "pending_job_cards": build_job_cards(pending_jobs),
-            "completed_job_cards": build_job_cards(completed_jobs),
+            "page_urls": self._page_urls(),
+            "running_job_cards": build_job_cards(self.path, running_jobs),
+            "pending_job_cards": build_job_cards(self.path, pending_jobs),
+            "completed_job_cards": build_job_cards(self.path, completed_jobs),
             "summary": summary,
             "concurrent_jobs": concurrent_jobs,
         }
@@ -862,6 +894,7 @@ class TimelapsesViewService:
             available_intervals = await self.capture_service.get_available_intervals()
 
         return {
+            "page_urls": self._page_urls(),
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "available_dates": available_dates,

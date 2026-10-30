@@ -29,7 +29,7 @@
          }'
          x-effect="if (range && (!startDate || startDate < range.oldest || startDate > range.newest)) { startDate = range.default; } if (range && (!endDate || endDate < range.oldest || endDate > range.newest)) { endDate = range.default; }">
         <form id="historical-form"
-              hx-post="/timelapses/historical"
+              hx-post="{{ page_urls.historical_submit }}"
               hx-target="#historical-result"
               hx-swap="innerHTML"
               class="space-y-6">

@@ -206,6 +206,18 @@ class TestParameterisedGets:
         ):
             _ran(await auth_client.get(path), f"GET {path}")
 
+    async def test_image_grid_renders_seeded_capture_cards(
+        self, auth_client: AsyncClient, seeded: dict[str, Any]
+    ) -> None:
+        # The bare GETs above run with no capture to card, so this one renders the grid WITH
+        # the seeded capture: each card's lightbox link is resolved from its route name.
+        for path in ("/images", "/images/partials/grid"):
+            resp = await auth_client.get(path)
+            _ran(resp, f"GET {path}")
+            assert f"/images/lightbox/{CAMERA_SAFE_NAME}/{TIMESTAMP}?" in resp.text, (
+                path
+            )
+
     async def test_job_and_timelapse_routes(
         self, auth_client: AsyncClient, seeded: dict[str, Any]
     ) -> None:

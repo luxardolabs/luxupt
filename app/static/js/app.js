@@ -89,7 +89,7 @@ class App {
 		// Handle authentication errors
 		document.addEventListener('htmx:responseError', function(event) {
 			if (event.detail.xhr.status === 401) {
-				window.location.href = '/login';
+				window.location.href = document.body.dataset.loginUrl;
 			}
 		});
 
@@ -575,7 +575,7 @@ class CaptureStats {
 		if (period) params.set('period', period);
 		params.set('offset', '0');  // Always reset to current when changing filters
 
-		const url = '/cameras/capture-stats/charts?' + params.toString();
+		const url = document.getElementById('capture-stats-content').dataset.url + '?' + params.toString();
 		htmx.ajax('GET', url, {target: '#capture-stats-content', swap: 'innerHTML'});
 	}
 }

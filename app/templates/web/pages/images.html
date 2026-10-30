@@ -13,7 +13,7 @@
 {% call page_header("Images", "Browse captured snapshots") %}
     <div class="flex flex-wrap items-center gap-3">
         <form id="filters-form"
-              hx-get="/images/partials/grid"
+              hx-get="{{ page_urls.grid }}"
               hx-target="#image-grid"
               hx-trigger="change"
               hx-swap="innerHTML"
@@ -24,7 +24,7 @@
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("per_page", [{"value": "36", "label": "36"}, {"value": "72", "label": "72"}, {"value": "108", "label": "108"}], selected=pagination.per_page|string, placeholder="Per Page") }}
         </form>
-        {{ danger("Delete", icon_name="trash", size="md", hx_attrs={"hx-get": "/images/delete", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {{ danger("Delete", icon_name="trash", size="md", hx_attrs={"hx-get": page_urls.delete_panel, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     </div>
 {% endcall %}
 
@@ -51,7 +51,7 @@
 
     <!-- Pagination -->
     <div class="mt-4">
-        {{ pagination_controls(pagination, "/images/partials/grid", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "per_page": pagination.per_page}, target="image-grid") }}
+        {{ pagination_controls(pagination, page_urls.grid, {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "per_page": pagination.per_page}, target="image-grid") }}
     </div>
     {% else %}
     {{ empty_state('photo', 'No images found', 'Try adjusting your filters or wait for captures') }}

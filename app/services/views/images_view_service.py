@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any
 from urllib.parse import urlencode
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
 
 from app.schemas.pagination_schema import build_pagination
@@ -30,11 +30,21 @@ class ImagesViewService:
         camera_service: CameraCoreService,
         capture_service: CaptureCoreService,
         cleanup_service: CaptureCleanupCoreService,
+        request: Request,
     ):
-        """Initialize with core services."""
+        """Initialize with core services, and the request every URL is resolved through."""
+        self.path = request.app.url_path_for
         self.camera_service = camera_service
         self.capture_service = capture_service
         self.cleanup_service = cleanup_service
+
+    def _page_urls(self) -> dict[str, str]:
+        """The image pages' and panels' own endpoints, resolved from route names."""
+        return {
+            "grid": str(self.path("images.image_grid_partial")),
+            "delete_panel": str(self.path("images.delete_images_panel")),
+            "delete_preview": str(self.path("images.delete_images_preview")),
+        }
 
     async def serve_thumbnail(
         self, camera: str, interval: int, capture_date: date, timestamp: int, size: int
@@ -86,8 +96,8 @@ class ImagesViewService:
             camera.camera_id, timestamp, interval
         )
 
-    @staticmethod
     def _build_image_cards[C: CaptureIdentity](
+        self,
         images: Sequence[C],
         *,
         camera: str | None,
@@ -119,9 +129,12 @@ class ImagesViewService:
                     if value
                 }
             )
-            lightbox_url = (
-                f"/images/lightbox/{image.camera_safe_name}/{image.timestamp}?{query}"
+            lightbox = self.path(
+                "images.image_lightbox",
+                camera_safe_name=image.camera_safe_name,
+                timestamp=image.timestamp,
             )
+            lightbox_url = f"{lightbox}?{query}"
             cards.append({"capture": image, "lightbox_url": lightbox_url})
         return cards
 
@@ -169,6 +182,7 @@ class ImagesViewService:
         total_size_gb = round(capture_stats.total_file_size / 1024 / 1024 / 1024, 2)
 
         return {
+            "page_urls": self._page_urls(),
             "images": images,
             "image_cards": self._build_image_cards(
                 images, camera=camera, date_str=date_str
@@ -220,6 +234,7 @@ class ImagesViewService:
         )
 
         return {
+            "page_urls": self._page_urls(),
             "images": images,
             "image_cards": self._build_image_cards(
                 images, camera=camera, date_str=date_str
@@ -311,7 +326,12 @@ class ImagesViewService:
                     if value
                 }
             )
-            return f"/images/lightbox/{safe_name}/{timestamp}/content?{query}"
+            content = self.path(
+                "images.image_lightbox_content",
+                camera_safe_name=safe_name,
+                timestamp=timestamp,
+            )
+            return f"{content}?{query}"
 
         return {
             "image": image,
@@ -362,6 +382,7 @@ class ImagesViewService:
         preview_data = await self.cleanup_service.get_deletion_preview()
 
         return {
+            "page_urls": self._page_urls(),
             "cameras": camera_options,
             "available_dates": dates,
             "available_date_options": build_date_options(dates),
@@ -434,7 +455,7 @@ class ImagesViewService:
             # The template was hand-assembling this query string with chained `~` and
             # inline conditionals — real logic in the render layer (fw.no_template_logic).
             # urlencode also escapes the values, which the concatenation did not.
-            "delete_url": "/images/delete?"
+            "delete_url": f"{self.path('images.delete_images')}?"
             + urlencode(
                 {
                     key: value

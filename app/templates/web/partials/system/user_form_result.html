@@ -2,7 +2,7 @@
 {% from "macros/alerts.html" import alert, alert_block %}
 
 {% if success %}
-<div hx-get="/system/partials/users"
+<div hx-get="{{ users_list_url }}"
      hx-target="#users-list"
      hx-swap="innerHTML"
      hx-trigger="load delay:500ms">

@@ -1,7 +1,9 @@
 """The signed-in user's own account: changing their password (FLEET-ADMIN-BOOTSTRAP-STANDARD §5)."""
 
 from typing import Any
+from urllib.parse import urlencode
 
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.account_schema import PasswordChangeOutcome
@@ -32,6 +34,7 @@ class AccountViewService:
 
     async def submit_change(
         self,
+        request: Request,
         db: AsyncSession,
         username: str,
         current_password: str,
@@ -56,7 +59,10 @@ class AccountViewService:
                 error = f"Not accepted: {exc}."
             else:
                 # The change ended every session, this one included: sign in with the new one.
-                return PasswordChangeOutcome(redirect="/login?password_changed=1")
+                login = request.app.url_path_for("pages.login_page")
+                return PasswordChangeOutcome(
+                    redirect=f"{login}?{urlencode({'password_changed': '1'})}"
+                )
         context = await self.change_password_context(db, username)
         context["error"] = error
         return PasswordChangeOutcome(status_code=status_code, context=context)

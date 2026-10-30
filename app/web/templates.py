@@ -38,7 +38,7 @@ def nav_context(request: Request) -> dict[str, object]:
     """
     path = request.app.url_path_for
     current = request.url.path
-    items = [
+    items: list[dict[str, object]] = [
         {"label": label, "icon": icon, "url": str(path(name))}
         for label, icon, name in _NAV_ITEMS
     ]
@@ -50,6 +50,7 @@ def nav_context(request: Request) -> dict[str, object]:
         "nav": {
             "links": items,
             "home": str(path("pages.root_redirect")),
+            "login": str(path("pages.login_page")),
             "logout": str(path("pages.logout_page")),
         }
     }

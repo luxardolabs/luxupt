@@ -93,6 +93,7 @@ UserServiceDep = Annotated[UserCoreService, Depends(get_user_service)]
 
 # View service dependencies - each receives core services as dependencies
 async def get_cameras_view_service(
+    request: Request,
     db: DbSession,
     camera_service: CameraServiceDep,
     capture_service: CaptureServiceDep,
@@ -106,10 +107,12 @@ async def get_cameras_view_service(
         capture_service,
         capture_stats_service,
         settings_service,
+        request,
     )
 
 
 async def get_images_view_service(
+    request: Request,
     camera_service: CameraServiceDep,
     capture_service: CaptureServiceDep,
     cleanup_service: CaptureCleanupServiceDep,
@@ -119,10 +122,12 @@ async def get_images_view_service(
         camera_service,
         capture_service,
         cleanup_service,
+        request,
     )
 
 
 async def get_timelapses_view_service(
+    request: Request,
     db: DbSession,
     camera_service: CameraServiceDep,
     capture_service: CaptureServiceDep,
@@ -138,10 +143,12 @@ async def get_timelapses_view_service(
         timelapse_service,
         job_service,
         settings_service,
+        request,
     )
 
 
 async def get_system_view_service(
+    request: Request,
     camera_service: CameraServiceDep,
     capture_stats_service: CaptureStatsServiceDep,
     timelapse_service: TimelapseBrowserServiceDep,
@@ -155,14 +162,16 @@ async def get_system_view_service(
         timelapse_service,
         activity_service,
         settings_service,
+        request,
     )
 
 
 async def get_users_view_service(
+    request: Request,
     user_service: UserServiceDep,
 ) -> UsersViewService:
     """Get users view service instance."""
-    return UsersViewService(user_service)
+    return UsersViewService(user_service, request)
 
 
 # Type aliases for dependency injection - View services

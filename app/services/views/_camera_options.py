@@ -10,8 +10,12 @@ service). Takes any object exposing ``camera_id``/``safe_name`` so the views pac
 does not import an ORM model (fw.views_dont_import_models).
 """
 
-from collections.abc import Sequence
-from typing import Protocol
+from collections.abc import Callable, Sequence
+from typing import Any, Protocol
+from urllib.parse import urlencode
+
+# `request.app.url_path_for`: a route NAME and its path params -> the route's path.
+PathFor = Callable[..., Any]
 
 
 class CaptureIdentity(Protocol):
@@ -97,30 +101,36 @@ PRESET_OPTIONS: list[dict[str, str]] = [
 ]
 
 
-def build_camera_card_urls(camera_id: str) -> dict[str, str]:
-    """The URLs a camera card links to, assembled in the view (fw.url_assembly_in_view).
+def with_query(route_path: object, **params: object) -> str:
+    """A route's path (resolved from its name) with an encoded query string."""
+    return f"{route_path}?{urlencode(params)}"
+
+
+def build_camera_card_urls(path: PathFor, camera_id: str) -> dict[str, str]:
+    """The URLs a camera card links to, resolved from route names (fw.urls_from_route_names).
 
     Route knowledge belongs in one place: a path spelled into a template cannot be grepped
     when the route moves, and a card that silently links nowhere fails quietly. The browse
     links carry camera_id because that is the column the image and timelapse filters query.
     """
     return {
-        "settings": f"/cameras/{camera_id}/settings",
-        "images": f"/images?camera={camera_id}",
-        "timelapses": f"/timelapses?camera={camera_id}",
+        "settings": str(path("cameras.camera_settings_panel", camera_id=camera_id)),
+        "images": with_query(path("images.images_page"), camera=camera_id),
+        "timelapses": with_query(path("timelapses.timelapses_page"), camera=camera_id),
     }
 
 
-def job_card_urls(job_id: str) -> dict[str, str]:
-    """URLs for one job card (fw.url_assembly_in_view)."""
+def job_card_urls(path: PathFor, job_id: str) -> dict[str, str]:
+    """URLs for one job card, resolved from route names (fw.urls_from_route_names)."""
     return {
-        "poll": f"/timelapses/partials/job/{job_id}",
-        "cancel": f"/timelapses/job/{job_id}",
+        "poll": str(path("timelapse_jobs.job_progress_partial", job_id=job_id)),
+        "cancel": str(path("timelapse_jobs.delete_job", job_id=job_id)),
         "target": f"#job-{job_id}",
     }
 
 
 def build_job_cards[J: _HasJobIdentity](
+    path: PathFor,
     jobs: Sequence[J],
 ) -> list[dict[str, J | dict[str, str]]]:
     """Each job paired with its card URLs, ready for the card macro.
@@ -128,20 +138,25 @@ def build_job_cards[J: _HasJobIdentity](
     Paired here rather than handed over as a map keyed by job_id: indexing that map per item
     is a dynamic lookup in the render layer (fw.no_template_logic).
     """
-    return [{"job": job, "urls": job_card_urls(job.job_id)} for job in jobs]
+    return [{"job": job, "urls": job_card_urls(path, job.job_id)} for job in jobs]
 
 
 def build_timelapse_cards[T: _HasTimelapseIdentity](
+    path: PathFor,
     timelapses: Sequence[T],
 ) -> list[dict[str, T | dict[str, str]]]:
-    """Each timelapse paired with its card URLs (fw.url_assembly_in_view)."""
+    """Each timelapse paired with its card URLs, resolved from route names."""
     return [
         {
             "timelapse": t,
             "urls": {
-                "lightbox": f"/timelapses/{t.id}/lightbox",
-                "video": f"/timelapses/{t.id}/video",
-                "delete": f"/timelapses/{t.id}",
+                "lightbox": str(
+                    path("timelapses.timelapse_lightbox", timelapse_id=t.id)
+                ),
+                "video": str(
+                    path("timelapses.serve_timelapse_video", timelapse_id=t.id)
+                ),
+                "delete": str(path("timelapses.delete_timelapse", timelapse_id=t.id)),
                 "target": f"#timelapse-{t.id}",
             },
         }

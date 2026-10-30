@@ -26,6 +26,7 @@ def _make_service() -> tuple[TimelapsesViewService, AsyncMock]:
         timelapse_service=MagicMock(),
         job_service=MagicMock(),
         settings_service=settings_service,
+        request=MagicMock(),
     )
     return svc, settings_service.update_scheduler_settings
 
@@ -98,6 +99,7 @@ def _service_for_context(
         timelapse_service=MagicMock(),
         job_service=MagicMock(),
         settings_service=settings_service,
+        request=MagicMock(),
     )
 
 

@@ -55,7 +55,7 @@
 </div>
 
 <div class="mt-6">
-    {{ pagination_controls(pagination, "/system/partials/activity", {"show": filters.show, "period": filters.period, "camera_id": filters.camera_id}, target="activity-feed") }}
+    {{ pagination_controls(pagination, feed_url, {"show": filters.show, "period": filters.period, "camera_id": filters.camera_id}, target="activity-feed") }}
 </div>
 {% else %}
 {{ empty_state('clipboard-document-list', 'No activity', 'No events match the current filters.') }}

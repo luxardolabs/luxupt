@@ -56,7 +56,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: Exception) -> Respo
         if exc.limit is not None
         else config.WEB_LOGIN_RATE_WINDOW_SECONDS
     )
-    if request.url.path != "/login":
+    if request.url.path != request.app.url_path_for("pages.login_page"):
         refused: Response = HTMLResponse(
             f"Too many attempts. Please wait {retry_after} seconds and try again.",
             status_code=429,

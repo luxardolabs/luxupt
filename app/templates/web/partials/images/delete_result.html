@@ -19,7 +19,7 @@
 <!-- OOB swap to reset filter form with fresh options -->
 <form id="delete-filters-form"
       hx-swap-oob="outerHTML:#delete-filters-form"
-      hx-get="/images/delete/preview"
+      hx-get="{{ page_urls.delete_preview }}"
       hx-target="#delete-preview"
       hx-trigger="change">
     <div class="grid grid-cols-[2fr_1fr_1fr] gap-4">

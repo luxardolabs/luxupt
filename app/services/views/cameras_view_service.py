@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import Camera as ApiCamera
@@ -22,6 +23,7 @@ from app.services.core.settings_core_service import SettingsCoreService
 from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
+    with_query,
 )
 from app.workers.fetch_service import FetchService
 
@@ -48,8 +50,10 @@ class CamerasViewService:
         capture_service: CaptureCoreService,
         capture_stats_service: CaptureStatsCoreService,
         settings_service: SettingsCoreService,
+        request: Request,
     ):
-        """Initialize with services."""
+        """Initialize with services, and the request every URL is resolved through."""
+        self.path = request.app.url_path_for
         self.db = db
         self.camera_service = camera_service
         self.capture_service = capture_service
@@ -75,7 +79,7 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "has_thumbnail": latest_capture is not None,
-            "urls": build_camera_card_urls(camera.camera_id),
+            "urls": build_camera_card_urls(self.path, camera.camera_id),
         }
 
     async def get_fetch_settings_context(self) -> dict[str, Any]:
@@ -101,6 +105,8 @@ class CamerasViewService:
             "api_config": api_config,
             "needs_api": needs_api,
             "inactive_cameras": inactive_cameras,
+            "save_url": str(self.path("cameras.save_fetch_settings")),
+            "test_connection_url": str(self.path("cameras.test_protect_connection")),
         }
 
     def _mask_url(self, url: str) -> str:
@@ -125,8 +131,12 @@ class CamerasViewService:
             "camera": camera,
             "intervals": intervals,
             # The view assembles URLs; the template renders them (fw.no_template_logic).
-            "camera_delete_url": f"/cameras/{camera.camera_id}",
-            "camera_settings_post_url": f"/cameras/{camera.camera_id}/settings",
+            "camera_delete_url": str(
+                self.path("cameras.delete_camera", camera_id=camera.camera_id)
+            ),
+            "camera_settings_post_url": str(
+                self.path("cameras.save_camera_settings", camera_id=camera.camera_id)
+            ),
         }
 
     async def get_capture_stats_context(self) -> dict[str, Any]:
@@ -138,6 +148,7 @@ class CamerasViewService:
             "cameras": cameras,
             "camera_options": build_camera_options(cameras),
             "intervals": intervals,
+            "charts_url": str(self.path("cameras.capture_stats_charts")),
         }
 
     async def get_capture_stats_charts_context(
@@ -275,7 +286,7 @@ class CamerasViewService:
                     if value or key == "offset"
                 }
             )
-            return f"/cameras/capture-stats/charts?{query}"
+            return f"{self.path('cameras.capture_stats_charts')}?{query}"
 
         return {
             "duration_data": duration_data,
@@ -332,10 +343,18 @@ class CamerasViewService:
             # Capture.camera_id / Timelapse.camera_id, and the filter dropdowns already send
             # the UUID. Sending safe_name here matched zero rows, so both links returned an
             # empty list. safe_name is not unique and changes on a rename; the UUID does not.
-            "images_url": f"/images?camera={camera.camera_id}",
-            "timelapses_url": f"/timelapses?camera={camera.camera_id}",
-            "camera_settings_url": f"/cameras/{camera.camera_id}/settings",
-            "camera_delete_url": f"/cameras/{camera.camera_id}",
+            "images_url": with_query(
+                self.path("images.images_page"), camera=camera.camera_id
+            ),
+            "timelapses_url": with_query(
+                self.path("timelapses.timelapses_page"), camera=camera.camera_id
+            ),
+            "camera_settings_url": str(
+                self.path("cameras.camera_settings_panel", camera_id=camera.camera_id)
+            ),
+            "camera_delete_url": str(
+                self.path("cameras.delete_camera", camera_id=camera.camera_id)
+            ),
         }
 
     async def get_camera_detail_context(self, safe_name: str) -> dict[str, Any]:
@@ -357,14 +376,25 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "stats": stats,
+            "cameras_url": str(self.path("cameras.cameras_page")),
             # Route knowledge lives in ONE place (fw.url_assembly_in_view). These also carry
             # camera_id, not safe_name: the browse filters query Capture/Timelapse.camera_id,
             # so the old safe_name links matched nothing.
-            "images_url": f"/images?camera={camera.camera_id}",
-            "timelapses_url": f"/timelapses?camera={camera.camera_id}",
+            "images_url": with_query(
+                self.path("images.images_page"), camera=camera.camera_id
+            ),
+            "timelapses_url": with_query(
+                self.path("timelapses.timelapses_page"), camera=camera.camera_id
+            ),
             "latest_capture_url": (
-                f"/images/file/{camera.safe_name}/{latest_capture.interval}"
-                f"/{latest_capture.timestamp}"
+                str(
+                    self.path(
+                        "images.get_image_file",
+                        camera=camera.safe_name,
+                        interval=latest_capture.interval,
+                        timestamp=latest_capture.timestamp,
+                    )
+                )
                 if latest_capture
                 else None
             ),
@@ -726,12 +756,17 @@ class CamerasViewService:
                     "latest_capture": latest,
                     "has_thumbnail": latest is not None,
                     "stats": stats_by_camera.get(camera.camera_id, {}),
-                    "urls": build_camera_card_urls(camera.camera_id),
+                    "urls": build_camera_card_urls(self.path, camera.camera_id),
                 }
             )
 
         return {
             "camera_cards": camera_cards,
+            "page_urls": {
+                "fetch_settings": str(self.path("cameras.fetch_settings_panel")),
+                "capture_stats": str(self.path("cameras.capture_stats_panel")),
+                "camera_list": str(self.path("cameras.camera_list_partial")),
+            },
             "total_cameras": len(cameras),
             # post-db-filter: counted off the already-loaded camera list
             "connected_cameras": sum(1 for c in cameras if c.is_connected),

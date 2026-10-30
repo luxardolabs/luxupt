@@ -6,8 +6,8 @@
 {% from "macros/navigation.html" import pagination_controls, page_header, tab_nav, section %}
 
 {% set tabs = [
-    {"id": "browser", "label": "Browser", "href": "/timelapses", "icon_name": "film"},
-    {"id": "jobs", "label": "Jobs", "href": "/timelapses/jobs", "icon_name": "queue-list"}
+    {"id": "browser", "label": "Browser", "href": page_urls.browser, "icon_name": "film"},
+    {"id": "jobs", "label": "Jobs", "href": page_urls.jobs, "icon_name": "queue-list"}
 ] %}
 
 {% block title %}Timelapse Browser - LuxUPT{% endblock %}
@@ -18,7 +18,7 @@
 {% call page_header("Timelapses", "Browse and create timelapse videos") %}
     <div class="flex flex-wrap items-center gap-3">
         <form id="filters-form"
-              hx-get="/timelapses/partials/list"
+              hx-get="{{ page_urls.list }}"
               hx-target="#timelapse-grid"
               hx-trigger="change"
               hx-swap="innerHTML"
@@ -29,9 +29,9 @@
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("status", [{"value": "completed", "label": "Completed"}, {"value": "pending", "label": "Pending"}, {"value": "failed", "label": "Failed"}], selected=filters.status, placeholder="All Status") }}
         </form>
-        {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": "/timelapses/create", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
-        {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": "/timelapses/historical", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
-        {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": "/timelapses/scheduler", "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": page_urls.create, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": page_urls.historical, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": page_urls.scheduler, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     </div>
 {% endcall %}
 
@@ -54,7 +54,7 @@
 
     {# Pagination #}
     <div class="mt-4">
-        {{ pagination_controls(pagination, "/timelapses/partials/list", {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
+        {{ pagination_controls(pagination, page_urls.list, {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
     </div>
     {% else %}
     {{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters') }}

@@ -13,17 +13,21 @@ router = APIRouter(tags=["pages"])
 
 
 @router.get("/", name="pages.root_redirect", response_class=RedirectResponse)
-async def root_redirect() -> Response:
+async def root_redirect(request: Request) -> Response:
     """Redirect root to cameras page."""
-    return RedirectResponse(url="/cameras", status_code=302)
+    return RedirectResponse(
+        url=request.app.url_path_for("cameras.cameras_page"), status_code=302
+    )
 
 
 @router.get(
     "/dashboard", name="pages.dashboard_redirect", response_class=RedirectResponse
 )
-async def dashboard_redirect() -> Response:
+async def dashboard_redirect(request: Request) -> Response:
     """Redirect old dashboard URL to cameras page."""
-    return RedirectResponse(url="/cameras", status_code=302)
+    return RedirectResponse(
+        url=request.app.url_path_for("cameras.cameras_page"), status_code=302
+    )
 
 
 @router.get("/login", name="pages.login_page", response_class=HTMLResponse)

@@ -12,7 +12,7 @@
     <!-- Content -->
     <div class="flex-1 min-h-0 overflow-y-auto p-6">
         <form id="backup-form"
-              hx-post="/system/backup-settings"
+              hx-post="{{ save_url }}"
               hx-target="#backup-form-result"
               hx-swap="innerHTML"
               hx-indicator="#backup-save-btn"

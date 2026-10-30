@@ -15,7 +15,7 @@
         <!-- Filter Form -->
         {% call section_card('Select Images to Delete') %}
         <form id="delete-filters-form"
-              hx-get="/images/delete/preview"
+              hx-get="{{ page_urls.delete_preview }}"
               hx-target="#delete-preview"
               hx-trigger="change">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

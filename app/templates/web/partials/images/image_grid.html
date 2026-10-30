@@ -9,7 +9,7 @@
 </div>
 
 <div class="mt-6">
-    {{ pagination_controls(pagination, "/images/partials/grid", {"camera": filters.camera if filters else none, "date": filters.date|string if filters and filters.date else none, "interval": filters.interval if filters else none, "per_page": pagination.per_page}, target="image-grid") }}
+    {{ pagination_controls(pagination, page_urls.grid, {"camera": filters.camera if filters else none, "date": filters.date|string if filters and filters.date else none, "interval": filters.interval if filters else none, "per_page": pagination.per_page}, target="image-grid") }}
 </div>
 {% else %}
 {{ empty_state('photo', 'No images found', 'Try adjusting your filters') }}
