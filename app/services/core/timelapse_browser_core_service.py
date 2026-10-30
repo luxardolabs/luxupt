@@ -9,7 +9,7 @@ from app.core import config
 from app.crud import timelapse_crud
 from app.db.post_commit import after_commit
 from app.models.timelapse_model import Timelapse
-from app.schemas.timelapse_schema import TimelapseStats
+from app.schemas.timelapse_schema import TimelapseRead, TimelapseStats
 from app.services.core._path_security import validate_video_path
 from app.utils import async_fs
 
@@ -21,9 +21,10 @@ class TimelapseBrowserCoreService:
         """Initialize with database session."""
         self.db = db
 
-    async def get_by_id(self, timelapse_id: int) -> Timelapse | None:
+    async def get_by_id(self, timelapse_id: int) -> TimelapseRead | None:
         """Get a timelapse by ID."""
-        return await timelapse_crud.get(self.db, timelapse_id)
+        timelapse = await timelapse_crud.get(self.db, timelapse_id)
+        return TimelapseRead.model_validate(timelapse) if timelapse else None
 
     async def get_by_camera_date_interval(
         self,
@@ -73,9 +74,9 @@ class TimelapseBrowserCoreService:
         status: str | None = None,
         skip: int = 0,
         limit: int = config.DEFAULT_PAGE_SIZE,
-    ) -> list[Timelapse]:
+    ) -> list[TimelapseRead]:
         """Get timelapses matching filters with pagination."""
-        return await timelapse_crud.get_by_filters(
+        rows = await timelapse_crud.get_by_filters(
             self.db,
             camera=camera,
             timelapse_date=timelapse_date,
@@ -84,6 +85,7 @@ class TimelapseBrowserCoreService:
             skip=skip,
             limit=limit,
         )
+        return [TimelapseRead.model_validate(row) for row in rows]
 
     async def get_available_dates(
         self,

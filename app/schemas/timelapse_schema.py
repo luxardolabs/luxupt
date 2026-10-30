@@ -53,10 +53,12 @@ class TimelapseRead(TimelapseBase):
 
     id: int
     camera_db_id: int | None = None
+    end_date: date | None = None
     file_path: str | None = None
     file_name: str | None = None
     file_size: int | None = None
     resolution: str | None = None
+    thumbnail_path: str | None = None
     status: TimelapseStatus
     error_message: str | None = None
     started_at: datetime | None = None
