@@ -17,6 +17,7 @@ from app.crud import job_crud, scheduler_settings_crud, timelapse_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.db.database import get_db_context
 from app.models.job_model import Job
+from app.schemas.job_schema import JobRead
 from app.services.core.historical_fetch_core_service import (
     HistoricalFetchCoreService,
     HistoricalJobCanceled,
@@ -35,23 +36,25 @@ class JobCoreService:
         """Initialize with database session."""
         self.db = db
 
-    async def get_by_id(self, job_id: str) -> Job | None:
+    async def get_by_id(self, job_id: str) -> JobRead | None:
         """Get a job by its UUID."""
-        return await job_crud.get_by_job_id(self.db, job_id)
+        job = await job_crud.get_by_job_id(self.db, job_id)
+        return JobRead.model_validate(job) if job else None
 
     async def exists_for_camera_date(
         self,
         camera_safe_name: str,
         target_date: date,
         interval: int,
-    ) -> Job | None:
+    ) -> JobRead | None:
         """Check if a job already exists for camera/date/interval."""
-        return await job_crud.get_job_for_camera_date(
+        job = await job_crud.get_job_for_camera_date(
             self.db,
             camera_safe_name=camera_safe_name,
             target_date=target_date,
             interval=interval,
         )
+        return JobRead.model_validate(job) if job else None
 
     async def get_active_combined_job(
         self,
@@ -61,9 +64,9 @@ class JobCoreService:
         start_at: datetime,
         end_at_min: datetime,
         end_at_max: datetime,
-    ) -> Job | None:
+    ) -> JobRead | None:
         """Find a pending/running historical_combined job for camera/interval/range (fuzzy end bound)."""
-        return await job_crud.get_active_combined_job(
+        job = await job_crud.get_active_combined_job(
             self.db,
             camera_safe_name=camera_safe_name,
             interval=interval,
@@ -71,6 +74,7 @@ class JobCoreService:
             end_at_min=end_at_min,
             end_at_max=end_at_max,
         )
+        return JobRead.model_validate(job) if job else None
 
     async def create(
         self,
@@ -86,9 +90,9 @@ class JobCoreService:
         end_at: datetime | None = None,
         daily_window_start: time | None = None,
         daily_window_end: time | None = None,
-    ) -> Job:
+    ) -> JobRead:
         """Create a new timelapse job (live_daily or historical)."""
-        return await job_crud.create_job(
+        job = await job_crud.create_job(
             self.db,
             title=title,
             camera_safe_name=camera_safe_name,
@@ -102,10 +106,11 @@ class JobCoreService:
             daily_window_start=daily_window_start,
             daily_window_end=daily_window_end,
         )
+        return JobRead.model_validate(job)
 
-    async def get_active(self) -> list[Job]:
+    async def get_active(self) -> list[JobRead]:
         """Get all active (pending or running) jobs."""
-        return await job_crud.get_active(self.db)
+        return [JobRead.model_validate(j) for j in await job_crud.get_active(self.db)]
 
     async def get_pending(self) -> list[Job]:
         """Get all pending jobs."""
@@ -115,9 +120,12 @@ class JobCoreService:
         """Get all running jobs."""
         return await job_crud.get_running(self.db)
 
-    async def get_completed(self, limit: int = config.DEFAULT_PAGE_SIZE) -> list[Job]:
+    async def get_completed(
+        self, limit: int = config.DEFAULT_PAGE_SIZE
+    ) -> list[JobRead]:
         """Get recently completed jobs."""
-        return await job_crud.get_completed(self.db, limit=limit)
+        rows = await job_crud.get_completed(self.db, limit=limit)
+        return [JobRead.model_validate(j) for j in rows]
 
     async def start_job(self, job_id: str) -> Job | None:
         """Mark a job as started."""
@@ -159,7 +167,7 @@ class JobCoreService:
         """Mark a job as failed."""
         return await job_crud.fail_job(self.db, job_id, error=error)
 
-    async def cancel_job(self, job_id: str) -> Job | None:
+    async def cancel_job(self, job_id: str) -> JobRead | None:
         """Cancel a job and kill the FFmpeg process if running."""
         # First get the PID before canceling
         pid = await job_crud.get_pid(self.db, job_id)
@@ -188,7 +196,8 @@ class JobCoreService:
                     extra={"job_id": job_id, "pid": pid, "error": str(e)},
                 )
 
-        return await job_crud.cancel_job(self.db, job_id)
+        job = await job_crud.cancel_job(self.db, job_id)
+        return JobRead.model_validate(job) if job else None
 
     async def delete_job(self, job_id: str) -> bool:
         """Delete a job by its UUID. Returns True if deleted."""

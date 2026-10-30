@@ -1,11 +1,11 @@
 """Pydantic schemas for Job operations."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enum_model import JobStatus
+from app.models.enum_model import JobStatus, JobType
 
 
 class JobBase(BaseModel):
@@ -45,6 +45,11 @@ class JobRead(JobBase):
     id: int
     job_id: str = Field(..., max_length=36)
     camera_id: str | None = Field(default=None, max_length=64)
+    job_type: JobType
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    daily_window_start: time | None = None
+    daily_window_end: time | None = None
     status: JobStatus
     progress: float
     message: str | None = None
