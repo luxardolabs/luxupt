@@ -4,7 +4,7 @@
 {% if image_cards %}
 <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
     {% for card in image_cards %}
-    {{ image_card(card.capture, filters, lightbox_url=card.lightbox_url) }}
+    {{ image_card(card.capture, filters, lightbox_url=card.lightbox_url, thumbnail_url=card.thumbnail_url) }}
     {% endfor %}
 </div>
 

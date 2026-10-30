@@ -18,7 +18,7 @@
 <div class="relative rounded-xl overflow-hidden bg-surface-700/30">
     <div class="aspect-video bg-surface-800">
         {% if latest_capture and latest_capture.timestamp %}
-        <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+        <img src="{{ latest_capture_thumbnail_url }}"
              alt="{{ camera.name }}"
              class="w-full h-full object-cover">
         {% else %}

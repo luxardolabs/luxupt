@@ -18,6 +18,7 @@ from app.services.views._camera_options import (
     CaptureIdentity,
     build_camera_options,
     build_date_options,
+    thumbnail_url,
 )
 from app.utils import async_fs
 
@@ -103,7 +104,7 @@ class ImagesViewService:
         camera: str | None,
         date_str: str | None,
     ) -> list[dict[str, C | str]]:
-        """Each capture paired with its lightbox URL (fw.url_assembly_in_view).
+        """Each capture paired with its lightbox and thumbnail URLs (fw.url_assembly_in_view).
 
         Paired rather than handed over as a map keyed by capture id: indexing that map per
         card is a dynamic lookup in the render layer (fw.no_template_logic).
@@ -135,7 +136,20 @@ class ImagesViewService:
                 timestamp=image.timestamp,
             )
             lightbox_url = f"{lightbox}?{query}"
-            cards.append({"capture": image, "lightbox_url": lightbox_url})
+            cards.append(
+                {
+                    "capture": image,
+                    "lightbox_url": lightbox_url,
+                    "thumbnail_url": thumbnail_url(
+                        self.path,
+                        camera=image.camera_safe_name,
+                        interval=image.interval,
+                        capture_date=image.capture_date,
+                        timestamp=image.timestamp,
+                        size=256,
+                    ),
+                }
+            )
         return cards
 
     async def get_browser_context(
@@ -265,6 +279,7 @@ class ImagesViewService:
         if not camera:
             return {
                 "image": None,
+                "image_url": None,
                 "prev_image": None,
                 "next_image": None,
                 "prev_url": None,
@@ -283,6 +298,7 @@ class ImagesViewService:
         if not image:
             return {
                 "image": None,
+                "image_url": None,
                 "prev_image": None,
                 "next_image": None,
                 "prev_url": None,
@@ -335,6 +351,14 @@ class ImagesViewService:
 
         return {
             "image": image,
+            "image_url": str(
+                self.path(
+                    "images.get_image_file",
+                    camera=image.camera_safe_name,
+                    interval=str(image.interval),
+                    timestamp=str(image.timestamp),
+                )
+            ),
             "prev_image": prev_image,
             "next_image": next_image,
             "prev_url": (

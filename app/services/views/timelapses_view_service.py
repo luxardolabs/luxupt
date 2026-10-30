@@ -25,7 +25,7 @@ from app.services.views._camera_options import (
     build_date_options,
     build_job_cards,
     build_timelapse_cards,
-    job_card_urls,
+    job_urls,
 )
 from app.utils.timezones import business_day, display_zone, to_display
 
@@ -198,7 +198,7 @@ class TimelapsesViewService:
         return {
             "job": job,
             "action": action,
-            "job_card_urls": job_card_urls(self.path, job.job_id) if job else None,
+            "job_card_urls": job_urls(self.path, job) if job else None,
         }
 
     async def cancel_or_delete_job(self, job_id: str) -> tuple[bool, str]:

@@ -11,6 +11,7 @@ does not import an ORM model (fw.views_dont_import_models).
 """
 
 from collections.abc import Sequence
+from datetime import date
 from typing import Protocol
 from urllib.parse import urlencode
 
@@ -36,6 +37,9 @@ class CaptureIdentity(Protocol):
     @property
     def interval(self) -> int: ...
 
+    @property
+    def capture_date(self) -> date: ...
+
 
 class _HasTimelapseIdentity(Protocol):
     """The field a timelapse card's URLs are built from."""
@@ -45,10 +49,22 @@ class _HasTimelapseIdentity(Protocol):
 
 
 class _HasJobIdentity(Protocol):
-    """The field a job card's URLs are built from."""
+    """The fields a job card's URLs are built from."""
 
     @property
     def job_id(self) -> str: ...
+
+    @property
+    def camera_safe_name(self) -> str: ...
+
+    @property
+    def interval(self) -> int: ...
+
+    @property
+    def target_date(self) -> date: ...
+
+    @property
+    def current_image(self) -> str | None: ...
 
 
 class _HasCameraIdentity(Protocol):
@@ -109,27 +125,87 @@ def with_query(route_path: object, **params: object) -> str:
     return f"{route_path}?{urlencode(params)}"
 
 
-def build_camera_card_urls(path: PathFor, camera_id: str) -> dict[str, str]:
+def thumbnail_url(
+    path: PathFor,
+    *,
+    camera: str,
+    interval: int,
+    capture_date: object,
+    timestamp: object,
+    size: int,
+) -> str:
+    """A captured frame's thumbnail, resolved from its route name (fw.urls_from_route_names).
+
+    `capture_date` is a date or its ISO string, `timestamp` the frame's epoch seconds: the
+    route's path segments, rendered as the template used to spell them.
+    """
+    return with_query(
+        path(
+            "images.get_image_thumbnail",
+            camera=camera,
+            interval=str(interval),
+            capture_date=str(capture_date),
+            timestamp=str(timestamp),
+        ),
+        size=size,
+    )
+
+
+def build_camera_card_urls(
+    path: PathFor, camera_id: str, *, thumbnail: str = ""
+) -> dict[str, str]:
     """The URLs a camera card links to, resolved from route names (fw.urls_from_route_names).
 
     Route knowledge belongs in one place: a path spelled into a template cannot be grepped
     when the route moves, and a card that silently links nowhere fails quietly. The browse
     links carry camera_id because that is the column the image and timelapse filters query.
+    `thumbnail` is the latest capture's (see `thumbnail_url`), "" when there is none.
     """
     return {
         "settings": str(path("cameras.camera_settings_panel", camera_id=camera_id)),
         "images": with_query(path("images.images_page"), camera=camera_id),
         "timelapses": with_query(path("timelapses.timelapses_page"), camera=camera_id),
+        "thumbnail": thumbnail,
     }
 
 
-def job_card_urls(path: PathFor, job_id: str) -> dict[str, str]:
-    """URLs for one job card, resolved from route names (fw.urls_from_route_names)."""
+def job_card_urls(path: PathFor, job_id: str, *, thumbnail: str = "") -> dict[str, str]:
+    """URLs for one job card, resolved from route names (fw.urls_from_route_names).
+
+    `thumbnail` is the frame the job is on (see `job_thumbnail_url`), "" when there is none.
+    """
     return {
         "poll": str(path("timelapse_jobs.job_progress_partial", job_id=job_id)),
         "cancel": str(path("timelapse_jobs.delete_job", job_id=job_id)),
         "target": f"#job-{job_id}",
+        "thumbnail": thumbnail,
     }
+
+
+def job_thumbnail_url(
+    path: PathFor,
+    *,
+    camera_safe_name: str,
+    interval: int,
+    target_date: object,
+    current_image: str | None,
+) -> str:
+    """The thumbnail of the frame a job is on, "" when it has none to show.
+
+    The encoder records the frame's epoch timestamp (digits); that names a frame in the job's
+    own day. A historical fetch records the frame's file path, whose day can differ from the
+    job's, so it has no thumbnail URL and the card shows its placeholder.
+    """
+    if not current_image or not current_image.isdigit():
+        return ""
+    return thumbnail_url(
+        path,
+        camera=camera_safe_name,
+        interval=interval,
+        capture_date=target_date,
+        timestamp=current_image,
+        size=512,
+    )
 
 
 def build_job_cards[J: _HasJobIdentity](
@@ -141,7 +217,22 @@ def build_job_cards[J: _HasJobIdentity](
     Paired here rather than handed over as a map keyed by job_id: indexing that map per item
     is a dynamic lookup in the render layer (fw.no_template_logic).
     """
-    return [{"job": job, "urls": job_card_urls(path, job.job_id)} for job in jobs]
+    return [{"job": job, "urls": job_urls(path, job)} for job in jobs]
+
+
+def job_urls(path: PathFor, job: _HasJobIdentity) -> dict[str, str]:
+    """One job's card URLs, its current frame's thumbnail included."""
+    return job_card_urls(
+        path,
+        job.job_id,
+        thumbnail=job_thumbnail_url(
+            path,
+            camera_safe_name=job.camera_safe_name,
+            interval=job.interval,
+            target_date=job.target_date,
+            current_image=job.current_image,
+        ),
+    )
 
 
 def build_timelapse_cards[T: _HasTimelapseIdentity](
@@ -160,6 +251,9 @@ def build_timelapse_cards[T: _HasTimelapseIdentity](
                     path("timelapses.serve_timelapse_video", timelapse_id=t.id)
                 ),
                 "delete": str(path("timelapses.delete_timelapse", timelapse_id=t.id)),
+                "thumbnail": str(
+                    path("timelapses.serve_timelapse_thumbnail", timelapse_id=t.id)
+                ),
                 "target": f"#timelapse-{t.id}",
             },
         }

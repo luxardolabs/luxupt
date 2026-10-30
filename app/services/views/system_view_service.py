@@ -23,6 +23,7 @@ from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
     job_card_urls,
+    thumbnail_url,
     with_query,
 )
 from app.services.views._system_tabs import system_tabs
@@ -404,6 +405,15 @@ class SystemViewService:
         hand-roll pagination state in the template (fw.template_pagination)."""
         now = datetime.now(UTC)
         today = business_day(now).isoformat()
+        demo_timestamp = int(now.timestamp())
+        demo_thumbnail = thumbnail_url(
+            self.path,
+            camera="front_door",
+            interval=60,
+            capture_date=today,
+            timestamp=demo_timestamp,
+            size=512,
+        )
 
         return {
             "tabs": system_tabs(self.path),
@@ -427,8 +437,18 @@ class SystemViewService:
                     ),
                     interval=60,
                 ),
+                "image_thumbnail": thumbnail_url(
+                    self.path,
+                    camera="front_door",
+                    interval=60,
+                    capture_date=today,
+                    timestamp=demo_timestamp,
+                    size=256,
+                ),
             },
-            "demo_camera_urls": build_camera_card_urls(self.path, "demo-cam-1"),
+            "demo_camera_urls": build_camera_card_urls(
+                self.path, "demo-cam-1", thumbnail=demo_thumbnail
+            ),
             "demo_timelapse_urls": {
                 "lightbox": str(
                     self.path("timelapses.timelapse_lightbox", timelapse_id="demo-tl-1")
@@ -440,6 +460,11 @@ class SystemViewService:
                 ),
                 "delete": str(
                     self.path("timelapses.delete_timelapse", timelapse_id="demo-tl-1")
+                ),
+                "thumbnail": str(
+                    self.path(
+                        "timelapses.serve_timelapse_thumbnail", timelapse_id="demo-tl-1"
+                    )
                 ),
                 "target": "#timelapse-demo-tl-1",
             },
@@ -453,7 +478,7 @@ class SystemViewService:
                 "is_connected": True,
             },
             "demo_latest_capture": {
-                "timestamp": int(now.timestamp()),
+                "timestamp": demo_timestamp,
                 "interval": 60,
                 "capture_date": today,
                 "capture_datetime": now - timedelta(minutes=3),
@@ -478,7 +503,7 @@ class SystemViewService:
             "demo_capture": {
                 "interval": 60,
                 "camera_safe_name": "front_door",
-                "timestamp": int(now.timestamp()),
+                "timestamp": demo_timestamp,
                 "capture_date": today,
                 "capture_datetime": now - timedelta(minutes=3),
             },

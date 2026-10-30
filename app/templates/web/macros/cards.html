@@ -155,7 +155,7 @@
     <!-- Thumbnail -->
     <div class="relative aspect-video bg-surface-800">
         {% if latest_capture and latest_capture.timestamp %}
-        <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+        <img src="{{ urls.thumbnail }}"
              alt="{{ camera.name }}"
              class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
              loading="lazy"
@@ -270,13 +270,13 @@
 </div>
 {% endmacro %}
 
-{% macro image_card(capture, filters=none, lightbox_url=none) %}
+{% macro image_card(capture, filters=none, lightbox_url=none, thumbnail_url=none) %}
 <div class="group relative overflow-hidden rounded-lg border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 cursor-pointer"
      hx-get="{{ lightbox_url }}"
      hx-target="#lightbox-container"
      hx-swap="innerHTML">
     <div class="relative aspect-video bg-surface-800">
-        <img src="/images/thumbnail/{{ capture.camera_safe_name }}/{{ capture.interval }}/{{ capture.capture_date }}/{{ capture.timestamp }}?size=256"
+        <img src="{{ thumbnail_url }}"
              alt="{{ capture.camera_safe_name }}"
              class="h-full w-full object-cover transition-transform group-hover:scale-105"
              loading="lazy"
@@ -303,8 +303,8 @@
      hx-swap="morph:outerHTML">
     {# Thumbnail - natural aspect ratio from image #}
     <div class="relative bg-surface-800">
-        {% if job.current_image %}
-        <img src="/images/thumbnail/{{ job.camera_safe_name }}/{{ job.interval }}/{{ job.target_date }}/{{ job.current_image }}?size=512"
+        {% if urls.thumbnail %}
+        <img src="{{ urls.thumbnail }}"
              alt="Current frame"
              class="w-full h-auto">
         {% else %}
@@ -402,7 +402,7 @@
 <div id="timelapse-{{ timelapse.id }}" class="overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50">
     <div class="relative aspect-video bg-surface-800">
         {% if timelapse.status == 'completed' and timelapse.file_path %}
-        <img src="/timelapses/{{ timelapse.id }}/thumbnail"
+        <img src="{{ urls.thumbnail }}"
              alt="{{ timelapse.camera_safe_name }} timelapse"
              class="h-full w-full object-cover"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">

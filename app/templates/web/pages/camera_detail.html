@@ -34,7 +34,7 @@
 <div class="flex gap-4">
     <div class="flex-shrink-0">
         <a href="{{ latest_capture_url }}" target="_blank" class="block">
-            <img src="/images/thumbnail/{{ camera.safe_name }}/{{ latest_capture.interval }}/{{ latest_capture.capture_date }}/{{ latest_capture.timestamp }}?size=512"
+            <img src="{{ latest_capture_thumbnail_url }}"
                  alt="Latest capture"
                  class="w-64 h-auto rounded-lg border border-surface-400/50 hover:border-surface-300 transition-colors"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">

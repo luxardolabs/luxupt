@@ -16,6 +16,7 @@ from app.clients.protect_client import (
     ProtectClient,
     ProtectRequestError,
 )
+from app.schemas.capture_schema import CaptureRead
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -23,6 +24,7 @@ from app.services.core.settings_core_service import SettingsCoreService
 from app.services.views._camera_options import (
     build_camera_card_urls,
     build_camera_options,
+    thumbnail_url,
     with_query,
 )
 from app.workers.fetch_service import FetchService
@@ -79,7 +81,11 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "has_thumbnail": latest_capture is not None,
-            "urls": build_camera_card_urls(self.path, camera.camera_id),
+            "urls": build_camera_card_urls(
+                self.path,
+                camera.camera_id,
+                thumbnail=self._latest_thumbnail(camera.safe_name, latest_capture),
+            ),
         }
 
     async def get_fetch_settings_context(self) -> dict[str, Any]:
@@ -108,6 +114,21 @@ class CamerasViewService:
             "save_url": str(self.path("cameras.save_fetch_settings")),
             "test_connection_url": str(self.path("cameras.test_protect_connection")),
         }
+
+    def _latest_thumbnail(
+        self, camera_safe_name: str, latest_capture: CaptureRead | None
+    ) -> str:
+        """The card/panel thumbnail of a camera's latest capture, "" when it has none."""
+        if latest_capture is None or not latest_capture.timestamp:
+            return ""
+        return thumbnail_url(
+            self.path,
+            camera=camera_safe_name,
+            interval=latest_capture.interval,
+            capture_date=latest_capture.capture_date,
+            timestamp=latest_capture.timestamp,
+            size=512,
+        )
 
     def _mask_url(self, url: str) -> str:
         """Extract domain from URL for safe display."""
@@ -328,6 +349,7 @@ class CamerasViewService:
                 "images_url": None,
                 "timelapses_url": None,
                 "latest_capture_url": None,
+                "latest_capture_thumbnail_url": "",
             }
 
         latest_capture = await self.capture_service.get_latest_by_camera(
@@ -343,6 +365,9 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "stats": stats,
+            "latest_capture_thumbnail_url": self._latest_thumbnail(
+                camera.safe_name, latest_capture
+            ),
             # The view assembles URLs; the template renders them (fw.no_template_logic).
             # camera_id (the Protect UUID), NOT safe_name: every browse filter queries
             # Capture.camera_id / Timelapse.camera_id, and the filter dropdowns already send
@@ -366,7 +391,12 @@ class CamerasViewService:
         """Get data for camera detail page."""
         camera = await self.camera_service.get_by_safe_name(safe_name)
         if not camera:
-            return {"camera": None, "latest_capture": None, "stats": {}}
+            return {
+                "camera": None,
+                "latest_capture": None,
+                "stats": {},
+                "latest_capture_thumbnail_url": "",
+            }
 
         latest_capture = await self.capture_service.get_latest_by_camera(
             camera.camera_id
@@ -381,6 +411,9 @@ class CamerasViewService:
             "camera": camera,
             "latest_capture": latest_capture,
             "stats": stats,
+            "latest_capture_thumbnail_url": self._latest_thumbnail(
+                camera.safe_name, latest_capture
+            ),
             "cameras_url": str(self.path("cameras.cameras_page")),
             # Route knowledge lives in ONE place (fw.url_assembly_in_view). These also carry
             # camera_id, not safe_name: the browse filters query Capture/Timelapse.camera_id,
@@ -761,7 +794,11 @@ class CamerasViewService:
                     "latest_capture": latest,
                     "has_thumbnail": latest is not None,
                     "stats": stats_by_camera.get(camera.camera_id, {}),
-                    "urls": build_camera_card_urls(self.path, camera.camera_id),
+                    "urls": build_camera_card_urls(
+                        self.path,
+                        camera.camera_id,
+                        thumbnail=self._latest_thumbnail(camera.safe_name, latest),
+                    ),
                 }
             )
 
