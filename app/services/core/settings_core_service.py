@@ -10,9 +10,9 @@ from app.crud.backup_settings_crud import backup_settings_crud
 from app.crud.camera_crud import camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
 from app.crud.scheduler_settings_crud import scheduler_settings_crud
-from app.models.backup_settings_model import BackupSettings
-from app.models.fetch_settings_model import FetchSettings
-from app.models.scheduler_settings_model import SchedulerSettings
+from app.schemas.backup_settings_schema import BackupSettingsRead
+from app.schemas.fetch_settings_schema import FetchSettingsRead
+from app.schemas.scheduler_settings_schema import SchedulerSettingsRead
 from app.services.core._fetch_settings_durable import (
     save_fetch_settings_durable as _save_fetch_settings_durable,
 )
@@ -27,9 +27,11 @@ class SettingsCoreService:
 
     # Fetch settings methods
 
-    async def get_fetch_settings(self) -> FetchSettings:
+    async def get_fetch_settings(self) -> FetchSettingsRead:
         """Get fetch settings."""
-        return await fetch_settings_crud.get_settings(self.db)
+        return FetchSettingsRead.model_validate(
+            await fetch_settings_crud.get_settings(self.db)
+        )
 
     async def get_effective_api_config(self) -> dict[str, Any]:
         """Get effective API config with env vars taking priority over database.
@@ -123,9 +125,11 @@ class SettingsCoreService:
         )
         return base_url, username, password, verify_ssl
 
-    async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettings:
+    async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettingsRead:
         """Update fetch settings."""
-        return await fetch_settings_crud.update_settings(self.db, obj_in=settings)
+        return FetchSettingsRead.model_validate(
+            await fetch_settings_crud.update_settings(self.db, obj_in=settings)
+        )
 
     async def save_fetch_settings_durable(self, settings: dict[str, Any]) -> None:
         """Save fetch settings in an OWNED, committed transaction so the FetchService worker
@@ -135,15 +139,19 @@ class SettingsCoreService:
 
     # Scheduler settings methods
 
-    async def get_scheduler_settings(self) -> SchedulerSettings:
+    async def get_scheduler_settings(self) -> SchedulerSettingsRead:
         """Get scheduler settings."""
-        return await scheduler_settings_crud.get_settings(self.db)
+        return SchedulerSettingsRead.model_validate(
+            await scheduler_settings_crud.get_settings(self.db)
+        )
 
     async def update_scheduler_settings(
         self, settings: dict[str, Any]
-    ) -> SchedulerSettings:
+    ) -> SchedulerSettingsRead:
         """Update scheduler settings."""
-        return await scheduler_settings_crud.update_settings(self.db, obj_in=settings)
+        return SchedulerSettingsRead.model_validate(
+            await scheduler_settings_crud.update_settings(self.db, obj_in=settings)
+        )
 
     async def get_enabled_cameras(self) -> list[str] | None:
         """Get list of enabled cameras for scheduler, or None for all."""
@@ -155,13 +163,19 @@ class SettingsCoreService:
 
     # Backup settings methods
 
-    async def get_backup_settings(self) -> BackupSettings:
+    async def get_backup_settings(self) -> BackupSettingsRead:
         """Get backup settings."""
-        return await backup_settings_crud.get_settings(self.db)
+        return BackupSettingsRead.model_validate(
+            await backup_settings_crud.get_settings(self.db)
+        )
 
-    async def update_backup_settings(self, settings: dict[str, Any]) -> BackupSettings:
+    async def update_backup_settings(
+        self, settings: dict[str, Any]
+    ) -> BackupSettingsRead:
         """Update backup settings."""
-        return await backup_settings_crud.update_settings(self.db, obj_in=settings)
+        return BackupSettingsRead.model_validate(
+            await backup_settings_crud.update_settings(self.db, obj_in=settings)
+        )
 
 
 async def get_settings_service(db: AsyncSession) -> SettingsCoreService:

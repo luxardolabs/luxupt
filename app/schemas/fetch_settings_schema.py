@@ -83,5 +83,13 @@ class FetchSettingsRead(FetchSettingsBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    # The stored Protect credentials: the fetch-settings form shows them back for editing.
+    api_key: str | None = None
+    username: str | None = None
+    password: str | None = None
     created_at: datetime
     updated_at: datetime
+
+    def get_intervals(self) -> list[int]:
+        """The configured intervals, or the default [60] when none are set."""
+        return self.intervals or [60]

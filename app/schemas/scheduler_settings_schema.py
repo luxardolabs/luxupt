@@ -4,6 +4,8 @@ from datetime import datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.enum_model import ScheduleSource
+
 
 class SchedulerSettingsBase(BaseModel):
     """Base schema for SchedulerSettings data."""
@@ -59,6 +61,7 @@ class SchedulerSettingsRead(SchedulerSettingsBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    source: ScheduleSource
     last_run_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import config
 from app.crud import activity_crud
 from app.models.activity_model import Activity
-from app.schemas.activity_schema import ActivitySummary
+from app.schemas.activity_schema import ActivityRead, ActivitySummary
 
 
 class ActivityCoreService:
@@ -25,9 +25,9 @@ class ActivityCoreService:
         activity_types: list[str] | None = None,
         camera_id: str | None = None,
         since: datetime | None = None,
-    ) -> list[Activity]:
+    ) -> list[ActivityRead]:
         """Get recent activities filtered by any of activity_types (paginated)."""
-        return await activity_crud.get_recent(
+        rows = await activity_crud.get_recent(
             self.db,
             limit=limit,
             skip=skip,
@@ -35,6 +35,7 @@ class ActivityCoreService:
             camera_id=camera_id,
             since=since,
         )
+        return [ActivityRead.model_validate(row) for row in rows]
 
     async def count(
         self,
