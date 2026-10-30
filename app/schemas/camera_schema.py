@@ -79,11 +79,3 @@ class CameraRead(CameraBase):
     first_discovered_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
-
-
-class CameraWithStats(CameraRead):
-    """Camera with additional statistics."""
-
-    success_rate: float = 0.0
-    latest_capture_path: str | None = None
-    latest_capture_timestamp: int | None = None

@@ -5,7 +5,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core import config
 from app.models.enum_model import ActivityType
 
 
@@ -33,15 +32,6 @@ class ActivityRead(ActivityBase):
 
     id: int
     timestamp: datetime
-
-
-class ActivityFilters(BaseModel):
-    """Schema for activity filtering parameters."""
-
-    activity_type: ActivityType | None = None
-    camera_id: str | None = Field(default=None, max_length=64)
-    since: datetime | None = None
-    limit: int = config.DEFAULT_PAGE_SIZE
 
 
 class ActivitySummary(BaseModel):

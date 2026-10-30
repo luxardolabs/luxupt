@@ -58,12 +58,3 @@ class JobRead(JobBase):
     error: str | None = None
     output_file: str | None = Field(default=None, max_length=512)
     result_details: dict[str, Any] | None = None
-
-
-class JobSummary(BaseModel):
-    """Schema for job summary."""
-
-    active_jobs: int = 0
-    pending_jobs: int = 0
-    completed_jobs: int = 0
-    failed_jobs: int = 0
