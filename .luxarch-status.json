@@ -2133,23 +2133,23 @@
       },
       {
         "rule": "repo.luxpm_receipt_current",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.211.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "re-issue it and commit the text VERBATIM: `luxpm_issue_sync_receipt` for this project, written to `.luxpm-receipt`. Editing any byte invalidates the signature, which is the point \u2014 the counts are the TRACKER's statement, not the repo's. If it names a different repository_url it was copied from a sibling and attests nothing about this one.",
+        "fix": "",
         "example": ""
       },
       {
         "rule": "repo.luxpm_backlog_triaged",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.252.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "`.luxpm-receipt` is stale or undated (issued 2026-10-10T21:19:03+00:00) \u2014 the backlog counts are only trusted from a verified receipt (`repo.luxpm_receipt_current` says what to fix). NOT a clearance",
+        "inert": false,
+        "inert_reason": "",
         "fix": "",
         "example": ""
       },
@@ -2617,20 +2617,20 @@
       }
     ],
     "summary": {
-      "PASS": 64,
-      "FAIL": 1,
+      "PASS": 66,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 3
+      "INERT": 2
     }
   },
   "summary": {
-    "PASS": 205,
-    "FAIL": 1,
+    "PASS": 207,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 30
+    "INERT": 29
   },
-  "commit": "de5e90f3c1ecc3184ed9754e500df43ff5a6fbee",
-  "generated_at": "2026-10-30T05:45:17Z"
+  "commit": "f33875b33d32ab0d92a2e835a381f16f4fffe959",
+  "generated_at": "2026-10-30T05:59:09Z"
 }
