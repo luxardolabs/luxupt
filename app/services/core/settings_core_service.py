@@ -125,7 +125,9 @@ class SettingsCoreService:
         )
         return base_url, username, password, verify_ssl
 
-    async def update_fetch_settings(self, settings: dict[str, Any]) -> FetchSettingsRead:
+    async def update_fetch_settings(
+        self, settings: dict[str, Any]
+    ) -> FetchSettingsRead:
         """Update fetch settings."""
         return FetchSettingsRead.model_validate(
             await fetch_settings_crud.update_settings(self.db, obj_in=settings)
