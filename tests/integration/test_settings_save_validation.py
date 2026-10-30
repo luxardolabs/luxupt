@@ -8,6 +8,7 @@ adversarial pass reproduced it; each case below pairs a refused value with an ac
 
 import logging
 import time
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -22,6 +23,7 @@ from app.models.camera_model import Camera
 from app.models.enum_model import CaptureMethod
 from app.models.fetch_settings_model import FetchSettings
 from app.models.scheduler_settings_model import SchedulerSettings
+from app.services.core import backup_core_service
 from app.web.main import app
 
 FETCH_FORM = {
@@ -446,3 +448,64 @@ async def test_unchecking_backups_turns_them_off(
         url, data={k: v for k, v in BACKUP_FORM.items() if k != "enabled"}
     )
     assert await _stored(durable_db, BackupSettings, "retention") == 0
+
+
+@pytest.mark.parametrize("backup_dir", ["/srv/elsewhere", "../app/static", "a/../../x"])
+async def test_backup_dir_outside_the_output_dir_is_refused(
+    client: AsyncClient, durable_db: async_sessionmaker[AsyncSession], backup_dir: str
+) -> None:
+    await _signed_in(client, durable_db)
+    url = app.url_path_for("system.update_backup_settings")
+    resp = await client.post(url, data={**BACKUP_FORM, "backup_dir": backup_dir})
+    assert resp.status_code == 400
+    assert await _stored(durable_db, BackupSettings, "backup_dir") == "backups"
+    resp = await client.post(url, data={**BACKUP_FORM, "backup_dir": "nightly/db"})
+    assert resp.status_code == 200, resp.text[:300]
+    assert await _stored(durable_db, BackupSettings, "backup_dir") == "nightly/db"
+
+
+async def test_a_stored_backup_dir_outside_the_output_dir_writes_nothing(
+    durable_db: async_sessionmaker[AsyncSession],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A row saved before the form refused it: the backup service still stays inside OUTPUT_DIR.
+    out = tmp_path / "output"
+    out.mkdir()
+    escape = tmp_path / "public"
+    monkeypatch.setattr(backup_core_service, "OUTPUT_DIR", out)
+    async with durable_db() as s:
+        row = (await s.execute(select(BackupSettings))).scalars().one()
+        row.backup_dir = str(escape)
+        await s.commit()
+
+    assert await backup_core_service.BackupCoreService().backup_now() is None
+    assert not escape.exists()
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["max_retries", "rate_limit_buffer", "request_timeout", "png_compression_level"],
+)
+async def test_an_emptied_fetch_number_keeps_the_stored_value(
+    client: AsyncClient, durable_db: async_sessionmaker[AsyncSession], field: str
+) -> None:
+    await _signed_in(client, durable_db)
+    before = await _stored(durable_db, FetchSettings, field)
+    resp = await client.post(
+        app.url_path_for("cameras.save_fetch_settings"), data={**FETCH_FORM, field: ""}
+    )
+    assert "Settings saved" in resp.text, resp.text[:300]
+    assert await _stored(durable_db, FetchSettings, field) == before
+
+
+async def test_a_refused_fetch_save_names_the_field(
+    client: AsyncClient, durable_db: async_sessionmaker[AsyncSession]
+) -> None:
+    await _signed_in(client, durable_db)
+    resp = await client.post(
+        app.url_path_for("cameras.save_fetch_settings"),
+        data={**FETCH_FORM, "png_compression_level": "12"},
+    )
+    assert "Settings saved" not in resp.text
+    assert "png_compression_level" in resp.text

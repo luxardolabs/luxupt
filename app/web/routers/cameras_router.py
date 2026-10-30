@@ -179,7 +179,9 @@ async def save_fetch_settings(
     response = templates.TemplateResponse(
         request,
         "partials/cameras/camera_settings_result.html",
-        {"success": success, "message": message},
+        {"success": True, "message": message}
+        if success
+        else {"success": False, "error": "Settings not saved", "details": message},
     )
     # Refresh the camera list in place (covers reactivated cameras and any
     # setting that changes a card) instead of a full page reload

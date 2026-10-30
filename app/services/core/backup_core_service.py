@@ -13,6 +13,23 @@ from app.utils import async_fs
 logger = logging.getLogger(__name__)
 
 
+def _inside_output_dir(backup_dir: str) -> Path | None:
+    """The backup folder under OUTPUT_DIR, or None when the setting points anywhere else.
+
+    A backup is a full copy of the database, credentials included, so it is never written (or
+    pruned) outside the output directory, whatever the stored setting says.
+    """
+    base = OUTPUT_DIR.resolve()
+    backup_path = (base / backup_dir).resolve()
+    if not backup_path.is_relative_to(base):
+        logger.error(
+            "Backup directory is outside the output directory; no backup written",
+            extra={"backup_dir": backup_dir},
+        )
+        return None
+    return backup_path
+
+
 class BackupCoreService:
     """Service for periodic database backups with retention management."""
 
@@ -67,8 +84,9 @@ class BackupCoreService:
 
         Returns the backup path on success, None on failure.
         """
-        # Build backup directory path (relative to OUTPUT_DIR)
-        backup_path = OUTPUT_DIR / backup_dir
+        backup_path = _inside_output_dir(backup_dir)
+        if backup_path is None:
+            return None
         await async_fs.path_mkdir(backup_path, parents=True, exist_ok=True)
 
         # Filename/identifier stamp -- machine output, not display: filesystem-safe, sortable,
@@ -111,8 +129,8 @@ class BackupCoreService:
 
     def _prune_backups_sync(self, backup_dir: str, retention: int) -> None:
         """Synchronous prune logic — runs in thread pool."""
-        backup_path = OUTPUT_DIR / backup_dir
-        if not backup_path.exists():
+        backup_path = _inside_output_dir(backup_dir)
+        if backup_path is None or not backup_path.exists():
             return
 
         backups = sorted(

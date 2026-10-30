@@ -2,12 +2,14 @@
 
 Each schema states every bound its form's own inputs show (min/max, the select's options), so a
 value the browser would refuse is refused here too: the browser's min/max is only a hint. A
-checkbox the browser leaves out is False. None means "clear" only for the Protect credentials,
-which may be emptied; every other field is required or has an explicit default. The views build
+checkbox the browser leaves out is False. An emptied Protect credential clears it; an emptied
+number leaves the stored value as it is; every other field has an explicit default. The views build
 the save payload from these alone (`to_update()`), never from the raw form.
 """
 
+import re
 from datetime import time
+from pathlib import PurePosixPath
 from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -29,6 +31,9 @@ Preset = Literal[
 ]
 PIXEL_FORMATS: tuple[str, ...] = get_args(PixelFormat)
 PRESETS: tuple[str, ...] = get_args(Preset)
+
+# A backup folder, relative to the output directory.
+_BACKUP_DIR = re.compile(r"[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*")
 
 CaptureChoice = Literal["auto", "api", "rtsp"]
 RtspQuality = Literal["high", "medium", "low"]
@@ -81,18 +86,19 @@ class FetchSettingsForm(_SettingsForm):
     username: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, max_length=255)
 
-    max_retries: int = Field(ge=0, le=10)
-    retry_delay: int = Field(ge=1, le=30)
-    request_timeout: int = Field(ge=5, le=120)
-    rate_limit: int = Field(ge=1, le=100)
-    rate_limit_buffer: float = Field(ge=0.1, le=1.0)
-    min_offset_seconds: int = Field(ge=1, le=60)
-    max_offset_seconds: int = Field(ge=1, le=300)
-    camera_refresh_interval: int = Field(ge=60, le=3600)
+    # The numbers: an emptied field (None) leaves the stored value as it is.
+    max_retries: int | None = Field(default=None, ge=0, le=10)
+    retry_delay: int | None = Field(default=None, ge=1, le=30)
+    request_timeout: int | None = Field(default=None, ge=5, le=120)
+    rate_limit: int | None = Field(default=None, ge=1, le=100)
+    rate_limit_buffer: float | None = Field(default=None, ge=0.1, le=1.0)
+    min_offset_seconds: int | None = Field(default=None, ge=1, le=60)
+    max_offset_seconds: int | None = Field(default=None, ge=1, le=300)
+    camera_refresh_interval: int | None = Field(default=None, ge=60, le=3600)
 
     rtsp_output_format: Literal["png", "jpg"] = "png"
-    png_compression_level: int = Field(ge=0, le=9)
-    rtsp_capture_timeout: int = Field(ge=5, le=60)
+    png_compression_level: int | None = Field(default=None, ge=0, le=9)
+    rtsp_capture_timeout: int | None = Field(default=None, ge=5, le=60)
 
     _checkboxes = field_validator(
         "enabled", "verify_ssl", "high_quality_snapshots", mode="before"
@@ -100,13 +106,34 @@ class FetchSettingsForm(_SettingsForm):
     _clearable = field_validator(
         "api_key", "base_url", "username", "password", mode="before"
     )(_blank_to_none)
+    _blank_numbers = field_validator(
+        "max_retries",
+        "retry_delay",
+        "request_timeout",
+        "rate_limit",
+        "rate_limit_buffer",
+        "min_offset_seconds",
+        "max_offset_seconds",
+        "camera_refresh_interval",
+        "png_compression_level",
+        "rtsp_capture_timeout",
+        mode="before",
+    )(_blank_to_none)
     _interval_list = field_validator("intervals")(_intervals)
 
     def to_update(self) -> dict[str, Any]:
-        """The fetch_settings columns this form sets: all of them; no intervals means 60s."""
-        update = self.model_dump()
+        """The fetch_settings columns this form sets: no intervals means 60s; a number only when sent."""
+        update = self.model_dump(exclude=_FETCH_NUMBERS)
+        update.update(self.model_dump(include=_FETCH_NUMBERS, exclude_none=True))
         update["intervals"] = self.intervals or [60]
         return update
+
+
+_FETCH_NUMBERS = {
+    name
+    for name, field in FetchSettingsForm.model_fields.items()
+    if field.annotation in (int | None, float | None)
+}
 
 
 class CameraSettingsForm(_SettingsForm):
@@ -186,7 +213,14 @@ class BackupSettingsForm(_SettingsForm):
     @field_validator("backup_dir")
     @classmethod
     def _dir(cls, value: str) -> str:
-        return value.strip() or "backups"
+        """A folder under the output directory: relative, no `..`, letters, digits, `_ - . /`."""
+        value = value.strip()
+        if not value:
+            return "backups"
+        value = value.rstrip("/")
+        if not _BACKUP_DIR.fullmatch(value) or ".." in PurePosixPath(value).parts:
+            raise ValueError("must be a folder name inside the output directory")
+        return value
 
     def to_update(self) -> dict[str, Any]:
         """The backup_settings columns: retention 0 means backups are off."""
