@@ -13,16 +13,6 @@ declared = [
 ]
 
 [allowlist]
-# The ONE genuinely-public mutating route (fw.mutating_route_authenticated): first-run
-# bootstrap, the same class as login/register that the rule names. It cannot require auth
-# because no user exists yet. It is the emitted admin-bootstrap router: the core re-checks
-# under the first-boot lock that the users table is still empty (404 once anyone exists) and
-# requires the one-time token printed in the server log. Per-site evidence, not a blanket
-# deferral: the rule stays live everywhere else.
-auth_public = [
-  { function = "submit_setup", evidence = "first-run setup (luxarch --emit admin-bootstrap-router); no user exists yet to authenticate as. AdminBootstrapCoreService.create_first_admin re-checks count_users()==0 in the creating transaction and compares the log-printed setup token in constant time; the route is rate-limited 5/minute" },
-]
-
 # Vendor pass-through fields (ADR-001 "external identifier" case): these values come
 # verbatim from the UniFi Protect API (camera_data["state"|"videoMode"|"hdrType"]) —
 # Ubiquiti controls the set and can extend it in any firmware release; the app only
