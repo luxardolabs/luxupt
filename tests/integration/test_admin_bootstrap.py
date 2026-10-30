@@ -210,7 +210,9 @@ async def test_an_admin_assigned_password_must_be_changed(db: AsyncSession) -> N
     created = await users.create("helper", PASSWORD, is_admin=False)
     assert created.must_change_password
 
-    await user_crud.update_user(db, created, must_change_password=False)
+    row = await user_crud.get(db, created.id)
+    assert row is not None
+    await user_crud.update_user(db, row, must_change_password=False)
     updated = await users.update(created.id, password="an-admin-reset-password")
     assert updated is not None
     assert updated.must_change_password
