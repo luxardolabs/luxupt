@@ -69,14 +69,3 @@ class CaptureStats(BaseModel):
     total_file_size: int = 0
     oldest_capture: datetime | None = None
     newest_capture: datetime | None = None
-
-
-class CaptureSummary(BaseModel):
-    """Summary of captures for a specific camera/date combination."""
-
-    camera_safe_name: str = Field(..., max_length=255)
-    capture_date: date
-    interval: int
-    count: int
-    success_count: int
-    failed_count: int
