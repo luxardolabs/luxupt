@@ -614,14 +614,14 @@
         },
         {
           "rule": "fw.no_private_cross_module_imports",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.2.0",
-          "violations": 0,
+          "violations": 1,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "",
-          "example": ""
+          "fix": "A leading `_` marks an implementation detail: a `_` name is private to its module, and a `_` module or package is private to its parent package and that package's children. Code outside (a test included) that imports it, patches it, or reaches it as an attribute or by a string depends on that detail, so the detail can no longer change without breaking that code. Decide what the private thing is (the playbook's one question): an implementation detail, so test the public behaviour that runs it and fake only what crosses the app's boundary (HTTP, clock, storage); a real capability, so extract it to a public service and test that; or shared data or config wearing an underscore, so make it public where it belongs. Never make it public just so a test can reach it, and never swap the import for a string-path patch, an attribute access or a getattr: that is the same coupling, hidden.",
+          "example": "red     from app.services.core._oidc import _pkce_pair\n        monkeypatch.setattr(\"app.services.core._oidc._discover\", fake_discover)\n\n        def test_pkce_pair():\n            verifier, challenge = _pkce_pair()\n            assert challenge == s256(verifier)\n\nclears  from app.services.core.auth import build_login_redirect   # the public seam\n\n        def test_login_redirect_carries_an_s256_challenge(httpx_mock):\n            httpx_mock.add_response(url=DISCOVERY_URL, json=DISCOVERY)  # fake the IdP, not _oidc\n            url = build_login_redirect(state=\"s\")\n            q = parse_qs(urlparse(url).query)\n            assert q[\"code_challenge_method\"] == [\"S256\"]\n\nThe PKCE coverage survives: it is asserted through the URL the user is sent to, which is\nthe behaviour that matters, and _oidc can now be rewritten without touching a test."
         },
         {
           "rule": "fw.paginated_responses_subclass_base",
@@ -1857,8 +1857,8 @@
         }
       ],
       "summary": {
-        "PASS": 141,
-        "FAIL": 0,
+        "PASS": 140,
+        "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -2625,12 +2625,12 @@
     }
   },
   "summary": {
-    "PASS": 207,
-    "FAIL": 0,
+    "PASS": 206,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 29
   },
-  "commit": "ad53c46554f4ae6ef32063a029942b12f65c00f8",
-  "generated_at": "2026-10-30T22:23:55Z"
+  "commit": "a0e285c35d9beb06fec3d8e484a8357dd6aff677",
+  "generated_at": "2026-10-30T22:57:03Z"
 }
