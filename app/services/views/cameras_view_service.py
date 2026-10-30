@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from fastapi import Request
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.camera_manager import Camera as ApiCamera
@@ -16,7 +17,9 @@ from app.clients.protect_client import (
     ProtectClient,
     ProtectRequestError,
 )
+from app.schemas.camera_schema import CameraUpdate
 from app.schemas.capture_schema import CaptureRead
+from app.schemas.fetch_settings_schema import FetchSettingsUpdate
 from app.services.core.camera_core_service import CameraCoreService
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.capture_stats_core_service import CaptureStatsCoreService
@@ -527,6 +530,10 @@ class CamerasViewService:
             rtsp_capture_timeout if rtsp_capture_timeout else None
         )
 
+        problem = _settings_problem(FetchSettingsUpdate, update_data)
+        if problem:
+            return False, problem, None, False
+
         success, message, cameras_synced = await self.update_fetch_settings(update_data)
 
         # Re-enable any toggled-on disabled cameras
@@ -534,9 +541,10 @@ class CamerasViewService:
             for cam_id in reactivate_cameras:
                 await self.update_camera_settings(cam_id, {"is_active": True})
 
+        # Field names only: the payload carries the Protect API key and password.
         logger.info(
             "Updated fetch settings",
-            extra={"update_data": update_data, "cameras_synced": cameras_synced},
+            extra={"fields": sorted(update_data), "cameras_synced": cameras_synced},
         )
         return success, message, cameras_synced, bool(reactivate_cameras)
 
@@ -557,6 +565,9 @@ class CamerasViewService:
             # Empty list means use all (null)
             "enabled_intervals": enabled_intervals if enabled_intervals else None,
         }
+        problem = _settings_problem(CameraUpdate, update_data)
+        if problem:
+            return False, problem
         success, message = await self.update_camera_settings(camera_id, update_data)
         if success:
             logger.info(
@@ -818,3 +829,20 @@ class CamerasViewService:
             "failed_captures": capture_stats.failed_captures,
             "recent_failures": recent_failures,
         }
+
+
+def _settings_problem(schema: type[BaseModel], update_data: dict[str, Any]) -> str:
+    """What is wrong with a settings payload, or "" when it fits `schema`.
+
+    The pages read settings back through validated read models with the same bounds, so a value
+    stored past them would turn every page that reads it into a 500. The browser's min/max is
+    only a hint; this is the check.
+    """
+    fields = {k: v for k, v in update_data.items() if k in schema.model_fields}
+    try:
+        schema.model_validate(fields)
+    except ValidationError as e:
+        first = e.errors()[0]
+        field = ".".join(str(part) for part in first["loc"])
+        return f"Not saved: {field}: {first['msg']}"
+    return ""

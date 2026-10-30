@@ -8,11 +8,12 @@ job row (§5e cross-process read). This locks both properties:
   - start_job fires only after the commit (bite: an inline pre-commit kickoff).
 """
 
+import os
 import types
 from unittest.mock import MagicMock
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import app.services.views.timelapses_view_service as tvs_mod
 from app.models.camera_model import Camera
@@ -51,9 +52,18 @@ async def _seed_camera(session: AsyncSession) -> None:
     await session.flush()
 
 
-async def _job_count(maker: Maker) -> int:
-    async with maker() as s:
-        return await s.scalar(select(func.count()).select_from(Job)) or 0
+async def _job_count(_maker: Maker) -> int:
+    """Jobs a SEPARATE connection can see: committed rows only.
+
+    A plain engine on the run's database, not the app's maker: an app session begins IMMEDIATE
+    and would wait for the owner's open transaction instead of reading past it.
+    """
+    reader = create_async_engine(os.environ["TEST_DATABASE_URL"])
+    try:
+        async with AsyncSession(reader) as s:
+            return await s.scalar(select(func.count()).select_from(Job)) or 0
+    finally:
+        await reader.dispose()
 
 
 async def test_job_not_committed_until_owner_and_kickoff_deferred(

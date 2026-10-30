@@ -2924,8 +2924,8 @@ prod-deploy: ## [PROD] Pull image + (re)start on $(PROD_NODE); optional TAG=x.y.
 
 .PHONY: prod-rollback
 prod-rollback: ## [PROD] Redeploy a specific tag: make prod-rollback TAG=1.1.4
-	@[ -n "$(TAG)" ] || { echo '$(RED)Set TAG=x.y.z (a tag present on ghcr)$(NC)'; exit 1; }
-	@$(MAKE) --no-print-directory prod-deploy TAG=$(TAG)
+	@[ -n "$(PROD_TAG)" ] || { echo '$(RED)Set TAG=x.y.z (a tag present on ghcr)$(NC)'; exit 1; }
+	@$(MAKE) --no-print-directory prod-deploy TAG=$(PROD_TAG)
 
 .PHONY: prod-status
 prod-status: ## [PROD] Show prod containers on $(PROD_NODE)

@@ -69,9 +69,14 @@ def _begin_transaction(conn: Connection) -> None:
 
     Each transaction is then one SQLite transaction from its first statement, and a nested
     `begin_nested()` is a real SAVEPOINT inside it (the test harness's per-test rollback relies on
-    that). WAL mode lets readers proceed beside a writer as before.
+    that). It begins IMMEDIATE, taking the write lock up front: a DEFERRED transaction that reads,
+    then writes after another connection (the fetch worker) committed, fails at once with
+    "database is locked", and busy_timeout cannot retry that. IMMEDIATE waits for the lock
+    instead. An autocommit connection (init_db's VACUUM) gets no BEGIN at all.
     """
-    conn.exec_driver_sql("BEGIN")
+    if conn.get_execution_options().get("isolation_level") == "AUTOCOMMIT":
+        return
+    conn.exec_driver_sql("BEGIN IMMEDIATE")
 
 
 # Session factory
@@ -156,7 +161,9 @@ async def init_db() -> None:
     await asyncio.to_thread(DATABASE_DIR.mkdir, parents=True, exist_ok=True)
 
     try:
-        async with engine.begin() as conn:
+        # Autocommit: VACUUM cannot run inside a transaction (_begin_transaction emits none here).
+        async with engine.connect() as raw:
+            conn = await raw.execution_options(isolation_level="AUTOCOMMIT")
             # PRAGMAs (WAL, synchronous, busy_timeout, mmap, cache) are set automatically
             # by the _set_sqlite_pragmas event listener on every new connection.
             logger.info("SQLite WAL mode enabled for better concurrency")
