@@ -192,7 +192,7 @@ async def init_db() -> None:
     except Exception as e:
         # Handle race condition where another process might have created tables
         if "already exists" in str(e).lower():
-            logger.debug(
+            logger.warning(
                 "Tables already exist (likely created by another service)",
                 extra={"error": str(e)},
             )

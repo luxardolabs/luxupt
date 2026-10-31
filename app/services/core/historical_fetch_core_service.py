@@ -312,8 +312,11 @@ class HistoricalFetchCoreService:
                                     )
                                     await session.commit()
                             except Exception as e:
-                                logger.debug(
-                                    "Progress update failed", extra={"error": str(e)}
+                                # Progress is advisory: the fetch carries on, but the
+                                # failed write is recorded rather than dropped.
+                                logger.warning(
+                                    "Progress update failed",
+                                    extra={"job_id": job.job_id, "error": str(e)},
                                 )
 
             try:

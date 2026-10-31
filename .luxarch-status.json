@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.331.0",
+  "guard_version": "0.334.0",
   "repo": "/repo",
   "targets": [
     {
@@ -614,14 +614,14 @@
         },
         {
           "rule": "fw.no_private_cross_module_imports",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.2.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "A leading `_` marks an implementation detail: a `_` name is private to its module, and a `_` module or package is private to its parent package and that package's children. Code outside (a test included) that imports it, patches it, or reaches it as an attribute or by a string depends on that detail, so the detail can no longer change without breaking that code. Decide what the private thing is (the playbook's one question): an implementation detail, so test the public behaviour that runs it and fake only what crosses the app's boundary (HTTP, clock, storage); a real capability, so extract it to a public service and test that; or shared data or config wearing an underscore, so make it public where it belongs. Never make it public just so a test can reach it, and never swap the import for a string-path patch, an attribute access or a getattr: that is the same coupling, hidden.",
-          "example": "red     from app.services.core._oidc import _pkce_pair\n        monkeypatch.setattr(\"app.services.core._oidc._discover\", fake_discover)\n\n        def test_pkce_pair():\n            verifier, challenge = _pkce_pair()\n            assert challenge == s256(verifier)\n\nclears  from app.services.core.auth import build_login_redirect   # the public seam\n\n        def test_login_redirect_carries_an_s256_challenge(httpx_mock):\n            httpx_mock.add_response(url=DISCOVERY_URL, json=DISCOVERY)  # fake the IdP, not _oidc\n            url = build_login_redirect(state=\"s\")\n            q = parse_qs(urlparse(url).query)\n            assert q[\"code_challenge_method\"] == [\"S256\"]\n\nThe PKCE coverage survives: it is asserted through the URL the user is sent to, which is\nthe behaviour that matters, and _oidc can now be rewritten without touching a test."
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.paginated_responses_subclass_base",
@@ -1857,8 +1857,8 @@
         }
       ],
       "summary": {
-        "PASS": 140,
-        "FAIL": 1,
+        "PASS": 141,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -1959,6 +1959,17 @@
         "rule": "repo.dev_tools_not_in_production",
         "status": "PASS",
         "since": "0.243.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.runtime_user_cannot_write_code",
+        "status": "PASS",
+        "since": "0.334.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -2617,7 +2628,7 @@
       }
     ],
     "summary": {
-      "PASS": 66,
+      "PASS": 67,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -2625,12 +2636,12 @@
     }
   },
   "summary": {
-    "PASS": 206,
-    "FAIL": 1,
+    "PASS": 208,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 29
   },
-  "commit": "a0e285c35d9beb06fec3d8e484a8357dd6aff677",
-  "generated_at": "2026-10-30T22:57:03Z"
+  "commit": "5f2c78bb2eda83a489e021da3bc0e8dada1650f0",
+  "generated_at": "2026-10-31T03:29:57Z"
 }

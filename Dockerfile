@@ -103,15 +103,16 @@ LABEL org.opencontainers.image.version="$BUILD_VERSION" \
 # Set working directory
 WORKDIR /app/luxupt
 
-# Copy virtual environment from builder
-COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+# Code and packages are root-owned: the runtime user writes only its data dir, output/
+# (repo.runtime_user_cannot_write_code).
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy the app/ package (imported as `app.*`; PYTHONPATH=/app/luxupt) + the entrypoint
-COPY --from=builder --chown=appuser:appuser /app/app ./app
+COPY --from=builder /app/app ./app
 # The stylesheet comes ONLY from the css stage, after the app copy, so nothing from the build
 # context can overwrite it (fw.generated_assets_built_in_image).
-COPY --from=css --chown=appuser:appuser /build/app/static/css/app.css ./app/static/css/app.css
-COPY --chown=appuser:appuser entrypoint.sh ./
+COPY --from=css /build/app/static/css/app.css ./app/static/css/app.css
+COPY entrypoint.sh ./
 
 # Create output directories
 RUN mkdir -p output/images output/videos && \
