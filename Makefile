@@ -511,7 +511,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.334.0
+LUXARCH_VERSION   := 0.335.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -2234,7 +2234,7 @@ TEST_ENV      :=
 TEST_MIGRATIONS := tests/migrations
 
 .PHONY: test
-# luxarch:test-block asset v9 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit test-block`.
+# luxarch:test-block asset v10 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit test-block`.
 # ── Test: THE suite, in the test image, against an isolated stack of real services ───────────────
 # Emitted by `luxarch --emit test-block`; paste below the build core (`luxarch --emit build-core`, v4:
 # it builds with the core's `img_*` helpers and TEST_IMAGE, and the repo's BUILD_ARGS, and quotes every
@@ -2256,6 +2256,24 @@ TEST_MIGRATIONS := tests/migrations
 #     the service declares when it is ready. For Postgres, probe over TCP with the real role
 #     (`pg_isready -h 127.0.0.1 -U <user> -d <db>`); over the socket it answers while initdb's
 #     temporary server is still up. `repo.test_stack_parity` checks these are the services prod runs.
+#   - THE TEST SERVER IS MARKED (v10). Once its services are healthy, the run creates the role
+#     `luxarch_test_server_<run token>` (NOLOGIN) on each of TEST_SERVICES running a Postgres server
+#     (a container with no shell is skipped), from inside that server's own container (`compose
+#     exec`, psql over the server's own socket as $POSTGRES_USER, with $POSTGRES_PASSWORD, the
+#     container's PG* client settings dropped; only where the server's postmaster.pid names a
+#     postgres process of that container, and refused unless the server psql reaches holds that
+#     same postmaster.pid), and hands the token to the suite as LUXARCH_TEST_RUN. It refuses, and
+#     fails the run, to mark a server whose data or socket directory (as written, and as the
+#     container resolves it) is a mount that is not the run's own (a bind mount; a volume with
+#     another driver, or driver options such as a bind `device`; a volume that is neither this
+#     compose project's nor an anonymous one no other container uses), or whose pid namespace is
+#     shared: that server's data outlives
+#     the run, or is another server's. The test-db-bound block asks every Postgres connection for
+#     that role before it lets anything through: TEST_DATABASE_URL's text does not say where the
+#     driver lands (a query `host`, a `hostaddr`, PGHOSTADDR or a service file send it elsewhere),
+#     production never has the role, and another run's server, or a marker left on storage that
+#     outlived its run, has another name. A service running Postgres that cannot be marked fails
+#     the run.
 #   - Ctrl-C (or a SIGTERM) stops the suite, in any step (v3). `--init`'s tini forwards a signal to
 #     its own child only, which is the `sh` running pytest, so v2's Ctrl-C let a 60-second suite run
 #     to its end (measured: 58s). `TINI_KILL_PROCESS_GROUP=1` makes tini signal the whole group. Each
@@ -2549,12 +2567,17 @@ test: test-reap ## THE suite (each of TEST_SUITES in turn): its own test image, 
 	  net=; if [ -n $(call sq,$(strip $(call test_suite,$(s),SERVICES))) ]; then \
 	    bg dc up -d --wait --wait-timeout 120 $(call sqw,$(call test_suite,$(s),SERVICES)) \
 	      || { printf 'FAIL  the test services did not become healthy: %s\n' $(call sq,$(call test_suite,$(s),SERVICES)); exit 1; }; \
+	    printf '%s\n' 'SELECT 1 / (CASE WHEN pg_catalog.inet_server_addr() IS NULL AND pg_catalog.rtrim(pg_catalog.pg_read_file('"'"'postmaster.pid'"'"'), E'"'"'\n'"'"') = :'"'"'pm'"'"' THEN 1 ELSE 0 END) AS its_own_server;' "CREATE ROLE luxarch_test_server_$$tok NOLOGIN;" > "$$D/mark.sql" || exit 2; \
+	    for sv in $(call sqw,$(call test_suite,$(s),SERVICES)); do \
+	      sid=$$(dc ps -q "$$sv" | head -n 1); full=$$(docker inspect -f '{{.Id}}' "$$sid" 2>/dev/null); why=; pmode=$$(docker inspect -f '{{.HostConfig.PidMode}}' "$$sid" 2>/dev/null); case "$$pmode" in (''|private) ;; (*) why="its pid namespace is shared ($$pmode)";; esac; pgd=$$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$$sid" 2>/dev/null | sed -n 's/^PGDATA=//p' | head -n 1); pgd=$${pgd:-/var/lib/postgresql/data}; res=$$(dc exec -T "$$sv" sh -c 'for d in "$${PGDATA:-/var/lib/postgresql/data}" /var/run/postgresql; do (cd "$$d" 2>/dev/null && pwd -P); done' 2>/dev/null </dev/null); [ -n "$$why" ] || why=$$(docker inspect -f '{{range .Mounts}}{{.Type}}|{{.Name}}|{{.Destination}}{{println}}{{end}}' "$$sid" 2>/dev/null | while IFS='|' read -r mt mn md; do [ -n "$$md" ] || continue; hit=; for dd in "$$pgd" /var/run/postgresql $$res; do case "$$dd/" in ("$$md"/*) hit=1;; esac; case "$$md/" in ("$$dd"/*) hit=1;; esac; done; [ -n "$$hit" ] || continue; case "$$mt" in (tmpfs) ;; (volume) vd=$$(docker volume inspect -f '{{.Driver}}|{{json .Options}}' "$$mn" 2>/dev/null); case "$$vd" in ('local|null'|'local|{}') ;; (*) echo "$$md is the volume $$mn, whose driver or options put its data elsewhere ($$vd)"; break;; esac; [ "$$(docker volume inspect -f '{{index .Labels "com.docker.compose.project"}}' "$$mn" 2>/dev/null)" = "$$p" ] && continue; others=$$(docker ps -aq --no-trunc --filter "volume=$$mn" | grep -v -x "$$full"); if printf '%s\n' "$$mn" | grep -qx '[0-9a-f]\{64\}' && [ -z "$$others" ]; then continue; fi; echo "$$md is the volume $$mn, which is not this run's own (it outlives the run, or another container uses it)"; break;; (*) echo "$$md is a $$mt mount, not this run's own"; break;; esac; done | head -n 1); \
+	      bgin "$$D/mark.sql" dc exec -T -e LUXARCH_MARK_REFUSE="$$why" "$$sv" sh -c 'sock=; for f in /var/run/postgresql/.s.PGSQL.*; do case "$$f" in (*.lock) ;; (*) [ -S "$$f" ] && sock=$$f;; esac; done; pid=$${PGDATA:-/var/lib/postgresql/data}/postmaster.pid; pm=$$(cat "$$pid" 2>/dev/null); [ -n "$$sock" ] && [ -n "$$pm" ] && [ "$$(cat /proc/$$(head -n 1 "$$pid")/comm 2>/dev/null)" = postgres ] && command -v psql >/dev/null 2>&1 || exit 0; [ -z "$${LUXARCH_MARK_REFUSE:-}" ] || { printf "REFUSING to mark this Postgres server: %s\n" "$$LUXARCH_MARK_REFUSE" >&2; exit 3; }; unset PGHOST PGHOSTADDR PGPORT PGSERVICE PGSERVICEFILE PGDATABASE PGUSER PGOPTIONS PGSYSCONFDIR PGPASSFILE; [ -z "$${POSTGRES_PASSWORD_FILE:-}" ] || POSTGRES_PASSWORD=$$(cat "$$POSTGRES_PASSWORD_FILE"); PGPASSWORD=$${POSTGRES_PASSWORD:-} exec psql -h /var/run/postgresql -p "$${sock##*.}" -v pm="$$pm" -v ON_ERROR_STOP=1 -X -q -U "$${POSTGRES_USER:-postgres}" -d postgres' >/dev/null \
+	        || { r=$$?; [ "$$r" = 126 ] || [ "$$r" = 127 ] || { printf 'FAIL  could not mark %s as this run'"'"'s test server: the role luxarch_test_server_<run token>, created over the server'"'"'s own socket as $$POSTGRES_USER, which the test-db-bound block asks every Postgres connection for\n' "$$sv"; exit 1; }; }; done; \
 	    cid=$$(dc ps -q $(call sq,$(firstword $(call test_suite,$(s),SERVICES)))); net=; \
 	    for n in $$(docker inspect -f '{{range $$k, $$v := .NetworkSettings.Networks}}{{$$k}} {{end}}' $$cid); do \
 	      [ "$$(docker network inspect -f '{{index .Labels "com.docker.compose.project"}}' $$n)" = "$$p" ] && { net=$$n; break; }; done; \
 	    [ -n "$$net" ] || { printf 'FAIL  %s joined no network of this run'"'"'s own project (%s)\n' $(call sq,$(firstword $(call test_suite,$(s),SERVICES))) "$$p"; exit 1; }; \
 	    net="--network $$net"; fi; \
-	  bg docker run --rm --init $$lab --label "luxarch.test-block.checkout=$$co" -e TINI_KILL_PROCESS_GROUP=1 $$net $(call sqw,$(call test_suite,$(s),ENV)) -e PYTEST_ADDOPTS="$${PYTEST_ARGS:-}" -e LUXARCH_TEST_MIGRATIONS="$$mig" -e LUXARCH_TEST_FAST="$$fast" \
+	  bg docker run --rm --init $$lab --label "luxarch.test-block.checkout=$$co" -e TINI_KILL_PROCESS_GROUP=1 $$net $(call sqw,$(call test_suite,$(s),ENV)) -e PYTEST_ADDOPTS="$${PYTEST_ARGS:-}" -e LUXARCH_TEST_RUN="$$tok" -e LUXARCH_TEST_MIGRATIONS="$$mig" -e LUXARCH_TEST_FAST="$$fast" \
 	    -e LUXARCH_TEST_COV=$(call sq,$(call test_suite,$(s),COV)) -e LUXARCH_TEST_OMIT="$$omit" -e COVERAGE_CORE=sysmon -e COVERAGE_FILE=/out/.coverage -e PYTHONDONTWRITEBYTECODE=1 \
 	    -v $(call sq,$(CURDIR)):/repo:ro $$mnt -v "$$D/cfg":/cfg:ro -v "$$out":/out -w /repo/$(call sq,$(call test_suite,$(s),WORKDIR)) "$$img" \
 	    sh -c 'm=$${LUXARCH_TEST_MIGRATIONS:-}; o=$${LUXARCH_TEST_OMIT:-}; python -m coverage run --branch --source="$$LUXARCH_TEST_COV" $${o:+"--omit=$$o"} -m pytest -c /cfg/pytest.ini --rootdir=. -p no:cacheprovider $${m:+"--ignore=$$m"}; s=$$?; if [ -n "$$m" ] && [ -z "$${LUXARCH_TEST_FAST:-}" ]; then PYTEST_ADDOPTS= python -m coverage run --append --branch --source="$$LUXARCH_TEST_COV" $${o:+"--omit=$$o"} -m pytest -c /cfg/pytest.ini --rootdir=. -p no:cacheprovider --confcutdir="$$m" "$$m"; ms=$$?; [ "$$ms" = 0 ] || echo "FAIL  the migration tests in $$m failed (exit $$ms)"; [ "$$s" != 0 ] || s=$$ms; fi; python -m coverage report --show-missing --precision=2 > /out/coverage.txt; echo $$? > /out/coverage.rc; python -m coverage json -q -o - > /out/coverage.json; cat /out/coverage.txt; exit $$s'; \

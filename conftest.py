@@ -1,4 +1,4 @@
-# luxarch:test-db-bound asserter v4 — DO NOT edit the marker line above (repo.makefile_test_db_harness finds it).
+# luxarch:test-db-bound asserter v5 — DO NOT edit the marker line above (repo.makefile_test_db_harness finds it).
 #
 # WHY THIS FILE EXISTS
 # A suite whose only database is a SQLite file must run on a file it makes for the run, never the dev
@@ -53,14 +53,35 @@
 #   URL), and has no `binds=` mapping. The tests run on function-scoped event loops (the canonical
 #   pytest config): a test on a session-scoped loop gets a connection from another loop, and the
 #   driver says so ("attached to a different loop").
+# - v5: ON POSTGRES THE SERVER SAYS WHERE A CONNECTION IS. TEST_DATABASE_URL's text does not: a query
+#   `host`, a `hostaddr` in a psycopg `conninfo` or psycopg2 `dsn`, PGHOSTADDR or a PGSERVICE file
+#   each sent the driver to another server while the text named the test one. The test block
+#   (`make test`, v10) creates the role `luxarch_test_server_<token>` on each Postgres server it
+#   starts, from inside that server's own container, named by the run's token (handed to the suite
+#   as LUXARCH_TEST_RUN); production never has it, and another run's server has another name. Every new driver connection any SQLAlchemy engine
+#   opens on a Postgres dialect (judged by its type: a `timescaledb://` URL's too), the suite's
+#   alembic migration and the app's engine among them, is asked, before anything else is sent on it
+#   (as the dialect opens it, `do_connect`, after the app's own `do_connect` listeners and before the
+#   pool's `first_connect`; one an engine's `creator=` opens, when the pool connects it; one opened
+#   before this block was imported, at
+#   its first checkout), for `current_database()` and whether that role exists (`to_regrole`, which
+#   needs no catalog privilege; outside `make test`, LUXARCH_TEST_RUN unset, the hand-made role
+#   `luxarch_test_server`), and is refused unless it does and the database is the run's: the one TEST_DATABASE_URL names in its PATH (a URL
+#   with none there is refused), `<db>_<worker>` in an xdist worker. A connection opened before
+#   TEST_DATABASE_URL is set is refused (nothing says yet which database is the run's), and so is a
+#   Postgres connection in a run whose database is not on Postgres. The same question is asked on
+#   the test's held connection, on the connection `real_commits` empties through, and on the
+#   maintenance connection before a worker's DROP/CREATE DATABASE. Outside `make test`, give the
+#   throwaway server the role yourself: `CREATE ROLE luxarch_test_server NOLOGIN`.
 # - Under `pytest -n` each worker runs on its own database, `<db>_<worker>` (`<db>` is
 #   TEST_DATABASE_URL's), and the block creates it: before the first test, its session fixture
 #   `luxarch_worker_database`, in a process xdist started as a worker (its config's `workerinput`),
 #   connects to the same server's maintenance database (`postgres`) through TEST_DATABASE_URL's own
-#   driver and runs `DROP DATABASE IF EXISTS` and `CREATE DATABASE` for that one name, then disposes
-#   the engine. Nothing else may connect there. The suite's own session fixture then builds the
-#   schema in it, and requests `luxarch_worker_database` so it runs after. A serial run (a pytest a
-#   worker's test starts included), and a SQLite one, create nothing.
+#   driver, confirms the server is the test stack's (above), runs `DROP DATABASE IF EXISTS` and
+#   `CREATE DATABASE` for that one name, then disposes the engine. Nothing else may connect there.
+#   The suite's own session fixture then builds the schema in it, and requests
+#   `luxarch_worker_database` so it runs after. A serial run (a pytest a worker's test starts
+#   included), and a SQLite one, create nothing.
 # - At the end of the session it fails the run if any connection was refused (so one opened after the
 #   last test, in a thread or a teardown, still fails it), or if any engine still alive is on another
 #   database (a lifespan's SessionLocal, a module-level engine the app uses directly). It reports
@@ -110,6 +131,15 @@
 #   file is let through as coverage.
 # - Two `pytest -n` runs at once on one TEST_DATABASE_URL share its worker databases (each worker's
 #   creation drops the other run's): give each run its own server, as the test block does.
+# - A Postgres connection made without SQLAlchemy (a bare `asyncpg.connect`, `psycopg.connect`) is
+#   not asked where it is, nor is one in a process this block is not loaded in: a child started by
+#   spawn or forkserver (Python 3.14's default on Linux) or as a subprocess (the alembic CLI), the
+#   migration-test run (`--confcutdir`), a run with `--noconftest`. A Pool `connect` listener the
+#   app registers on the Pool class with `insert=True` after this block runs before its question.
+# - A server given the role `luxarch_test_server` by hand is trusted as a test server outside
+#   `make test`: never create it on one that holds data you keep. A test service whose data
+#   is the dev database's (an `extends:` of it, a bind mount, an external volume) is marked for the
+#   length of its run (repo.test_stack_parity and the test block's isolation say why it must not be).
 
 # --- EDIT THIS: the app object (owns dependency_overrides) and the session dependency its routes use.
 TEST_DB_APP_IMPORT = "app.web.main:app"
@@ -264,6 +294,140 @@ def _luxarch_test_db_ok(
         return True
     base = _luxarch_test_db_tmp_base()
     return bool(base) and path.startswith(base + os.sep)
+
+
+# The role the test block (`make test`) creates on each Postgres server it starts, from inside that
+# server's own container: `luxarch_test_server_<token>`, named by the run's own token, which the suite
+# gets as LUXARCH_TEST_RUN. A server carrying it is the one THIS run's test stack made: another run's
+# stack, or a marker left on storage that outlived its run, has another name; production has none.
+# Outside `make test` (no LUXARCH_TEST_RUN), a throwaway server gets `luxarch_test_server` by hand.
+# Asked with `to_regrole`, which needs no privilege on any catalog, and no connection option makes a
+# role exist.
+_LUXARCH_TEST_DB_MARKER = "luxarch_test_server"
+
+
+def _luxarch_test_db_marker() -> str | None:
+    """The role that marks this run's server (None: LUXARCH_TEST_RUN is not a run token)."""
+    import os
+    import re
+
+    run = os.environ.get("LUXARCH_TEST_RUN", "")
+    if not run:
+        return _LUXARCH_TEST_DB_MARKER
+    return (
+        f"{_LUXARCH_TEST_DB_MARKER}_{run}"
+        if re.fullmatch(r"[a-z0-9]{8,40}", run)
+        else None
+    )
+
+
+def _luxarch_test_db_identity() -> str:
+    """The question a Postgres connection is asked: its database, and whether this run's marker
+    role exists on its server."""
+    marker = _luxarch_test_db_marker() or ""
+    return (
+        "SELECT pg_catalog.current_database(), "
+        f"pg_catalog.to_regrole('{marker}') IS NOT NULL AND '{marker}' <> ''"
+    )
+
+
+def _luxarch_test_db_pg(dialect: object) -> bool:
+    """`dialect` (a class or an instance) is SQLAlchemy's Postgres dialect or one built on it (a
+    `timescaledb://`, `cockroachdb://` or `redshift+psycopg2://` URL's): judged by its type, never by
+    the URL's backend name."""
+    from sqlalchemy.dialects.postgresql.base import PGDialect
+
+    kind = dialect if isinstance(dialect, type) else type(dialect)
+    return issubclass(kind, PGDialect) or getattr(dialect, "name", None) == "postgresql"
+
+
+def _luxarch_test_db_is_postgres() -> bool:
+    """The run's database is on Postgres: TEST_DATABASE_URL's dialect is Postgres's or built on it.
+    A dialect that cannot be loaded is not known not to be."""
+    from sqlalchemy import make_url
+
+    if _luxarch_test_db_target() is None:
+        return False
+    try:
+        dialect = make_url(_LUXARCH_TEST_DB_AT_IMPORT[0]).get_dialect()
+    except Exception:
+        return True
+    return _luxarch_test_db_pg(dialect)
+
+
+def _luxarch_test_db_run_database() -> str | None:
+    """The run's Postgres database: the one TEST_DATABASE_URL names in its PATH (`<db>_<worker>` in
+    an xdist worker), or None when it names none there."""
+    import os
+
+    from sqlalchemy import make_url
+
+    if _luxarch_test_db_target() is None:
+        return None
+    # read from the URL object: no local holds TEST_DATABASE_URL's text, so no traceback prints it
+    database = make_url(_LUXARCH_TEST_DB_AT_IMPORT[0]).database
+    if not database:
+        return None
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "")
+    return f"{database}_{worker}" if worker and worker != "master" else database
+
+
+def _luxarch_test_db_identity_refusal(row: object, allow: tuple[str, ...] = ()) -> str:
+    """Why a Postgres connection whose server answered `row` (its `current_database()`, and whether
+    this run's marker role exists there) is not the run's database ("" when it is). `allow` names a
+    database the block itself may also use (the maintenance one, to create a worker's)."""
+    want = _luxarch_test_db_run_database()
+    if want is None:
+        return (
+            "a Postgres connection, and TEST_DATABASE_URL names no database in its path: the "
+            "driver would pick one (libpq: the one named after the user). Name the test database "
+            "in the URL's path"
+        )
+    marker = _luxarch_test_db_marker()
+    if marker is None:
+        return "LUXARCH_TEST_RUN is not a run token (8-40 lowercase letters and digits)"
+    if not isinstance(row, (tuple, list)) or len(row) != 2:
+        return f"a Postgres connection whose server could not say where it is ({row!r})"
+    database, marked = row
+    if marked is not True:
+        return (
+            f"a connection to database {database!r} on a server without this run's marker (the "
+            f"role {marker}, which `make test` creates on the Postgres server it starts, named by "
+            "the run's token): the driver reached another server than the run's test one, another "
+            "run's, or one whose storage outlived the run that marked it. Run the suite with "
+            f"`make test`, or on a throwaway server you made, `CREATE ROLE {_LUXARCH_TEST_DB_MARKER} "
+            "NOLOGIN` (with LUXARCH_TEST_RUN unset)"
+        )
+    if database != want and database not in allow:
+        return f"a connection to database {database!r}, not the run's {want!r}"
+    return ""
+
+
+def _luxarch_test_db_ask_dbapi(dbapi_conn: object) -> object:
+    """The identity row of a Postgres driver connection, asked on that connection, which is then left
+    as it was found: the transaction the question began (a driver not in autocommit) is ended, so the
+    dialect can still set its isolation level."""
+    make = getattr(dbapi_conn, "cursor", None)
+    if not callable(make):
+        return None
+    cursor = make()
+    try:
+        cursor.execute(_luxarch_test_db_identity())
+        row = cursor.fetchone()
+    finally:
+        cursor.close()
+    end = getattr(dbapi_conn, "rollback", None)
+    if callable(end):
+        end()
+    return tuple(row) if row is not None else None
+
+
+def _luxarch_test_db_confirm(row: object, allow: tuple[str, ...] = ()) -> None:
+    """Refuse, and record, a Postgres connection that is not on the run's database."""
+    what = _luxarch_test_db_identity_refusal(row, allow)
+    if what:
+        _LUXARCH_TEST_DB_REFUSED.append(_luxarch_test_db_in_test(what))
+        raise AssertionError(f"luxarch test-db-bound: refused {what}")
 
 
 def _luxarch_test_db_bind_url(session: object) -> object:
@@ -606,6 +770,81 @@ def _luxarch_test_db_listen() -> None:
             _LUXARCH_TEST_DB_REFUSED.append(_luxarch_test_db_in_test(what))
             raise AssertionError(f"luxarch test-db-bound: refused {what}")
 
+    def _check_identity(
+        dbapi_conn: object, record: object, *_: object, dialect: object = None
+    ) -> None:
+        # a Postgres run: the server itself says where the connection is, asked on it before
+        # anything is sent on it (TEST_DATABASE_URL's text does not decide: a query `host`, a
+        # `hostaddr` in a conninfo, PGHOSTADDR or a service file send the driver elsewhere). Asked
+        # as the dialect opens it (`do_connect`), and, for one an engine's `creator=` opened or one
+        # made before the block listened, when the pool connects it and at its first checkout.
+        # The engine's own dialect: a Postgres connection in a run whose database is not on
+        # Postgres is judged too
+        if dialect is None:
+            dialect = getattr(
+                getattr(record, "_ConnectionRecord__pool", None), "_dialect", None
+            )
+        if _luxarch_test_db_target() is None:
+            # TEST_DATABASE_URL not set yet: nothing says which database is the run's
+            what = (
+                "a connection opened before TEST_DATABASE_URL was set: set it before any engine "
+                "connects (a raw_connection() or pool.connect() too)"
+            )
+            _LUXARCH_TEST_DB_REFUSED.append(_luxarch_test_db_in_test(what))
+            raise AssertionError(f"luxarch test-db-bound: refused {what}")
+        if not _luxarch_test_db_is_postgres():
+            if dialect is not None and _luxarch_test_db_pg(dialect):
+                what = "a Postgres connection in a run whose TEST_DATABASE_URL is not on Postgres"
+                _LUXARCH_TEST_DB_REFUSED.append(_luxarch_test_db_in_test(what))
+                raise AssertionError(f"luxarch test-db-bound: refused {what}")
+            return
+        info = getattr(record, "info", None)
+        if isinstance(info, dict) and info.get(_LUXARCH_TEST_DB_MARKER):
+            return
+        try:
+            row = _luxarch_test_db_ask_dbapi(dbapi_conn)
+        except Exception as e:
+            row = f"{type(e).__name__} asking it"
+        # the block's own engine on the maintenance database, while it creates a worker's
+        allow = ("postgres",) if _LUXARCH_TEST_DB_CREATING else ()
+        try:
+            _luxarch_test_db_confirm(row, allow)
+        except AssertionError:
+            import contextlib
+
+            with contextlib.suppress(Exception):
+                getattr(dbapi_conn, "close", lambda: None)()
+            raise
+        if isinstance(info, dict):
+            info[_LUXARCH_TEST_DB_MARKER] = True
+
+    def _check_do_connect(
+        dialect: object, record: object, cargs: object, cparams: object
+    ) -> object:
+        # the dialect opens the driver connection here and the server is asked on it, before the
+        # pool's `first_connect` (the dialect's own initialize, an app's one-time setup) sends
+        # anything, and outside the lock SQLAlchemy holds while `first_connect` runs: a question
+        # asked under that lock deadlocks two connections opened at once on one event loop
+        connect = getattr(dialect, "connect", None)
+        if not callable(connect) or not isinstance(cargs, (list, tuple)):
+            return None
+        # the rest of the chain first, as SQLAlchemy would run it (an app's listener that sets the
+        # password or returns a connection of its own), then the dialect, then the question
+        dbapi_conn = None
+        for fn in getattr(getattr(dialect, "dispatch", None), "do_connect", ()):
+            # this listener, and another copy of this block's (imported under a second name)
+            if getattr(fn, "__name__", "") == _check_do_connect.__name__:
+                continue
+            dbapi_conn = fn(dialect, record, cargs, cparams)
+            if dbapi_conn is not None:
+                break
+        if dbapi_conn is None:
+            dbapi_conn = connect(
+                *cargs, **(cparams if isinstance(cparams, dict) else {})
+            )
+        _check_identity(dbapi_conn, record, dialect=dialect)
+        return dbapi_conn
+
     def _check_returned(dbapi_conn: object, record: object) -> None:
         import contextlib
 
@@ -618,6 +857,8 @@ def _luxarch_test_db_listen() -> None:
     if not _LUXARCH_TEST_DB_AT_IMPORT and os.environ.get("TEST_DATABASE_URL"):
         _LUXARCH_TEST_DB_AT_IMPORT.append(os.environ["TEST_DATABASE_URL"])
     _luxarch_test_db_wrap_sqlite3()
+    if not event.contains(Engine, "do_connect", _check_do_connect):
+        event.listen(Engine, "do_connect", _check_do_connect, insert=True)
     if not event.contains(Engine, "engine_connect", _check):
         event.listen(Engine, "engine_connect", _check)
     if not event.contains(Engine, "before_cursor_execute", _check_statement):
@@ -627,13 +868,16 @@ def _luxarch_test_db_listen() -> None:
     if not event.contains(Engine, "before_cursor_execute", _check_loop):
         event.listen(Engine, "before_cursor_execute", _check_loop)
     for name, fn in (
+        ("connect", _check_identity),
+        ("checkout", _check_identity),
         ("connect", _check_dbapi),
         ("checkout", _check_dbapi),
         ("checkout", _check_held),
         ("checkin", _check_returned),
     ):
         if not event.contains(Pool, name, fn):
-            event.listen(Pool, name, fn)
+            # the server is asked first, before an app's own connect listener sends anything
+            event.listen(Pool, name, fn, insert=fn is _check_identity)
 
 
 def _luxarch_test_db_session_url(dep: object) -> object:
@@ -779,6 +1023,10 @@ def _luxarch_test_db_empty_server(c: object) -> None:
         )
     run = c.execute
     name = c.dialect.name
+    if _luxarch_test_db_pg(c.dialect):
+        # asked on the very connection that empties, before anything is emptied
+        _luxarch_test_db_confirm(tuple(run(text(_luxarch_test_db_identity())).one()))
+        name = "postgresql"
     if name not in _LUXARCH_TEST_DB_TABLES:
         raise AssertionError(
             f"luxarch test-db-bound: real_commits empties Postgres and SQLite databases, not {name}: "
@@ -881,16 +1129,15 @@ def _luxarch_test_db_empty_sqlite(raw: object) -> None:
     cur.close()
 
 
-def _luxarch_test_db_check_held(dialect: str, dbapi: object, database: object) -> None:
+def _luxarch_test_db_check_held(dialect: str, dbapi: object, identity: object) -> None:
     """The test's own connection is what the block believes: a SQLite driver inside a transaction, a
-    Postgres server on the run's database (a `connect_args` or `creator` can point elsewhere)."""
-    want = _luxarch_test_db_target()
+    Postgres server the test stack marked, on the run's database (`identity`, the server's answer to
+    `_luxarch_test_db_identity()` on that connection: a `connect_args`, `creator` or query can point
+    elsewhere)."""
     if dialect == "sqlite" and not _luxarch_test_db_in_transaction(dbapi):
         raise AssertionError(f"luxarch test-db-bound: {_LUXARCH_TEST_DB_SQLITE_RECIPE}")
-    if dialect == "postgresql" and want is not None and database != want[3]:
-        what = f"the app's engine connected to database {database!r}, not {want[3]!r}"
-        _LUXARCH_TEST_DB_REFUSED.append(_luxarch_test_db_in_test(what))
-        raise AssertionError(f"luxarch test-db-bound: refused {what}")
+    if dialect == "postgresql":
+        _luxarch_test_db_confirm(identity)
 
 
 def _luxarch_test_db_fail_teardown(what: str) -> None:
@@ -944,7 +1191,7 @@ def _luxarch_test_db_create_worker_database(config: object) -> str:
             f"luxarch test-db-bound: xdist started this worker as {workerinput.get('workerid')!r}, "
             f"but PYTEST_XDIST_WORKER is {worker!r}: the run's database cannot be told"
         )
-    if want[0] != "postgresql":
+    if not _luxarch_test_db_is_postgres():
         raise AssertionError(
             "luxarch test-db-bound: under pytest -n each worker runs on its own database, which "
             f"the block creates on Postgres, not {want[0]}"
@@ -971,6 +1218,11 @@ def _luxarch_test_db_create_worker_database(config: object) -> str:
         async def _create() -> None:
             try:
                 async with aengine.connect() as c:
+                    # the server says it is the test stack's, before any DDL is sent to it
+                    identity = (
+                        await c.execute(text(_luxarch_test_db_identity()))
+                    ).one()
+                    _luxarch_test_db_confirm(tuple(identity), ("postgres",))
                     for sql in statements:
                         await c.execute(text(sql))
             finally:
@@ -986,6 +1238,8 @@ def _luxarch_test_db_create_worker_database(config: object) -> str:
     _LUXARCH_TEST_DB_CREATING[:] = [engine]
     try:
         with engine.connect() as c:
+            identity = c.execute(text(_luxarch_test_db_identity())).one()
+            _luxarch_test_db_confirm(tuple(identity), ("postgres",))
             for sql in statements:
                 c.execute(text(sql))
     finally:
@@ -1040,13 +1294,16 @@ def _luxarch_test_db_fixtures() -> tuple[object, object, object, object]:
             else:
                 conn = bind.connect()
                 trans = conn.begin()
-                database = (
-                    conn.execute(text("SELECT current_database()")).scalar()
-                    if bind.dialect.name == "postgresql"
+                pg = _luxarch_test_db_pg(bind.dialect)
+                identity = (
+                    tuple(conn.execute(text(_luxarch_test_db_identity())).one())
+                    if pg
                     else None
                 )
                 _luxarch_test_db_check_held(
-                    bind.dialect.name, conn.connection.dbapi_connection, database
+                    "postgresql" if pg else bind.dialect.name,
+                    conn.connection.dbapi_connection,
+                    identity,
                 )
                 held(conn.connection.dbapi_connection)
                 _LUXARCH_TEST_DB_MODE[:] = ["held"]
@@ -1126,13 +1383,16 @@ def _luxarch_test_db_fixtures() -> tuple[object, object, object, object]:
                 conn = await bind.connect()
                 trans = await conn.begin()
                 raw = await conn.get_raw_connection()
-                database = (
-                    (await conn.execute(text("SELECT current_database()"))).scalar()
-                    if bind.dialect.name == "postgresql"
+                pg = _luxarch_test_db_pg(bind.dialect)
+                identity = (
+                    tuple((await conn.execute(text(_luxarch_test_db_identity()))).one())
+                    if pg
                     else None
                 )
                 _luxarch_test_db_check_held(
-                    bind.dialect.name, raw.dbapi_connection, database
+                    "postgresql" if pg else bind.dialect.name,
+                    raw.dbapi_connection,
+                    identity,
                 )
                 held(raw.dbapi_connection)
                 import asyncio
