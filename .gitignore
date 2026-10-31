@@ -51,7 +51,6 @@ nginx/
 prod/
 scratch/
 RELEASE.md
-CHANGELOG.md
 README.md.archived
 .dockerignore
 
