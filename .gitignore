@@ -50,7 +50,6 @@ docker-compose*.yml
 nginx/
 prod/
 scratch/
-package-lock.json
 RELEASE.md
 CHANGELOG.md
 README.md.archived
