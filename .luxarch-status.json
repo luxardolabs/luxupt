@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.334.0",
+  "guard_version": "0.335.0",
   "repo": "/repo",
   "targets": [
     {
@@ -1648,13 +1648,13 @@
         },
         {
           "rule": "fw.file_size",
-          "status": "PASS",
+          "status": "FAIL",
           "since": "0.235.0",
-          "violations": 0,
+          "violations": 1,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "",
+          "fix": "Follow `luxarch --playbook file-size` \u2014 it is a procedure, not a number. Run `luxarch --sweep split-plan --path <file>` for the evidence, then extract ONLY a cluster that passes the playbook's domain test (its own entity it actually touches, its own lifecycle, its own actor, its own representations, low coupling). If nothing passes, the file is one domain: decompose INSIDE its biggest methods, never split its own subject across files. Import at source, no re-export shim. A file the procedure leaves over the limit because it is one domain records that on one comment line, `# file-size: <the domain and why> \u2014 <its LOC>`: green while it stays at or under that size, never above the ceiling.",
           "example": ""
         },
         {
@@ -1857,8 +1857,8 @@
         }
       ],
       "summary": {
-        "PASS": 141,
-        "FAIL": 0,
+        "PASS": 140,
+        "FAIL": 1,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -2636,12 +2636,12 @@
     }
   },
   "summary": {
-    "PASS": 208,
-    "FAIL": 0,
+    "PASS": 207,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 29
   },
-  "commit": "5f2c78bb2eda83a489e021da3bc0e8dada1650f0",
-  "generated_at": "2026-10-31T03:29:57Z"
+  "commit": "a696f82074d16043ebe0decadbffd22392a51413",
+  "generated_at": "2026-10-31T19:19:40Z"
 }

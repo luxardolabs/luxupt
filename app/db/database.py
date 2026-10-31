@@ -163,41 +163,31 @@ async def init_db() -> None:
     # ruff's message suggests trio/anyio, which does not apply to this fleet.
     await asyncio.to_thread(DATABASE_DIR.mkdir, parents=True, exist_ok=True)
 
-    try:
-        # Autocommit: VACUUM cannot run inside a transaction (_begin_transaction emits none here).
-        async with engine.connect() as raw:
-            conn = await raw.execution_options(isolation_level="AUTOCOMMIT")
-            # PRAGMAs (WAL, synchronous, busy_timeout, mmap, cache) are set automatically
-            # by the _set_sqlite_pragmas event listener on every new connection.
-            logger.info("SQLite WAL mode enabled for better concurrency")
+    # Autocommit: VACUUM cannot run inside a transaction (_begin_transaction emits none here).
+    async with engine.connect() as raw:
+        conn = await raw.execution_options(isolation_level="AUTOCOMMIT")
+        # PRAGMAs (WAL, synchronous, busy_timeout, mmap, cache) are set automatically
+        # by the _set_sqlite_pragmas event listener on every new connection.
+        logger.info("SQLite WAL mode enabled for better concurrency")
 
-            # Enable incremental auto-vacuum if not already set.
-            # auto_vacuum mode can only change on an empty DB or via VACUUM after setting it.
-            result = await conn.execute(text("PRAGMA auto_vacuum"))
-            current = result.scalar()
-            if current != 2:  # 2 = INCREMENTAL
-                logger.info(
-                    "Enabling incremental auto-vacuum (requires VACUUM)",
-                    extra={"current_mode": current},
-                )
-                await conn.execute(text("PRAGMA auto_vacuum = INCREMENTAL"))
-                await conn.execute(text("VACUUM"))
-                logger.info("Incremental auto-vacuum enabled")
-
-        # Build/upgrade the schema from the migration chain -- the ONE construction, the same
-        # on a fresh deploy and an existing database (fw.schema_from_migrations).
-        _run_migrations()
-
-        await seed_singleton_settings()
-    except Exception as e:
-        # Handle race condition where another process might have created tables
-        if "already exists" in str(e).lower():
-            logger.warning(
-                "Tables already exist (likely created by another service)",
-                extra={"error": str(e)},
+        # Enable incremental auto-vacuum if not already set.
+        # auto_vacuum mode can only change on an empty DB or via VACUUM after setting it.
+        result = await conn.execute(text("PRAGMA auto_vacuum"))
+        current = result.scalar()
+        if current != 2:  # 2 = INCREMENTAL
+            logger.info(
+                "Enabling incremental auto-vacuum (requires VACUUM)",
+                extra={"current_mode": current},
             )
-        else:
-            raise
+            await conn.execute(text("PRAGMA auto_vacuum = INCREMENTAL"))
+            await conn.execute(text("VACUUM"))
+            logger.info("Incremental auto-vacuum enabled")
+
+    # Build/upgrade the schema from the migration chain -- the ONE construction, the same
+    # on a fresh deploy and an existing database (fw.schema_from_migrations).
+    _run_migrations()
+
+    await seed_singleton_settings()
 
 
 async def seed_singleton_settings() -> None:

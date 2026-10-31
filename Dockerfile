@@ -30,6 +30,8 @@ RUN poetry install --only main --no-root --no-directory
 # package-mode=false: no root wheel is built; the app runs from this source on PYTHONPATH.
 COPY app ./app
 COPY README.md ./
+# Exact modes whatever the checkout's umask: the runtime user reads this code and can never write it.
+RUN chmod -R u=rwX,go=rX /app/app
 
 # Dev dependency group for the TEST stage only (pytest, coverage): it never reaches production,
 # which copies its venv from `builder`.
@@ -111,15 +113,12 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/app ./app
 # The stylesheet comes ONLY from the css stage, after the app copy, so nothing from the build
 # context can overwrite it (fw.generated_assets_built_in_image).
-COPY --from=css /build/app/static/css/app.css ./app/static/css/app.css
-COPY entrypoint.sh ./
+COPY --chmod=644 --from=css /build/app/static/css/app.css ./app/static/css/app.css
+COPY --chmod=755 entrypoint.sh ./
 
 # Create output directories
 RUN mkdir -p output/images output/videos && \
     chown -R appuser:appuser output
-
-# Make entrypoint executable
-RUN chmod +x entrypoint.sh
 
 # Nothing runs pip at runtime, and pip vendors its own urllib3/msgpack/setuptools that no lock
 # bump reaches (luxaudit --doc REFERENCE, image leg) -- so the runtime carries none of it.
@@ -150,7 +149,7 @@ ENTRYPOINT ["./entrypoint.sh"]
 # plus the dev group's venv. Never pushed, never a deploy tag. The suite runs against the source
 # mounted at /repo, so PYTHONPATH is cleared: imports resolve from the mount, not the baked copy.
 FROM app AS test
-COPY --from=builder-dev --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder-dev /app/.venv /app/.venv
 ENV PYTHONPATH=
 # The suite's command is given by `make test`; production's uvicorn entrypoint would swallow it.
 ENTRYPOINT []
