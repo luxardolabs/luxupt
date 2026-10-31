@@ -275,20 +275,23 @@ class FetchService:
                     for camera, capabilities in detected:
                         if capabilities is None:
                             continue
+                        # A savepoint per camera: one failed write is undone alone and the
+                        # session stays usable for the others.
                         try:
-                            await camera_crud.update_capability_detection(
-                                db,
-                                camera.id,
-                                api_max_resolution=capabilities.get(
-                                    "api_max_resolution"
-                                ),
-                                rtsp_max_resolution=capabilities.get(
-                                    "rtsp_max_resolution"
-                                ),
-                                recommended_method=capabilities.get(
-                                    "recommended_method"
-                                ),
-                            )
+                            async with db.begin_nested():
+                                await camera_crud.update_capability_detection(
+                                    db,
+                                    camera.id,
+                                    api_max_resolution=capabilities.get(
+                                        "api_max_resolution"
+                                    ),
+                                    rtsp_max_resolution=capabilities.get(
+                                        "rtsp_max_resolution"
+                                    ),
+                                    recommended_method=capabilities.get(
+                                        "recommended_method"
+                                    ),
+                                )
                         except Exception as e:
                             logger.warning(
                                 "Failed to store detected capabilities",

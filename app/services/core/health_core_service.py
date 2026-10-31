@@ -4,6 +4,7 @@ Health check service.
 Provides comprehensive health checks for the application.
 """
 
+import asyncio
 import logging
 import os
 from datetime import UTC, datetime
@@ -140,9 +141,17 @@ class HealthCoreService:
         }
 
     async def get_health_status(self, db: AsyncSession) -> HealthReport:
-        """Get comprehensive health status."""
+        """Get comprehensive health status.
+
+        The cameras and the storage paths are checked before the database is pinged: the ping
+        opens a transaction that holds the write lock until the caller commits, and the camera
+        listing can go to the network and the storage check to a mounted disk.
+        """
         checks = {}
         overall_status = HealthStatus.HEALTHY
+
+        camera_check = await self.check_camera_manager()
+        storage_check = await asyncio.to_thread(self.check_storage)
 
         # Database check
         checks["database"] = await self.check_database(db)
@@ -155,7 +164,7 @@ class HealthCoreService:
             overall_status = HealthStatus.DEGRADED
 
         # Camera manager check
-        checks["camera_manager"] = await self.check_camera_manager()
+        checks["camera_manager"] = camera_check
         if checks["camera_manager"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
         elif (
@@ -165,7 +174,7 @@ class HealthCoreService:
             overall_status = HealthStatus.DEGRADED
 
         # Storage check
-        checks["storage"] = self.check_storage()
+        checks["storage"] = storage_check
         if checks["storage"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
         elif (
@@ -206,7 +215,13 @@ class HealthCoreService:
         )
 
     async def get_readiness(self, db: AsyncSession) -> ReadinessReport:
-        """Readiness check (is the application ready to serve traffic)."""
+        """Readiness check (is the application ready to serve traffic).
+
+        The cameras are asked before the database is pinged, for the reason get_health_status
+        gives; a database failure still answers first.
+        """
+        camera_check = await self.check_camera_manager()
+
         # Check database connectivity
         db_check = await self.check_database(db)
 
@@ -216,9 +231,6 @@ class HealthCoreService:
                 timestamp=datetime.now(UTC).isoformat(),
                 message="Database not available",
             )
-
-        # Check camera manager
-        camera_check = await self.check_camera_manager()
 
         # Camera manager being degraded (no cameras) shouldn't block readiness
         # but being unhealthy (error) should

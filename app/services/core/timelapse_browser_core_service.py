@@ -11,6 +11,7 @@ from app.db.post_commit import after_commit
 from app.models.timelapse_model import Timelapse
 from app.schemas.timelapse_schema import TimelapseRead, TimelapseStats
 from app.services.core._path_security import validate_video_path
+from app.services.core._protect_calls_durable import read_timelapse
 from app.utils import async_fs
 
 
@@ -122,8 +123,12 @@ class TimelapseBrowserCoreService:
         )
 
     async def get_video_path(self, timelapse_id: int) -> str | None:
-        """Get the video file path for a timelapse with path traversal protection."""
-        timelapse = await timelapse_crud.get(self.db, timelapse_id)
+        """Get the video file path for a timelapse with path traversal protection.
+
+        The row is read in its own committed transaction, so the disk check after it runs with
+        no transaction open.
+        """
+        timelapse = await read_timelapse(timelapse_id)
         if not timelapse or not timelapse.file_path:
             return None
 
@@ -142,8 +147,12 @@ class TimelapseBrowserCoreService:
         return validated_path
 
     async def get_thumbnail_path(self, timelapse_id: int) -> str | None:
-        """Get the thumbnail path for a timelapse with path traversal protection."""
-        timelapse = await timelapse_crud.get(self.db, timelapse_id)
+        """Get the thumbnail path for a timelapse with path traversal protection.
+
+        The row is read in its own committed transaction, so the disk checks after it run with
+        no transaction open.
+        """
+        timelapse = await read_timelapse(timelapse_id)
         if not timelapse:
             return None
 

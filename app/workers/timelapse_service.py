@@ -358,6 +358,9 @@ class TimelapseService:
                             if db_ready or not hasattr(self, "_db_wait_logged"):
                                 logger.info("Waiting for database to be initialized")
                                 self._db_wait_logged = True
+                            # The failed read began the transaction, and with it the write lock
+                            # the migrations creating that table need: end it before waiting.
+                            await db.rollback()
                             await asyncio.sleep(5)  # Wait 5 seconds and retry
                             continue
                         raise  # Re-raise other errors

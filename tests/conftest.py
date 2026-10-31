@@ -18,11 +18,12 @@ Nothing here overrides `get_db` or swaps the maker (`luxarch --playbook test-iso
 
 import os
 import tempfile
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from sqlalchemy.exc import OperationalError
 
 # --- the dedicated test database (luxlint test.db_isolated) ---------------------------
 # ONE fleet mechanism: the suite sources a dedicated TEST_DATABASE_URL with a throwaway
@@ -214,6 +215,31 @@ def durable_db(real_commits: None) -> async_sessionmaker[AsyncSession]:
     settings (``expire_on_commit=False``, ``autoflush=False``).
     """
     return async_session
+
+
+@pytest.fixture
+def write_lock_free(real_commits: None) -> Callable[[], Awaitable[bool]]:
+    """Whether another connection can take the write lock right now, waiting at most 0.3s.
+
+    The app begins every transaction IMMEDIATE, so a session that has run any statement holds the
+    database's one write lock until it commits. Call this from inside a stubbed slow call (a camera
+    probe, a Protect request): False means the code under test is holding the lock across it, and
+    every page and the fetch worker would wait out that call.
+    """
+
+    async def probe() -> bool:
+        engine = create_async_engine(TEST_DATABASE_URL, connect_args={"timeout": 0.3})
+        try:
+            async with engine.connect() as conn:
+                await conn.exec_driver_sql("BEGIN IMMEDIATE")
+                await conn.exec_driver_sql("COMMIT")
+            return True
+        except OperationalError:
+            return False
+        finally:
+            await engine.dispose()
+
+    return probe
 
 
 # luxarch:route-smoke asserter v21 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).

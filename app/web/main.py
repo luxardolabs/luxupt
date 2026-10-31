@@ -25,13 +25,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
 
-from app.clients.camera_manager import CameraManager, CameraManagerSettings
+from app.clients.camera_manager import Camera, CameraManager, CameraManagerSettings
 from app.core import config
 from app.core.logging_config import configure_logging
 from app.core.trusted_host import AllowedHostsMiddleware
 from app.crud import activity_crud, camera_crud
 from app.crud.fetch_settings_crud import fetch_settings_crud
-from app.db.database import close_db, get_db, get_db_context, init_db
+from app.db.database import close_db, get_db_context, init_db
 from app.models.enum_model import ActivityType, HealthStatus
 from app.schemas.health_schema import HealthReport, LivenessReport, ReadinessReport
 from app.services.core.health_core_service import HealthCoreService
@@ -87,7 +87,7 @@ async def log_database_settings() -> None:
         scheduler_settings_crud,
     )
 
-    async for db in get_db():
+    async with get_db_context() as db:
         try:
             # Get fetch settings
             fetch_settings = await fetch_settings_crud.get_settings(db)
@@ -115,7 +115,6 @@ async def log_database_settings() -> None:
             logger.warning(
                 "Could not load database settings for logging", extra={"error": str(e)}
             )
-        break
 
 
 async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
@@ -129,7 +128,7 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
         new_cameras = []
         new_camera_objects = []  # Track API camera objects for detection
 
-        async for db in get_db():
+        async with get_db_context() as db:
             for camera in cameras:
                 # Check if camera already exists
                 existing = await camera_crud.get_by_camera_id(db, camera.id)
@@ -166,60 +165,71 @@ async def sync_cameras_to_db(camera_manager: CameraManager) -> None:
 
                 await camera_crud.upsert_from_dict(db, data=camera_data)
 
-            await db.commit()
+        logger.info("Synced cameras to database", extra={"camera_count": len(cameras)})
+
+        if new_cameras:
+            logger.info("New cameras discovered", extra={"cameras": new_cameras})
+
+        # Run capability detection for new connected cameras. Every probe (an HTTP call to the
+        # camera) runs with no transaction open; the results are written together afterwards.
+        if new_camera_objects:
             logger.info(
-                "Synced cameras to database", extra={"camera_count": len(cameras)}
+                "Running capability detection",
+                extra={"camera_count": len(new_camera_objects)},
             )
 
-            if new_cameras:
-                logger.info("New cameras discovered", extra={"cameras": new_cameras})
+            detected: list[tuple[Camera, dict[str, Any]]] = []
+            for camera in new_camera_objects:
+                try:
+                    detected.append(
+                        (
+                            camera,
+                            await camera_manager.detect_camera_capabilities(camera),
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to detect capabilities",
+                        extra={"camera": camera.name, "error": str(e)},
+                    )
 
-            # Run capability detection for new connected cameras
-            if new_camera_objects:
-                logger.info(
-                    "Running capability detection",
-                    extra={"camera_count": len(new_camera_objects)},
-                )
-
-                for camera in new_camera_objects:
+            async with get_db_context() as db:
+                for camera, capabilities in detected:
+                    # A savepoint per camera: one failed write is undone alone and the session
+                    # stays usable for the others.
                     try:
-                        capabilities = await camera_manager.detect_camera_capabilities(
-                            camera
-                        )
-
-                        # Update camera with detection results
-                        await camera_crud.update_capability_detection(
-                            db,
-                            camera.id,
-                            api_max_resolution=capabilities.get("api_max_resolution"),
-                            rtsp_max_resolution=capabilities.get("rtsp_max_resolution"),
-                            recommended_method=capabilities.get("recommended_method"),
-                        )
-
-                        logger.info(
-                            "Detected camera capabilities",
-                            extra={
-                                "camera": camera.name,
-                                "api_resolution": capabilities.get(
+                        async with db.begin_nested():
+                            await camera_crud.update_capability_detection(
+                                db,
+                                camera.id,
+                                api_max_resolution=capabilities.get(
                                     "api_max_resolution"
                                 ),
-                                "rtsp_resolution": capabilities.get(
+                                rtsp_max_resolution=capabilities.get(
                                     "rtsp_max_resolution"
                                 ),
-                                "recommended_method": capabilities.get(
+                                recommended_method=capabilities.get(
                                     "recommended_method"
                                 ),
-                            },
-                        )
-
+                            )
                     except Exception as e:
                         logger.warning(
-                            "Failed to detect capabilities",
+                            "Failed to store detected capabilities",
                             extra={"camera": camera.name, "error": str(e)},
                         )
-
-                await db.commit()
-                logger.info("Capability detection complete for new cameras")
+                        continue
+                    logger.info(
+                        "Detected camera capabilities",
+                        extra={
+                            "camera": camera.name,
+                            "api_resolution": capabilities.get("api_max_resolution"),
+                            "rtsp_resolution": capabilities.get("rtsp_max_resolution"),
+                            "recommended_method": capabilities.get(
+                                "recommended_method"
+                            ),
+                        },
+                    )
+            logger.info("Capability detection complete for new cameras")
 
     except Exception as e:
         logger.exception("Failed to sync cameras to database", extra={"error": str(e)})
@@ -532,9 +542,8 @@ async def health_check(request: Request, response: Response) -> HealthReport:
     camera_manager = getattr(request.app.state, "camera_manager", None)
     health_service = HealthCoreService(camera_manager=camera_manager)
 
-    async for db in get_db():
+    async with get_db_context() as db:
         health_status = await health_service.get_health_status(db)
-        break
 
     if health_status.status == HealthStatus.UNHEALTHY:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -554,9 +563,8 @@ async def readiness_check(request: Request, response: Response) -> ReadinessRepo
     camera_manager = getattr(request.app.state, "camera_manager", None)
     health_service = HealthCoreService(camera_manager=camera_manager)
 
-    async for db in get_db():
+    async with get_db_context() as db:
         readiness = await health_service.get_readiness(db)
-        break
 
     if readiness.status == HealthStatus.UNHEALTHY:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -569,9 +577,8 @@ async def prometheus_metrics(request: Request) -> PlainTextResponse:
     start_time = getattr(request.app.state, "start_time", datetime.now(UTC))
     metrics_service = MetricsCoreService(start_time=start_time)
 
-    async for db in get_db():
+    async with get_db_context() as db:
         metrics = await metrics_service.get_all_metrics(db)
-        break
 
     return PlainTextResponse(
         content=metrics, media_type="text/plain; version=0.0.4; charset=utf-8"

@@ -17,6 +17,13 @@ from app.schemas.scheduler_settings_schema import SchedulerSettingsRead
 from app.services.core._fetch_settings_durable import (
     save_fetch_settings_durable as _save_fetch_settings_durable,
 )
+from app.services.core._protect_calls_durable import (
+    camera_manager_settings,
+    protect_credentials,
+    read_camera_manager_settings,
+    read_protect_credentials,
+    read_scheduler_settings,
+)
 
 
 class SettingsCoreService:
@@ -73,33 +80,26 @@ class SettingsCoreService:
 
     async def get_camera_manager_settings(self) -> CameraManagerSettings:
         """CameraManager settings with env-var precedence over the database."""
-        s = await fetch_settings_crud.get_settings(self.db)
-        return CameraManagerSettings(
-            base_url=config.UNIFI_PROTECT_BASE_URL or s.base_url or "",
-            api_key=config.UNIFI_PROTECT_API_KEY or s.api_key or "",
-            verify_ssl=config.UNIFI_PROTECT_VERIFY_SSL
-            if config.UNIFI_PROTECT_BASE_URL
-            else s.verify_ssl,
-            request_timeout=s.request_timeout,
-            rate_limit=s.rate_limit,
-            rate_limit_buffer=s.rate_limit_buffer,
-            min_offset_seconds=s.min_offset_seconds,
-            max_offset_seconds=s.max_offset_seconds,
-            camera_refresh_interval=s.camera_refresh_interval,
-        )
+        return camera_manager_settings(await fetch_settings_crud.get_settings(self.db))
 
     async def get_protect_credentials(self) -> tuple[str, str, str, bool]:
         """(base_url, username, password, verify_ssl) with env-var precedence over the database."""
-        s = await fetch_settings_crud.get_settings(self.db)
-        base_url = config.UNIFI_PROTECT_BASE_URL or s.base_url or ""
-        username = config.UNIFI_PROTECT_USERNAME or s.username or ""
-        password = config.UNIFI_PROTECT_PASSWORD or s.password or ""
-        verify_ssl = (
-            config.UNIFI_PROTECT_VERIFY_SSL
-            if config.UNIFI_PROTECT_BASE_URL
-            else bool(s.verify_ssl)
-        )
-        return base_url, username, password, verify_ssl
+        return protect_credentials(await fetch_settings_crud.get_settings(self.db))
+
+    # Owned reads for a request that then calls Protect or a camera: each commits before it
+    # returns, so the call runs with no transaction open. They do NOT use this service's session.
+
+    async def read_camera_manager_settings_owned(self) -> CameraManagerSettings:
+        """get_camera_manager_settings, read in its own committed transaction."""
+        return await read_camera_manager_settings()
+
+    async def read_protect_credentials_owned(self) -> tuple[str, str, str, bool]:
+        """get_protect_credentials, read in its own committed transaction."""
+        return await read_protect_credentials()
+
+    async def read_scheduler_settings_owned(self) -> SchedulerSettingsRead:
+        """get_scheduler_settings, read in its own committed transaction."""
+        return await read_scheduler_settings()
 
     async def update_fetch_settings(
         self, settings: dict[str, Any]

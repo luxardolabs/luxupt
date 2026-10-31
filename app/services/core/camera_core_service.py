@@ -8,6 +8,12 @@ from app.core import config
 from app.crud import camera_crud
 from app.models.camera_model import Camera
 from app.schemas.camera_schema import CameraRead
+from app.services.core._protect_calls_durable import (
+    read_active_cameras,
+    read_camera,
+    read_camera_by_safe_name,
+    write_capability_detection,
+)
 
 
 class CameraCoreService:
@@ -91,6 +97,38 @@ class CameraCoreService:
             recommended_method=recommended_method,
         )
         return CameraRead.model_validate(camera) if camera else None
+
+    # Owned reads and writes for a request that calls a camera or Protect in between: each
+    # commits before it returns, so the call runs with no transaction open. They do NOT use
+    # this service's session.
+
+    async def get_active_owned(self) -> list[CameraRead]:
+        """get_active, read in its own committed transaction."""
+        return await read_active_cameras()
+
+    async def get_by_id_owned(self, camera_id: str) -> CameraRead | None:
+        """get_by_id, read in its own committed transaction."""
+        return await read_camera(camera_id)
+
+    async def get_by_safe_name_owned(self, safe_name: str) -> CameraRead | None:
+        """get_by_safe_name, read in its own committed transaction."""
+        return await read_camera_by_safe_name(safe_name)
+
+    async def update_capability_detection_owned(
+        self,
+        camera_id: str,
+        *,
+        api_max_resolution: str | None = None,
+        rtsp_max_resolution: str | None = None,
+        recommended_method: str | None = None,
+    ) -> CameraRead | None:
+        """update_capability_detection, in its own committed transaction."""
+        return await write_capability_detection(
+            camera_id,
+            api_max_resolution=api_max_resolution,
+            rtsp_max_resolution=rtsp_max_resolution,
+            recommended_method=recommended_method,
+        )
 
     async def get_cameras_for_interval(self, interval: int) -> list[Camera]:
         """Get cameras enabled for a specific interval."""

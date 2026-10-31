@@ -88,8 +88,9 @@ class ImagesViewService:
         Returns:
             Tuple of (file_path, exists_on_disk)
         """
-        # Lookup camera to get camera_id for queries
-        camera = await self.camera_service.get_by_safe_name(camera_safe_name)
+        # Lookup camera to get camera_id for queries. Both reads are owned and committed, so the
+        # disk check that follows runs with no transaction open.
+        camera = await self.camera_service.get_by_safe_name_owned(camera_safe_name)
         if not camera:
             return None, False
 

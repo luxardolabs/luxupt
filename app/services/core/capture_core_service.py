@@ -10,6 +10,7 @@ from app.core import config
 from app.crud import capture_crud
 from app.schemas.capture_schema import CaptureRead, CaptureStats
 from app.services.core._path_security import validate_image_path
+from app.services.core._protect_calls_durable import read_capture
 from app.utils import async_fs
 
 if TYPE_CHECKING:
@@ -60,11 +61,14 @@ class CaptureCoreService:
     ) -> tuple[str | None, bool]:
         """Get a capture's file path with path traversal protection.
 
+        The row is read in its own committed transaction, so the disk check after it runs with
+        no transaction open.
+
         Returns:
             Tuple of (validated_file_path, exists_on_disk)
             Returns (None, False) if capture not found or path validation fails.
         """
-        capture = await self.get_by_camera_and_timestamp(camera_id, timestamp, interval)
+        capture = await read_capture(camera_id, timestamp, interval)
 
         if not capture or not capture.file_path:
             return None, False

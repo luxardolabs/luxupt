@@ -548,14 +548,16 @@ class CamerasViewService:
     async def test_protect_connection(self) -> dict[str, Any]:
         """Verify the configured Protect username/password by pulling one recent snapshot.
 
-        Returns template context: {"ok": bool, "message"/"error": str}.
+        Returns template context: {"ok": bool, "message"/"error": str}. Its inputs are read in
+        owned, committed transactions so the request's own session holds no lock across the
+        console call.
         """
         (
             base_url,
             username,
             password,
             verify_ssl,
-        ) = await self.settings_service.get_protect_credentials()
+        ) = await self.settings_service.read_protect_credentials_owned()
 
         if not base_url:
             return {
@@ -565,7 +567,7 @@ class CamerasViewService:
         if not username or not password:
             return {"ok": False, "error": "Username and password required."}
 
-        cameras = await self.camera_service.get_active()
+        cameras = await self.camera_service.get_active_owned()
         if not cameras:
             return {
                 "ok": False,
@@ -668,8 +670,12 @@ class CamerasViewService:
             return False, str(e)
 
     async def run_capability_detection(self, camera_id: str) -> dict[str, Any] | None:
-        """Load CameraManager settings and run capability detection for a camera."""
-        cm_settings = await self.settings_service.get_camera_manager_settings()
+        """Load CameraManager settings and run capability detection for a camera.
+
+        Every read and the result's write run in owned, committed transactions, so the request's
+        own session holds no lock across the probe to the camera.
+        """
+        cm_settings = await self.settings_service.read_camera_manager_settings_owned()
         async with CameraManager(cm_settings) as manager:
             capabilities = await self.detect_camera_capabilities(camera_id, manager)
         if capabilities is not None:
@@ -683,7 +689,7 @@ class CamerasViewService:
         self, camera_id: str, camera_manager: CameraManager
     ) -> dict[str, Any] | None:
         """Run capability detection for a camera."""
-        camera = await self.camera_service.get_by_id(camera_id)
+        camera = await self.camera_service.get_by_id_owned(camera_id)
         if not camera:
             return None
 
@@ -712,7 +718,7 @@ class CamerasViewService:
         capabilities = await camera_manager.detect_camera_capabilities(api_camera)
 
         # Update camera with detection results
-        await self.camera_service.update_capability_detection(
+        await self.camera_service.update_capability_detection_owned(
             camera_id,
             api_max_resolution=capabilities.get("api_max_resolution"),
             rtsp_max_resolution=capabilities.get("rtsp_max_resolution"),

@@ -454,11 +454,12 @@ class TimelapsesViewService:
 
         One bootstrap call to Protect populates the recording ranges for ALL
         cameras at render time, so the operator can see what dates are
-        available per camera before submitting a job.
+        available per camera before submitting a job. Its inputs are read in owned, committed
+        transactions so the request's own session holds no lock across that call.
         """
-        cameras = await self.camera_service.get_active()
+        cameras = await self.camera_service.get_active_owned()
         yesterday = business_day() - timedelta(days=1)
-        scheduler_settings = await self.settings_service.get_scheduler_settings()
+        scheduler_settings = await self.settings_service.read_scheduler_settings_owned()
         global_recreate = bool(scheduler_settings.recreate_existing)
 
         camera_ranges: dict[str, dict[str, str | int]] = {}
@@ -469,7 +470,7 @@ class TimelapsesViewService:
                 username,
                 password,
                 verify_ssl,
-            ) = await self.settings_service.get_protect_credentials()
+            ) = await self.settings_service.read_protect_credentials_owned()
             if not (base_url and username and password):
                 range_error = "Protect credentials are not configured."
             else:
