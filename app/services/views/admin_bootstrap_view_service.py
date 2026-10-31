@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap-view asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
+# luxarch:admin-bootstrap-view asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
 """The web seam of the admin bootstrap. `luxarch --emit admin-bootstrap-view`.
 
 Drop this in at `app/services/views/admin_bootstrap_view_service.py`. It turns the `/setup` form into
@@ -10,6 +10,10 @@ Every path it hands back is resolved from a route NAME through the request (`req
 its path only), so a page that moves, a mount prefix and the app's `root_path` all reach every
 redirect and every comparison with the path the request arrived on (`fw.urls_from_route_names`,
 `luxarch --playbook url-in-view`).
+
+A form re-rendered with an error carries back only text the page can be written in: a login holding
+a character UTF-8 cannot encode (a lone surrogate, which a client reaches by naming the form's
+charset) is shown empty, and an error message shows such a character as its `\\uXXXX` escape.
 
 The standard is `luxarch --doc FLEET-ADMIN-BOOTSTRAP-STANDARD`.
 """
@@ -121,10 +125,20 @@ class AdminBootstrapViewService:
 
     @staticmethod
     def _again(login: str, error: str, status_code: int) -> SetupOutcome:
+        shown = login if _escaped(login) == login else ""
         return SetupOutcome(
             status_code=status_code,
-            context={"login": login, "login_kind": LOGIN_KIND, "error": error},
+            context={
+                "login": shown,
+                "login_kind": LOGIN_KIND,
+                "error": _escaped(error),
+            },
         )
+
+
+def _escaped(text: str) -> str:
+    """`text` as a UTF-8 page carries it: each lone surrogate becomes its `\\uXXXX` escape."""
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
 
 
 def _path(request: Request, name: str) -> str:

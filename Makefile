@@ -151,7 +151,7 @@ poetry-install: ## Verify deps resolve + install from lock in a throwaway contai
 
 # --- Secret scanning: the fleet privacy gate (content + commit identity) ---
 .PHONY: gitleaks gitleaks-staged
-# luxarch:gitleaks asset v19 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
+# luxarch:gitleaks asset v20 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
 # ── The privacy gate: EVERY surface a commit publishes ──────────────────────────────────────────
 # Emitted by `luxarch --emit gitleaks`. Drop in verbatim.
 #
@@ -235,9 +235,19 @@ GITLEAKS_IMAGE = $(if $(findstring /,$(LUXLINT)),$(dir $(LUXLINT)),zricethezav/)
 # non-UTF-8 author name inside `|| true` left the identity pass empty, so it PASSED having read nothing.
 # Every pass reads this checkout's repository, never one a caller's GIT_DIR (or a git hook's) names:
 # the variables that point git elsewhere or change what it reads are unset for each pass.
-override GITLEAKS_HISTORY_ENV := unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_GRAFT_FILE GIT_NAMESPACE GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT GIT_CEILING_DIRECTORIES GIT_DISCOVERY_ACROSS_FILESYSTEM;
 # Every pass reads the commits a push publishes, never a local `git replace` that shows git another
 # commit (another identity, message, path or content) in their place.
+# The repository's own config cannot change what a pass reads either: each pass, the history scan's
+# container included, runs git with these settings as command-line config, which outranks every config
+# file. `core.useReplaceRefs=false`: git 2.39 (the git macOS ships) lets a repository's `true` turn
+# replace refs back on over GIT_NO_REPLACE_OBJECTS. `i18n.logOutputEncoding=UTF-8`: a repository set to
+# UTF-16 or UTF-32 output re-encodes every record git prints, the passes' header lines included, and
+# the message and identity passes then read nothing. `core.bigFileThreshold=512m` (git's default): a
+# lower one makes git treat every file as binary and print no patch. `diff.relative=false`: a relative
+# diff drops every path outside the directory git runs in. `log.follow=false`: the binary pass reads
+# one path per `git log`, which `log.follow` turns into following a rename to another file.
+override GITLEAKS_GIT_CONFIG := GIT_CONFIG_COUNT=5 GIT_CONFIG_KEY_0=core.useReplaceRefs GIT_CONFIG_VALUE_0=false GIT_CONFIG_KEY_1=i18n.logOutputEncoding GIT_CONFIG_VALUE_1=UTF-8 GIT_CONFIG_KEY_2=core.bigFileThreshold GIT_CONFIG_VALUE_2=512m GIT_CONFIG_KEY_3=diff.relative GIT_CONFIG_VALUE_3=false GIT_CONFIG_KEY_4=log.follow GIT_CONFIG_VALUE_4=false
+override GITLEAKS_HISTORY_ENV := unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_GRAFT_FILE GIT_NAMESPACE GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT GIT_CEILING_DIRECTORIES GIT_DISCOVERY_ACROSS_FILESYSTEM; export $(GITLEAKS_GIT_CONFIG);
 gitleaks: override export GIT_NO_REPLACE_OBJECTS := 1
 gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks cover commit/push)
 	+@$(if $(or $(findstring i,$(filter-out -%,$(firstword $(MAKEFLAGS)))),$(findstring t,$(filter-out -%,$(firstword $(MAKEFLAGS))))),$(error REFUSING: make -i or -t would let a finding pass: run make gitleaks without it))$(if $(filter --eval=% -I% --include-dir%,$(filter-out $(MAKEOVERRIDES),$(MAKEFLAGS))),$(error REFUSING: --eval or -I adds makefile text from outside, which could set the identity allowance: run make gitleaks without it))$(if $(strip $(MAKEFILES)),$(error REFUSING: MAKEFILES ($(MAKEFILES)) reads other makefiles before this one: unset it))$(foreach v,SHELL .SHELLFLAGS,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the scan would run in another shell)))true
@@ -253,16 +263,24 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@# container cannot do) is refused like a shallow one, and so is a scan whose git log failed partway
 	@# (gitleaks reports `ERR` and still exits 0). Every log reads the root commit (`--root`), without
 	@# the repository's textconv drivers or display settings, which could hide a file or the output.
-	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); O=$$(mktemp); trap 'rm -f "$$C" "$$O"' EXIT INT TERM; \
+	@# The scan reads the repository's git directory, never the checkout: gitleaks runs in an empty
+	@# directory with `GIT_DIR` naming that git directory and that empty directory as the work tree, so
+	@# no `core.worktree` the repository sets (a submodule's points outside the mounts) and no
+	@# `.gitattributes` in the checkout applies. gitleaks reads a `.gitleaksignore` from the
+	@# directory it scans and from its ignore path, and both are that empty directory, so no file in the
+	@# checkout (tracked, untracked or excluded) waives a finding. A leak that reached history is
+	@# removed from it, never waived.
+	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); O=$$(mktemp); E=$$(mktemp -d); trap 'rm -rf "$$C" "$$O" "$$E"' EXIT INT TERM; \
 	[ "$$(git rev-parse --is-shallow-repository)" = false ] || { echo "REFUSING: this clone is shallow, so the scan would read only part of the published history: run git fetch --unshallow first."; exit 1; }; \
-	if [ -n "$$(git config --get extensions.partialClone)" ] || git config --get-regexp '^remote\..*\.promisor$$' | grep -q true; then \
+	if [ -n "$$(git config --get extensions.partialClone)" ] || git config --type=bool --get-regexp '^remote\..*\.promisor$$' | grep -q ' true$$'; then \
 	  echo "REFUSING: this is a partial clone, so the scan cannot read the blobs it lacks: clone the repository in full first."; exit 1; fi; \
 	gf=$$(git rev-parse --path-format=absolute --git-path info/grafts); [ ! -e "$$gf" ] || { echo "REFUSING: $$gf rewrites history's parents, so the scan would skip the commits it hides: remove it (git replace --convert-graft-file) first."; exit 1; }; \
 	G=$$(git -C "$(CURDIR)" rev-parse --path-format=absolute --git-common-dir); \
+	A=$$(git -C "$(CURDIR)" rev-parse --absolute-git-dir); \
 	n=$$(git -C "$(CURDIR)" rev-list --count --all); \
 	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
-	rc=0; docker run --rm -e GIT_NO_REPLACE_OBJECTS=1 -v "$(CURDIR)":/repo -v "$$G":"$$G":ro -v "$$C":/gl.toml:ro -w /repo \
-	  $(GITLEAKS_IMAGE) git /repo -c /gl.toml --redact -v --ignore-gitleaks-allow \
+	rc=0; docker run --rm -e GIT_NO_REPLACE_OBJECTS=1 $(foreach kv,$(GITLEAKS_GIT_CONFIG),-e $(kv)) -e GIT_DIR="$$A" -e GIT_WORK_TREE=/scan -v "$$G":"$$G":ro -v "$$C":/gl.toml:ro -v "$$E":/scan:ro -w /scan \
+	  $(GITLEAKS_IMAGE) git /scan -c /gl.toml --redact -v --ignore-gitleaks-allow --gitleaks-ignore-path /scan \
 	  --log-opts='--all --full-history --root --diff-merges=first-parent --no-textconv --no-ext-diff --no-color --pretty=medium --date=default --no-abbrev-commit' > "$$O" 2>&1 || rc=$$?; \
 	cat "$$O"; [ "$$rc" -eq 0 ] || exit "$$rc"; \
 	if LC_ALL=C grep -Eq 'stderr is not empty|ERR[^A-Za-z]*\[git\]' "$$O"; then \
@@ -275,17 +293,21 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@# treats as binary: a NUL byte, UTF-16 (a `Localizable.strings`), or a `binary` / `-diff` attribute.
 	@# A token in any of them reached the remote with "no leaks found". So every path git ever showed as
 	@# binary is re-read as text, NULs stripped, and scanned by path (the config's path allowlists hold).
+	@# Which paths are binary is read from an empty work tree, run there, as the history scan reads
+	@# them, so a `.gitattributes` in the checkout (committed or not) calls no file text here that the
+	@# scan saw no patch for.
 	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
 	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	mkdir "$$D/t" "$$D/none"; \
 	git log --branches --tags HEAD --format= --name-only -z --root --diff-merges=first-parent > "$$D/names"; \
 	nl=$$(LC_ALL=C tr -cd '\n' < "$$D/names" | wc -c); \
 	[ "$$nl" -eq 0 ] || { echo "REFUSING: a path in history holds a newline, which this scan cannot name: rename it."; exit 1; }; \
-	git -c color.ui=never log --branches --tags HEAD --format= --numstat -z --no-renames --root \
+	A=$$(git -C "$(CURDIR)" rev-parse --absolute-git-dir); \
+	git -C "$$D/none" --git-dir="$$A" --work-tree="$$D/none" -c color.ui=never log --branches --tags HEAD --format= --numstat -z --no-renames --root \
 	  --diff-merges=first-parent --no-ext-diff --no-textconv > "$$D/numstat"; \
 	T=$$(printf '\t'); LC_ALL=C tr '\000' '\n' < "$$D/numstat" | LC_ALL=C sed -n "s/^-$$T-$$T//p" \
 	  | LC_ALL=C sort -u > "$$D/binary"; \
 	if [ -s "$$D/binary" ]; then \
-	  mkdir "$$D/t" "$$D/none"; \
 	  while IFS= read -r f; do \
 	    mkdir -p "$$D/t/$$(dirname "$$f")"; \
 	    git -c color.ui=never -c diff.noprefix=false --literal-pathspecs log --branches --tags HEAD \
@@ -369,7 +391,7 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 # `$$GIT_INDEX_FILE`: `git commit -a` and `git commit <path>` were never scanned. It also read git's
 # patches, which skip binary, NUL, UTF-16 and `-diff` files, and it honoured a `# gitleaks:allow` on
 # the secret's own line and a committed `.gitleaksignore`, so a commit's author could waive their own
-# leak. New content gets no waiver: `.gitleaksignore` stays a ledger for the full-history scan only.
+# leak. No pass reads a `.gitleaksignore`: neither new content nor history gets a waiver.
 gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
 	@set -e; C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
 	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
@@ -409,7 +431,7 @@ gitleaks-commit-msg: ## secret + denylist scan of the commit MESSAGE being writt
 	  exit 1; }
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION := 0.70.1
+LUXLINT_VERSION := 0.72.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
@@ -489,7 +511,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.331.0
+LUXARCH_VERSION   := 0.334.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch

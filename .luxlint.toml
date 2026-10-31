@@ -45,4 +45,4 @@ reason = "slowapi 0.1.10 Limiter.limit calls the deprecated asyncio.iscoroutinef
 # Coverage floor (test.coverage_floor_set): the branch coverage `make test` measured when the
 # emitted test block was adopted (54% on 2026-10-09; 55% on 2026-10-10). It only goes up.
 [test]
-coverage_min = 55
+coverage_min = 59
