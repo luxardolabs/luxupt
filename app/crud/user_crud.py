@@ -65,17 +65,30 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
             user.username = username
         if password is not None:
             user.password_hash = hash_password(password)
-            user.session_version += (
-                1  # a new password ends the sessions issued before it
-            )
         if must_change_password is not None:
             user.must_change_password = must_change_password
         if is_admin is not None:
             user.is_admin = is_admin
         db.add(user)
+        if password is not None:
+            # A new password ends the sessions issued before it.
+            await self.end_sessions(db, user)
+            return user
         await db.flush()
         await db.refresh(user)
         return user
+
+    async def end_sessions(self, db: AsyncSession, user: User) -> None:
+        """Refuse every token issued to this user so far, and leave the row flushed and refreshed.
+
+        A token carries the session_version it was issued under (app/web/auth.py). The increment is
+        a SQL expression, so it counts from the stored value, not from the one this row was loaded
+        with, and it goes in the same UPDATE as the row's pending changes: a new password and the
+        end of the old sessions are stored together or not at all.
+        """
+        user.session_version = User.session_version + 1
+        await db.flush()
+        await db.refresh(user)
 
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""

@@ -67,8 +67,11 @@ def _store_password(
 # session table deletes the user's rows here instead. It runs in the same transaction as the new hash.
 async def _end_sessions(db: AsyncSession, user: User) -> None:
     # A token carries the session_version it was issued under (app/web/auth.py); bumping it refuses
-    # every token issued before this password.
-    user.session_version += 1
+    # every token issued before this password. The SQL expression counts from the stored value and
+    # goes in the same UPDATE as the new hash.
+    user.session_version = User.session_version + 1
+    await db.flush()
+    await db.refresh(user)
 
 
 # --- EDIT THIS: the stored hash, for checking the current password on a change.
