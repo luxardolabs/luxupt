@@ -68,6 +68,29 @@ async def test_session_dies_after_reset_password(
         assert (await attacker.get("/system/users")).status_code == 302
 
 
+async def test_a_refused_new_password_says_nothing_about_a_guessed_current_one(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    await user_crud.create_user(db, username="owner", password=PASSWORD)
+    await _login(client, "owner", PASSWORD)
+
+    statuses = [
+        (
+            await client.post(
+                "/account/password",
+                data={
+                    "current_password": guess,
+                    "new_password": "x",
+                    "confirm_password": "x",
+                },
+            )
+        ).status_code
+        for guess in ("a-wrong-guess", PASSWORD)
+    ]
+
+    assert statuses[0] == statuses[1]
+
+
 async def test_session_dies_after_own_password_change(
     client: AsyncClient, db: AsyncSession
 ) -> None:

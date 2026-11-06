@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
+# luxarch:admin-bootstrap asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
 """How the first admin comes to exist, and how a locked-out owner gets back in.
 
 `luxarch --emit admin-bootstrap`. Drop this in at `app/services/core/admin_bootstrap_core_service.py`.
@@ -275,6 +275,8 @@ def _login_problem(login: str) -> str:
 async def _password_problem(db: AsyncSession, password: str) -> str:
     if not _encodable(password):
         return "the password holds a character UTF-8 cannot encode"
+    if "\x00" in password:  # bcrypt's key repeats: `g\\0g` hashes the same as `g`
+        return "the password holds a NUL character"
     if len(password) < MIN_PASSWORD_LENGTH:
         return f"the password is shorter than {MIN_PASSWORD_LENGTH} characters"
     return await password_policy_problem(db, password)
@@ -513,6 +515,11 @@ class AdminBootstrapCoreService:
         """A user's own change: the current password is required, checked under the lockout
         (`current_password_attempt`: a stolen session cannot guess it), the new one must differ
         from it, and the forced change clears. Every session ends (the caller signs the user in again).
+        A new password the policy or the hasher refuses is refused before the lockout counts and
+        before the current one is looked at, and nothing refuses after it: a stolen session cannot test
+        a guess without changing the password. A new password that only hashes the same as the current
+        one (a bcrypt that truncates at 72 bytes) is taken, a forced change included: refusing it would
+        answer the guess. The count clears only once the write has worked.
         A login the driver cannot bind (a lone surrogate, NUL on PostgreSQL), which no row holds,
         is nobody; every other login, NUL included where the database stores it, is looked up."""
         user = (
@@ -522,6 +529,12 @@ class AdminBootstrapCoreService:
         )
         if user is None:
             raise UnknownUserError(login)
+        problem = await _password_problem(db, new_password)
+        if not problem and new_password == current_password:
+            problem = "the new password is the current one"
+        if problem:
+            raise PasswordPolicyError(problem)
+        new_hash = _hash(new_password)
         stored = admin_bootstrap_crud.password_hash_of(user)
         # counted before the comparison, so a locked login is refused without one
         locked = await current_password_attempt(db, login, stored)
@@ -530,15 +543,10 @@ class AdminBootstrapCoreService:
             raise CurrentPasswordLockedError(locked)
         if not _encodable(current_password) or not _verified(current_password, stored):
             raise CurrentPasswordError
-        await current_password_verified(db, login, stored)
-        problem = await _password_problem(db, new_password)
-        if not problem and _verified(new_password, stored):
-            problem = "the new password is the current one"
-        if problem:
-            raise PasswordPolicyError(problem)
         await admin_bootstrap_crud.set_password(
-            db, user, _hash(new_password), must_change_password=False
+            db, user, new_hash, must_change_password=False
         )
+        await current_password_verified(db, login, stored)
 
     async def needs_password_change(self, db: AsyncSession, login: str) -> bool:
         """True while `login` is still on a seeded or reset password. A login the driver cannot
