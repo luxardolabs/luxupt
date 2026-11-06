@@ -3,7 +3,7 @@ name: adversarial
 description: Attack a change before calling it done — an independent agent that did not write the change tries to make it wrong (security, tenant isolation, data integrity, money, the real stack), reproduces each break as a failing test or a probe, and the author fixes every confirmed break and commits the test. Run it from /wrap-up for any change touching auth, tenancy, data writes or migrations, money, secrets or personal data, deploys, or a guard-red fix.
 ---
 
-<!-- luxarch:adversarial-skill asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-skill`. -->
+<!-- luxarch:adversarial-skill asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-skill`. -->
 
 # Adversarial pass
 
@@ -44,17 +44,25 @@ so the failure is the change's, not the harness's. A suspicion you tried and cou
 UNREPRODUCED, with why. One you could not try (the run errored or timed out, a service or harness you
 could not set up) is INCONCLUSIVE, with what stopped you: never report it as clean.
 
+TARGET: your requests reach only this work's throwaway stack, never a real host. Address it by
+container name or 127.0.0.1, and send the real host name only as a header (`curl -H 'Host: <name>'`,
+playwright `extra_http_headers`). A script that needs the real name in its URL (a cookie domain, TLS)
+runs in a container on a `docker network create --internal` network holding only that stack, with its
+dependencies installed before it joins: a remap the script sets for itself, or a hosts entry it relies
+on, fails open, and a missed one sends its login to production. Outside that network, never use
+`curl -k` or any other certificate bypass.
+
 CONSTRAINTS: read-only on the repo except files under <scratch dir>, and one test file of your own
 in the repo's tests/ (`tests/test_adversarial_<topic>.py`) when a finding needs the repo's own test
 harness (`make test-one`): name it in your report, and the author moves it into the suite or deletes
-it. No commits, pushes or tracker writes; never touch production. Run plain commands from the
+it. No commits, pushes or tracker writes. Run plain commands from the
 worktree root: no `git -C <path>`, no `cd` elsewhere, no path computed at run time (`$PWD`,
 `$(...)`); write files with the file tool. A command the session or a hook refuses is INCONCLUSIVE,
 naming the refusal, never a pass.
 
 REPORT: a table of CONFIRMED findings, most severe first: behaviour, what goes wrong, the reproducing
 test or probe, the one-line fix. Then INCONCLUSIVE ones with what stopped you. Then UNREPRODUCED ones
-with the reason. Then what you did not attack.
+with the reason. Then what you did not attack. Then every host your scripts connected to, read from the scripts and their output.
 ```
 
 In a re-attack round (step 4), add to the prompt: `ALREADY FOUND AND FIXED (do not re-report these shapes): <one line per earlier finding>. Attack the fixes themselves and anything they made reachable.`

@@ -3,7 +3,7 @@ name: adversarial-audit
 description: Attack the WHOLE platform, not just a change — take the attack surface from `luxarch --sweep attack-surface`, rank it by this repo's committed audit profile, hand each slice to an independent attacker, verify every break with a second agent, and file each confirmed break in LuxPM with its failing test. Direct it in plain words ("what changed since the last release", "just payments, go deep", "quick"); re-runs attack only what changed. Use for a first full review of an app, on the owner's schedule, or when asked to audit or red-team the platform.
 ---
 
-<!-- luxarch:adversarial-audit-skill asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-audit-skill`. -->
+<!-- luxarch:adversarial-audit-skill asset v9 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-audit-skill`. -->
 
 # Adversarial audit: the whole platform
 
@@ -126,12 +126,20 @@ id>/ (never in the repo's tree), or a probe against the dev stack with its outpu
 that passes, so the failure is the code's and not the harness's. Otherwise mark it UNREPRODUCED
 with the reason.
 
+TARGET: your requests reach only this work's throwaway stack, never a real host. Address it by
+container name or 127.0.0.1, and send the real host name only as a header (`curl -H 'Host: <name>'`,
+playwright `extra_http_headers`). A script that needs the real name in its URL (a cookie domain, TLS)
+runs in a container on a `docker network create --internal` network holding only that stack, with its
+dependencies installed before it joins: a remap the script sets for itself, or a hosts entry it relies
+on, fails open, and a missed one sends its login to production. Outside that network, never use
+`curl -k` or any other certificate bypass.
+
 CONSTRAINTS: read-only on the repo except <scratch>/<slice id>/; no commits, pushes, git config
-changes or tracker writes; never touch production.
+changes or tracker writes.
 
 REPORT: CONFIRMED findings, most severe first: the route/job, what goes wrong, the reproducing test
 file or probe output, the one-line fix. Then UNREPRODUCED ones with the reason. Then what you did
-not attack and why.
+not attack and why. Then every host your scripts connected to, read from the scripts and their output.
 ```
 
 ## 5. Verify every confirmed finding
