@@ -151,7 +151,7 @@ poetry-install: ## Verify deps resolve + install from lock in a throwaway contai
 
 # --- Secret scanning: the fleet privacy gate (content + commit identity) ---
 .PHONY: gitleaks gitleaks-staged
-# luxarch:gitleaks asset v20 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
+# luxarch:gitleaks asset v21 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
 # ── The privacy gate: EVERY surface a commit publishes ──────────────────────────────────────────
 # Emitted by `luxarch --emit gitleaks`. Drop in verbatim.
 #
@@ -217,7 +217,7 @@ unexport GIT_IDENTITY_OK
 # airgapped laptop) it pulls the public image. v8 derived `./gitleaks:…` there, an unpullable reference, so the
 # privacy gate could not run at all. The mirror and the public image share the digest, so both
 # resolve to the same bits, and a tampered or re-tagged copy fails the pull instead of scanning.
-GITLEAKS_IMAGE = $(if $(findstring /,$(LUXLINT)),$(dir $(LUXLINT)),zricethezav/)gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+override GITLEAKS_IMAGE = $(if $(findstring /,$(LUXLINT)),$(dir $(LUXLINT)),zricethezav/)gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
 # v13: `/repo` is `$(CURDIR)`, this makefile's directory. v1-v12 mounted `$(PWD)`, the CALLER's shell
 # directory, so `make -C <repo> gitleaks` run from another repo scanned THAT repo's history with THAT
@@ -248,13 +248,26 @@ GITLEAKS_IMAGE = $(if $(findstring /,$(LUXLINT)),$(dir $(LUXLINT)),zricethezav/)
 # one path per `git log`, which `log.follow` turns into following a rename to another file.
 override GITLEAKS_GIT_CONFIG := GIT_CONFIG_COUNT=5 GIT_CONFIG_KEY_0=core.useReplaceRefs GIT_CONFIG_VALUE_0=false GIT_CONFIG_KEY_1=i18n.logOutputEncoding GIT_CONFIG_VALUE_1=UTF-8 GIT_CONFIG_KEY_2=core.bigFileThreshold GIT_CONFIG_VALUE_2=512m GIT_CONFIG_KEY_3=diff.relative GIT_CONFIG_VALUE_3=false GIT_CONFIG_KEY_4=log.follow GIT_CONFIG_VALUE_4=false
 override GITLEAKS_HISTORY_ENV := unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_GRAFT_FILE GIT_NAMESPACE GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT GIT_CEILING_DIRECTORIES GIT_DISCOVERY_ACROSS_FILESYSTEM; export $(GITLEAKS_GIT_CONFIG);
+.PHONY: gitleaks gitleaks-staged gitleaks-commit-msg
+# make's own flags are what MAKEFLAGS holds before ` -- `: a variable's value after it can read like a flag.
+override gitleaks_space := $(subst x,,x x)
+override gitleaks_flags = $(subst :SP:, ,$(firstword $(subst :CUT:, ,$(subst $(gitleaks_space),:SP:,$(subst $(gitleaks_space)--$(gitleaks_space),:CUT:,x $(MAKEFLAGS))))))
+override gitleaks_refusals = $(foreach v,MAKEFLAGS GNUMAKEFLAGS,$(if $(filter command,$(origin $(v))),$(error REFUSING: $(v) is given as a command-line variable, so the scan would run under flags it never saw: pass make's flags as flags)))$(if $(or $(findstring i,$(filter-out -%,$(firstword $(MAKEFLAGS)))),$(findstring t,$(filter-out -%,$(firstword $(MAKEFLAGS))))),$(error REFUSING: make -i or -t would let a finding pass: run the scan without it))$(if $(filter --eval=% -I% --include-dir%,$(gitleaks_flags)),$(error REFUSING: --eval or -I adds makefile text from outside, which could set the identity allowance: run the scan without it))$(if $(strip $(MAKEFILES)),$(error REFUSING: MAKEFILES ($(MAKEFILES)) reads other makefiles before this one: unset it))$(foreach v,SHELL .SHELLFLAGS,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the scan would run in another shell)))$(if $(filter environment% command,$(origin MAKEFILE_LIST)),$(error REFUSING: MAKEFILE_LIST comes from the $(origin MAKEFILE_LIST), so the identity pass would read other makefiles: unset it))$(if $(findstring n,$(filter-out -% %=%,$(firstword $(MAKEFLAGS)))),,$(if $(filter command,$(origin CURDIR)),$(error REFUSING: CURDIR is on the command line, so the scan would read another repository's history and report it as this one's: use make -C <dir>)))$(if $(filter 0,$(MAKELEVEL)),$(foreach v,LUXLINT LUXLINT_IMAGE,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the caller chose the image that decides this scan: set it in the makefile or Makefile.local))))
+override gitleaks_no_waiver = if [ -e "$$D/t/.gitleaksignore" ]; then mv "$$D/t/.gitleaksignore" "$$(mktemp -d "$$D/t/gitleaksignore.XXXXXXXX")/"; fi;
+unexport gitleaks_refusals gitleaks_no_waiver gitleaks_flags gitleaks_space
 gitleaks: override export GIT_NO_REPLACE_OBJECTS := 1
 gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks cover commit/push)
-	+@$(if $(or $(findstring i,$(filter-out -%,$(firstword $(MAKEFLAGS)))),$(findstring t,$(filter-out -%,$(firstword $(MAKEFLAGS))))),$(error REFUSING: make -i or -t would let a finding pass: run make gitleaks without it))$(if $(filter --eval=% -I% --include-dir%,$(filter-out $(MAKEOVERRIDES),$(MAKEFLAGS))),$(error REFUSING: --eval or -I adds makefile text from outside, which could set the identity allowance: run make gitleaks without it))$(if $(strip $(MAKEFILES)),$(error REFUSING: MAKEFILES ($(MAKEFILES)) reads other makefiles before this one: unset it))$(foreach v,SHELL .SHELLFLAGS,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the scan would run in another shell)))true
-	@# A caller cannot change what this scan reads or how its failures count: make's -i and -t, makefile
-	@# text from --eval, -I or MAKEFILES (each could set the identity allowance), and a SHELL or
-	@# .SHELLFLAGS from outside are refused before any pass runs, on the first line, a `+` line: make runs
-	@# it under -t too, and under .ONESHELL the first line's prefix is the recipe's.
+	+@$(gitleaks_refusals)true
+	@# A caller cannot change what this scan reads or how its failures count: make's -i and -t, in any
+	@# spelling, makefile text from --eval, -I or MAKEFILES (each could set the identity allowance), a
+	@# SHELL or .SHELLFLAGS from outside, a CURDIR on the command line, and at the top level a LUXLINT or
+	@# LUXLINT_IMAGE from outside (`GITLEAKS_IMAGE` cannot be set at all) are refused before any pass runs,
+	@# on the first line, a `+` line: make runs it under -t too, and under .ONESHELL the first line's
+	@# prefix is the recipe's. Stated limits: under `make check`, a variable that reached the environment
+	@# of a leg is the gate's stated limit, since a bare `export` in the makefile looks the same, and a
+	@# MAKELEVEL from outside looks like a leg. `-o` and `-n` from outside never reach a recipe (the
+	@# emitted git hooks clear make's flags), an untracked Makefile.local can say `.IGNORE`, and a nested
+	@# annotated tag shows only its outer tagger and message.
 	@# A shallow clone and a graft file each make git (and so every pass) read part of the history,
 	@# and the scanned-nothing check below agrees with them: both are refused before any pass. A
 	@# merge commit's own changes are read against its first parent (`--diff-merges=first-parent`), in
@@ -275,10 +288,10 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	if [ -n "$$(git config --get extensions.partialClone)" ] || git config --type=bool --get-regexp '^remote\..*\.promisor$$' | grep -q ' true$$'; then \
 	  echo "REFUSING: this is a partial clone, so the scan cannot read the blobs it lacks: clone the repository in full first."; exit 1; fi; \
 	gf=$$(git rev-parse --path-format=absolute --git-path info/grafts); [ ! -e "$$gf" ] || { echo "REFUSING: $$gf rewrites history's parents, so the scan would skip the commits it hides: remove it (git replace --convert-graft-file) first."; exit 1; }; \
-	G=$$(git -C "$(CURDIR)" rev-parse --path-format=absolute --git-common-dir); \
-	A=$$(git -C "$(CURDIR)" rev-parse --absolute-git-dir); \
-	n=$$(git -C "$(CURDIR)" rev-list --count --all); \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	G=$$(git -C '$(subst ','\'',$(CURDIR))' rev-parse --path-format=absolute --git-common-dir); \
+	A=$$(git -C '$(subst ','\'',$(CURDIR))' rev-parse --absolute-git-dir); \
+	n=$$(git -C '$(subst ','\'',$(CURDIR))' rev-list --count --all); \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	rc=0; docker run --rm -e GIT_NO_REPLACE_OBJECTS=1 $(foreach kv,$(GITLEAKS_GIT_CONFIG),-e $(kv)) -e GIT_DIR="$$A" -e GIT_WORK_TREE=/scan -v "$$G":"$$G":ro -v "$$C":/gl.toml:ro -v "$$E":/scan:ro -w /scan \
 	  $(GITLEAKS_IMAGE) git /scan -c /gl.toml --redact -v --ignore-gitleaks-allow --gitleaks-ignore-path /scan \
 	  --log-opts='--all --full-history --root --diff-merges=first-parent --no-textconv --no-ext-diff --no-color --pretty=medium --date=default --no-abbrev-commit' > "$$O" 2>&1 || rc=$$?; \
@@ -297,12 +310,12 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@# them, so a `.gitattributes` in the checkout (committed or not) calls no file text here that the
 	@# scan saw no patch for.
 	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	mkdir "$$D/t" "$$D/none"; \
 	git log --branches --tags HEAD --format= --name-only -z --root --diff-merges=first-parent > "$$D/names"; \
 	nl=$$(LC_ALL=C tr -cd '\n' < "$$D/names" | wc -c); \
 	[ "$$nl" -eq 0 ] || { echo "REFUSING: a path in history holds a newline, which this scan cannot name: rename it."; exit 1; }; \
-	A=$$(git -C "$(CURDIR)" rev-parse --absolute-git-dir); \
+	A=$$(git -C '$(subst ','\'',$(CURDIR))' rev-parse --absolute-git-dir); \
 	git -C "$$D/none" --git-dir="$$A" --work-tree="$$D/none" -c color.ui=never log --branches --tags HEAD --format= --numstat -z --no-renames --root \
 	  --diff-merges=first-parent --no-ext-diff --no-textconv > "$$D/numstat"; \
 	T=$$(printf '\t'); LC_ALL=C tr '\000' '\n' < "$$D/numstat" | LC_ALL=C sed -n "s/^-$$T-$$T//p" \
@@ -315,6 +328,7 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	      --no-ext-diff --no-textconv -- "$$f" > "$$D/p"; \
 	    LC_ALL=C grep -a '^+' "$$D/p" | LC_ALL=C tr -d '\000' > "$$D/t/$$f"; \
 	  done < "$$D/binary"; \
+	  $(gitleaks_no_waiver) \
 	  docker run --rm -v "$$D/t":/scan:ro -w /scan -v "$$D/none":/none:ro -v "$$C":/gl.toml:ro \
 	    $(GITLEAKS_IMAGE) dir . -c /gl.toml --redact -v --ignore-gitleaks-allow \
 	    --gitleaks-ignore-path /none; \
@@ -323,7 +337,7 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@# rules and the denylist). One `git log` and one `for-each-ref`, split on a header line carrying a
 	@# per-run nonce, so a message cannot forge a header and steer its own lines out of the scan.
 	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	N=$$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'); [ $${#N} -eq 32 ]; \
 	mkdir -p "$$D/t/commit-message" "$$D/t/tag-message" "$$D/none"; \
 	git log --branches --tags HEAD --format="$$N commit-message/%H%n%B" > "$$D/raw"; \
@@ -344,7 +358,7 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	@# branch and tag NAME. A path is not a patch line, so `gitleaks git` never read one, and a file or
 	@# a branch named for an internal host passed every gate into a public remote.
 	@set -e; $(GITLEAKS_HISTORY_ENV) C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	mkdir -p "$$D/t" "$$D/none"; \
 	git -c core.quotePath=false -c color.ui=never log --branches --tags HEAD --format= --name-only \
 	  --root --diff-merges=first-parent > "$$D/names"; LC_ALL=C sort -u < "$$D/names" > "$$D/t/paths"; \
@@ -356,14 +370,22 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 	  echo "  A name is published with the history it is in. Rename it (git mv; git branch -m; for older"; \
 	  echo "  history git filter-repo --path-rename), re-run, and ask the OWNER to approve the force-push."; \
 	  exit 1; }
-	@# The identity pass — the half gitleaks structurally cannot do. Cheap: one `git log`.
+	@# The identity pass — the half gitleaks structurally cannot do. It reads every author, committer
+	@# and tagger, and an address in a name field is refused whatever the allowance says.
 	@# Walks what THIS repo publishes (branches, tags, HEAD), NOT `--all`: a remote-tracking ref caches the
 	@# remote's state, which during a scrub is by definition the un-rewritten history you are about to
 	@# force-push over — `--all` refused the verified fix, and any `git fetch` re-armed it.
-	@$(if $(filter environment% command,$(origin GIT_IDENTITY_OK)),$(error REFUSING: GIT_IDENTITY_OK comes from the $(origin GIT_IDENTITY_OK), so the caller chose which authors pass the identity pass: set it in the makefile))$(GITLEAKS_HISTORY_ENV) bad=$$(git log --branches --tags HEAD --pretty='%an <%ae>%n%cn <%ce>' 2>/dev/null | LC_ALL=C sort -u \
-	  | LC_ALL=C grep -vE '$(GIT_IDENTITY_OK)' || true); \
+	@$(if $(filter environment% command,$(origin GIT_IDENTITY_OK)),$(error REFUSING: GIT_IDENTITY_OK comes from the $(origin GIT_IDENTITY_OK), so the caller chose which authors pass the identity pass: set it in the makefile))set -e; $(GITLEAKS_HISTORY_ENV) unset GIT_INDEX_FILE; I="$$(mktemp)"; trap 'rm -f "$$I"' EXIT INT TERM; \
+	for f in $(foreach f,$(MAKEFILE_LIST),'$(subst ','\'',$(f))'); do \
+	  if ! git -C "$$(dirname "$$f")" --work-tree=. ls-files --error-unmatch -- "$$(basename "$$f")" >/dev/null 2>&1 && ! grep -q "luxarch:gitleaks asset" "$$f" && grep -Eq '^[[:space:]]*((override|export)[[:space:]]+)*GIT_IDENTITY_OK[[:space:]]*[:?+!]*=' "$$f"; then \
+	    echo "REFUSING: $$f sets GIT_IDENTITY_OK and git does not track it, so this machine chose which authors pass the identity pass: set it in the committed makefile."; exit 1; \
+	  fi; \
+	done; \
+	git log --branches --tags HEAD --pretty='%an <%ae>%n%cn <%ce>' > "$$I"; \
+	git for-each-ref refs/tags --format='%(taggername) %(taggeremail)' | LC_ALL=C sed '/^ *$$/d' >> "$$I"; \
+	bad=$$({ LC_ALL=C grep -vE '$(GIT_IDENTITY_OK)' "$$I" || true; LC_ALL=C grep -E '^[^<]*@[^<]*<' "$$I" || true; } | LC_ALL=C sort -u); \
 	if [ -n "$$bad" ]; then \
-	  echo "REFUSING: a non-fleet identity appears in commit METADATA (author/committer):"; \
+	  echo "REFUSING: a non-fleet identity appears in commit or tag METADATA (author/committer/tagger):"; \
 	  echo "$$bad" | LC_ALL=C sed 's/^/    /'; \
 	  echo "gitleaks cannot see this — it scans diffs, not commit headers, so it reported no leaks."; \
 	  echo "An address here is attached to every affected commit forever, not to one line of one file."; \
@@ -391,19 +413,24 @@ gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks
 # `$$GIT_INDEX_FILE`: `git commit -a` and `git commit <path>` were never scanned. It also read git's
 # patches, which skip binary, NUL, UTF-16 and `-diff` files, and it honoured a `# gitleaks:allow` on
 # the secret's own line and a committed `.gitleaksignore`, so a commit's author could waive their own
-# leak. No pass reads a `.gitleaksignore`: neither new content nor history gets a waiver.
+# leak. No pass reads a `.gitleaksignore`: neither new content nor history gets a waiver. A repo file
+# with that name, copied to the scan root, is renamed there before the scan and scanned like any file.
 gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
+	+@$(gitleaks_refusals)true
 	@set -e; C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	mkdir "$$D/t" "$$D/none"; \
-	git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR -z > "$$D/names"; \
+	git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMRT -z > "$$D/names"; \
+	nl=$$(LC_ALL=C tr -cd '\n' < "$$D/names" | wc -c); \
+	[ "$$nl" -eq 0 ] || { echo "REFUSING: a staged path holds a newline, which this scan cannot name: rename it."; exit 1; }; \
 	LC_ALL=C tr '\000' '\n' < "$$D/names" | while IFS= read -r f; do \
 	  [ -n "$$f" ] || continue; \
 	  mkdir -p "$$D/t/$$(dirname "$$f")"; \
-	  git -c core.quotePath=false diff --cached --text --no-ext-diff --no-textconv -U0 -- "$$f" \
+	  git -c core.quotePath=false -c color.ui=never --literal-pathspecs diff --cached --text --no-color --no-ext-diff --no-textconv -U0 -- "$$f" \
 	    > "$$D/p"; \
 	  LC_ALL=C grep -a '^+' "$$D/p" | LC_ALL=C tr -d '\000' > "$$D/t/$$f"; \
 	done; \
+	$(gitleaks_no_waiver) \
 	docker run --rm -v "$$D/t":/scan:ro -w /scan -v "$$D/none":/none:ro -v "$$C":/gl.toml:ro \
 	  $(GITLEAKS_IMAGE) dir . -c /gl.toml --redact -v --ignore-gitleaks-allow \
 	  --gitleaks-ignore-path /none
@@ -413,6 +440,7 @@ gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
 # scanned, comment lines included: `--cleanup=verbatim` publishes them, and a cut at the scissors line
 # would let a verbatim message hide everything below one. No file to read is a refusal, never a pass.
 gitleaks-commit-msg: ## secret + denylist scan of the commit MESSAGE being written (run by hooks/commit-msg)
+	+@$(gitleaks_refusals)true
 	@set -e; M="$${GITLEAKS_COMMIT_MSG:-}"; \
 	if [ -z "$$M" ] || [ ! -f "$$M" ] || [ ! -r "$$M" ]; then \
 	  echo "REFUSING: no commit message to scan (GITLEAKS_COMMIT_MSG='$$M'). hooks/commit-msg" >&2; \
@@ -420,7 +448,7 @@ gitleaks-commit-msg: ## secret + denylist scan of the commit MESSAGE being writt
 	  exit 1; \
 	fi; \
 	C=$$(mktemp); D=$$(mktemp -d); trap 'rm -rf "$$C" "$$D"' EXIT INT TERM; \
-	docker run --rm -v "$(CURDIR)":/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
 	mkdir -p "$$D/t/commit-message" "$$D/none"; \
 	LC_ALL=C tr -d '\000' < "$$M" > "$$D/t/commit-message/COMMIT_EDITMSG"; \
 	docker run --rm -v "$$D/t":/scan:ro -w /scan -v "$$D/none":/none:ro -v "$$C":/gl.toml:ro \
@@ -437,7 +465,7 @@ LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
 
-# luxarch:guard-run asset v7 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-run`.
+# luxarch:guard-run asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-run`.
 # ── GUARD_RUN: how every guard sees this checkout ───────────────────────────────────────────────────
 # Emitted by `luxarch --emit guard-run`; paste it above the targets that run the guards (`status:`, and
 # `arch:` / `lint:` / `audit:` where they run a guard image).
@@ -569,7 +597,10 @@ unexport HEAVY_SLOTS HEAVY_SLOT_DIR HEAVY_MEMORY HEAVY_CPUS guard_slot guard_slo
 override guard_caps = $(foreach v,HEAVY_MEMORY HEAVY_CPUS,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the caller chose how much of this machine one heavy job may take: set it in Makefile.local)))--oom-score-adj=500 --memory='$(subst ','\'',$(HEAVY_MEMORY))' --memory-swap='$(subst ','\'',$(HEAVY_MEMORY))'$(if $(HEAVY_CPUS), --cpus='$(subst ','\'',$(HEAVY_CPUS))')
 # the run, then its exit: 137 is a SIGKILL, which for a capped container is almost always its own limit
 override guard_capped = gs_rc=0; "$$@" || gs_rc=$$?; [ "$$gs_rc" != 137 ] || echo "$$gs_job: the container was killed (exit 137), most likely at its memory cap (HEAVY_MEMORY $(HEAVY_MEMORY)): raise HEAVY_MEMORY in Makefile.local, or lower HEAVY_SLOTS so the machine has room" >&2; exit "$$gs_rc"
-override guard_slot_vals = $(foreach v,HEAVY_SLOTS HEAVY_SLOT_DIR,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the caller chose how many heavy jobs this machine runs at once: set it in Makefile.local)))$(if $(filter --eval=%,$(MAKEFLAGS)),$(error REFUSING: --eval adds makefile text from the command line, which could choose the heavy-job slots: put it in Makefile.local))$(if $(guard_dry),,$(if $(filter -I% --include-dir%,$(filter-out $(MAKEOVERRIDES),$(MAKEFLAGS))),$(error REFUSING: -I lets make read a Makefile.local from another directory, which could choose the heavy-job slots: run without it)))'$(subst ','\'',$(HEAVY_SLOT_DIR))' '$(subst ','\'',$(HEAVY_SLOTS))' '$(subst ','\'',make $@ in $(CURDIR))'
+# make's own flags are what MAKEFLAGS holds before ` -- `: a variable's value after it can read like a flag.
+override guard_space := $(subst x,,x x)
+override guard_flags = $(subst :SP:, ,$(firstword $(subst :CUT:, ,$(subst $(guard_space),:SP:,$(subst $(guard_space)--$(guard_space),:CUT:,x $(MAKEFLAGS))))))
+override guard_slot_vals = $(foreach v,HEAVY_SLOTS HEAVY_SLOT_DIR,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the caller chose how many heavy jobs this machine runs at once: set it in Makefile.local)))$(if $(filter --eval=%,$(MAKEFLAGS)),$(error REFUSING: --eval adds makefile text from the command line, which could choose the heavy-job slots: put it in Makefile.local))$(if $(guard_dry),,$(if $(filter -I% --include-dir%,$(guard_flags)),$(error REFUSING: -I lets make read a Makefile.local from another directory, which could choose the heavy-job slots: run without it)))'$(subst ','\'',$(HEAVY_SLOT_DIR))' '$(subst ','\'',$(HEAVY_SLOTS))' '$(subst ','\'',make $@ in $(CURDIR))'
 override guard_slot = $(if $(guard_dry),:,set -- $(guard_slot_vals); $(guard_slot_body) :)
 override guard_slot_body = gs_d=$$1 gs_n=$$2 gs_job=$$3; shift 3; \
   case "$$gs_n" in (""|0*|*[!0-9]*|?????*) echo "REFUSING: HEAVY_SLOTS is \"$$gs_n\", not a whole number from 1 to 9999: set it in Makefile.local" >&2; exit 2;; esac; \
@@ -627,7 +658,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.348.2
+LUXARCH_VERSION   := 0.349.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -652,13 +683,15 @@ guard-version-check: ## FATAL: fail the gate if any guard pin is behind the publ
 	  set -- $$g; name=$$1; pin=$$2; \
 	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest >/dev/null 2>&1 || true; \
 	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest --version 2>/dev/null | awk '{print $$2}'); \
-	  if [ -n "$$latest" ] && [ "$$latest" != "$$pin" ]; then \
+	  if [ -z "$$latest" ]; then \
+	    printf "✗ %s: could not read its latest, so currency is NOT established\n" "$$name"; rc=1; \
+	  elif [ "$$latest" != "$$pin" ]; then \
 	    printf "✗ %s pinned %s, latest %s — BEHIND. Preview: --new-rules --since %s; then make guard-upgrade\n" "$$name" "$$pin" "$$latest" "$$pin"; rc=1; \
 	  else printf "✓ %s %s (current)\n" "$$name" "$$pin"; fi; \
 	done; exit $$rc
 
 .PHONY: guard-upgrade
-# luxarch:guard-upgrade asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-upgrade`.
+# luxarch:guard-upgrade asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-upgrade`.
 # Bumps each guard pin to its latest release and prints the rules the new luxarch adds (`--new-rules`).
 # The preview mounts `$(CURDIR)`, this makefile's directory, whatever directory `make -C` ran from.
 # Latest is the registry's `:latest`, or with REGISTRY empty (guards loaded from the release tarball)
@@ -687,7 +720,7 @@ guard-upgrade:  ## Bump every guard pin to the published latest (prints what new
 	  new=$$(sed -n -E "s/^$$var[[:space:]]*:=[[:space:]]*//p" Makefile); \
 	  if [ "$$new" != "$$latest" ]; then echo "!! $$var did NOT change (still $$new)"; exit 1; fi; \
 	  if [ "$$old" != "$$latest" ]; then echo "$$var $$old -> $$latest"; bumped=1; fi; \
-	  [ "$$g" = luxarch ] && [ "$$old" != "$$latest" ] && docker run --rm -v "$(CURDIR)":/repo $$img:$$latest --new-rules --since $$old || true; \
+	  [ "$$g" = luxarch ] && [ "$$old" != "$$latest" ] && docker run --rm -v '$(subst ','\'',$(CURDIR))':/repo $$img:$$latest --new-rules --since $$old || true; \
 	done; \
 	if [ -n "$$bumped" ]; then echo "pins bumped — re-run make check"; fi; \
 	if [ -z "$$checked" ]; then echo "!! could not read any guard's latest (the registry, or with REGISTRY empty this machine's released images) — NO pin was checked; currency NOT established"; exit 1; fi; \
@@ -758,16 +791,17 @@ status: ## Regenerate committed guard-status files (.lux*-status.json) — commi
 CHECK_LEGS := lint mypy test db-verify arch audit gitleaks
 
 .PHONY: check
-# luxarch:check-gate asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit check-gate`.
+# luxarch:check-gate asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit check-gate`.
 # ── The fleet gate: every leg runs, then the gate fails naming each red leg ───────────────────────
 # Emitted by `luxarch --emit check-gate`; it replaces a hand-written `check:` line. A gate written as a
 # prerequisite list (`check: … lint mypy test arch …`) stops at the FIRST failing leg: one ruff finding
 # hid a 4,700-test suite, every hidden red cost one more fix-and-rerun cycle, and agents reached for
 # `make -k`, which keeps going but also throws away the fatal steps' fatality.
 #
-# `guard-version-check` and `honest` stay PREREQUISITES and stay fatal: they run first, and a stale
-# guard or a rule family that scanned nothing makes every later verdict meaningless. Every other leg
-# then runs in order. A leg that fails is recorded, never skipped, and the gate exits non-zero naming
+# `guard-version-check` and `honest` are fatal and run first, as sub-makes on their own recipe lines: a
+# stale guard or a rule family that scanned nothing makes every later verdict meaningless, and `make -o`
+# can skip a prerequisite, which the recipe could never see. Each ends `|| exit 2`, so it stays fatal
+# under `.ONESHELL`. Every other leg then runs in order. A leg that fails is recorded, never skipped, and the gate exits non-zero naming
 # each one. `repo.makefile_canonical` credits CHECK_LEGS only when this recipe is the asset's own, so
 # a hand-written loop that drops an exit code earns nothing.
 #
@@ -786,25 +820,31 @@ CHECK_LEGS := lint mypy test db-verify arch audit gitleaks
 # sub-makes and unsets each such variable in the shell that starts them (make exports it there
 # too; never PATH or a name the shell owns, like PPID or OPTIND), so each leg runs with the makefile's
 # settings and `make release ALLOW_RETAG=1` still runs
-# the gate. It does reach `check`'s two prerequisites, which run in this make. MAKEFLAGS or
+# the gate. MAKEFLAGS or
 # GNUMAKEFLAGS given as a command-line variable is refused, and MAKE and SHELL are checked as the
 # recipe runs: make's own MAKE, and a POSIX shell.
 # Under `make -n` the legs dry-run (each sub-make prints its commands) and the gate exits 1 with no
 # verdict: nothing ran, so nothing passed. Stated limits: a second makefile given with `-f` is part
 # of the makefile as far as make can tell, and a variable a leg runs that the makefile sets with `?=`
 # or never sets (an image, a tool, its arguments) takes a value from the environment; the gate can
-# tell neither from your own.
+# tell neither from your own. `make -o check`, or `-o` in MAKEFLAGS in the environment, marks `check`
+# itself as made, so nothing here runs, and an untracked Makefile.local can say `.IGNORE`: neither
+# reaches a recipe. The emitted git hooks clear make's flags before they run it.
 # v3: the gate holds one of the machine's heavy-job slots (the guard-run block's `guard_slot`, v4) while
 # its legs run, so a full gate counts once against HEAVY_SLOTS and every scan and suite it starts runs
-# inside that slot instead of waiting for a second one. Its two prerequisites run before the recipe,
-# so each of their full scans takes a slot of its own for as long as it runs.
+# inside that slot instead of waiting for a second one. Its two fatal steps run before it takes the
+# slot, so each of their full scans takes a slot of its own for as long as it runs.
 
 # Setting: the legs, in order, set in the makefile. An app repo's are exactly these; a repo with more
 # legs (a guard's own parity suite) appends them. Removing one reds repo.makefile_canonical ----------
 CHECK_LEGS ?= lint mypy test arch audit gitleaks
+unexport CHECK_LEGS
 
 check: override MAKEOVERRIDES :=
-check: guard-version-check honest ## THE fleet gate: runs every leg, then fails naming each red one
+.PHONY: check
+check: ## THE fleet gate: runs every leg, then fails naming each red one
+	@$(MAKE) --no-print-directory guard-version-check || exit 2
+	@$(MAKE) --no-print-directory honest || exit 2
 	@$(foreach v,MAKEFLAGS GNUMAKEFLAGS,$(if $(filter command,$(origin $(v))),$(error REFUSING: $(v) is given as a command-line variable, so every leg would inherit flags this gate never saw: pass make's flags as flags)))$(if $(filter-out default,$(origin MAKE_COMMAND)),$(error REFUSING: MAKE_COMMAND is set by the $(origin MAKE_COMMAND), so a leg would not be make))$(if $(filter-out override,$(origin MAKEOVERRIDES)),$(error REFUSING: check's own `override MAKEOVERRIDES :=` is missing or changed, so a command-line variable would reach the legs: re-emit the gate))$(if $(subst $$(MAKE_COMMAND),,$(value MAKE)),$(error REFUSING: MAKE is $(value MAKE), not make's own $$(MAKE_COMMAND), so a leg would not be make))$(if $(and $(filter 1,$(words $(SHELL))),$(filter /bin/sh /usr/bin/sh /bin/bash /usr/bin/bash /bin/dash /usr/bin/dash /bin/zsh /usr/bin/zsh,$(SHELL))),,$(error REFUSING: SHELL is $(SHELL), not a POSIX shell that returns each leg's status))$(if $(or $(findstring i,$(filter-out -%,$(firstword $(MAKEFLAGS)))),$(findstring t,$(filter-out -%,$(firstword $(MAKEFLAGS)))),$(findstring e,$(filter-out -%,$(firstword $(MAKEFLAGS))))),$(error REFUSING: make -i ignores every failure, -t touches the legs instead of running them, and -e lets the environment override the makefile's tools (flags: $(filter-out -%,$(firstword $(MAKEFLAGS)))), so a red leg could pass: run make check without them))$(if $(findstring n,$(filter-out -%,$(firstword $(MAKEFLAGS)))),,$(if $(filter -I% --include-dir%,$(MAKEFLAGS)),$(error REFUSING: -I lets an included file (Makefile.local) come from another directory, into every leg: run make check without it))$(if $(filter --eval=%,$(MAKEFLAGS)),$(error REFUSING: --eval adds makefile text from the command line to every leg: put it in the makefile))$(if $(strip $(MAKEFILES)),$(error REFUSING: MAKEFILES ($(MAKEFILES)) reads other makefiles into every leg: unset it))$(foreach v,CHECK_LEGS MAKE MAKE_COMMAND SHELL .SHELLFLAGS,$(if $(filter environment% command,$(origin $(v))),$(error REFUSING: $(v) comes from the $(origin $(v)), so the caller chose how the legs run: set it in the makefile))))$(if $(strip $(CHECK_LEGS)),,$(error REFUSING: CHECK_LEGS is empty, so no leg would run))$(foreach v,$(filter-out PATH PPID SHELLOPTS BASHOPTS OPTIND UID EUID BASH_VERSINFO,$(.VARIABLES)),$(if $(filter command,$(origin $(v))),case '$(subst ','\'',$(v))' in ([0-9]*|*[!A-Za-z0-9_]*) ;; (*) unset '$(subst ','\'',$(v))';; esac; )) \
 	$(if $(value guard_slot),,$(error REFUSING: the gate holds a heavy-job slot from the guard-run block (v4), which this makefile does not define: paste luxarch --emit guard-run above it))$(guard_slot); \
 	failed=; for leg in $(CHECK_LEGS); do \
