@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.web.auth import get_current_user
+from app.web.auth import get_current_user, is_admin, require_admin
 from app.web.deps import CamerasViewDep, TemplatesDep
 from app.web.query_params import IntFilter
 
@@ -32,7 +32,12 @@ async def cameras_page(
     return templates.TemplateResponse(
         request,
         "pages/cameras.html",
-        {"user": user, "needs_api_setup": fetch_context["needs_api"], **context},
+        {
+            "user": user,
+            "can_manage_settings": is_admin(request),
+            "needs_api_setup": fetch_context["needs_api"],
+            **context,
+        },
     )
 
 
@@ -83,16 +88,18 @@ async def fetch_settings_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render global fetch settings panel."""
     context = await view_service.get_fetch_settings_context()
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "partials/cameras/fetch_settings_panel.html",
         {**context},
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @router.post(
@@ -111,6 +118,8 @@ async def save_fetch_settings(
     base_url: Annotated[str | None, Form()] = None,
     username: Annotated[str | None, Form()] = None,
     password: Annotated[str | None, Form()] = None,
+    remove_api_key: Annotated[str | None, Form()] = None,
+    remove_password: Annotated[str | None, Form()] = None,
     verify_ssl: Annotated[str | None, Form()] = None,
     # Reliability settings
     max_retries: Annotated[int | None, Form()] = None,
@@ -131,7 +140,7 @@ async def save_fetch_settings(
     rtsp_capture_timeout: Annotated[int | None, Form()] = None,
     # Disabled cameras to re-enable
     reactivate_cameras: Annotated[list[str] | None, Form()] = None,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Save global fetch settings."""
     (
@@ -148,6 +157,8 @@ async def save_fetch_settings(
         base_url=base_url,
         username=username,
         password=password,
+        remove_api_key=remove_api_key,
+        remove_password=remove_password,
         verify_ssl=verify_ssl,
         max_retries=max_retries,
         retry_delay=retry_delay,
@@ -199,7 +210,7 @@ async def test_protect_connection(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Test the configured Protect username/password by logging in and pulling one snapshot.
 

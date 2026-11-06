@@ -8,12 +8,14 @@
 {% block title %}Cameras - LuxUPT{% endblock %}
 
 {% block content %}
-{% if needs_api_setup %}
+{% if needs_api_setup and can_manage_settings %}
 {# Auto-load settings panel when API is not configured #}
 <div hx-get="{{ page_urls.fetch_settings }}" hx-target="#panel-container" hx-swap="innerHTML" hx-trigger="load"></div>
 {% endif %}
 {% call page_header("Cameras", "Click on a camera to view details") %}
+    {% if can_manage_settings %}
     {{ secondary("Capture Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": page_urls.fetch_settings, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {% endif %}
 {% endcall %}
 
 {# Statistics Section #}

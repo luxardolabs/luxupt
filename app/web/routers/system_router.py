@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Res
 from fastapi.responses import HTMLResponse
 
 from app.core import config
-from app.web.auth import get_current_user, require_admin
+from app.web.auth import get_current_user, is_admin, require_admin
 from app.web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from app.web.main import get_start_time
 from app.web.query_params import IntFilter
@@ -31,7 +31,7 @@ async def system_page(
     return templates.TemplateResponse(
         request,
         "pages/system.html",
-        {"user": user, **context},
+        {"user": user, "can_manage_settings": is_admin(request), **context},
     )
 
 
@@ -155,7 +155,7 @@ async def about_page(
     return templates.TemplateResponse(
         request,
         "pages/about.html",
-        {"user": user, **context},
+        {"user": user, "can_manage_settings": is_admin(request), **context},
     )
 
 
@@ -389,7 +389,7 @@ async def backup_settings_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: SystemViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render the backup settings panel for HTMX."""
     context = await view_service.get_backup_settings_context()
@@ -414,7 +414,7 @@ async def update_backup_settings(
     retention: Annotated[int, Form()] = 5,
     interval_hours: Annotated[int, Form()] = 1,
     backup_dir: Annotated[str, Form()] = "backups",
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Update backup settings."""
     context, status_code = await view_service.save_backup_settings(

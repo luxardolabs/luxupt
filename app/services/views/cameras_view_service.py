@@ -98,6 +98,12 @@ class CamerasViewService:
         # Get effective API config from core service (handles env var priority)
         api_config = await self.settings_service.get_effective_api_config()
 
+        # The page gets whether a secret is saved, never the secret.
+        has_saved_api_key = bool(settings.api_key)
+        has_saved_password = bool(settings.password)
+        settings = settings.model_copy(update={"api_key": None, "password": None})
+        del api_config["api_key"], api_config["password"]
+
         # Add display-only fields for template
         api_config["base_url_display"] = (
             self._mask_url(api_config["base_url"]) if api_config["base_url"] else None
@@ -111,6 +117,8 @@ class CamerasViewService:
 
         return {
             "settings": settings,
+            "has_saved_api_key": has_saved_api_key,
+            "has_saved_password": has_saved_password,
             "api_config": api_config,
             "needs_api": needs_api,
             "inactive_cameras": inactive_cameras,
@@ -452,6 +460,8 @@ class CamerasViewService:
         base_url: str | None,
         username: str | None,
         password: str | None,
+        remove_api_key: str | None,
+        remove_password: str | None,
         verify_ssl: str | None,
         max_retries: int | None,
         retry_delay: int | None,
@@ -482,6 +492,8 @@ class CamerasViewService:
                     "base_url": base_url,
                     "username": username,
                     "password": password,
+                    "remove_api_key": remove_api_key,
+                    "remove_password": remove_password,
                     "verify_ssl": verify_ssl,
                     "max_retries": max_retries,
                     "retry_delay": retry_delay,

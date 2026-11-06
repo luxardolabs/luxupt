@@ -70,7 +70,7 @@
 
                 <!-- ===== API CONNECTION SECTION ===== -->
                 {% set api_badge %}
-                    {% if api_config.has_api_key and api_config.has_base_url and not settings.api_key and not settings.base_url %}
+                    {% if api_config.has_api_key and api_config.has_base_url and not has_saved_api_key and not settings.base_url %}
                     <span class="inline-flex items-center gap-1.5 text-xs text-success-400 bg-success-500/10 px-2 py-1 rounded-lg">
                         {{ icon('check-circle', 'w-4 h-4') }}
                         Using ENV
@@ -82,7 +82,7 @@
                     </span>
                     {% endif %}
                 {% endset %}
-                {% call section_card('API Connection', 'Leave empty to use environment variables', api_badge, highlight=needs_api) %}
+                {% call section_card('API Connection', 'Saved values stay until you replace or remove them', api_badge, highlight=needs_api) %}
                 <div class="space-y-4">
                     <!-- Base URL -->
                     <div>
@@ -104,17 +104,22 @@
                     <!-- API Key -->
                     <div>
                         <label for="api_key" class="block text-sm font-medium text-white mb-1.5">API Key</label>
-                        {% if api_config.has_api_key and not settings.api_key %}
+                        {% if api_config.has_api_key and not has_saved_api_key %}
                         <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
                             {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
                             <span>••••••••••••••••</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
                         <div class="mt-2">
-                            {{ text_input("api_key", type="password", placeholder="Enter to override...") }}
+                            {{ text_input("api_key", type="password", placeholder="Enter to override...", autocomplete="new-password") }}
                         </div>
                         {% else %}
-                        {{ text_input("api_key", type="password", value=settings.api_key or '', placeholder="Enter API key...") }}
+                        {{ text_input("api_key", type="password", placeholder="Saved. Leave blank to keep it." if has_saved_api_key else "Enter API key...", autocomplete="new-password") }}
+                        {% if has_saved_api_key %}
+                        <div class="mt-2">
+                            {{ toggle_row("remove_api_key", "Remove saved API key") }}
+                        </div>
+                        {% endif %}
                         {% endif %}
                     </div>
 
@@ -139,17 +144,22 @@
                     <!-- Password -->
                     <div>
                         <label for="password" class="block text-sm font-medium text-white mb-1.5">Password</label>
-                        {% if api_config.password_from_env and not settings.password %}
+                        {% if api_config.password_from_env and not has_saved_password %}
                         <div class="flex items-center gap-2 rounded-lg border border-surface-500 bg-surface-700/50 px-3 py-2 text-sm text-surface-200">
                             {{ icon('lock-closed', 'w-4 h-4 text-surface-200 shrink-0') }}
                             <span>••••••••••••••••</span>
                             <span class="text-xs text-surface-200 shrink-0">(from ENV)</span>
                         </div>
                         <div class="mt-2">
-                            {{ text_input("password", type="password", placeholder="Enter to override...") }}
+                            {{ text_input("password", type="password", placeholder="Enter to override...", autocomplete="new-password") }}
                         </div>
                         {% else %}
-                        {{ text_input("password", type="password", value=settings.password or '', placeholder="Enter Protect password...", autocomplete="new-password") }}
+                        {{ text_input("password", type="password", placeholder="Saved. Leave blank to keep it." if has_saved_password else "Enter Protect password...", autocomplete="new-password") }}
+                        {% if has_saved_password %}
+                        <div class="mt-2">
+                            {{ toggle_row("remove_password", "Remove saved password") }}
+                        </div>
+                        {% endif %}
                         {% endif %}
                     </div>
 

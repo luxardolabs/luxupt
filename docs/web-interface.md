@@ -94,7 +94,7 @@ ______________________________________________________________________
 
 ## Capture Settings Panel
 
-Access via the **Capture Settings** button on the Cameras page. Configures global capture behavior.
+Access via the **Capture Settings** button on the Cameras page. Configures global capture behavior. Only administrators see this panel, because it holds the UniFi Protect credentials.
 
 ### Capture Section
 
@@ -121,6 +121,8 @@ Access via the **Capture Settings** button on the Cameras page. Configures globa
 | **Camera Refresh** | How often (in seconds) to check UniFi Protect for new or reconnected cameras. Lower values detect changes faster but increase API usage.           | 300s    |
 
 Shows **"Using ENV"** badge if credentials are set via environment variables. You can override ENV values by entering new values here.
+
+A saved API key or password is never shown again. Leave the field blank to keep it, type a new value to replace it, or turn on **Remove saved API key** or **Remove saved password** to clear it.
 
 *Example: If your UniFi Protect is at 192.168.1.1, the Base URL would be `https://192.168.1.1/proxy/protect/integration/v1`. If you get SSL errors, turn off Verify SSL — most local UniFi installations use self-signed certificates.*
 
@@ -620,7 +622,7 @@ Four cards showing detailed system information:
 
 #### Backup Settings Section
 
-Configure automatic database backups. Backups use SQLite's native hot-backup API and run safely while the application is active.
+Configure automatic database backups. Backups use SQLite's native hot-backup API and run safely while the application is active. Only administrators can change these settings, because a backup is a full copy of the database.
 
 | Setting              | Description                                                       | Default       |
 | -------------------- | ----------------------------------------------------------------- | ------------- |

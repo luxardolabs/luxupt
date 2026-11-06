@@ -513,7 +513,7 @@ class TimelapsesViewService:
                         "Bootstrap fetch for recording ranges failed",
                         extra={"error": str(e)},
                     )
-                    range_error = f"Could not read recording ranges: {str(e)[:200]}"
+                    range_error = "Could not read recording ranges. See the log."
 
         # Union range for the date input bounds (oldest of all, newest of all)
         union_oldest: str | None = None

@@ -83,7 +83,7 @@ class FetchSettingsRead(FetchSettingsBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    # The stored Protect credentials: the fetch-settings form shows them back for editing.
+    # The stored Protect credentials. The fetch-settings view keeps api_key and password off the page.
     api_key: str | None = None
     username: str | None = None
     password: str | None = None

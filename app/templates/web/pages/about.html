@@ -32,7 +32,9 @@
     <!-- API Configuration -->
     {% call card("API Configuration", icon_name="link", color="info") %}
     <div class="divide-y divide-surface-400/20">
+        {% if can_manage_settings %}
         {{ data_row_stacked("API URL", config.api_url, mono=true) }}
+        {% endif %}
         {{ data_row("Rate Limit", config.rate_limit ~ " req/sec (effective: " ~ config.effective_rate_limit ~ ")") }}
         {{ data_row("Concurrent Limit", config.concurrent_limit|string) }}
     </div>

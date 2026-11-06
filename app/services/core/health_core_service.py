@@ -96,7 +96,7 @@ class HealthCoreService:
             )
             return {
                 "status": HealthStatus.UNHEALTHY,
-                "message": f"Camera manager error: {str(e)}",
+                "message": "Camera manager error",
             }
 
     def check_storage(self) -> dict[str, Any]:

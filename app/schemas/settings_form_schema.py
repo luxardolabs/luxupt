@@ -2,8 +2,8 @@
 
 Each schema states every bound its form's own inputs show (min/max, the select's options), so a
 value the browser would refuse is refused here too: the browser's min/max is only a hint. A
-checkbox the browser leaves out is False. An emptied Protect credential clears it; an emptied
-number leaves the stored value as it is; every other field has an explicit default. The views build
+checkbox the browser leaves out is False. An emptied Protect URL or username clears it; an emptied
+API key, password or number leaves the stored value as it is; every other field has an explicit default. The views build
 the save payload from these alone (`to_update()`), never from the raw form.
 """
 
@@ -81,10 +81,14 @@ class FetchSettingsForm(_SettingsForm):
     default_rtsp_quality: RtspQuality = "high"
 
     # The Protect connection: an emptied field clears the stored value.
-    api_key: str | None = Field(default=None, max_length=256)
     base_url: str | None = Field(default=None, max_length=512)
     username: str | None = Field(default=None, max_length=255)
+    # The secrets are never sent to the page, so an empty field keeps the stored value. Only the
+    # remove toggle clears it, and a value typed in the field wins over the toggle.
+    api_key: str | None = Field(default=None, max_length=256)
     password: str | None = Field(default=None, max_length=255)
+    remove_api_key: bool = False
+    remove_password: bool = False
 
     # The numbers: an emptied field (None) leaves the stored value as it is.
     max_retries: int | None = Field(default=None, ge=0, le=10)
@@ -101,7 +105,12 @@ class FetchSettingsForm(_SettingsForm):
     rtsp_capture_timeout: int | None = Field(default=None, ge=5, le=60)
 
     _checkboxes = field_validator(
-        "enabled", "verify_ssl", "high_quality_snapshots", mode="before"
+        "enabled",
+        "verify_ssl",
+        "high_quality_snapshots",
+        "remove_api_key",
+        "remove_password",
+        mode="before",
     )(_checkbox)
     _clearable = field_validator(
         "api_key", "base_url", "username", "password", mode="before"
@@ -123,9 +132,13 @@ class FetchSettingsForm(_SettingsForm):
 
     def to_update(self) -> dict[str, Any]:
         """The fetch_settings columns this form sets: no intervals means 60s; a number only when sent."""
-        update = self.model_dump(exclude=_FETCH_NUMBERS)
+        update = self.model_dump(exclude=_FETCH_NUMBERS | _FETCH_SECRET_FIELDS)
         update.update(self.model_dump(include=_FETCH_NUMBERS, exclude_none=True))
         update["intervals"] = self.intervals or [60]
+        if self.api_key is not None or self.remove_api_key:
+            update["api_key"] = self.api_key
+        if self.password is not None or self.remove_password:
+            update["password"] = self.password
         return update
 
 
@@ -134,6 +147,7 @@ _FETCH_NUMBERS = {
     for name, field in FetchSettingsForm.model_fields.items()
     if field.annotation in (int | None, float | None)
 }
+_FETCH_SECRET_FIELDS = {"api_key", "password", "remove_api_key", "remove_password"}
 
 
 class CameraSettingsForm(_SettingsForm):
