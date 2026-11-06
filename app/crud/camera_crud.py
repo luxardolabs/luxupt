@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base_crud import CRUDBase
@@ -110,20 +110,21 @@ class CRUDCamera(CRUDBase[Camera, CameraCreate, CameraUpdate]):
         *,
         success: bool = True,
     ) -> Camera | None:
-        """Increment capture counts for a camera."""
-        camera = await self.get_by_camera_id(db, camera_id)
-        if not camera:
-            return None
-
-        camera.total_captures += 1
-        if not success:
-            camera.failed_captures += 1
-        camera.last_capture_at = datetime.now(UTC)
-
-        db.add(camera)
+        """Count one capture in a single statement, so concurrent captures never lose a count."""
+        # The returned row replaces the session's loaded copy, so pending edits go to the database first.
         await db.flush()
-        await db.refresh(camera)
-        return camera
+        result = await db.execute(
+            update(Camera)
+            .where(Camera.camera_id == camera_id)
+            .values(
+                total_captures=Camera.total_captures + 1,
+                failed_captures=Camera.failed_captures + (0 if success else 1),
+                last_capture_at=datetime.now(UTC),
+            )
+            .returning(Camera)
+            .execution_options(populate_existing=True)
+        )
+        return result.scalar_one_or_none()
 
     async def get_camera_stats(
         self,

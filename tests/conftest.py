@@ -242,7 +242,7 @@ def write_lock_free(real_commits: None) -> Callable[[], Awaitable[bool]]:
     return probe
 
 
-# luxarch:route-smoke asserter v21 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
+# luxarch:route-smoke asserter v22 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
 #
 # WHY THIS FILE EXISTS
 # A dependency deprecates an API; your code keeps working (warning only); a later pin makes it RAISE;
@@ -359,103 +359,94 @@ _RENDERED: set[int] = set()
 _WORKER_PAYLOADS: list[dict[str, list[object]]] = []
 
 
-def pytest_runtest_logreport(report) -> None:  # type: ignore[no-untyped-def]
-    # Count outcomes so the 0-hits net can tell "the request suite SKIPPED (e.g. a DB-less run)" from
-    # "tests ran but the recorder saw nothing (real misconfig)". A real skip is decided
-    # at SETUP. CRITICAL: an xfail RAN — pytest reports it at the CALL phase with outcome=="skipped" and
-    # `wasxfail` set, so it must NOT be counted as a skip, or a single xfail (the fleet's own
-    # known-broken idiom) would disarm net #2 and route-smoke would certify nothing.
-    if report.when == "setup" and report.outcome == "skipped":
-        _OUTCOMES["skipped"] += 1
-    elif report.when == "call":
-        outcome = report.outcome
-        if outcome == "skipped" and getattr(report, "wasxfail", False):
-            outcome = "xfailed"  # an xfail executed; it is not a skip
-        _OUTCOMES[outcome] = _OUTCOMES.get(outcome, 0) + 1
-
-
-def _patch_route_class(cls, match_full) -> None:  # type: ignore[no-untyped-def]
-    # Record the route OBJECT'S IDENTITY, not (method, path). The recorder only ever sees `self`, which
-    # knows its UNPREFIXED path, while the mount prefix lives on the parent wrapper — so a string key
-    # could never agree between recording and enumeration (they'd both have to reconstruct the full
-    # path, and the recorder can't). Keying on `id(route)` makes the two sides agree BY CONSTRUCTION:
-    # enumeration walks the same objects and records their ids. (Proven end-to-end on a real repo.)
-    # Record on BOTH matches() (fires on a FULL match even if a dep later 403s — import-time deprecations
-    # still caught) and handle() (body dispatch). Idempotent per class; `_HIT` is a set so a super()
-    # double-record is harmless.
-    if getattr(cls.handle, "_luxarch_route_smoke", False):
-        return
-    _orig_matches = cls.matches
-
-    def matches(self, scope):  # type: ignore[no-untyped-def]
-        result = _orig_matches(self, scope)
-        try:
-            if result[0] == match_full:
-                _HIT.add(id(self))
-        except Exception:
-            pass
-        return result
-
-    matches._luxarch_route_smoke = True  # type: ignore[attr-defined]
-    cls.matches = matches
-
-    _orig_handle = cls.handle
-
-    async def handle(self, scope, receive, send):  # type: ignore[no-untyped-def]
-        _HIT.add(id(self))
-
-        async def _send(message):  # type: ignore[no-untyped-def]
-            # `http.response.start` carries the status. Wrapped rather than inspected after the fact
-            # so it works for any client and for streaming responses alike.
-            try:
-                if message.get("type") == "http.response.start":
-                    status = int(message.get("status", 0))
-                    if status >= 500:
-                        _SERVER_ERRORS.setdefault(id(self), set()).add(status)
-                    headers: dict[bytes, str] = {}
-                    for k, v in message.get("headers") or ():
-                        # The first of a repeated header, as a client reads `Location`.
-                        headers.setdefault(k.lower(), v.decode("latin-1", "replace"))
-                    # An htmx request is bounced with 200 + `HX-Redirect` (or `HX-Location`), because
-                    # htmx would follow a 3xx inside its XHR and swap the target page into the
-                    # fragment. The handler did not render either way, so both are redirects.
-                    hx = headers.get(b"hx-redirect") or headers.get(b"hx-location")
-                    if 300 <= status < 400 or (hx and status < 400):
-                        loc = hx or headers.get(b"location", "")
-                        if loc.lstrip().startswith("{"):
-                            # HX-Location's JSON form: {"path": "/login", "target": ...}
-                            import json
-
-                            try:
-                                parsed = json.loads(loc)
-                            except ValueError:
-                                parsed = None
-                            if isinstance(parsed, dict):
-                                loc = str(parsed.get("path", ""))
-                        # Query string dropped: `?next=/admin/users` differs per route and would
-                        # hide that a dozen routes all bounce to the SAME page.
-                        _REDIRECTS.setdefault(id(self), set()).add(
-                            (status, loc.split("?")[0])
-                        )
-                    else:
-                        _RENDERED.add(id(self))
-            except Exception:
-                pass
-            return await send(message)
-
-        return await _orig_handle(self, scope, receive, _send)
-
-    handle._luxarch_route_smoke = True  # type: ignore[attr-defined]
-    cls.handle = handle
-
-
-def _install_recorder() -> None:
+# The functions that pytest or Starlette call with their own objects are defined inside a factory
+# that imports those libraries' types (this block may only import inside a function, see the NOTE
+# above), so each carries its real signature with no suppression. The module-level names are what
+# the factory returns.
+def _recorder() -> object:
     # CRITICAL: FastAPI's APIRoute OVERRIDES both handle() and matches() (subclass wins), and FastAPI
     # dispatches by calling `original_route.handle(...)` on the APIRoute directly — so patching only
     # the Starlette parent Route recorded ZERO hits (v1 patched handle, v2 added matches; both missed).
     # Patch APIRoute FIRST, then the Starlette Route (WebSocketRoute etc. still go through Route). The
     # `Match.FULL` enum is shared. (Root-caused, and the fix confirmed live in an adopting repo.)
+    import json
+
     import starlette.routing as _r
+    from starlette.types import Message, Receive, Scope, Send
+
+    def _patch_route_class(cls: type[_r.BaseRoute], match_full: _r.Match) -> None:
+        # Record the route OBJECT'S IDENTITY, not (method, path). The recorder only ever sees `self`, which
+        # knows its UNPREFIXED path, while the mount prefix lives on the parent wrapper — so a string key
+        # could never agree between recording and enumeration (they'd both have to reconstruct the full
+        # path, and the recorder can't). Keying on `id(route)` makes the two sides agree BY CONSTRUCTION:
+        # enumeration walks the same objects and records their ids. (Proven end-to-end on a real repo.)
+        # Record on BOTH matches() (fires on a FULL match even if a dep later 403s — import-time deprecations
+        # still caught) and handle() (body dispatch). Idempotent per class (`_PATCHED` holds the
+        # functions this block installed); `_HIT` is a set so a super() double-record is harmless.
+        if cls.handle in _PATCHED:
+            return
+        _orig_matches = cls.matches
+
+        def matches(self: _r.BaseRoute, scope: Scope) -> tuple[_r.Match, Scope]:
+            result = _orig_matches(self, scope)
+            try:
+                if result[0] == match_full:
+                    _HIT.add(id(self))
+            except Exception:
+                pass
+            return result
+
+        _orig_handle = cls.handle
+
+        async def handle(
+            self: _r.BaseRoute, scope: Scope, receive: Receive, send: Send
+        ) -> None:
+            _HIT.add(id(self))
+
+            async def _send(message: Message) -> None:
+                # `http.response.start` carries the status. Wrapped rather than inspected after the fact
+                # so it works for any client and for streaming responses alike.
+                try:
+                    if message.get("type") == "http.response.start":
+                        status = int(message.get("status", 0))
+                        if status >= 500:
+                            _SERVER_ERRORS.setdefault(id(self), set()).add(status)
+                        headers: dict[bytes, str] = {}
+                        for k, v in message.get("headers") or ():
+                            # The first of a repeated header, as a client reads `Location`.
+                            headers.setdefault(
+                                k.lower(), v.decode("latin-1", "replace")
+                            )
+                        # An htmx request is bounced with 200 + `HX-Redirect` (or `HX-Location`), because
+                        # htmx would follow a 3xx inside its XHR and swap the target page into the
+                        # fragment. The handler did not render either way, so both are redirects.
+                        hx = headers.get(b"hx-redirect") or headers.get(b"hx-location")
+                        if 300 <= status < 400 or (hx and status < 400):
+                            loc = hx or headers.get(b"location", "")
+                            if loc.lstrip().startswith("{"):
+                                # HX-Location's JSON form: {"path": "/login", "target": ...}
+                                try:
+                                    parsed = json.loads(loc)
+                                except ValueError:
+                                    parsed = None
+                                if isinstance(parsed, dict):
+                                    loc = str(parsed.get("path", ""))
+                            # Query string dropped: `?next=/admin/users` differs per route and would
+                            # hide that a dozen routes all bounce to the SAME page.
+                            _REDIRECTS.setdefault(id(self), set()).add(
+                                (status, loc.split("?")[0])
+                            )
+                        else:
+                            _RENDERED.add(id(self))
+                except Exception:
+                    pass
+                await send(message)
+
+            await _orig_handle(self, scope, receive, _send)
+
+        _PATCHED.update((matches, handle))
+        for name, fn in (("matches", matches), ("handle", handle)):
+            setattr(cls, name, fn)
 
     _patch_route_class(_r.Route, _r.Match.FULL)
     try:
@@ -466,9 +457,13 @@ def _install_recorder() -> None:
         Exception
     ):  # no FastAPI (shouldn't happen for a fastapi-web repo) — Route patch stands
         pass
+    return _patch_route_class
 
 
-_install_recorder()
+# The functions this block installed on Starlette's route classes: a class whose `handle` is one of
+# them is already patched.
+_PATCHED: set[object] = set()
+_patch_route_class = _recorder()
 
 
 def _registered_route_entries() -> list[tuple[str, str, str, int]]:
@@ -481,11 +476,14 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
     # and `Mount.path`.
     mod, _, attr = APP_IMPORT.partition(":")
     import importlib
+    from collections.abc import Iterable
 
     app = getattr(importlib.import_module(mod), attr or "app")
     entries: list[tuple[str, str, str, int]] = []
 
-    def _walk(routes, prefix="", host="") -> None:  # type: ignore[no-untyped-def]
+    # The walk reads each route by what it carries, not by its class: Starlette's wrappers differ
+    # across versions, so a route is any object here.
+    def _walk(routes: Iterable[object], prefix: str = "", host: str = "") -> None:
         for route in routes:
             # Starlette >=1.x wraps include_router() results instead of flattening — the real routes hang
             # off `.original_router.routes`, and the include prefix lives on the wrapper's include_context.
@@ -550,96 +548,6 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
 # Below this many registered routes, an app with included routers is almost certainly mis-walked
 # (the flat-walk bug), not genuinely tiny — fail loud rather than "certify" a handful.
 _MIN_PLAUSIBLE_ROUTES = 5
-
-
-def _session_is_narrowed(session) -> bool:  # type: ignore[no-untyped-def]
-    """True when this run deliberately selected a SUBSET of the suite.
-
-    Net #2 exists to catch a blind RECORDER on a run where request tests ran and
-    recorded nothing. A focused run (`pytest tests/unit/x.py`, `-k`, a node id) selects no request
-    tests at all, so zero hits is the correct outcome — not evidence of misconfiguration. The only
-    stand-down signal was the skip count, and a narrowed selection has 0 skips, so every focused
-    unit-test run "failed". That is the everyday TDD loop, and a red exit there trains people to
-    ignore the exit code, which blunts the loud-fail nets that actually matter.
-
-    Certification requires the WHOLE configured suite; anything narrower says so and stands down."""
-    # If narrowing cannot be determined, answer NOT narrowed so every loud-fail net still fires. The
-    # opposite default would let an unrecognised session shape stand the asserter down silently —
-    # a hollow green, which is the failure this whole file exists to prevent.
-    opt = getattr(getattr(session, "config", None), "option", None)
-    if opt is None:
-        return False
-    if getattr(opt, "keyword", "") or getattr(opt, "markexpr", ""):
-        return True  # -k / -m
-    if getattr(session, "deselected", 0):
-        return True
-    try:
-        testpaths = list(session.config.getini("testpaths") or [])
-    except Exception:
-        testpaths = []
-    try:
-        args = [a for a in (session.config.args or []) if not a.startswith("-")]
-    except Exception:
-        return False
-    if not args:
-        return False  # bare `pytest` with testpaths from config — the full suite
-    # Explicit args that are not exactly the configured testpaths = a deliberate subset. A node id
-    # (`file::test`) is always narrower than a path.
-    if any("::" in a for a in args):
-        return True
-    import os.path
-
-    # The string comparison below once reported EVERY run as narrowed under the fleet's own
-    # canonical config, so route-smoke certified nothing on any repo using it — while
-    # fw.route_smoke_wired stayed green and the stand-down message read like normal operation ("run
-    # the full suite to certify", when the full suite is what ran). The reporter's probe on a real
-    # `make test`:
-    #
-    #     rootdir /   inifile /pytest.ini   testpaths ['tests']   args ['/w']   deselected 0
-    #
-    # `luxlint --emit-config pytest` ships `testpaths = tests`, and the fleet pattern mounts that
-    # file read-only and runs `pytest -c /pytest.ini` with the repo at the work dir. rootdir becomes
-    # `/`, so `testpaths` cannot resolve against it and pytest falls back to collecting from the cwd,
-    # setting args to the work dir. Collection is complete; only the comparison breaks. Two guards
-    # disagreeing about the same prescribed setup, with the asserter the one that lost.
-    #
-    # So: pytest's own fallback is not a deliberate subset.
-    root = os.path.normpath(str(getattr(session.config, "rootpath", "") or ""))
-    here = os.path.normpath(os.getcwd())
-    if len(args) == 1 and os.path.normpath(args[0]).rstrip("/") in {root, here}:
-        return False
-    # v16 also had an "ini file outside the rootdir -> not narrowed" leg here. It is GONE, because it
-    # was redundant AND harmful. Redundant: the rootdir/cwd check above already handles
-    # every case the narrowed-run report raised — verified against the reporter's probe. Harmful: it returned
-    # not-narrowed OUTRIGHT, discarding the args, so `pytest -c /cfg/pytest.ini --rootdir=/app
-    # tests/test_tool_gate.py` read as the full suite, recorded zero route hits and the zero-hits net
-    # REFUSED. That is the focused-run failure — the everyday focused run goes red — coming back
-    # through a new leg. The comment beside it said it should only skip the testpaths COMPARISON; the
-    # code switched off the whole determination. Correct intent, broader implementation.
-    #
-    # Deleted rather than reordered: with the rootdir/cwd check present it has no remaining job, and a
-    # leg that does nothing is one someone later has to work out the purpose of.
-    #
-    # Args are compared BOTH as written and relative to the cwd/rootdir, so `pytest /app/tests` with
-    # `testpaths = tests` is recognised as the full suite rather than standing the asserter down —
-    # a stand-down is a hollow green, and the absolute spelling of a configured testpath is not a
-    # deliberate subset.
-    want = {os.path.normpath(t).rstrip("/") for t in testpaths}
-    got: set[str] = set()
-    for a in args:
-        n = os.path.normpath(a).rstrip("/")
-        got.add(n)
-        for base in (here, root):
-            if base and n.startswith(base.rstrip("/") + os.sep):
-                got.add(n[len(base.rstrip("/")) + 1 :])
-    if not want:
-        # No testpaths to compare against: an explicit FILE is the only thing that still reads as a
-        # deliberate subset. A directory arg with no configured testpaths could be the whole suite.
-        return any(a.endswith(".py") for a in args)
-    # COVERAGE, not intersection. `pytest tests` under `testpaths = ["tests", "integration"]` runs half
-    # the suite, and an intersection test would call that the full one — a stand-down, which is a
-    # hollow green. Every configured testpath must be named for this to be the whole suite.
-    return not want <= got
 
 
 def _by_rid(
@@ -720,283 +628,420 @@ def _merge_worker_payloads(entries: list[tuple[str, str, str, int]]) -> None:
                 )
 
 
-def _xdist_merge_hook() -> object:
-    # The controller collects each worker's payload as the worker goes down. `pytest_testnodedown` is
-    # xdist's own hook, so it is marked `optionalhook=True` (inert without xdist), and the decorator
-    # needs `pytest`, which this block may only import inside a function (see the NOTE above).
-    # v19: built here and bound below rather than registered from a `pytest_configure`. v18 defined
+def _pytest_hooks() -> tuple[object, object, object, object]:
+    # The hooks need `pytest` for their types and the xdist decorator, and this block may only import
+    # inside a function (see the NOTE above), so they are built here and bound below.
+    # v19: bound below rather than registered from a `pytest_configure`. v18 defined
     # `pytest_configure`, and this block is pasted into the repo's own conftest, where Python keeps
     # only the LAST def of a name: it silently replaced the repo's hook (one repo lost three
-    # dynamically registered markers vanished, 12 files failed collection under --strict-markers).
+    # dynamically registered markers, 12 files failed collection under --strict-markers).
     # This block defines no hook name a repo's conftest would also define.
+    import sys
+
     import pytest
 
+    def pytest_runtest_logreport(report: pytest.TestReport) -> None:
+        # Count outcomes so the 0-hits net can tell "the request suite SKIPPED (e.g. a DB-less run)" from
+        # "tests ran but the recorder saw nothing (real misconfig)". A real skip is decided
+        # at SETUP. CRITICAL: an xfail RAN — pytest reports it at the CALL phase with outcome=="skipped" and
+        # `wasxfail` set, so it must NOT be counted as a skip, or a single xfail (the fleet's own
+        # known-broken idiom) would disarm net #2 and route-smoke would certify nothing.
+        if report.when == "setup" and report.outcome == "skipped":
+            _OUTCOMES["skipped"] += 1
+        elif report.when == "call":
+            outcome: str = report.outcome
+            if outcome == "skipped" and getattr(report, "wasxfail", False):
+                outcome = "xfailed"  # an xfail executed; it is not a skip
+            _OUTCOMES[outcome] = _OUTCOMES.get(outcome, 0) + 1
+
+    # The controller collects each worker's payload as the worker goes down. `pytest_testnodedown` is
+    # xdist's own hook, so it is marked `optionalhook=True` (inert without xdist).
     @pytest.hookimpl(optionalhook=True)
     def pytest_testnodedown(node: object, error: object) -> None:
         payload = getattr(node, "workeroutput", {}).get("luxarch_route_smoke")
         if payload:
             _WORKER_PAYLOADS.append(payload)
 
-    return pytest_testnodedown
-
-
-pytest_testnodedown = _xdist_merge_hook()
-
-
-def pytest_sessionfinish(session, exitstatus) -> None:  # type: ignore[no-untyped-def]
-    # Only CERTIFY on a green run — a red suite's route list is untrustworthy (a failed test may have
-    # aborted before its route ran). But say so OUT LOUD: a silent skip lets coverage lapse invisibly
-    # while the suite is red. Non-enforcing by design; just visible.
-    if exitstatus not in (0, None):
-        print(
-            "\nluxarch route-smoke: INERT — suite exitstatus="
-            f"{exitstatus}, route certification SKIPPED. NO route is certified until the failing "
-            "test(s) are fixed. See luxarch --playbook route-smoke."
+    def _say(session: pytest.Session, text: str) -> None:
+        # Through pytest's terminal reporter, as pytest prints its own summary; on stderr when the
+        # reporter is switched off (`-p no:terminal`). Never print(): the adopter's lint refuses it.
+        manager = getattr(getattr(session, "config", None), "pluginmanager", None)
+        reporter = (
+            manager.get_plugin("terminalreporter") if manager is not None else None
         )
-        return
-    try:
-        entries = _registered_route_entries()
-    except (
-        Exception
-    ) as exc:  # app import misconfigured — make it loud, not silently green
-        raise SystemExit(
-            f"luxarch route-smoke: could not import the app via APP_IMPORT={APP_IMPORT!r} "
-            f"({exc}). Set it to your app factory/instance. See luxarch --playbook route-smoke."
-        ) from exc
-    workeroutput = getattr(getattr(session, "config", None), "workeroutput", None)
-    if workeroutput is not None:
-        # An xdist WORKER: hand the recordings to the controller and certify nothing here. Each worker
-        # saw only its share of the suite, so a per-worker verdict would be wrong in both directions.
-        workeroutput["luxarch_route_smoke"] = _worker_payload(entries)
-        return
-    _merge_worker_payloads(entries)
-    # Loud-fail net #3: a duplicate (HOST, method, path) — from DISTINCT route objects — means the app
-    # registered the same method+path twice under one host, so one handler shadows the other (the
-    # shadowed one is dead/unreachable). Keyed on HOST because a Host()-composed app reaches the same
-    # route under N hostnames and different sub-apps share `/`, `/docs`, … — those are not shadows
-    # (Starlette matches exactly one host per request), so keying on (method, path) alone false-flagged
-    # thousands (v8). A collision is real only when two DIFFERENT route ids share it.
-    seen: dict[tuple[str, str, str], int] = {}
-    shadowed: set[tuple[str, str, str]] = set()
-    for h, m, p, rid in entries:
-        k = (h, m, p)
-        if k in seen and seen[k] != rid:
-            shadowed.add(k)
+        if reporter is not None:
+            reporter.write_line(text)
         else:
-            seen.setdefault(k, rid)
-    if shadowed:
-        dupes = sorted(f"{m} {p}" + (f" @{h}" if h else "") for (h, m, p) in shadowed)
-        raise SystemExit(
-            f"luxarch route-smoke: {len(shadowed)} (host, method, path) registered by more than one "
-            f"handler — one SHADOWS the other (the shadowed one is dead/unreachable). Remove the dead "
-            f"handler. Duplicates: {dupes}. See --playbook route-smoke."
-        )
-    # Loud-fail net #1: implausibly few (INCLUDING ZERO) routes → the enumerator is mis-walking, NOT a
-    # 2-route app. ZERO is the most certain "the walk is broken" signal, so it must fail LOUDEST — the
-    # old `0 < len(entries)` guard excluded zero, so a walk-to-nothing certified GREEN silently, the exact
-    # hollow green this net exists to prevent.
-    if not entries:
-        raise SystemExit(
-            "luxarch route-smoke: enumerated 0 routes — the walk found NOTHING, so this run certifies "
-            "nothing (a hollow green). Either APP_IMPORT is wrong, or the app composes its routes in a "
-            "container the walker doesn't descend (a Host()/Mount sub-app, an unusual router wrapper). "
-            "Refusing to certify. Re-emit the asserter (luxarch --emit route-smoke) and check APP_IMPORT. "
-            "See --playbook route-smoke."
-        )
-    if len(entries) < _MIN_PLAUSIBLE_ROUTES:
-        raise SystemExit(
-            f"luxarch route-smoke: only {len(entries)} route(s) enumerated — implausibly few for an "
-            "app with included routers, so the asserter is almost certainly mis-walking the route table "
-            "(Starlette version?), NOT genuinely tiny. Refusing to certify — a low count would be a "
-            "hollow green. Update the asserter (luxarch --emit route-smoke). See --playbook route-smoke."
-        )
-    # Loud-fail net #2: routes exist but NOTHING was recorded. Two cases, cleanly separable by the skip
-    # count: if the request suite SKIPPED (a DB-less `make test` → 0 hits / many skipped),
-    # route-smoke simply wasn't exercised this run — that's NOT a misconfiguration; stand down (the
-    # DB-full run enforces coverage). Only when tests actually RAN and still recorded nothing is the
-    # recorder blind (wrong app / bypassing TestClient) — THAT is the misconfig to fail on.
-    if entries and not _HIT:
-        if _session_is_narrowed(session):
-            print(
-                "luxarch route-smoke: not evaluated — this run selected a SUBSET of the suite, which "
-                "need not contain any route test. Certification requires the full suite."
+            sys.stderr.write(text + "\n")
+
+    def _session_is_narrowed(session: pytest.Session) -> bool:
+        """True when this run deliberately selected a SUBSET of the suite.
+
+        Net #2 exists to catch a blind RECORDER on a run where request tests ran and
+        recorded nothing. A focused run (`pytest tests/unit/x.py`, `-k`, a node id) selects no request
+        tests at all, so zero hits is the correct outcome — not evidence of misconfiguration. The only
+        stand-down signal was the skip count, and a narrowed selection has 0 skips, so every focused
+        unit-test run "failed". That is the everyday TDD loop, and a red exit there trains people to
+        ignore the exit code, which blunts the loud-fail nets that actually matter.
+
+        Certification requires the WHOLE configured suite; anything narrower says so and stands down."""
+        # If narrowing cannot be determined, answer NOT narrowed so every loud-fail net still fires. The
+        # opposite default would let an unrecognised session shape stand the asserter down silently —
+        # a hollow green, which is the failure this whole file exists to prevent.
+        opt = getattr(getattr(session, "config", None), "option", None)
+        if opt is None:
+            return False
+        if getattr(opt, "keyword", "") or getattr(opt, "markexpr", ""):
+            return True  # -k / -m
+        if getattr(session, "deselected", 0):
+            return True
+        try:
+            testpaths = list(session.config.getini("testpaths") or [])
+        except Exception:
+            testpaths = []
+        try:
+            args = [a for a in (session.config.args or []) if not a.startswith("-")]
+        except Exception:
+            return False
+        if not args:
+            return False  # bare `pytest` with testpaths from config — the full suite
+        # Explicit args that are not exactly the configured testpaths = a deliberate subset. A node id
+        # (`file::test`) is always narrower than a path.
+        if any("::" in a for a in args):
+            return True
+        import os.path
+
+        # The string comparison below once reported EVERY run as narrowed under the fleet's own
+        # canonical config, so route-smoke certified nothing on any repo using it — while
+        # fw.route_smoke_wired stayed green and the stand-down message read like normal operation ("run
+        # the full suite to certify", when the full suite is what ran). The reporter's probe on a real
+        # `make test`:
+        #
+        #     rootdir /   inifile /pytest.ini   testpaths ['tests']   args ['/w']   deselected 0
+        #
+        # `luxlint --emit-config pytest` ships `testpaths = tests`, and the fleet pattern mounts that
+        # file read-only and runs `pytest -c /pytest.ini` with the repo at the work dir. rootdir becomes
+        # `/`, so `testpaths` cannot resolve against it and pytest falls back to collecting from the cwd,
+        # setting args to the work dir. Collection is complete; only the comparison breaks. Two guards
+        # disagreeing about the same prescribed setup, with the asserter the one that lost.
+        #
+        # So: pytest's own fallback is not a deliberate subset.
+        root = os.path.normpath(str(getattr(session.config, "rootpath", "") or ""))
+        here = os.path.normpath(os.getcwd())
+        if len(args) == 1 and os.path.normpath(args[0]).rstrip("/") in {root, here}:
+            return False
+        # v16 also had an "ini file outside the rootdir -> not narrowed" leg here. It is GONE, because it
+        # was redundant AND harmful. Redundant: the rootdir/cwd check above already handles
+        # every case the narrowed-run report raised — verified against the reporter's probe. Harmful: it returned
+        # not-narrowed OUTRIGHT, discarding the args, so `pytest -c /cfg/pytest.ini --rootdir=/app
+        # tests/test_tool_gate.py` read as the full suite, recorded zero route hits and the zero-hits net
+        # REFUSED. That is the focused-run failure — the everyday focused run goes red — coming back
+        # through a new leg. The comment beside it said it should only skip the testpaths COMPARISON; the
+        # code switched off the whole determination. Correct intent, broader implementation.
+        #
+        # Deleted rather than reordered: with the rootdir/cwd check present it has no remaining job, and a
+        # leg that does nothing is one someone later has to work out the purpose of.
+        #
+        # Args are compared BOTH as written and relative to the cwd/rootdir, so `pytest /app/tests` with
+        # `testpaths = tests` is recognised as the full suite rather than standing the asserter down —
+        # a stand-down is a hollow green, and the absolute spelling of a configured testpath is not a
+        # deliberate subset.
+        want = {os.path.normpath(t).rstrip("/") for t in testpaths}
+        got: set[str] = set()
+        for a in args:
+            n = os.path.normpath(a).rstrip("/")
+            got.add(n)
+            for base in (here, root):
+                if base and n.startswith(base.rstrip("/") + os.sep):
+                    got.add(n[len(base.rstrip("/")) + 1 :])
+        if not want:
+            # No testpaths to compare against: an explicit FILE is the only thing that still reads as a
+            # deliberate subset. A directory arg with no configured testpaths could be the whole suite.
+            return any(a.endswith(".py") for a in args)
+        # COVERAGE, not intersection. `pytest tests` under `testpaths = ["tests", "integration"]` runs half
+        # the suite, and an intersection test would call that the full one — a stand-down, which is a
+        # hollow green. Every configured testpath must be named for this to be the whole suite.
+        return not want <= got
+
+    def pytest_sessionfinish(
+        session: pytest.Session, exitstatus: int | pytest.ExitCode
+    ) -> None:
+        # Only CERTIFY on a green run — a red suite's route list is untrustworthy (a failed test may have
+        # aborted before its route ran). But say so OUT LOUD: a silent skip lets coverage lapse invisibly
+        # while the suite is red. Non-enforcing by design; just visible.
+        if exitstatus not in (0, None):
+            _say(
+                session,
+                "\nluxarch route-smoke: INERT — suite exitstatus="
+                f"{exitstatus}, route certification SKIPPED. NO route is certified until the failing "
+                "test(s) are fixed. See luxarch --playbook route-smoke.",
             )
             return
-        if _OUTCOMES["skipped"]:
-            print(
-                f"luxarch route-smoke: not evaluated — 0 requests observed but {_OUTCOMES['skipped']} "
-                "test(s) skipped, so the request suite didn't run this pass (DB-less?). The DB-full run "
-                "enforces coverage."
-            )
+        try:
+            entries = _registered_route_entries()
+        except (
+            Exception
+        ) as exc:  # app import misconfigured — make it loud, not silently green
+            raise SystemExit(
+                f"luxarch route-smoke: could not import the app via APP_IMPORT={APP_IMPORT!r} "
+                f"({exc}). Set it to your app factory/instance. See luxarch --playbook route-smoke."
+            ) from exc
+        workeroutput = getattr(getattr(session, "config", None), "workeroutput", None)
+        if workeroutput is not None:
+            # An xdist WORKER: hand the recordings to the controller and certify nothing here. Each worker
+            # saw only its share of the suite, so a per-worker verdict would be wrong in both directions.
+            workeroutput["luxarch_route_smoke"] = _worker_payload(entries)
             return
-        raise SystemExit(
-            "luxarch route-smoke: 0 requests were observed across the whole suite while "
-            f"{len(entries)} routes are registered and nothing skipped. TWO causes look identical from "
-            "zero hits: (a) the recorder isn't observing — wrong APP_IMPORT, or a TestClient that "
-            "bypasses the app (e.g. Starlette 1.x needs httpx2 installed, or the test network has no DNS "
-            "for db/redis so every request dies before routing); or (b) the suite has NO route tests "
-            "yet. Make ONE real request — a single public-page GET — to disambiguate: if it records, "
-            "it's (b), you have real coverage gaps to fill (KEEP that probe, it's load-bearing — remove "
-            "the last route test and this refusal returns). If it still doesn't record, it's (a), fix "
-            "the wiring. Under `pytest -n` the workers' recordings are merged here (asserter v18+); an "
-            "OLDER asserter under xdist shows exactly this message on a healthy suite, so re-emit it "
-            "(luxarch --emit route-smoke) before hunting (a). Refusing to certify on zero requests "
-            "either way. See --playbook route-smoke."
-        )
-    # Loud-fail net #4: a route the suite REQUESTED returned 5xx. `--playbook
-    # route-smoke` line 84 claims route-smoke "catches ordinary logic bugs that 500 on first request",
-    # but nothing looked at status, so the claim held only where a test author happened to assert on
-    # it. A test that requests POST /vendors and gets a 500 satisfied the old asserter completely;
-    # four such 500s shipped to production while this file reported PASS.
-    #
-    # This is NOT the response-SHAPE assertion the playbook warns against — a fragment endpoint
-    # returning bare HTML still passes. Only a 5xx fails, and EXPECT_5XX exempts a route a test drives
-    # to an error on purpose.
-    if _SERVER_ERRORS:
-        by_rid = {rid: (m, p_) for (_h, m, p_, rid) in entries}
-        bad = sorted(
-            f"{by_rid[rid][0]:4} {by_rid[rid][1]}  -> {sorted(codes)}"
-            for rid, codes in _SERVER_ERRORS.items()
-            if rid in by_rid and by_rid[rid][1] not in EXPECT_5XX
-        )
-        if bad:
+        _merge_worker_payloads(entries)
+        # Loud-fail net #3: a duplicate (HOST, method, path) — from DISTINCT route objects — means the app
+        # registered the same method+path twice under one host, so one handler shadows the other (the
+        # shadowed one is dead/unreachable). Keyed on HOST because a Host()-composed app reaches the same
+        # route under N hostnames and different sub-apps share `/`, `/docs`, … — those are not shadows
+        # (Starlette matches exactly one host per request), so keying on (method, path) alone false-flagged
+        # thousands (v8). A collision is real only when two DIFFERENT route ids share it.
+        seen: dict[tuple[str, str, str], int] = {}
+        shadowed: set[tuple[str, str, str]] = set()
+        for h, m, p, rid in entries:
+            k = (h, m, p)
+            if k in seen and seen[k] != rid:
+                shadowed.add(k)
+            else:
+                seen.setdefault(k, rid)
+        if shadowed:
+            dupes = sorted(
+                f"{m} {p}" + (f" @{h}" if h else "") for (h, m, p) in shadowed
+            )
+            raise SystemExit(
+                f"luxarch route-smoke: {len(shadowed)} (host, method, path) registered by more than one "
+                f"handler — one SHADOWS the other (the shadowed one is dead/unreachable). Remove the dead "
+                f"handler. Duplicates: {dupes}. See --playbook route-smoke."
+            )
+        # Loud-fail net #1: implausibly few (INCLUDING ZERO) routes → the enumerator is mis-walking, NOT a
+        # 2-route app. ZERO is the most certain "the walk is broken" signal, so it must fail LOUDEST — the
+        # old `0 < len(entries)` guard excluded zero, so a walk-to-nothing certified GREEN silently, the exact
+        # hollow green this net exists to prevent.
+        if not entries:
+            raise SystemExit(
+                "luxarch route-smoke: enumerated 0 routes — the walk found NOTHING, so this run certifies "
+                "nothing (a hollow green). Either APP_IMPORT is wrong, or the app composes its routes in a "
+                "container the walker doesn't descend (a Host()/Mount sub-app, an unusual router wrapper). "
+                "Refusing to certify. Re-emit the asserter (luxarch --emit route-smoke) and check APP_IMPORT. "
+                "See --playbook route-smoke."
+            )
+        if len(entries) < _MIN_PLAUSIBLE_ROUTES:
+            raise SystemExit(
+                f"luxarch route-smoke: only {len(entries)} route(s) enumerated — implausibly few for an "
+                "app with included routers, so the asserter is almost certainly mis-walking the route table "
+                "(Starlette version?), NOT genuinely tiny. Refusing to certify — a low count would be a "
+                "hollow green. Update the asserter (luxarch --emit route-smoke). See --playbook route-smoke."
+            )
+        # Loud-fail net #2: routes exist but NOTHING was recorded. Two cases, cleanly separable by the skip
+        # count: if the request suite SKIPPED (a DB-less `make test` → 0 hits / many skipped),
+        # route-smoke simply wasn't exercised this run — that's NOT a misconfiguration; stand down (the
+        # DB-full run enforces coverage). Only when tests actually RAN and still recorded nothing is the
+        # recorder blind (wrong app / bypassing TestClient) — THAT is the misconfig to fail on.
+        if entries and not _HIT:
+            if _session_is_narrowed(session):
+                _say(
+                    session,
+                    "luxarch route-smoke: not evaluated — this run selected a SUBSET of the suite, which "
+                    "need not contain any route test. Certification requires the full suite.",
+                )
+                return
+            if _OUTCOMES["skipped"]:
+                _say(
+                    session,
+                    f"luxarch route-smoke: not evaluated — 0 requests observed but {_OUTCOMES['skipped']} "
+                    "test(s) skipped, so the request suite didn't run this pass (DB-less?). The DB-full run "
+                    "enforces coverage.",
+                )
+                return
+            raise SystemExit(
+                "luxarch route-smoke: 0 requests were observed across the whole suite while "
+                f"{len(entries)} routes are registered and nothing skipped. TWO causes look identical from "
+                "zero hits: (a) the recorder isn't observing — wrong APP_IMPORT, or a TestClient that "
+                "bypasses the app (e.g. Starlette 1.x needs httpx2 installed, or the test network has no DNS "
+                "for db/redis so every request dies before routing); or (b) the suite has NO route tests "
+                "yet. Make ONE real request — a single public-page GET — to disambiguate: if it records, "
+                "it's (b), you have real coverage gaps to fill (KEEP that probe, it's load-bearing — remove "
+                "the last route test and this refusal returns). If it still doesn't record, it's (a), fix "
+                "the wiring. Under `pytest -n` the workers' recordings are merged here (asserter v18+); an "
+                "OLDER asserter under xdist shows exactly this message on a healthy suite, so re-emit it "
+                "(luxarch --emit route-smoke) before hunting (a). Refusing to certify on zero requests "
+                "either way. See --playbook route-smoke."
+            )
+        # Loud-fail net #4: a route the suite REQUESTED returned 5xx. `--playbook
+        # route-smoke` line 84 claims route-smoke "catches ordinary logic bugs that 500 on first request",
+        # but nothing looked at status, so the claim held only where a test author happened to assert on
+        # it. A test that requests POST /vendors and gets a 500 satisfied the old asserter completely;
+        # four such 500s shipped to production while this file reported PASS.
+        #
+        # This is NOT the response-SHAPE assertion the playbook warns against — a fragment endpoint
+        # returning bare HTML still passes. Only a 5xx fails, and EXPECT_5XX exempts a route a test drives
+        # to an error on purpose.
+        if _SERVER_ERRORS:
+            by_rid = {rid: (m, p_) for (_h, m, p_, rid) in entries}
+            bad = sorted(
+                f"{by_rid[rid][0]:4} {by_rid[rid][1]}  -> {sorted(codes)}"
+                for rid, codes in _SERVER_ERRORS.items()
+                if rid in by_rid and by_rid[rid][1] not in EXPECT_5XX
+            )
+            if bad:
+                session.exitstatus = 1
+                raise SystemExit(
+                    f"luxarch route-smoke: {len(bad)} route(s) returned 5xx to the suite. The request was "
+                    "recorded, so route coverage looks satisfied — but the route is BROKEN. Fix it, or if "
+                    "a test drives it to an error deliberately, add the path to EXPECT_5XX with a reason:"
+                    "\n  " + "\n  ".join(bad) + "\nSee luxarch --playbook route-smoke."
+                )
+        # Loud-fail net #5: every response a GET route gave the suite was a REDIRECT.
+        # `_HIT` records that the route MATCHED, which an auth bounce satisfies — the middleware ran and
+        # the handler did not. A reporting repo logged its session-scoped client out in one test file, and
+        # because the smoke file sorts alphabetically after it, all 46 authenticated routes were requested
+        # logged out: 46 x 307-to-login, every assertion satisfied, a real 500 sailing through 417 tests.
+        #
+        # Scoped to GET by STRUCTURE: a POST/PUT/DELETE that always redirects is post-redirect-get and
+        # correct, so excluding it needs no allowlist entry and cannot rot.
+        methods_by_rid: dict[int, set[str]] = {}
+        for _h, m, _p, rid in entries:
+            methods_by_rid.setdefault(rid, set()).add(m)
+        bounced = {
+            rid: (p_, sorted(_REDIRECTS[rid]))
+            for (_h, _m, p_, rid) in entries
+            if rid in _REDIRECTS
+            and rid not in _RENDERED
+            and "GET" in methods_by_rid.get(rid, set())
+            and p_ not in EXPECT_3XX
+            and p_ not in EXEMPT
+        }
+        if bounced and _session_is_narrowed(session):
+            # A whole-suite verdict: a subset may request a route only signed out while the full suite
+            # also requests it signed in.
+            _say(
+                session,
+                f"luxarch route-smoke: not evaluated — {len(bounced)} GET route(s) saw only redirects, "
+                "but this run selected a SUBSET of the suite. Run the full suite to certify.",
+            )
+        elif bounced:
+            # Group by target. One route redirecting is business logic; a dozen routes redirecting to the
+            # SAME page is a gate, and naming that page turns a list of failures into one diagnosis.
+            targets: dict[str, int] = {}
+            for _p, obs in bounced.values():
+                for _st, loc in obs:
+                    targets[loc] = targets.get(loc, 0) + 1
+            lines = sorted(
+                f"GET  {p_}  -> "
+                + ", ".join(f"{st} -> {loc or '(no Location)'}" for st, loc in obs)
+                for p_, obs in bounced.values()
+            )
+            shared = max(targets.items(), key=lambda kv: kv[1]) if targets else ("", 0)
+            hint = ""
+            if shared[1] >= 3:
+                hint = (
+                    f"\n{shared[1]} of them redirect to the SAME target ({shared[0]}). That is the shape "
+                    "of an AUTHENTICATION bounce, not of business logic — the usual cause is a shared, "
+                    "session-scoped client that some earlier test logged out and never signed back in. "
+                    "Check whether a logout test leaves the fixture authenticated for the files that sort "
+                    "after it."
+                )
             session.exitstatus = 1
             raise SystemExit(
-                f"luxarch route-smoke: {len(bad)} route(s) returned 5xx to the suite. The request was "
-                "recorded, so route coverage looks satisfied — but the route is BROKEN. Fix it, or if "
-                "a test drives it to an error deliberately, add the path to EXPECT_5XX with a reason:"
-                "\n  " + "\n  ".join(bad) + "\nSee luxarch --playbook route-smoke."
+                f"luxarch route-smoke: {len(bounced)} GET route(s) NEVER returned a non-redirect to the "
+                "suite. The request was recorded, so coverage looks satisfied — but a 3xx means the "
+                "HANDLER did not run, so nothing in it was exercised and a deprecation or a broken "
+                "template inside it ships latent. Request them in a state that renders, or list a route "
+                "that redirects BY DESIGN in EXPECT_3XX with a reason:\n  "
+                + "\n  ".join(lines)
+                + hint
+                + "\nSee luxarch --playbook route-smoke."
             )
-    # Loud-fail net #5: every response a GET route gave the suite was a REDIRECT.
-    # `_HIT` records that the route MATCHED, which an auth bounce satisfies — the middleware ran and
-    # the handler did not. A reporting repo logged its session-scoped client out in one test file, and
-    # because the smoke file sorts alphabetically after it, all 46 authenticated routes were requested
-    # logged out: 46 x 307-to-login, every assertion satisfied, a real 500 sailing through 417 tests.
-    #
-    # Scoped to GET by STRUCTURE: a POST/PUT/DELETE that always redirects is post-redirect-get and
-    # correct, so excluding it needs no allowlist entry and cannot rot.
-    methods_by_rid: dict[int, set[str]] = {}
-    for _h, m, _p, rid in entries:
-        methods_by_rid.setdefault(rid, set()).add(m)
-    bounced = {
-        rid: (p_, sorted(_REDIRECTS[rid]))
-        for (_h, _m, p_, rid) in entries
-        if rid in _REDIRECTS
-        and rid not in _RENDERED
-        and "GET" in methods_by_rid.get(rid, set())
-        and p_ not in EXPECT_3XX
-        and p_ not in EXEMPT
-    }
-    if bounced and _session_is_narrowed(session):
-        # A whole-suite verdict: a subset may request a route only signed out while the full suite
-        # also requests it signed in.
-        print(
-            f"luxarch route-smoke: not evaluated — {len(bounced)} GET route(s) saw only redirects, "
-            "but this run selected a SUBSET of the suite. Run the full suite to certify."
-        )
-    elif bounced:
-        # Group by target. One route redirecting is business logic; a dozen routes redirecting to the
-        # SAME page is a gate, and naming that page turns a list of failures into one diagnosis.
-        targets: dict[str, int] = {}
-        for _p, obs in bounced.values():
-            for _st, loc in obs:
-                targets[loc] = targets.get(loc, 0) + 1
-        lines = sorted(
-            f"GET  {p_}  -> "
-            + ", ".join(f"{st} -> {loc or '(no Location)'}" for st, loc in obs)
-            for p_, obs in bounced.values()
-        )
-        shared = max(targets.items(), key=lambda kv: kv[1]) if targets else ("", 0)
-        hint = ""
-        if shared[1] >= 3:
-            hint = (
-                f"\n{shared[1]} of them redirect to the SAME target ({shared[0]}). That is the shape "
-                "of an AUTHENTICATION bounce, not of business logic — the usual cause is a shared, "
-                "session-scoped client that some earlier test logged out and never signed back in. "
-                "Check whether a logout test leaves the fixture authenticated for the files that sort "
-                "after it."
+        # Covered iff THAT route object was exercised (id match) — the two sides agree by construction. One
+        # route object reached under N hostnames is ONE route to cover, so collapse on route identity (rid)
+        # — else a Host()-composed app reports the same uncovered route once per host (the v8 false positive).
+        # The INVERSE check, and it is the more dangerous direction. Subtracting EXEMPT from the
+        # registered routes trusted the list without ever asking whether the exempted route EXISTS. A
+        # repo carried `/metrics` in EXEMPT from onboarding, commented "prometheus scrape — no behaviour
+        # to assert", and the route was never registered: `get_metrics()` had no caller and the registry
+        # could never be scraped. That survived onboarding, a full guard burn-down, and
+        # `fw.route_smoke_wired` reporting PASS throughout, and was found only by reading /metrics by
+        # hand. The exemption did not merely fail to catch the gap — it is WHY nothing looked wrong: a
+        # missing route with no exemption reads as untested or absent, while a missing route WITH one
+        # reads as a deliberate, reviewed decision.
+        #
+        # A whole-suite verdict too, so a narrowed run does not give it: a test module may mount a route
+        # for its own duration (a deliberate-500 router for the error handler), and a subset that skips
+        # that module never registers it.
+        # Mounts included on purpose: a mount IS a registered surface, so exempting one is legitimate.
+        registered_paths = {p for (_h, _m, p, _rid) in entries}
+        # `app.mount("/metrics", ...)` serves at `/metrics/`; a redirect from `/metrics` is the normal
+        # shape, so accept either spelling in EXEMPT rather than making the trailing slash load-bearing.
+        registered_paths |= {p.rstrip("/") for p in registered_paths}
+        registered_paths |= {p + "/" for p in registered_paths if not p.endswith("/")}
+        # Every path list gets this, not just EXEMPT. The `/metrics` case was about EXEMPT, but EXPECT_5XX has
+        # carried the identical hazard since it was added and nothing checked it: a path naming no
+        # registered route reads as a reviewed decision while actually hiding the route's absence. Fixing
+        # one instance of a class and leaving its siblings is how the same bug gets reported twice.
+        stale = sorted(
+            f"{name}: {path}"
+            for name, paths in (
+                ("EXEMPT", EXEMPT),
+                ("EXPECT_5XX", EXPECT_5XX),
+                ("EXPECT_3XX", EXPECT_3XX),
             )
-        session.exitstatus = 1
-        raise SystemExit(
-            f"luxarch route-smoke: {len(bounced)} GET route(s) NEVER returned a non-redirect to the "
-            "suite. The request was recorded, so coverage looks satisfied — but a 3xx means the "
-            "HANDLER did not run, so nothing in it was exercised and a deprecation or a broken "
-            "template inside it ships latent. Request them in a state that renders, or list a route "
-            "that redirects BY DESIGN in EXPECT_3XX with a reason:\n  "
-            + "\n  ".join(lines)
-            + hint
-            + "\nSee luxarch --playbook route-smoke."
+            for path in paths - registered_paths
         )
-    # Covered iff THAT route object was exercised (id match) — the two sides agree by construction. One
-    # route object reached under N hostnames is ONE route to cover, so collapse on route identity (rid)
-    # — else a Host()-composed app reports the same uncovered route once per host (the v8 false positive).
-    # The INVERSE check, and it is the more dangerous direction. Subtracting EXEMPT from the
-    # registered routes trusted the list without ever asking whether the exempted route EXISTS. A
-    # repo carried `/metrics` in EXEMPT from onboarding, commented "prometheus scrape — no behaviour
-    # to assert", and the route was never registered: `get_metrics()` had no caller and the registry
-    # could never be scraped. That survived onboarding, a full guard burn-down, and
-    # `fw.route_smoke_wired` reporting PASS throughout, and was found only by reading /metrics by
-    # hand. The exemption did not merely fail to catch the gap — it is WHY nothing looked wrong: a
-    # missing route with no exemption reads as untested or absent, while a missing route WITH one
-    # reads as a deliberate, reviewed decision.
-    #
-    # A whole-suite verdict too, so a narrowed run does not give it: a test module may mount a route
-    # for its own duration (a deliberate-500 router for the error handler), and a subset that skips
-    # that module never registers it.
-    # Mounts included on purpose: a mount IS a registered surface, so exempting one is legitimate.
-    registered_paths = {p for (_h, _m, p, _rid) in entries}
-    # `app.mount("/metrics", ...)` serves at `/metrics/`; a redirect from `/metrics` is the normal
-    # shape, so accept either spelling in EXEMPT rather than making the trailing slash load-bearing.
-    registered_paths |= {p.rstrip("/") for p in registered_paths}
-    registered_paths |= {p + "/" for p in registered_paths if not p.endswith("/")}
-    # Every path list gets this, not just EXEMPT. The `/metrics` case was about EXEMPT, but EXPECT_5XX has
-    # carried the identical hazard since it was added and nothing checked it: a path naming no
-    # registered route reads as a reviewed decision while actually hiding the route's absence. Fixing
-    # one instance of a class and leaving its siblings is how the same bug gets reported twice.
-    stale = sorted(
-        f"{name}: {path}"
-        for name, paths in (
-            ("EXEMPT", EXEMPT),
-            ("EXPECT_5XX", EXPECT_5XX),
-            ("EXPECT_3XX", EXPECT_3XX),
-        )
-        for path in paths - registered_paths
+        if stale and _session_is_narrowed(session):
+            _say(
+                session,
+                f"luxarch route-smoke: not evaluated — {len(stale)} exemption path(s) match no route "
+                "registered by this run, which selected a SUBSET of the suite. Run the full suite to "
+                "certify.",
+            )
+        elif stale:
+            session.exitstatus = 1
+            raise SystemExit(
+                "luxarch route-smoke: "
+                f"{len(stale)} exemption path(s) match no registered route — the entry is describing a "
+                "route that does not exist, which HIDES its absence rather than documenting a decision. "
+                "Remove the entry, or register the route:\n  "
+                + "\n  ".join(stale)
+                + "\nSee luxarch --playbook route-smoke."
+            )
+        missing_by_rid = {
+            rid: f"{m:4} {p}"
+            for (h, m, p, rid) in entries
+            if rid not in _HIT and p not in EXEMPT and m != "MOUNT"
+        }
+        missing = sorted(missing_by_rid.values())
+        if missing and _session_is_narrowed(session):
+            _say(
+                session,
+                f"luxarch route-smoke: not evaluated — {len(missing)} route(s) unrequested, but this run "
+                "selected a SUBSET of the suite so that count is meaningless. Run the full suite to certify.",
+            )
+            return
+        if missing:
+            session.exitstatus = 1
+            raise SystemExit(
+                "luxarch route-smoke: "
+                f"{len(missing)} registered route(s) were NEVER requested by the suite — a deprecation "
+                "in any of them ships latent (fine on the running pin, fatal on the next). Add a test "
+                "that requests each, or EXEMPT it with a reason:\n  "
+                + "\n  ".join(missing)
+                + "\nSee luxarch --playbook route-smoke."
+            )
+
+    return (
+        pytest_runtest_logreport,
+        pytest_testnodedown,
+        _session_is_narrowed,
+        pytest_sessionfinish,
     )
-    if stale and _session_is_narrowed(session):
-        print(
-            f"luxarch route-smoke: not evaluated — {len(stale)} exemption path(s) match no route "
-            "registered by this run, which selected a SUBSET of the suite. Run the full suite to "
-            "certify."
-        )
-    elif stale:
-        session.exitstatus = 1
-        raise SystemExit(
-            "luxarch route-smoke: "
-            f"{len(stale)} exemption path(s) match no registered route — the entry is describing a "
-            "route that does not exist, which HIDES its absence rather than documenting a decision. "
-            "Remove the entry, or register the route:\n  "
-            + "\n  ".join(stale)
-            + "\nSee luxarch --playbook route-smoke."
-        )
-    missing_by_rid = {
-        rid: f"{m:4} {p}"
-        for (h, m, p, rid) in entries
-        if rid not in _HIT and p not in EXEMPT and m != "MOUNT"
-    }
-    missing = sorted(missing_by_rid.values())
-    if missing and _session_is_narrowed(session):
-        print(
-            f"luxarch route-smoke: not evaluated — {len(missing)} route(s) unrequested, but this run "
-            "selected a SUBSET of the suite so that count is meaningless. Run the full suite to certify."
-        )
-        return
-    if missing:
-        session.exitstatus = 1
-        raise SystemExit(
-            "luxarch route-smoke: "
-            f"{len(missing)} registered route(s) were NEVER requested by the suite — a deprecation "
-            "in any of them ships latent (fine on the running pin, fatal on the next). Add a test "
-            "that requests each, or EXEMPT it with a reason:\n  "
-            + "\n  ".join(missing)
-            + "\nSee luxarch --playbook route-smoke."
-        )
+
+
+(
+    pytest_runtest_logreport,
+    pytest_testnodedown,
+    _session_is_narrowed,
+    pytest_sessionfinish,
+) = _pytest_hooks()

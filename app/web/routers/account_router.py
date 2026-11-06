@@ -53,5 +53,9 @@ async def change_password_submit(
     if outcome.redirect:
         return RedirectResponse(outcome.redirect, status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
-        request, TEMPLATE, outcome.context, status_code=outcome.status_code
+        request,
+        TEMPLATE,
+        outcome.context,
+        status_code=outcome.status_code,
+        headers=outcome.headers,
     )

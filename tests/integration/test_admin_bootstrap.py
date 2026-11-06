@@ -27,6 +27,7 @@ from app.services.core.admin_bootstrap_core_service import (
     UnknownUserError,
 )
 from app.services.core.user_core_service import UserCoreService
+from app.web.rate_limit import limiter
 
 PASSWORD = "a-long-enough-password"
 
@@ -148,6 +149,20 @@ async def test_setup_with_the_logged_token_creates_the_admin_then_closes(
     assert (await client.post("/setup", data=_setup_form(token))).status_code == 404
 
 
+async def test_a_completed_setup_lands_on_a_login_page_that_confirms_it(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    token = (await AdminBootstrapCoreService().bootstrap(db)).setup_token
+    assert token
+
+    resp = await client.post("/setup", data=_setup_form(token))
+    assert resp.headers["location"] == "/login?setup_complete=1"
+
+    page = await client.get(resp.headers["location"])
+    assert page.status_code == 200
+    assert "Account created successfully" in page.text
+
+
 # ── sign-in, the forced change, recovery ────────────────────────────────────────────────────
 
 
@@ -165,6 +180,42 @@ async def test_a_normal_sign_in_goes_to_cameras(
 ) -> None:
     await user_crud.create_user(db, username="owner", password=PASSWORD)
     assert await _login(client, "owner", PASSWORD) == "/cameras"
+
+
+async def test_a_locked_change_says_it_is_locked_even_for_the_right_password(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    await user_crud.create_user(
+        db, username="owner", password=PASSWORD, must_change_password=True
+    )
+    await _login(client, "owner", PASSWORD)
+    new = "the-owners-own-password"
+
+    for _ in range(5):
+        wrong = await client.post(
+            "/account/password",
+            data={
+                "current_password": "not-it-at-all-123",
+                "new_password": new,
+                "confirm_password": new,
+            },
+        )
+        assert wrong.status_code == 403
+    limiter.reset()  # the per-minute limit has passed; the 15-minute lockout has not
+
+    locked = await client.post(
+        "/account/password",
+        data={
+            "current_password": PASSWORD,
+            "new_password": new,
+            "confirm_password": new,
+        },
+    )
+
+    assert locked.status_code == 429
+    assert locked.headers["retry-after"] == "900"
+    assert "too many wrong current passwords" in locked.text
+    assert "not correct" not in locked.text
 
 
 async def test_the_change_form_needs_the_current_password(

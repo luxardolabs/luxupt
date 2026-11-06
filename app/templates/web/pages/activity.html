@@ -14,21 +14,14 @@
    list can't drift). The empty placeholder maps to Problems too. #}
 {% set show_options = [{"value": "all", "label": "All Events"}] + activity_type_options %}
 
-{# Both filters HTMX-swap the feed in place; hx_attrs keeps this macro-composed
-   (no hand-rolled <form>). hx-include pulls both selects on either change. #}
-{% set filter_hx = {
-    "hx-get": feed_url,
-    "hx-target": "#activity-feed",
-    "hx-swap": "innerHTML",
-    "hx-trigger": "change",
-    "hx-include": "#activity-filters"
-} %}
+{# Each filter HTMX-swaps the feed in place; hx_attrs keeps this macro-composed
+   (no hand-rolled <form>). hx-include pulls every select on any change. #}
 
 {% call page_header("Activity Log", "System, camera, and timelapse events — problems shown first") %}
     <div id="activity-filters" class="flex flex-wrap items-center gap-3">
-        {{ filter_select("show", show_options, selected=filters.show, placeholder="Problems", hx_attrs=filter_hx) }}
-        {{ filter_select("period", period_options, selected=filters.period, placeholder="", hx_attrs=filter_hx) }}
-        {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs=filter_hx) }}
+        {{ filter_select("show", show_options, selected=filters.show, placeholder="Problems", hx_attrs={"hx-get": feed_url, "hx-target": "#activity-feed", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#activity-filters"}) }}
+        {{ filter_select("period", period_options, selected=filters.period, placeholder="", hx_attrs={"hx-get": feed_url, "hx-target": "#activity-feed", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#activity-filters"}) }}
+        {{ filter_select("camera_id", camera_options, selected=filters.camera_id, placeholder="All Cameras", hx_attrs={"hx-get": feed_url, "hx-target": "#activity-feed", "hx-swap": "innerHTML", "hx-trigger": "change", "hx-include": "#activity-filters"}) }}
     </div>
 {% endcall %}
 

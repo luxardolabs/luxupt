@@ -11,3 +11,4 @@ class PasswordChangeOutcome:
     redirect: str = ""
     status_code: int = 200
     context: dict[str, Any] = field(default_factory=dict)
+    headers: dict[str, str] = field(default_factory=dict)

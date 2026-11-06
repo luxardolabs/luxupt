@@ -26,6 +26,7 @@ services:
     pull_policy: ${PULL_POLICY:-missing}
     container_name: ${STACK_NAME:?}
     restart: always
+    oom_score_adj: -500
 
     # The app's own settings (credentials, feature flags, Protect host) come from the same
     # env file that parameterises this compose — passed to the CONTAINER here, and used for
@@ -88,6 +89,7 @@ services:
       - nginx
     image: nginx:1.31-alpine
     container_name: luxupt-nginx
+    oom_score_adj: -500
     security_opt:
       - no-new-privileges:true
     volumes:

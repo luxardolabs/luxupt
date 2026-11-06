@@ -3,7 +3,7 @@ name: luxpm-audit
 description: Audit this repo's whole LuxPM project, not just the issues the current work touched — verify every open issue against the code and close, park, merge or comment on it with evidence, backfill a close summary on every closed issue that lacks one, recover work a closed summary deferred without tracking it, then re-issue the sync receipt. Use when the receipt shows untriaged or unexplained issues, when repo.luxpm_backlog_triaged is red, or when asked to review/clean up/audit LuxPM.
 ---
 
-<!-- luxarch:luxpm-audit-skill asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit luxpm-audit-skill`. -->
+<!-- luxarch:luxpm-audit-skill asset v10 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit luxpm-audit-skill`. -->
 
 # Audit the LuxPM backlog
 
@@ -40,7 +40,7 @@ Read it fully (`luxpm_get_context`: description, comments, linked commits). Then
 | **Live and actionable**                                                                | Leave it in `backlog`/`todo`. Comment with what you checked and the next concrete step (file, function, test). A bare "still relevant" is not triage.                                                                                                                                                                                                                       |
 | **Cannot verify either way**                                                           | Leave open. Comment: what you checked and what would settle it.                                                                                                                                                                                                                                                                                                             |
 
-**Escalations are not yours to close.** An issue labelled `fleet-escalation` / `escalation`, or titled `[<guard> ESCALATION]`, is waiting on the guard maintainer; it closes when the maintainer's fix ships. Park it: `state: on_hold`, `waiting_on: <guard> maintainer`. If your pinned guard version already contains the fix (`luxarch --changelog --since <version>`), also comment that with the evidence, so the maintainer can close it. Its red stays lit while it is open.
+**An escalation is read by its `waiting_on`.** An issue labelled `fleet-escalation` / `escalation`, or titled `[<guard> ESCALATION]`, waits on whoever its `waiting_on` names. If it names a guard maintainer, park it: `state: on_hold`, keeping that `waiting_on` (`<guard> maintainer` where none is set). If it names this repo's step, the maintainer has answered: do that step as `/pin-bump` step 5 says, and close the escalation once the step verifies on the version it names. Its red stays lit while it is open.
 
 **Never** delete an issue (deleting is the owner's call — ask), use `administrative_close`, close in bulk without reading each one, bulk-edit fields to reset issues' clocks (a label or priority touched on every issue is not triage, it is gaming the count), or write a summary you did not verify.
 
@@ -61,7 +61,12 @@ It prints each sentence that defers work without naming another issue or `droppe
 - **Search LuxPM** (`luxpm_semantic_search`, two phrasings). Work an open issue already covers gets a comment there naming the closed key.
 - **File the rest** as its own open issue (label `recovered-deferral`), saying where it was found. Then amend the closed summary to name the new key beside the sentence (`luxpm_update_issue` with only `close_summary`, the state unchanged).
 
-A summary that ends mid-word was stored cut off. Rebuild what is missing from the issue's comments, its commits and the changelog, and write it back whole.
+A summary that ends mid-word, usually at 1000 characters and often on `...`, was stored cut off, and its original tail is gone. For each one:
+
+- **Now: read the issue's activity log, its commits and the changelog** for a follow-up the lost tail may have named. File what nothing tracks, as above, and name the new key in a comment on the closed issue.
+- **Rebuild the tail only when line 2 of `.claude/hooks/luxpm-close-tracks-deferrals.py` says hook v7 or later.** An older hook denies correct sentences, and that pressure is what drops deferrals from a rewrite. Until then, leave the stored text as it is and count the summaries in your report.
+- **A rebuilt tail is marked as such:** end the stored text, then `Reconstructed <date> from the activity log and commits; the original tail was lost.`, then what you rebuilt. It is a reconstruction, never a recovery. A deferral you find in it is filed like any other.
+- **Never reword a true sentence to get past the hook, and never leave a deferral out because the hook would object.** A denial you believe is wrong goes to `/escalate`, and that summary stays as stored.
 
 ## 3. Checklists and activities
 

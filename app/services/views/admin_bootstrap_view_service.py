@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap-view asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
+# luxarch:admin-bootstrap-view asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-view`.
 """The web seam of the admin bootstrap. `luxarch --emit admin-bootstrap-view`.
 
 Drop this in at `app/services/views/admin_bootstrap_view_service.py`. It turns the `/setup` form into
@@ -9,7 +9,8 @@ while there are no users, and where does a user who just signed in go.
 Every path it hands back is resolved from a route NAME through the request (`request.url_for(name)`,
 its path only), so a page that moves, a mount prefix and the app's `root_path` all reach every
 redirect and every comparison with the path the request arrived on (`fw.urls_from_route_names`,
-`luxarch --playbook url-in-view`).
+`luxarch --playbook url-in-view`). The one query it adds is the fixed `LOGIN_QUERY_AFTER_SETUP` on the
+login page a completed `/setup` goes to, percent-encoded: no value of the request reaches a redirect.
 
 A form re-rendered with an error carries back only text the page can be written in: a login holding
 a character UTF-8 cannot encode (a lone surrogate, which a client reaches by naming the form's
@@ -21,6 +22,7 @@ The standard is `luxarch --doc FLEET-ADMIN-BOOTSTRAP-STANDARD`.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from urllib.parse import urlencode
 
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +48,16 @@ CHANGE_PASSWORD_ROUTE = "account.change_password_page"
 # --- EDIT THIS: the route name of logout, which a user who must change their password may still
 # reach.
 LOGOUT_ROUTE = "pages.logout_page"
+
+
+# --- EDIT THIS: the query the login page gets after a completed `/setup`, for a page that says
+# "account created, please sign in" (`{"setup_complete": "1"}`). Fixed names and values: they are
+# percent-encoded onto the login route's path, so the redirect stays on your login page.
+LOGIN_QUERY_AFTER_SETUP: dict[str, str] = {"setup_complete": "1"}
+
+# Encoded once, at import: a value it cannot encode stops the app starting, never a `/setup` that has
+# just created the admin.
+_QUERY_AFTER_SETUP = urlencode(LOGIN_QUERY_AFTER_SETUP)
 
 
 @dataclass(frozen=True)
@@ -92,7 +104,7 @@ class AdminBootstrapViewService:
             )
         except PasswordPolicyError as exc:
             return self._again(login, f"Not accepted: {exc}.", 400)
-        return SetupOutcome(redirect=_path(request, LOGIN_ROUTE))
+        return SetupOutcome(redirect=_after_setup(request))
 
     async def login_page_redirect(self, request: Request, db: AsyncSession) -> str:
         """Where the login page sends a visitor instead of rendering: the setup form while there are
@@ -139,6 +151,13 @@ class AdminBootstrapViewService:
 def _escaped(text: str) -> str:
     """`text` as a UTF-8 page carries it: each lone surrogate becomes its `\\uXXXX` escape."""
     return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def _after_setup(request: Request) -> str:
+    """The login page a completed `/setup` goes to: its path, then `LOGIN_QUERY_AFTER_SETUP` with every
+    character a URL gives meaning to (`/`, `?`, `#`, `&`, a line break) percent-encoded."""
+    path = _path(request, LOGIN_ROUTE)
+    return f"{path}?{_QUERY_AFTER_SETUP}" if _QUERY_AFTER_SETUP else path
 
 
 def _path(request: Request, name: str) -> str:

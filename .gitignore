@@ -52,7 +52,6 @@ prod/
 scratch/
 RELEASE.md
 README.md.archived
-.dockerignore
 
 # Archived/scratch content (publish.py skips these)
 **/_archive/

@@ -40,7 +40,8 @@
 {% set final_icon_size = icon_size if icon_size else s.icon %}
 <div class="{{ s.container }} flex items-center justify-center transition-all duration-300"
      style="background: rgba({{ c.rgb }}, 0.15);"
-     onmouseenter="this.style.boxShadow='0 0 30px rgba({{ c.rgb }}, 0.4)'"
+     data-glow="{{ c.rgb }}"
+     onmouseenter="this.style.boxShadow='0 0 30px rgba(' + this.dataset.glow + ', 0.4)'"
      onmouseleave="this.style.boxShadow='none'">
     {{ icon(icon_name, final_icon_size ~ ' ' ~ c.text) }}
 </div>
@@ -203,10 +204,16 @@
 {% set method = 'DELETE' if hx_delete else 'POST' %}
 {% set url = hx_delete if hx_delete else hx_post %}
 <button type="button"
+        data-method="{{ method }}"
+        data-url="{{ url }}"
+        data-target="{{ hx_target }}"
+        data-swap="{{ hx_swap }}"
+        data-timeout="{{ timeout }}"
+        data-title="{{ title }}"
         x-data="{ confirm: false }"
-        @click="if(confirm) { htmx.ajax('{{ method }}', '{{ url }}', {target: '{{ hx_target }}', swap: '{{ hx_swap }}'}); } else { confirm = true; setTimeout(() => confirm = false, {{ timeout }}); }"
+        @click="if(confirm) { confirm = false; htmx.ajax($el.dataset.method, $el.dataset.url, {target: $el.dataset.target, swap: $el.dataset.swap}); } else { confirm = true; setTimeout(() => confirm = false, Number($el.dataset.timeout)); }"
         :class="confirm ? 'bg-danger-500 text-white border-danger-500 shadow-glow-danger' : 'border-danger-500/50 text-danger-400 hover:bg-danger-500 hover:text-white hover:border-danger-500 hover:shadow-glow-danger'"
-        :title="confirm ? 'Click again to confirm' : '{{ title }}'"
+        :title="confirm ? 'Click again to confirm' : $el.dataset.title"
         class="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 text-danger-400 border-danger-500/50">
     {{ icon('trash', 'w-4 h-4') }}
 </button>

@@ -119,8 +119,15 @@
 {% set method = 'DELETE' if hx_delete else 'POST' %}
 {% set url = hx_delete if hx_delete else hx_post %}
 <button type="button"
+        data-method="{{ method }}"
+        data-url="{{ url }}"
+        data-target="{{ hx_target }}"
+        data-swap="{{ hx_swap }}"
+        data-timeout="{{ timeout }}"
+        data-confirm-text="{{ confirm_text }}"
+        data-text="{{ text }}"
         x-data="{ confirm: false, loading: false }"
-        @click="if(loading) return; if(confirm) { loading = true; htmx.ajax('{{ method }}', '{{ url }}', {target: '{{ hx_target }}', swap: '{{ hx_swap }}'}).then(() => { loading = false; confirm = false; }); } else { confirm = true; setTimeout(() => confirm = false, {{ timeout }}); }"
+        @click="if(loading) return; if(confirm) { loading = true; htmx.ajax($el.dataset.method, $el.dataset.url, {target: $el.dataset.target, swap: $el.dataset.swap}).finally(() => { loading = false; confirm = false; }); } else { confirm = true; setTimeout(() => confirm = false, Number($el.dataset.timeout)); }"
         :class="loading ? 'bg-surface-500 cursor-wait opacity-75' : (confirm ? 'bg-danger-600 shadow-glow-danger' : 'bg-danger-500 shadow-danger-500/25 hover:bg-danger-400 hover:shadow-danger-500/40')"
         :disabled="loading"
         class="{{ btn_base }} {{ size_class }} text-white shadow-lg focus:ring-danger-500 transition-all">
@@ -130,7 +137,7 @@
     </span>
     <span x-show="!loading" class="flex items-center gap-2">
         {% if icon_name %}{{ icon(icon_name, 'w-5 h-5') }}{% endif %}
-        <span x-text="confirm ? '{{ confirm_text }}' : '{{ text }}'">{{ text }}</span>
+        <span x-text="confirm ? $root.dataset.confirmText : $root.dataset.text">{{ text }}</span>
     </span>
 </button>
 {% endmacro %}
@@ -229,29 +236,33 @@
 {% macro icon_toggle_button(icon_on, icon_off, label, model, extra_class="") %}
 {# An icon button that SWAPS its icon on an Alpine boolean (a menu/disclosure toggle).
    `icon_button` renders one icon and cannot express the swap, so this is its own component
-   rather than a flag on that one. `model` is the Alpine expression holding the open state;
-   the button owns `aria-expanded` so every caller gets it right. #}
+   rather than a flag on that one. `model` is the name of the Alpine property holding the open
+   state; the button owns `aria-expanded` so every caller gets it right. #}
 <button type="button"
-        @click="{{ model }} = !{{ model }}"
+        data-model="{{ model }}"
+        @click="$data[$el.dataset.model] = !$data[$el.dataset.model]"
         class="inline-flex items-center justify-center p-2 rounded-lg text-surface-200 hover:text-white hover:bg-surface-700 transition-colors{% if extra_class %} {{ extra_class }}{% endif %}"
-        :aria-expanded="{{ model }}">
+        :aria-expanded="$data[$el.dataset.model]">
     <span class="sr-only">{{ label }}</span>
-    <template x-if="!{{ model }}">
+    <template data-model="{{ model }}" x-if="!$data[$el.dataset.model]">
         {{ icon(icon_on, 'w-6 h-6') }}
     </template>
-    <template x-if="{{ model }}">
+    <template data-model="{{ model }}" x-if="$data[$el.dataset.model]">
         {{ icon(icon_off, 'w-6 h-6') }}
     </template>
 </button>
 {% endmacro %}
 
 
-{% macro chip_button(text=none, click=none, x_text=none, active_class=none, extra_class="") %}
+{% macro chip_button(text=none, click=none, x_text=none, active_class=none, extra_class="", value=none) %}
 {# A small pill button for an inline option row (date-range presets, interval presets).
    Either pass `text` for a literal label, or `x_text` for an Alpine expression when the
    chip is rendered inside an x-for. `active_class` is an Alpine `:class` expression that
-   paints the selected state; without it the chip renders in its resting style. #}
+   paints the selected state; without it the chip renders in its resting style.
+   `click`, `x_text` and `active_class` run as JavaScript, so each is a constant. A chip built
+   in a loop passes its value as `value` and reads it from `$el.dataset.value`. #}
 <button type="button"
+        {% if value is not none %}data-value="{{ value }}"{% endif %}
         {% if click %}@click="{{ click }}"{% endif %}
         {% if active_class %}:class="{{ active_class }}"{% endif %}
         class="text-xs px-2.5 py-1 rounded-md border transition-colors{% if not active_class %} border-surface-500 bg-surface-700 text-white{% endif %} hover:bg-surface-600{% if extra_class %} {{ extra_class }}{% endif %}"

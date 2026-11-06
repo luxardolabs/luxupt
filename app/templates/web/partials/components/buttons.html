@@ -80,9 +80,10 @@
                     {{ chip_button(text='Last 7 days') }}
                     {% for v in [30, 60, 300] %}
                     {{ chip_button(
-                        click="demoInterval = " ~ v,
-                        active_class="demoInterval === " ~ v ~ " ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
-                        x_text="'" ~ v ~ "s'") }}
+                        value=v,
+                        click="demoInterval = Number($el.dataset.value)",
+                        active_class="demoInterval === Number($el.dataset.value) ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
+                        x_text="$el.dataset.value + 's'") }}
                     {% endfor %}
                 </div>
             </div>

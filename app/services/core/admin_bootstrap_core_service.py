@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
+# luxarch:admin-bootstrap asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
 """How the first admin comes to exist, and how a locked-out owner gets back in.
 
 `luxarch --emit admin-bootstrap`. Drop this in at `app/services/core/admin_bootstrap_core_service.py`.
@@ -72,6 +72,12 @@ refuses every token and the log says `admin_setup_token_unavailable`, with the p
 do: remove a file that is not this process's own, or move `SETUP_TOKEN_FILE` off a filesystem
 without hard links.
 
+v5: a change's current-password check runs under a lockout (`current_password_attempt` before the
+comparison, `current_password_verified` after a match; EDIT THIS points both at the login's own
+counter). Without it, whoever held a stolen session cookie could guess the password without limit,
+and the right guess both changed it and ended the owner's other sign-ins. A locked login raises
+`CurrentPasswordLockedError`, a `CurrentPasswordError` whose message is safe to show.
+
 What is deliberately absent: an environment password applied on every boot. Once a user exists the
 database is authoritative. Re-applying the environment silently reverts the owner's own change.
 """
@@ -86,6 +92,7 @@ import re
 import secrets
 import stat
 import tempfile
+import time
 import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
@@ -102,6 +109,10 @@ from app.utils.password_hash import verify_password
 
 logger = logging.getLogger(__name__)
 
+# The default lockout's checks per account, keyed on its stored hash (`current_password_attempt`):
+# monotonic times.
+_change_checks: dict[str, list[float]] = {}
+
 # --- EDIT THIS: the shortest password the seed, /setup and a change accept.
 MIN_PASSWORD_LENGTH = 12
 
@@ -113,6 +124,35 @@ MIN_PASSWORD_LENGTH = 12
 # every user form (users_view_service), so there is nothing further to judge the password by
 async def password_policy_problem(db: AsyncSession, password: str) -> str:
     return ""
+
+
+# --- EDIT THIS: the lockout on a change's current-password check, so a stolen session cannot guess
+# the password it would change. `current_password_attempt` counts one check BEFORE the password is
+# compared and returns a message while the account is locked (the change is refused unchecked), ""
+# to go on; `current_password_verified` runs once the current password matched. Both get the login
+# the caller named and the account's stored hash: count per ACCOUNT, never per spelling of the
+# login (a case-insensitive lookup reaches one row through many spellings). The default keeps its
+# own count in this process (CHANGE_ATTEMPTS checks per CHANGE_WINDOW_SECONDS), keyed on the stored
+# hash, so a recovery reset (a new hash) starts a fresh count. Point both at the counter your
+# login's lockout keeps for that user, so the two share one threshold and every worker sees it.
+CHANGE_ATTEMPTS = 5
+CHANGE_WINDOW_SECONDS = 900.0
+
+
+async def current_password_attempt(db: AsyncSession, login: str, stored: str) -> str:
+    now = time.monotonic()
+    recent = [
+        t for t in _change_checks.get(stored, []) if now - t < CHANGE_WINDOW_SECONDS
+    ]
+    if len(recent) >= CHANGE_ATTEMPTS:
+        _change_checks[stored] = recent
+        return "too many wrong current passwords: try again later"
+    _change_checks[stored] = [*recent, now]
+    return ""
+
+
+async def current_password_verified(db: AsyncSession, login: str, stored: str) -> None:
+    _change_checks.pop(stored, None)
 
 
 # --- EDIT THIS: where the one-time setup token lives while there are no users. Every worker in one
@@ -170,6 +210,11 @@ class UnknownUserError(LookupError):
 
 class CurrentPasswordError(ValueError):
     """The current password given for a change is wrong."""
+
+
+class CurrentPasswordLockedError(CurrentPasswordError):
+    """Too many wrong current passwords for this login: the change was refused unchecked. The
+    message is safe to show."""
 
 
 def _encodable(text: str) -> bool:
@@ -465,8 +510,9 @@ class AdminBootstrapCoreService:
     async def change_password(
         self, db: AsyncSession, login: str, current_password: str, new_password: str
     ) -> None:
-        """A user's own change: the current password is required, the new one must differ from it,
-        and the forced change clears. Every session ends (the caller signs the user in again).
+        """A user's own change: the current password is required, checked under the lockout
+        (`current_password_attempt`: a stolen session cannot guess it), the new one must differ
+        from it, and the forced change clears. Every session ends (the caller signs the user in again).
         A login the driver cannot bind (a lone surrogate, NUL on PostgreSQL), which no row holds,
         is nobody; every other login, NUL included where the database stores it, is looked up."""
         user = (
@@ -477,8 +523,14 @@ class AdminBootstrapCoreService:
         if user is None:
             raise UnknownUserError(login)
         stored = admin_bootstrap_crud.password_hash_of(user)
+        # counted before the comparison, so a locked login is refused without one
+        locked = await current_password_attempt(db, login, stored)
+        if locked:
+            logger.warning("password_change_locked", extra={"login": login})
+            raise CurrentPasswordLockedError(locked)
         if not _encodable(current_password) or not _verified(current_password, stored):
             raise CurrentPasswordError
+        await current_password_verified(db, login, stored)
         problem = await _password_problem(db, new_password)
         if not problem and _verified(new_password, stored):
             problem = "the new password is the current one"

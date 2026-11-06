@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.335.0",
+  "guard_version": "0.345.0",
   "repo": "/repo",
   "targets": [
     {
@@ -1648,13 +1648,13 @@
         },
         {
           "rule": "fw.file_size",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.235.0",
-          "violations": 1,
+          "violations": 0,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "Follow `luxarch --playbook file-size` \u2014 it is a procedure, not a number. Run `luxarch --sweep split-plan --path <file>` for the evidence, then extract ONLY a cluster that passes the playbook's domain test (its own entity it actually touches, its own lifecycle, its own actor, its own representations, low coupling). If nothing passes, the file is one domain: decompose INSIDE its biggest methods, never split its own subject across files. Import at source, no re-export shim. A file the procedure leaves over the limit because it is one domain records that on one comment line, `# file-size: <the domain and why> \u2014 <its LOC>`: green while it stays at or under that size, never above the ceiling.",
+          "fix": "",
           "example": ""
         },
         {
@@ -1758,12 +1758,12 @@
         },
         {
           "rule": "fw.single_use_claim_atomic",
-          "status": "INERT",
+          "status": "PASS",
           "since": "0.287.0",
           "violations": 0,
           "deferred": false,
-          "inert": true,
-          "inert_reason": "no code claims a single-use record (no check-then-write on a row, no marker write) \u2014 nothing to judge",
+          "inert": false,
+          "inert_reason": "",
           "fix": "",
           "example": ""
         },
@@ -1854,14 +1854,58 @@
           "inert_reason": "",
           "fix": "",
           "example": ""
+        },
+        {
+          "rule": "fw.js_attributes_take_json",
+          "status": "PASS",
+          "since": "0.340.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.settings_secrets_required",
+          "status": "PASS",
+          "since": "0.341.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.router_modules_mounted",
+          "status": "PASS",
+          "since": "0.343.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
+          "rule": "fw.stylesheet_compiled",
+          "status": "PASS",
+          "since": "0.344.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
         }
       ],
       "summary": {
-        "PASS": 140,
-        "FAIL": 1,
+        "PASS": 146,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 27
+        "INERT": 26
       }
     }
   ],
@@ -1978,9 +2022,9 @@
         "example": ""
       },
       {
-        "rule": "repo.fleet_skills_present",
+        "rule": "repo.build_context_hygiene",
         "status": "PASS",
-        "since": "0.245.0",
+        "since": "0.339.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -1989,13 +2033,24 @@
         "example": ""
       },
       {
+        "rule": "repo.fleet_skills_present",
+        "status": "INERT",
+        "since": "0.245.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "no agent-instruction file (CLAUDE.md / AGENTS.md): this repo is not set up for agents",
+        "fix": "",
+        "example": ""
+      },
+      {
         "rule": "repo.agent_push_declared",
-        "status": "PASS",
+        "status": "INERT",
         "since": "0.296.0",
         "violations": 0,
         "deferred": false,
-        "inert": false,
-        "inert_reason": "",
+        "inert": true,
+        "inert_reason": "no agent-instruction file (CLAUDE.md / AGENTS.md): no agent works in this repo",
         "fix": "",
         "example": ""
       },
@@ -2177,12 +2232,12 @@
       },
       {
         "rule": "repo.claude_pointer_present",
-        "status": "PASS",
+        "status": "INERT",
         "since": "0.213.0",
         "violations": 0,
         "deferred": false,
-        "inert": false,
-        "inert_reason": "",
+        "inert": true,
+        "inert_reason": "no agent-instruction file (CLAUDE.md / .claude/CLAUDE.md / AGENTS.md) \u2014 there is nothing to point AT the standard from. NOT a clearance: an agent working here has no route to the fleet conduct rules at all",
         "fix": "",
         "example": ""
       },
@@ -2440,6 +2495,28 @@
         "example": ""
       },
       {
+        "rule": "repo.compose_oom_ranked",
+        "status": "PASS",
+        "since": "0.343.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.compose_restarts_after_kill",
+        "status": "PASS",
+        "since": "0.343.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
         "rule": "repo.compose_up_selects_services",
         "status": "PASS",
         "since": "0.264.0",
@@ -2632,16 +2709,16 @@
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 2
+      "INERT": 5
     }
   },
   "summary": {
-    "PASS": 207,
-    "FAIL": 1,
+    "PASS": 213,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 29
+    "INERT": 31
   },
-  "commit": "0159c0355fb260412424b7056ab28d13bb4102df",
-  "generated_at": "2026-10-31T23:32:57Z"
+  "commit": "2d165298878a3d69b870143ed5479fa5d0118137",
+  "generated_at": "2026-11-06T05:20:28Z"
 }

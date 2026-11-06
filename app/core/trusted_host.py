@@ -1,4 +1,4 @@
-# luxarch:trusted-host asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit trusted-host`.
+# luxarch:trusted-host asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit trusted-host`.
 """The app refuses a Host header it does not serve: a required, per-environment ALLOWED_HOSTS.
 
 Emitted by ``luxarch --emit trusted-host``. Drop it in at ``app/core/trusted_host.py``; the standard
@@ -39,6 +39,23 @@ A request whose Host header is not a hostname (or a bracketed IPv6 address) plus
 of digits gets 400 before anything is matched: Starlette compares only the part before the first
 ``:``, so ``Host: localhost:@evil.example`` would otherwise pass on ``localhost``.
 
+A listed host is matched the way RFC 3986 and browsers read one: in any case, and with one
+trailing dot (``Host: Example.COM.`` is ``example.com``, the fully qualified spelling of the same
+name). Nothing else is widened: ``*.example.com`` still admits only a name ending in
+``.example.com`` (never ``example.com`` itself, never ``evilexample.com``), the port is never part of
+the match, and a request with no Host header, or with more than one, gets 400. The app sees the Host
+as matched, lowercased and without the trailing dot, so a URL it builds from it is the listed name.
+
+Every refusal is logged at WARNING on this module's logger (``app.core.trusted_host``, under the
+app's own logging), naming the refused Host and nothing else from the request: control characters
+and anything outside printable ASCII are written as escapes, and the Host text (every Host header
+of the request, joined) is cut at 300 characters. An HTTP refusal carries a fixed set of security headers itself (``Cache-Control: no-store``,
+``X-Content-Type-Options: nosniff``, ``X-Frame-Options: DENY``, ``Referrer-Policy: no-referrer``
+and a ``default-src 'none'`` Content-Security-Policy), because as the outermost middleware it runs
+outside the app's own headers middleware. A refused websocket handshake gets the same 400 where the
+server supports the ASGI denial-response extension, and is otherwise closed with 1008 before it is
+accepted (the server answers 403).
+
 The container's own HEALTHCHECK requests ``http://localhost:<port>/health`` from inside the
 container, so its Host is ``localhost``, which ALLOWED_HOSTS does not list. Rather than allowing
 ``localhost`` everywhere (a client could then send ``Host: localhost`` to any route), exactly one
@@ -51,6 +68,7 @@ request shape passes without the check: a loopback peer, a loopback Host, one of
 from __future__ import annotations
 
 import ipaddress
+import logging
 import re
 from collections.abc import Sequence
 from typing import Annotated
@@ -60,6 +78,8 @@ from pydantic_settings import NoDecode
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
+
+logger = logging.getLogger(__name__)
 
 ENV_KEY = "ALLOWED_HOSTS"
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -81,6 +101,17 @@ _HOST_HEADER_RE = re.compile(
     r"(?:(?P<name>[A-Za-z0-9._-]+)|\[(?P<ipv6>[0-9A-Fa-f:.]+)\])(?::(?P<port>[0-9]{1,5}))?"
 )
 _JSON_FIX = f"{ENV_KEY}=a.example.com,b.example.com"
+# v4: a request's hostname once lowercased and its one trailing dot dropped: labels, none empty.
+_NAME_RE = re.compile(r"[a-z0-9_-]+(?:\.[a-z0-9_-]+)*")
+_LOG_MAX = 300  # characters of a refused Host written to the log
+# v4: set on every refusal, which runs outside the app's own headers middleware.
+REFUSAL_HEADERS = {
+    "Cache-Control": "no-store",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+}
 
 
 class AllowedHostsError(ValueError):
@@ -201,12 +232,77 @@ def _host_name(raw: str) -> str | None:
         return None
 
 
+def _host_headers(scope: Scope) -> list[str]:
+    """Every Host header the request sends."""
+    return [
+        value.decode("latin-1")
+        for key, value in scope.get("headers", [])
+        if key.lower() == b"host"
+    ]
+
+
 def _host_header(scope: Scope) -> str:
-    """The request's first Host header ("" when it sends none), the one Starlette reads."""
-    for key, value in scope.get("headers", []):
-        if key == b"host":
-            return str(value.decode("latin-1"))
-    return ""
+    """The request's one Host header, or "" when it sends none or more than one (v4)."""
+    hosts = _host_headers(scope)
+    return hosts[0] if len(hosts) == 1 else ""
+
+
+def _canonical(raw: str) -> tuple[str, str | None] | None:
+    """A Host header value as matched (v4): its hostname lowercased, without one trailing dot, and
+    its port; None when it is not a hostname plus an optional `:port`, or names an IPv6 address
+    (no ALLOWED_HOSTS entry can be one)."""
+    m = _HOST_HEADER_RE.fullmatch(raw)
+    if m is None or m["name"] is None:
+        return None
+    if m["port"] is not None and int(m["port"]) > 65535:
+        return None
+    name = m["name"].lower()
+    if name.endswith("."):
+        name = name[:-1]
+    if not _NAME_RE.fullmatch(name):
+        return None
+    return name, m["port"]
+
+
+def _printable(raw: str) -> str:
+    """An attacker's Host as one log line can carry it: escaped, and cut at `_LOG_MAX`."""
+    text = raw[:_LOG_MAX].encode("unicode_escape").decode("ascii")
+    return text + f"... ({len(raw) - _LOG_MAX} more)" if len(raw) > _LOG_MAX else text
+
+
+async def refuse(
+    scope: Scope, receive: Receive, send: Send, why: str, hosts: Sequence[str]
+) -> None:
+    """Log the refusal at WARNING, naming only the Host, and answer 400 with `REFUSAL_HEADERS` (a
+    websocket handshake on a server without the denial-response extension is closed with 1008)."""
+    shown = _printable(", ".join(hosts)) if hosts else "(none)"
+    logger.warning("trusted-host refused Host %s: %s", shown, why)
+    if scope["type"] == "websocket":
+        if "websocket.http.response" in (scope.get("extensions") or {}):
+            await send(
+                {
+                    "type": "websocket.http.response.start",
+                    "status": 400,
+                    "headers": [
+                        (k.lower().encode("latin-1"), v.encode("latin-1"))
+                        for k, v in REFUSAL_HEADERS.items()
+                    ]
+                    + [(b"content-type", b"text/plain; charset=utf-8")],
+                }
+            )
+            await send(
+                {"type": "websocket.http.response.body", "body": b"Invalid host header"}
+            )
+            return
+        # a server without the denial-response extension cannot send an HTTP answer to a
+        # handshake: close before accepting, which the server answers with 403
+        await receive()  # websocket.connect
+        await send({"type": "websocket.close", "code": 1008})
+        return
+    response = PlainTextResponse(
+        "Invalid host header", status_code=400, headers=REFUSAL_HEADERS
+    )
+    await response(scope, receive, send)
 
 
 class AllowedHostsMiddleware(TrustedHostMiddleware):
@@ -237,7 +333,7 @@ class AllowedHostsMiddleware(TrustedHostMiddleware):
             # v2: a forwarding header means a proxy relayed this request. Behind uvicorn
             # `--proxy-headers`, the "peer" is then whatever X-Forwarded-For resolved to, and a
             # client could make it 127.0.0.1. The container's own HEALTHCHECK never sends one.
-            if key in _FORWARDING:
+            if key.lower() in _FORWARDING:
                 return False
         host = _host_name(_host_header(scope))
         path = str(scope.get("path", ""))
@@ -245,19 +341,52 @@ class AllowedHostsMiddleware(TrustedHostMiddleware):
             path == p or path.startswith(p.rstrip("/") + "/") for p in self.health_paths
         )
 
+    def _match(self, name: str) -> str:
+        """ "yes" when `name` is listed (or under a listed `*.` domain), "redirect" when only
+        `www.<name>` is (Starlette's `www_redirect` sends it there), else "no"."""
+        redirect = False
+        for pattern in self.allowed_hosts:
+            if name == pattern or (
+                pattern.startswith("*.") and name.endswith(pattern[1:])
+            ):
+                return "yes"
+            if pattern == "www." + name:
+                redirect = True
+        return "redirect" if redirect and self.www_redirect else "no"
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ("http", "websocket"):
+            await super().__call__(scope, receive, send)
+            return
+        hosts = _host_headers(scope)
         # v3: a Host that is not a hostname and an optional `:port` is refused before matching.
         # Starlette compares only the text before the first ':', so `localhost:@evil.example`
         # passed on `localhost`, and URLs built from it fell back to the container's own address.
-        if (
-            scope["type"] in ("http", "websocket")
-            and _host_name(_host_header(scope)) is None
-        ):
-            await PlainTextResponse("Invalid host header", status_code=400)(
-                scope, receive, send
-            )
+        # v4: so is a request with no Host or more than one (RFC 9112 3.2).
+        if len(hosts) != 1 or _host_name(hosts[0]) is None:
+            why = "not exactly one Host header" if len(hosts) != 1 else "malformed"
+            await refuse(scope, receive, send, why, hosts)
             return
         if scope["type"] == "http" and self._in_container_probe(scope):
             await self.app(scope, receive, send)
             return
+        # v4: matched lowercased and without one trailing dot (RFC 3986 3.2.2, RFC 1034 3.1), as
+        # browsers send it; the app and Starlette's own check see that spelling.
+        canonical = _canonical(hosts[0])
+        match = "no" if canonical is None else self._match(canonical[0])
+        # a websocket handshake cannot follow the `www_redirect` answer: it is refused like any other
+        if (
+            canonical is None
+            or match == "no"
+            or (match == "redirect" and scope["type"] == "websocket")
+        ):
+            await refuse(scope, receive, send, f"not in {ENV_KEY}", hosts)
+            return
+        name, port = canonical
+        value = (name if port is None else f"{name}:{port}").encode("latin-1")
+        # in place: a middleware outside this one reads what the app writes into the scope
+        scope["headers"] = [
+            (b"host", value) if k.lower() == b"host" else (k, v)
+            for k, v in scope.get("headers", [])
+        ]
         await super().__call__(scope, receive, send)

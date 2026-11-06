@@ -122,13 +122,15 @@
 {% macro collapsible_section(title, cookie_key, icon_name=none, default_open=true) %}
 {# Collapsible section with localStorage-persisted state #}
 <section class="rounded-xl border border-surface-400/30 bg-surface-800/30 mb-6 overflow-hidden"
+         data-cookie-key="{{ cookie_key }}"
          x-data="{
-            open: localStorage.getItem('{{ cookie_key }}') !== null
-                  ? localStorage.getItem('{{ cookie_key }}') === 'true'
+            storageKey: $el.dataset.cookieKey,
+            open: localStorage.getItem($el.dataset.cookieKey) !== null
+                  ? localStorage.getItem($el.dataset.cookieKey) === 'true'
                   : {{ 'true' if default_open else 'false' }},
             toggle() {
                 this.open = !this.open;
-                localStorage.setItem('{{ cookie_key }}', this.open);
+                localStorage.setItem(this.storageKey, this.open);
             }
          }">
     <button @click="toggle()"

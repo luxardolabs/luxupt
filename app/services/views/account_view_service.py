@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.account_schema import PasswordChangeOutcome
 from app.services.core.admin_bootstrap_core_service import (
+    CHANGE_WINDOW_SECONDS,
     MIN_PASSWORD_LENGTH,
     AdminBootstrapCoreService,
     CurrentPasswordError,
+    CurrentPasswordLockedError,
     PasswordPolicyError,
     UnknownUserError,
 )
@@ -44,6 +46,7 @@ class AccountViewService:
         """Change the user's own password; the current one is required."""
         error = ""
         status_code = 400
+        headers: dict[str, str] = {}
         if new_password != confirm_password:
             error = "The new passwords do not match."
         elif new_password == current_password:
@@ -53,6 +56,9 @@ class AccountViewService:
                 await self.core.change_password(
                     db, username, current_password, new_password
                 )
+            except CurrentPasswordLockedError as exc:
+                error, status_code = str(exc), 429
+                headers = {"Retry-After": str(int(CHANGE_WINDOW_SECONDS))}
             except CurrentPasswordError, UnknownUserError:
                 error, status_code = "The current password is not correct.", 403
             except PasswordPolicyError as exc:
@@ -65,4 +71,6 @@ class AccountViewService:
                 )
         context = await self.change_password_context(db, username)
         context["error"] = error
-        return PasswordChangeOutcome(status_code=status_code, context=context)
+        return PasswordChangeOutcome(
+            status_code=status_code, context=context, headers=headers
+        )

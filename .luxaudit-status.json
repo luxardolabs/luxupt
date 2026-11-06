@@ -1,12 +1,12 @@
 {
   "guard": "luxaudit",
-  "guard_version": "0.15.0",
+  "guard_version": "0.16.0",
   "repo": "/repo",
-  "packages": 51,
-  "source": "poetry.lock",
+  "packages": 127,
+  "source": "poetry.lock, package-lock.json",
   "summary": {
-    "PASS": 51,
-    "FAIL": 0,
+    "PASS": 127,
+    "FAIL": 2,
     "XFAIL": 0
   },
   "vulnerable": [],
@@ -20,9 +20,35 @@
     "inert_reason": "",
     "error": "",
     "not_released": [],
-    "vulnerable": [],
+    "vulnerable": [
+      {
+        "package": "apt",
+        "installed": "3.0.3",
+        "vuln_id": "CVE-2026-109518",
+        "severity": "HIGH",
+        "layer": "os",
+        "path": "",
+        "image": "luxardolabs/luxupt:2026.10.2",
+        "fix": "3.0.4"
+      },
+      {
+        "package": "libapt-pkg7.0",
+        "installed": "3.0.3",
+        "vuln_id": "CVE-2026-109518",
+        "severity": "HIGH",
+        "layer": "os",
+        "path": "",
+        "image": "luxardolabs/luxupt:2026.10.2",
+        "fix": "3.0.4"
+      }
+    ],
     "deferred": []
   },
-  "commit": "0159c0355fb260412424b7056ab28d13bb4102df",
-  "generated_at": "2026-10-31T23:32:57Z"
+  "ignore_rows": {
+    "stale": [],
+    "expired": [],
+    "unjudged": []
+  },
+  "commit": "2d165298878a3d69b870143ed5479fa5d0118137",
+  "generated_at": "2026-11-06T05:20:28Z"
 }

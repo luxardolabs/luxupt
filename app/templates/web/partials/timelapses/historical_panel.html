@@ -16,7 +16,7 @@
     <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6"
          x-data='{
              ranges: {{ camera_ranges|tojson }},
-             selected: "{{ first_cam_id }}",
+             selected: {{ first_cam_id|tojson }},
              startDate: "",
              endDate: "",
              get range() { return this.ranges[this.selected] || null; },
@@ -130,9 +130,10 @@
                 <div class="flex flex-wrap items-center gap-2">
                     {% for v in interval_presets %}
                     {{ chip_button(
-                        click="interval = " ~ v,
-                        active_class="interval === " ~ v ~ " ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
-                        x_text="label(" ~ v ~ ")") }}
+                        value=v,
+                        click="interval = Number($el.dataset.value)",
+                        active_class="interval === Number($el.dataset.value) ? 'border-primary-500 bg-primary-500/20 text-white' : 'border-surface-500 bg-surface-700 text-white'",
+                        x_text="label(Number($el.dataset.value))") }}
                     {% endfor %}
                     {{ text_input("interval", type="number", required=true,
                                   align="center", width="w-20",
