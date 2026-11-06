@@ -28,6 +28,12 @@
                               extra_attrs='maxlength="64"') }}
             </div>
 
+            {% if editing_own_account %}
+            <p class="text-sm text-surface-200">
+                Change your own password on the
+                <a href="{{ account_password_url }}" class="text-primary-300 hover:text-primary-200 underline">account page</a>.
+            </p>
+            {% else %}
             <!-- Password -->
             <div>
                 <label for="password" class="block text-sm font-medium text-white mb-2">
@@ -47,6 +53,7 @@
                               required=(not edit_user), autocomplete="new-password",
                               placeholder="Confirm password") }}
             </div>
+            {% endif %}
 
             <!-- Admin Toggle -->
             <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-4">

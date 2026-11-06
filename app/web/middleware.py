@@ -175,6 +175,7 @@ class AuthRedirectMiddleware(BaseHTTPMiddleware):
             user = await session_user(db, token)
             if user is not None:
                 request.state.session_is_admin = user.is_admin
+                request.state.session_user_id = user.id
                 forced = await AdminBootstrapViewService().forced_change_redirect(
                     request, db, user.username, request.url.path
                 )

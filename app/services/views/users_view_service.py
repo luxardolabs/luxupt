@@ -20,6 +20,9 @@ class UsersViewService:
         """Initialize with core user service, and the request URLs are resolved through."""
         self.path = request.app.url_path_for
         self.user_service = user_service
+        self.session_user_id: int | None = getattr(
+            request.state, "session_user_id", None
+        )
 
     async def get_users_context(self) -> dict[str, Any]:
         """Get context for users list page."""
@@ -64,6 +67,9 @@ class UsersViewService:
             edit_user = await self.user_service.get_by_id(user_id)
         return {
             "edit_user": edit_user,
+            "editing_own_account": edit_user is not None
+            and self._is_own_account(edit_user.id),
+            "account_password_url": str(self.path("account.change_password_page")),
             # Route knowledge lives in the view (fw.url_assembly_in_view); create and edit
             # post to different endpoints.
             "user_form_post_url": str(
@@ -133,6 +139,12 @@ class UsersViewService:
         """Validate user update input. Returns list of error messages."""
         errors = []
 
+        # This form asks for no current password, so a stolen session could use it to take over
+        # its own account. Only the account page checks the current password, under a lockout.
+        if password and self._is_own_account(user_id):
+            account_page = self.path("account.change_password_page")
+            return [f"Change your own password at {account_page}"]
+
         # Username validation
         username = username.strip()
         if not username:
@@ -143,12 +155,20 @@ class UsersViewService:
             errors.append("Username already exists")
 
         # Password validation (only if provided)
-        if password and password != confirm_password:
+        if (password or confirm_password) and password != confirm_password:
             errors.append("Passwords do not match")
         elif password and len(password) < MIN_PASSWORD_LENGTH:
             errors.append(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
 
         return errors
+
+    def _is_own_account(self, user_id: int) -> bool:
+        """Whether this row is the signed-in user's, by the id the session check resolved.
+
+        Names can move between rows after that check commits, so a name never decides this. With
+        no id on the request, the row counts as the caller's own and the password is refused.
+        """
+        return self.session_user_id is None or self.session_user_id == user_id
 
     async def create_user(
         self,

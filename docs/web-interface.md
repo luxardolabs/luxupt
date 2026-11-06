@@ -701,7 +701,7 @@ Click **Add User** button to create a new account:
 Click the edit icon next to any user to modify:
 
 - Change username
-- Change password
+- Change another user's password. Your own password is changed at `/account/password`, which asks for the current one
 - Changes take effect immediately
 
 #### Delete User
