@@ -30,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # isort: split
 # --- EDIT THIS: your user model. The fleet home is app/models/user_model.py, class User. The
 # datetime import is the default `_end_sessions` body's: delete it if you replace that body.
-from app.models.user_model import User
+from app.models.user_model import User, new_session_version
 
 # Any constant works. It names the PostgreSQL advisory lock that serialises first-boot creation, so
 # two workers (or two replicas) starting on an empty database cannot both create a first admin.
@@ -66,10 +66,10 @@ def _store_password(
 # fleet default is a `sessions_valid_after` the auth dependency compares with a token's issued-at; a
 # session table deletes the user's rows here instead. It runs in the same transaction as the new hash.
 async def _end_sessions(db: AsyncSession, user: User) -> None:
-    # A token carries the session_version it was issued under (app/web/auth.py); bumping it refuses
-    # every token issued before this password. The SQL expression counts from the stored value and
-    # goes in the same UPDATE as the new hash.
-    user.session_version = User.session_version + 1
+    # A token carries the session_version it was issued under (app/web/auth.py); replacing it refuses
+    # every token issued before this password. The flush stores it in one UPDATE with the new hash,
+    # and the refresh reloads the columns the database set, so a caller can still read the row.
+    user.session_version = new_session_version()
     await db.flush()
     await db.refresh(user)
 

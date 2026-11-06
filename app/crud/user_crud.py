@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base_crud import CRUDBase
-from app.models.user_model import User
+from app.models.user_model import User, new_session_version
 from app.schemas.user_schema import UserCreate
 from app.utils.password_hash import hash_password, verify_password
 
@@ -61,34 +61,25 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         must_change_password: bool | None = None,
     ) -> User:
         """Apply field updates to a user (hashing the password if given) and flush."""
+        # Hashed before any field changes: a password it refuses leaves the row untouched.
+        password_hash = hash_password(password) if password is not None else None
+        if password_hash is not None or (
+            username is not None and username != user.username
+        ):
+            # A new password or name ends the sessions issued before it, in the same UPDATE.
+            user.session_version = new_session_version()
         if username is not None:
             user.username = username
-        if password is not None:
-            user.password_hash = hash_password(password)
+        if password_hash is not None:
+            user.password_hash = password_hash
         if must_change_password is not None:
             user.must_change_password = must_change_password
         if is_admin is not None:
             user.is_admin = is_admin
         db.add(user)
-        if password is not None:
-            # A new password ends the sessions issued before it.
-            await self.end_sessions(db, user)
-            return user
         await db.flush()
         await db.refresh(user)
         return user
-
-    async def end_sessions(self, db: AsyncSession, user: User) -> None:
-        """Refuse every token issued to this user so far, and leave the row flushed and refreshed.
-
-        A token carries the session_version it was issued under (app/web/auth.py). The increment is
-        a SQL expression, so it counts from the stored value, not from the one this row was loaded
-        with, and it goes in the same UPDATE as the row's pending changes: a new password and the
-        end of the old sessions are stored together or not at all.
-        """
-        user.session_version = User.session_version + 1
-        await db.flush()
-        await db.refresh(user)
 
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""

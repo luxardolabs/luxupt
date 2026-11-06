@@ -80,3 +80,30 @@ def test_admin_bootstrap_migration_round_trips_the_env_account(tmp_path: Path) -
     with closing(sqlite3.connect(db_file)) as reader:
         sources = dict(reader.execute("SELECT username, auth_source FROM users"))
     assert sources == {"admin": "env", "db-user": "database"}
+
+
+BEFORE_RANDOM_VERSIONS = "5b8e2d71c4a9"
+
+
+def test_existing_users_get_distinct_session_versions(tmp_path: Path) -> None:
+    db_file = tmp_path / "timelapse.db"
+    cfg = _config(f"sqlite+aiosqlite:///{db_file}")
+    command.upgrade(cfg, BEFORE_RANDOM_VERSIONS)
+    with closing(sqlite3.connect(db_file)) as conn, conn:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, is_admin) "
+            "VALUES ('one', '$argon2id$x', 1), ('two', '$argon2id$x', 0)"
+        )
+
+    command.upgrade(cfg, "head")
+    with closing(sqlite3.connect(db_file)) as reader:
+        versions = dict(reader.execute("SELECT username, session_version FROM users"))
+    assert versions["one"] != versions["two"]
+    assert 0 not in versions.values()
+
+    command.downgrade(cfg, BEFORE_RANDOM_VERSIONS)
+    with closing(sqlite3.connect(db_file)) as reader:
+        after_downgrade = dict(
+            reader.execute("SELECT username, session_version FROM users")
+        )
+    assert after_downgrade == versions
