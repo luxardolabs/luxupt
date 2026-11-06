@@ -393,7 +393,7 @@ ______________________________________________________________________
 
 ### Can't Access Web Interface
 
-**Symptom:** Browser can't connect to `http://your-server:8080`.
+**Symptom:** Browser can't connect to LuxUPT, or your reverse proxy can't reach port 8080.
 
 **Check:**
 
@@ -431,6 +431,14 @@ ______________________________________________________________________
 ______________________________________________________________________
 
 ## Authentication Issues
+
+### Login Returns to the Login Page
+
+**Symptom:** You enter the correct username and password and land back on the login page with no error.
+
+**Cause:** You are on plain HTTP. LuxUPT requires HTTPS, and browsers drop the secure session cookie on an HTTP connection.
+
+**Solution:** Open LuxUPT over HTTPS through your own reverse proxy. See [HTTPS with Reverse Proxy](configuration.md#https-with-reverse-proxy).
 
 ### Forgot Password
 

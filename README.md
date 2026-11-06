@@ -18,6 +18,8 @@ You've invested in UniFi Protect. LuxUPT turns that investment into something mo
 
 ## Quick Start
 
+**LuxUPT requires HTTPS.** Run it behind your own HTTPS reverse proxy and certificate. Login does not work over plain HTTP, because browsers drop the secure session cookie. See [HTTPS with Reverse Proxy](docs/configuration.md#https-with-reverse-proxy).
+
 **1. Get an API key from UniFi Protect**
 
 Log in to UniFi Protect → Settings → Control Plane → Integrations → Your API Keys → Generate
@@ -36,6 +38,7 @@ services:
       - ./output:/app/luxupt/output
     environment:
       TZ: America/Chicago
+      ALLOWED_HOSTS: luxupt.example.com  # The hostname or IP address you type in the browser
 ```
 
 **3. Start it**
@@ -46,7 +49,7 @@ docker compose up -d
 
 **4. Open the web UI**
 
-Go to `http://your-server:8080` — the setup wizard walks you through connecting to UniFi Protect and configuring your cameras.
+Point your reverse proxy at port 8080, then go to `https://luxupt.example.com` — the setup wizard walks you through connecting to UniFi Protect and configuring your cameras.
 
 Tomorrow morning, you'll have timelapse videos.
 

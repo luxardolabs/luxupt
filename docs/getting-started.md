@@ -5,6 +5,7 @@ This guide walks you through setting up LuxUPT from scratch.
 ## Prerequisites
 
 - **Docker and Docker Compose** — LuxUPT runs as a Docker container
+- **An HTTPS reverse proxy and certificate** — LuxUPT requires HTTPS, and you provide it. Login does not work over plain HTTP, because browsers drop the secure session cookie. See [HTTPS with Reverse Proxy](configuration.md#https-with-reverse-proxy)
 - **UniFi Protect system** — Latest version recommended (tested with 6.2.88)
 - **Camera encoding set to Standard** — UniFi Protect cameras must use **Standard** (H.264) encoding for RTSP streams to work. Enhanced (H.265) encoding does not provide compatible RTSP streams. Set this in UniFi Protect under each camera's Settings → Video → Encoding
 - **API key** — Generated from your UniFi Protect system
@@ -94,7 +95,7 @@ For advanced setups with mixed storage (e.g., NVMe + HDD on a NAS), each storage
 
 ## First-Run Setup
 
-When you first access LuxUPT at `http://your-server:8080`, you'll go through a setup wizard.
+Point your reverse proxy at port 8080. When you first access LuxUPT through it (for example `https://luxupt.example.com`), you'll go through a setup wizard.
 
 ### Step 1: Create Admin Account
 

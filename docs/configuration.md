@@ -192,7 +192,7 @@ ______________________________________________________________________
 
 ## HTTPS with Reverse Proxy
 
-LuxUPT works behind any reverse proxy (Nginx, Traefik, Caddy, etc.) for SSL termination.
+LuxUPT requires HTTPS, and you provide it: run it behind your own reverse proxy and certificate. Any reverse proxy works (Nginx, Traefik, Caddy, etc.); the examples below are starting points.
 
 ### Proxy Header Support
 
@@ -206,7 +206,7 @@ LuxUPT automatically detects HTTPS when running behind a proxy by reading standa
 
 ### Cookie Security
 
-Session cookies are always issued with `Secure`, `HttpOnly`, and `SameSite=Lax`. LuxUPT is designed to run behind an HTTPS reverse proxy (nginx); serve it over HTTPS.
+Session cookies are always issued with `Secure`, `HttpOnly`, and `SameSite=Lax`. Browsers drop a `Secure` cookie on a plain HTTP connection, so login does not work there.
 
 ### Nginx Configuration
 
