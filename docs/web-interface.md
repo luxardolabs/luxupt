@@ -527,7 +527,7 @@ Access via the red **Delete** button on the Images page. **Use with caution — 
 
 ### Step 1: Select Images
 
-Use filters to narrow down which images to delete:
+Use filters to narrow down which images to delete. Choose at least one: the panel won't delete everything at once.
 
 | Filter       | Effect                                                           |
 | ------------ | ---------------------------------------------------------------- |
@@ -537,19 +537,17 @@ Use filters to narrow down which images to delete:
 
 ### Step 2: Preview
 
-Before deletion, you'll see:
-
-- Total count of images that will be deleted
-- Sample thumbnails of affected images
-- Warning if the count is large
+Before deletion, you'll see the total count and size of the images that will be deleted, broken down by camera, date and interval.
 
 ### Step 3: Confirm
 
-Click the confirm button to permanently delete. This action:
+Click the button twice to permanently delete. This action:
 
 - Removes image files from disk
 - Removes records from database
 - Cannot be undone
+
+If the images change after the preview, for example because capture is still running, nothing is deleted and you're asked to check again. To delete images from a date that's still being captured, stop capture first in Capture Settings.
 
 **Common Use Cases:**
 

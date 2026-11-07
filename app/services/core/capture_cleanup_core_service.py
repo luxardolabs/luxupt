@@ -15,6 +15,14 @@ from app.utils.capture_files import delete_capture_files
 logger = logging.getLogger(__name__)
 
 
+class UnfilteredDeleteError(ValueError):
+    """A capture delete named no camera, date or interval, so it would remove every capture."""
+
+
+class CapturesChangedError(ValueError):
+    """The captures matching a delete are no longer the number its preview showed."""
+
+
 class CaptureCleanupCoreService:
     """Handles cleanup of captures including files, thumbnails, and DB records."""
 
@@ -28,6 +36,8 @@ class CaptureCleanupCoreService:
         camera: str | None = None,
         capture_date: date | None = None,
         interval: int | None = None,
+        expected_count: int | None = None,
+        expected_timestamp_sum: int | None = None,
     ) -> dict[str, Any]:
         """Delete captures matching filters including files, thumbnails, and DB records.
 
@@ -38,10 +48,32 @@ class CaptureCleanupCoreService:
             camera: Camera ID (None = all cameras)
             capture_date: Date (None = all dates)
             interval: Interval in seconds (None = all intervals)
+            expected_count: How many captures the preview showed. Any other number now means the
+                set changed, so nothing is deleted: the user never removes frames they did not see.
+            expected_timestamp_sum: The sum of those captures' timestamps, which tells the same
+                number of different frames apart: a steady camera returns to its count every day.
 
         Returns:
             Dict with db_records_deleted, files_to_clean, background_cleanup
+
+        Raises:
+            UnfilteredDeleteError: nothing narrows the delete. The test is truthiness because that
+                is what the crud filters on: an interval of 0 narrows nothing there.
+            CapturesChangedError: the count or the timestamp sum no longer matches.
         """
+        if not (camera or capture_date or interval):
+            raise UnfilteredDeleteError
+
+        if expected_count is not None:
+            preview = await self.get_deletion_preview(
+                camera=camera, capture_date=capture_date, interval=interval
+            )
+            if (preview["total_count"], preview["timestamp_sum"]) != (
+                expected_count,
+                expected_timestamp_sum,
+            ):
+                raise CapturesChangedError
+
         # Phase 1: Get file paths BEFORE deleting from DB (lightweight SELECT)
         file_info = await capture_crud.get_file_paths_by_filters(
             self.db,
@@ -120,6 +152,8 @@ class CaptureCleanupCoreService:
             "preview": preview,
             "total_count": total_count,
             "total_size": total_size,
+            # post-db-filter: as above, the per-group SQL sums added up
+            "timestamp_sum": sum(item["timestamp_sum"] for item in preview),
         }
 
 

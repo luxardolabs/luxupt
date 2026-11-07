@@ -17,16 +17,18 @@
         <form id="delete-filters-form"
               hx-get="{{ page_urls.delete_preview }}"
               hx-target="#delete-preview"
-              hx-trigger="change">
+              hx-trigger="change"
+              hx-sync="this:replace"
+              hx-on::before-request="document.getElementById('delete-action')?.remove()">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    {{ select("camera", cameras, label="Camera", placeholder="All Cameras") }}
+                <div id="camera-field">
+                    {{ select("camera", cameras, label="Camera", placeholder="All Cameras", id="delete-camera") }}
                 </div>
-                <div id="delete-date-field">
-                    {{ select("date", available_date_options, label="Date", placeholder="All Dates") }}
+                <div id="date-field">
+                    {{ select("date", available_date_options, label="Date", placeholder="All Dates", id="delete-date") }}
                 </div>
-                <div id="delete-interval-field">
-                    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals") }}
+                <div id="interval-field">
+                    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals", id="delete-interval") }}
                 </div>
             </div>
         </form>

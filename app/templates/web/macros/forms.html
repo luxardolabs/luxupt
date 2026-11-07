@@ -41,12 +41,12 @@
 </div>
 {% endmacro %}
 
-{% macro select(name, options, label=none, selected=none, placeholder="Select...", required=false, disabled=false, hx_attrs={}) %}
+{% macro select(name, options, label=none, selected=none, placeholder="Select...", required=false, disabled=false, hx_attrs={}, id=none) %}
 <div>
     {% if label %}
-    <label for="{{ name }}" class="{{ label_base }}">{{ label }}</label>
+    <label for="{{ id or name }}" class="{{ label_base }}">{{ label }}</label>
     {% endif %}
-    <select id="{{ name }}"
+    <select id="{{ id or name }}"
             name="{{ name }}"
             class="{{ input_base }} cursor-pointer"
             {{ 'required' if required }}

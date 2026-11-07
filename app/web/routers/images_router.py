@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from app.core import config
 from app.web.auth import get_current_user, require_admin
 from app.web.deps import ImagesViewDep, TemplatesDep
-from app.web.query_params import ThumbnailSizeFilter
+from app.web.query_params import IntFilter, ThumbnailSizeFilter
 
 router = APIRouter(tags=["images"])
 
@@ -332,6 +332,8 @@ async def delete_images(
     camera: str | None = Query(None),
     date_str: str | None = Query(None, alias="date"),
     interval: str | None = Query(None),
+    expected_count: IntFilter = None,
+    expected_timestamp_sum: IntFilter = None,
     user: str = Depends(require_admin),
 ) -> Response:
     """Delete images matching filters."""
@@ -344,6 +346,8 @@ async def delete_images(
         camera=camera,
         date_str=date_str,
         interval=interval_int,
+        expected_count=expected_count,
+        expected_timestamp_sum=expected_timestamp_sum,
     )
 
     # Get fresh filter options (dates/cameras may have changed)
@@ -353,4 +357,5 @@ async def delete_images(
         request,
         "partials/images/delete_result.html",
         {"result": result, **context},
+        status_code=400 if result["refused"] else 200,
     )

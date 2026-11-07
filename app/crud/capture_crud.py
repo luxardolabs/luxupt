@@ -589,6 +589,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
             Capture.interval,
             func.count(Capture.id).label("count"),
             func.coalesce(func.sum(Capture.file_size), 0).label("total_size"),
+            func.coalesce(func.sum(Capture.timestamp), 0).label("timestamp_sum"),
         )
 
         if camera:
@@ -620,6 +621,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
                 "interval": row.interval,
                 "count": row.count,
                 "total_size": row.total_size,
+                "timestamp_sum": row.timestamp_sum,
             }
             for row in rows
         ]

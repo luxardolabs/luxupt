@@ -11,7 +11,11 @@ from fastapi.responses import FileResponse
 
 from app.schemas.pagination_schema import build_pagination
 from app.services.core.camera_core_service import CameraCoreService
-from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
+from app.services.core.capture_cleanup_core_service import (
+    CaptureCleanupCoreService,
+    CapturesChangedError,
+    UnfilteredDeleteError,
+)
 from app.services.core.capture_core_service import CaptureCoreService
 from app.services.core.image_core_service import image_service
 from app.services.views._camera_options import (
@@ -417,7 +421,35 @@ class ImagesViewService:
             "total_count": preview_data.get("total_count", 0),
             "total_size": preview_data.get("total_size", 0),
             "filters": {"camera": None, "date": None, "interval": None},
+            "delete_url": None,
         }
+
+    def _delete_url(
+        self,
+        camera: str | None,
+        capture_date: date | None,
+        interval: int | None,
+        total_count: int,
+        timestamp_sum: int,
+    ) -> str | None:
+        """The delete request for this preview, None when no filter narrows it or nothing matches.
+
+        It carries the count and timestamp sum shown, so a delete refuses a set changed since.
+        """
+        query: dict[str, Any] = {
+            key: value
+            for key, value in (
+                ("camera", camera),
+                ("date", capture_date),
+                ("interval", interval),
+            )
+            if value
+        }
+        if not query or not total_count:
+            return None
+        query["expected_count"] = total_count
+        query["expected_timestamp_sum"] = timestamp_sum
+        return f"{self.path('images.delete_images')}?{urlencode(query)}"
 
     async def get_deletion_preview(
         self,
@@ -433,12 +465,6 @@ class ImagesViewService:
         """
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
-
-        result = await self.cleanup_service.get_deletion_preview(
-            camera=camera,
-            capture_date=capture_date,
-            interval=interval,
-        )
 
         # Get filtered dropdown options based on current selections
         # Cameras: always show all available
@@ -459,11 +485,24 @@ class ImagesViewService:
             for cid in camera_ids
         ]
 
-        # Dates: filter by selected camera
+        # Dates: filter by selected camera. A date or interval the new options lack falls back to
+        # All, as its dropdown does, so the rows shown always match the filters shown. That widens
+        # what was asked for, so it offers no delete until the user picks again.
+        chosen = (date_str or None, interval or None)
         dates = await self.capture_service.get_available_dates(camera=camera)
+        if capture_date not in dates:
+            capture_date = None
         # Intervals: filter by selected camera and date
         intervals = await self.capture_service.get_available_intervals(
             camera=camera, capture_date=capture_date
+        )
+        if interval not in intervals:
+            interval = None
+
+        result = await self.cleanup_service.get_deletion_preview(
+            camera=camera,
+            capture_date=capture_date,
+            interval=interval,
         )
 
         return {
@@ -480,17 +519,17 @@ class ImagesViewService:
             # The template was hand-assembling this query string with chained `~` and
             # inline conditionals — real logic in the render layer (fw.no_template_logic).
             # urlencode also escapes the values, which the concatenation did not.
-            "delete_url": f"{self.path('images.delete_images')}?"
-            + urlencode(
-                {
-                    key: value
-                    for key, value in (
-                        ("camera", camera),
-                        ("date", capture_date),
-                        ("interval", interval),
-                    )
-                    if value
-                }
+            "delete_url": (
+                self._delete_url(
+                    camera,
+                    capture_date,
+                    interval,
+                    result.get("total_count", 0),
+                    result.get("timestamp_sum", 0),
+                )
+                if (capture_date and capture_date.isoformat(), interval or None)
+                == chosen
+                else None
             ),
         }
 
@@ -500,13 +539,29 @@ class ImagesViewService:
         camera: str | None = None,
         date_str: str | None = None,
         interval: int | None = None,
+        expected_count: int | None = None,
+        expected_timestamp_sum: int | None = None,
     ) -> dict[str, Any]:
         """Delete images matching filters including files, thumbnails, and DB records."""
         # Parse date string if provided
         capture_date = date.fromisoformat(date_str) if date_str else None
 
-        return await self.cleanup_service.delete_by_filters(
-            camera=camera,
-            capture_date=capture_date,
-            interval=interval,
+        changed = (
+            "The images changed since this preview. If capture is still running, wait for it or "
+            "stop it, then check the preview and try again."
         )
+        if expected_count is None or expected_timestamp_sum is None:
+            return {"refused": changed}
+        try:
+            result = await self.cleanup_service.delete_by_filters(
+                camera=camera,
+                capture_date=capture_date,
+                interval=interval,
+                expected_count=expected_count,
+                expected_timestamp_sum=expected_timestamp_sum,
+            )
+        except UnfilteredDeleteError:
+            return {"refused": "Choose a camera, date or interval first."}
+        except CapturesChangedError:
+            return {"refused": changed}
+        return {"refused": None, **result}

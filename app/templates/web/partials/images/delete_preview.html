@@ -6,22 +6,33 @@
 {% from "macros/forms.html" import select %}
 {% from "macros/tables.html" import data_table %}
 
+{# OOB: The camera shown always names what the rows below are for #}
+<div id="camera-field" hx-swap-oob="innerHTML:#camera-field">
+    {{ select("camera", cameras, label="Camera", placeholder="All Cameras", id="delete-camera", selected=filters.camera) }}
+</div>
+
 {# OOB: Update date dropdown based on camera selection #}
 <div id="date-field" hx-swap-oob="innerHTML:#date-field">
-    {{ select("date", available_date_options, label="Date", placeholder="All Dates", selected=filters.date|string if filters.date else none) }}
+    {{ select("date", available_date_options, label="Date", placeholder="All Dates", id="delete-date", selected=filters.date|string if filters.date else none) }}
 </div>
 
 {# OOB: Update interval dropdown based on camera+date selection #}
 <div id="interval-field" hx-swap-oob="innerHTML:#interval-field">
-    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals", selected=filters.interval|string if filters.interval else none) }}
+    {{ select("interval", available_intervals, label="Interval", placeholder="All Intervals", id="delete-interval", selected=filters.interval|string if filters.interval else none) }}
 </div>
 
 {% if preview %}
 <div class="space-y-4">
     <!-- Summary -->
+    {% if delete_url %}
     {% call alert_block("warning", title=total_count ~ " images (" ~ file_size(total_size) ~ ") will be deleted") %}
     This will remove image files, thumbnails, and database records.
     {% endcall %}
+    {% else %}
+    {% call alert_block("info", title=total_count ~ " images (" ~ file_size(total_size) ~ ") stored") %}
+    Choose a camera, date or interval to delete some of them.
+    {% endcall %}
+    {% endif %}
 
     <!-- Breakdown Table -->
     <div class="rounded-lg border border-surface-400/30 overflow-hidden">
@@ -41,8 +52,9 @@
         {% endcall %}
     </div>
 
+    {% if delete_url %}
     <!-- Delete Button (double-tap to confirm) -->
-    <div class="flex justify-end pt-2">
+    <div id="delete-action" class="flex justify-end pt-2">
         {{ danger_confirm(
             "Delete " ~ total_count ~ " Images",
             icon_name="trash",
@@ -50,6 +62,7 @@
             hx_target="#delete-preview"
         ) }}
     </div>
+    {% endif %}
 </div>
 {% else %}
 <div class="rounded-lg border border-surface-400/30 bg-surface-700/30 p-6 text-center">
