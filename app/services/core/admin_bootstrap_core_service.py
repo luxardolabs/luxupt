@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
+# luxarch:admin-bootstrap asset v7 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap`.
 """How the first admin comes to exist, and how a locked-out owner gets back in.
 
 `luxarch --emit admin-bootstrap`. Drop this in at `app/services/core/admin_bootstrap_core_service.py`.
@@ -135,6 +135,10 @@ async def password_policy_problem(db: AsyncSession, password: str) -> str:
 # own count in this process (CHANGE_ATTEMPTS checks per CHANGE_WINDOW_SECONDS), keyed on the stored
 # hash, so a recovery reset (a new hash) starts a fresh count. Point both at the counter your
 # login's lockout keeps for that user, so the two share one threshold and every worker sees it.
+# A count written through `db` is in the request's transaction, and a wrong guess raises: if that
+# reaches `get_db`, the rollback takes the count with it and the account never locks. So either
+# count in a transaction of your own that commits here, as a login's lockout does to survive its
+# own raised error, or catch the refusal in the view, inside the request, and test that it locks.
 CHANGE_ATTEMPTS = 5
 CHANGE_WINDOW_SECONDS = 900.0
 
@@ -520,6 +524,14 @@ class AdminBootstrapCoreService:
         a guess without changing the password. A new password that only hashes the same as the current
         one (a bcrypt that truncates at 72 bytes) is taken, a forced change included: refusing it would
         answer the guess. The count clears only once the write has worked.
+
+        No change route is emitted, so the caller's handler owes: the login from the session, never
+        the form; `CurrentPasswordLockedError` caught before its parent `CurrentPasswordError`, whose
+        own text is empty, so the handler supplies the words; `PasswordPolicyError`, whose text is safe
+        to show; signing the user in again; and a refusal that does not undo a durable count (the
+        lockout's EDIT THIS). `password_policy_problem` runs before the lockout, so a policy comparing
+        against this user's own history would answer guesses unthrottled: never compare it there.
+
         A login the driver cannot bind (a lone surrogate, NUL on PostgreSQL), which no row holds,
         is nobody; every other login, NUL included where the database stores it, is looked up."""
         user = (
