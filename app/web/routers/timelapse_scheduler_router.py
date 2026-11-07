@@ -10,7 +10,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.web.auth import get_current_user
+from app.web.auth import require_admin
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ async def scheduler_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render the scheduler settings panel (loaded via HTMX)."""
     context = await view_service.get_scheduler_context()
@@ -63,7 +63,7 @@ async def save_scheduler_settings(
     preset: Annotated[str | None, Form()] = None,
     pixel_format: Annotated[str | None, Form()] = None,
     ffmpeg_timeout: Annotated[int | None, Form()] = None,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Save scheduler settings (HTMX)."""
     context = await view_service.save_scheduler_settings(

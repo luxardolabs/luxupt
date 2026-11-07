@@ -349,9 +349,9 @@ class CamerasViewService:
             "chart_reset_url": _chart_url(0),
         }
 
-    async def get_camera_panel_context(self, safe_name: str) -> dict[str, Any]:
+    async def get_camera_panel_context(self, camera_id: str) -> dict[str, Any]:
         """Get data for camera detail panel."""
-        camera = await self.camera_service.get_by_safe_name(safe_name)
+        camera = await self.camera_service.get_by_id(camera_id)
         if not camera:
             return {
                 "camera": None,

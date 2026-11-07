@@ -11,6 +11,10 @@ The interface has four main pages, accessible from the top navigation bar:
 - **Images** — Browse captured snapshots
 - **System** — Status, configuration, and users
 
+### Administrators and viewers
+
+An account without **Administrator** turned on is read-only. It can browse cameras, images, timelapses and system status, download videos, and change its own password from the **Password** link in the top bar. Everything that changes something is for administrators: capture, camera and backup settings, creating or deleting timelapses, cancelling jobs, the scheduler, deleting images and cameras, and managing users. Those buttons don't appear for a read-only account.
+
 ______________________________________________________________________
 
 ## Cameras Page
@@ -85,7 +89,7 @@ Visual cards for each discovered camera, arranged in a responsive grid.
 
 **Card Actions:**
 
-- **Click card**: Opens Camera Settings Panel for that camera
+- **Click card**: Opens Camera Settings Panel for that camera; a read-only account sees the camera's details instead
 - **Click camera name**: Opens Camera Detail Page
 
 **Auto-Refresh:** The camera grid refreshes automatically every 30 seconds to show updated thumbnails and status.
@@ -157,7 +161,7 @@ ______________________________________________________________________
 
 ## Camera Settings Panel
 
-Click any camera card to configure individual camera settings. These override the global defaults for this specific camera.
+Administrators can click any camera card to configure individual camera settings. These override the global defaults for this specific camera.
 
 ### Camera Info Section
 

@@ -148,7 +148,9 @@
                 Use HTMX attributes to load panel content
             </p>
             <div class="flex gap-3">
+                {% if session_is_admin %}
                 {{ primary('Open Capture Settings', icon_name='cog-6-tooth', hx_attrs={'hx-get': demo_urls.fetch_settings, 'hx-target': '#panel-container', 'hx-swap': 'innerHTML'}) }}
+                {% endif %}
             </div>
         </div>
 

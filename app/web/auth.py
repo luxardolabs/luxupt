@@ -163,18 +163,13 @@ async def session_user(db: AsyncSession, token: str) -> User | None:
     return user
 
 
-def is_admin(request: Request) -> bool:
-    """Whether the session check found this request's user to be an administrator."""
-    return bool(getattr(request.state, "session_is_admin", False))
-
-
 def require_admin(request: Request) -> str:
     """The signed-in username, refusing a user who is not an admin.
 
-    Guards user management and the settings that hold the Protect credentials or copy the database.
+    Guards everything that changes state: a non-admin only views, and changes their own password.
     """
     username = get_current_user(request)
-    if not is_admin(request):
+    if not getattr(request.state, "session_is_admin", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Administrators only"
         )

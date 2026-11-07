@@ -25,11 +25,11 @@
                 Job cards self-poll via HTMX, exactly as on their real pages.
             </p>
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {{ camera_card(demo_camera, latest_capture=demo_latest_capture, stats=demo_camera_stats, urls=demo_camera_urls) }}
-                {{ timelapse_card(demo_timelapse, urls=demo_timelapse_urls) }}
-                {{ running_job_card(demo_running_job, urls=demo_running_job_urls) }}
-                {{ pending_job_card(demo_pending_job, urls=demo_pending_job_urls) }}
-                {{ completed_job_card(demo_completed_job, urls=demo_completed_job_urls) }}
+                {{ camera_card(demo_camera, latest_capture=demo_latest_capture, stats=demo_camera_stats, urls=demo_camera_urls, session_is_admin=session_is_admin) }}
+                {{ timelapse_card(demo_timelapse, urls=demo_timelapse_urls, session_is_admin=session_is_admin) }}
+                {{ running_job_card(demo_running_job, urls=demo_running_job_urls, session_is_admin=session_is_admin) }}
+                {{ pending_job_card(demo_pending_job, urls=demo_pending_job_urls, session_is_admin=session_is_admin) }}
+                {{ completed_job_card(demo_completed_job, urls=demo_completed_job_urls, session_is_admin=session_is_admin) }}
                 {{ image_card(demo_capture, lightbox_url=demo_urls.image_lightbox, thumbnail_url=demo_urls.image_thumbnail) }}
             </div>
         </div>

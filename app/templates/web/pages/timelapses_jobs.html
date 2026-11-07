@@ -12,10 +12,12 @@
 {% block title %}Timelapse Jobs - LuxUPT{% endblock %}
 
 {% block content %}
-{% call page_header("Timelapses", "Manage timelapse creation jobs") %}
+{% call page_header("Timelapses", "Manage timelapse creation jobs" if session_is_admin else "Timelapse creation jobs") %}
+    {% if session_is_admin %}
     {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": page_urls.create, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": page_urls.historical, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": page_urls.scheduler, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+    {% endif %}
 {% endcall %}
 
 {{ tab_nav(tabs, "jobs") }}

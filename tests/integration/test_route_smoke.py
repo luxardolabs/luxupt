@@ -185,7 +185,7 @@ class TestParameterisedGets:
     ) -> None:
         for path in (
             f"/cameras/{CAMERA_SAFE_NAME}",
-            f"/cameras/{CAMERA_SAFE_NAME}/panel",
+            f"/cameras/{CAMERA_ID}/panel",
             f"/cameras/partials/card/{CAMERA_SAFE_NAME}",
             f"/cameras/{CAMERA_ID}/settings",
         ):

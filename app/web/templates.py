@@ -47,12 +47,14 @@ def nav_context(request: Request) -> dict[str, object]:
     for item in items:
         item["active"] = item is active
     return {
+        "session_is_admin": getattr(request.state, "session_is_admin", False),
         "nav": {
             "links": items,
             "home": str(path("pages.root_redirect")),
             "login": str(path("pages.login_page")),
             "logout": str(path("pages.logout_page")),
-        }
+            "change_password": str(path("account.change_password_page")),
+        },
     }
 
 

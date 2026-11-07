@@ -50,6 +50,7 @@ class SystemViewService:
     ):
         """Initialize with core services, and the request every URL is resolved through."""
         self.path = request.app.url_path_for
+        self.session_is_admin = getattr(request.state, "session_is_admin", False)
         self.camera_service = camera_service
         self.capture_stats_service = capture_stats_service
         self.timelapse_service = timelapse_service
@@ -99,7 +100,7 @@ class SystemViewService:
         version_info = self._get_version_info()
 
         return {
-            "tabs": system_tabs(self.path),
+            "tabs": system_tabs(self.path, session_is_admin=self.session_is_admin),
             "backup_settings_url": str(self.path("system.backup_settings_panel")),
             "system_info": system_info,
             "storage_info": storage_info,
@@ -439,7 +440,7 @@ class SystemViewService:
         )
 
         return {
-            "tabs": system_tabs(self.path),
+            "tabs": system_tabs(self.path, session_is_admin=self.session_is_admin),
             "demo_urls": {
                 "home": str(self.path("pages.root_redirect")),
                 "cameras": str(self.path("cameras.cameras_page")),

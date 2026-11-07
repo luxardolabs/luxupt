@@ -20,6 +20,7 @@
             <div class="flex items-center gap-4">
                 {{ nav_status("Running", true) }}
                 {% if user %}{{ nav_user(user) }}{% endif %}
+                {{ nav_action(nav.change_password, "Password") }}
                 {{ nav_action(nav.logout, "Logout") }}
 
                 <!-- Mobile menu button -->
@@ -53,6 +54,11 @@
                     <span>{{ user }}</span>
                 </div>
                 {% endif %}
+                <a href="{{ nav.change_password }}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium text-surface-200 hover:text-white hover:bg-surface-700 transition-colors">
+                    {{ icon('key', 'w-5 h-5') }}
+                    Change password
+                </a>
                 <a href="{{ nav.logout }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium text-surface-200 hover:text-white hover:bg-surface-700 transition-colors">
                     {{ icon('arrow-right-on-rectangle', 'w-5 h-5') }}

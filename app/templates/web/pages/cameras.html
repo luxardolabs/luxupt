@@ -8,12 +8,12 @@
 {% block title %}Cameras - LuxUPT{% endblock %}
 
 {% block content %}
-{% if needs_api_setup and can_manage_settings %}
+{% if needs_api_setup and session_is_admin %}
 {# Auto-load settings panel when API is not configured #}
 <div hx-get="{{ page_urls.fetch_settings }}" hx-target="#panel-container" hx-swap="innerHTML" hx-trigger="load"></div>
 {% endif %}
 {% call page_header("Cameras", "Click on a camera to view details") %}
-    {% if can_manage_settings %}
+    {% if session_is_admin %}
     {{ secondary("Capture Settings", icon_name="cog-6-tooth", hx_attrs={"hx-get": page_urls.fetch_settings, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
     {% endif %}
 {% endcall %}
@@ -60,11 +60,11 @@
     {% if camera_cards %}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {% for card_data in camera_cards %}
-        {{ camera_card(card_data.camera, card_data.latest_capture, card_data.stats, urls=card_data.urls) }}
+        {{ camera_card(card_data.camera, card_data.latest_capture, card_data.stats, urls=card_data.urls, session_is_admin=session_is_admin) }}
         {% endfor %}
     </div>
     {% else %}
-    {{ empty_state('camera', 'No cameras found', 'Make sure your UniFi Protect API is configured correctly') }}
+    {{ empty_state('camera', 'No cameras found', 'Make sure your UniFi Protect API is configured correctly' if session_is_admin else 'An administrator needs to configure the UniFi Protect connection') }}
     {% endif %}
 </div>
 {% endcall %}

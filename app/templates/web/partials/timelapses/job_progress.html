@@ -4,9 +4,9 @@
 {% if action == 'delete' %}
 <div id="job-{{ job.job_id }}" hx-swap-oob="delete"></div>
 {% elif job.status == 'running' %}
-{{ running_job_card(job, urls=job_card_urls) }}
+{{ running_job_card(job, urls=job_card_urls, session_is_admin=session_is_admin) }}
 {% elif job.status == 'pending' %}
-{{ pending_job_card(job, urls=job_card_urls) }}
+{{ pending_job_card(job, urls=job_card_urls, session_is_admin=session_is_admin) }}
 {% elif job.status in ['completed', 'failed'] %}
 {# Job finished - server sends HX-Trigger to refresh parent, this just removes the card #}
 <div id="job-{{ job.job_id }}" hx-swap-oob="delete"></div>

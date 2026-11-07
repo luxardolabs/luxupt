@@ -11,7 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.web.auth import get_current_user
+from app.web.auth import get_current_user, require_admin
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 
 logger = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ async def delete_job(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Delete/cancel a job."""
     success, action = await view_service.cancel_or_delete_job(job_id)
@@ -156,7 +156,7 @@ async def cleanup_stale_jobs(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Mark all stale running/pending jobs as failed."""
     context = await view_service.cleanup_stale_jobs_and_build_context()

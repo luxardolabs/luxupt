@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.core import config
-from app.web.auth import get_current_user
+from app.web.auth import get_current_user, require_admin
 from app.web.deps import ImagesViewDep, TemplatesDep
 from app.web.query_params import ThumbnailSizeFilter
 
@@ -281,7 +281,7 @@ async def delete_images_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: ImagesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render the image deletion panel."""
     context = await view_service.get_delete_panel_context()
@@ -303,7 +303,7 @@ async def delete_images_preview(
     camera: str | None = Query(None),
     date_str: str | None = Query(None, alias="date"),
     interval: str | None = Query(None),
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Get preview of images that would be deleted."""
     # Handle empty strings from form
@@ -332,7 +332,7 @@ async def delete_images(
     camera: str | None = Query(None),
     date_str: str | None = Query(None, alias="date"),
     interval: str | None = Query(None),
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Delete images matching filters."""
     # Handle empty strings from form

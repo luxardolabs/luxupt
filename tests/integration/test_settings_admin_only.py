@@ -220,11 +220,11 @@ async def test_a_failed_console_call_shows_no_detail_on_the_historical_page(
             )
         )
         await user_crud.create_user(
-            session, username="settings-user", password=USER_PASSWORD, is_admin=False
+            session, username="settings-admin", password=ADMIN_PASSWORD
         )
         await session.commit()
     signed_in = await client.post(
-        "/login", data={"username": "settings-user", "password": USER_PASSWORD}
+        "/login", data={"username": "settings-admin", "password": ADMIN_PASSWORD}
     )
     assert signed_in.status_code in (302, 303)
 

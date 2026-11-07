@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app.web.auth import get_current_user
+from app.web.auth import get_current_user, require_admin
 from app.web.deps import TemplatesDep, TimelapsesViewDep
 from app.web.query_params import TimelapseStatusFilter
 
@@ -53,7 +53,7 @@ async def create_timelapse_panel(
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
     camera: str | None = Query(None),
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render the create timelapse panel (loaded via HTMX)."""
     context = await view_service.get_create_timelapse_context(camera=camera)
@@ -74,7 +74,7 @@ async def historical_timelapse_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render the historical-timelapse creation panel.
 
@@ -110,7 +110,7 @@ async def create_historical_timelapse(
     output_mode: str = Form(default="per_day"),  # per_day | combined
     keep_images: str | None = Form(default=None),
     recreate_existing: str | None = Form(default=None),
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Create one or more historical timelapse jobs.
 
@@ -147,7 +147,7 @@ async def create_timelapse(
     camera_id: str = Form(...),
     date_str: str = Form(..., alias="date"),
     interval: str = Form(...),
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Create a new timelapse job (HTMX).
 
@@ -355,7 +355,7 @@ async def delete_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Delete a timelapse (database record and files)."""
     # Deletion + the OOB stats context the fragment re-renders are one view operation.

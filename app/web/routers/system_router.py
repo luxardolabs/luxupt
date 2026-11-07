@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Res
 from fastapi.responses import HTMLResponse
 
 from app.core import config
-from app.web.auth import get_current_user, is_admin, require_admin
+from app.web.auth import get_current_user, require_admin
 from app.web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from app.web.main import get_start_time
 from app.web.query_params import IntFilter
@@ -31,7 +31,7 @@ async def system_page(
     return templates.TemplateResponse(
         request,
         "pages/system.html",
-        {"user": user, "can_manage_settings": is_admin(request), **context},
+        {"user": user, **context},
     )
 
 
@@ -155,7 +155,7 @@ async def about_page(
     return templates.TemplateResponse(
         request,
         "pages/about.html",
-        {"user": user, "can_manage_settings": is_admin(request), **context},
+        {"user": user, **context},
     )
 
 

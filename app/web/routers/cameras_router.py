@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
 
-from app.web.auth import get_current_user, is_admin, require_admin
+from app.web.auth import get_current_user, require_admin
 from app.web.deps import CamerasViewDep, TemplatesDep
 from app.web.query_params import IntFilter
 
@@ -32,12 +32,7 @@ async def cameras_page(
     return templates.TemplateResponse(
         request,
         "pages/cameras.html",
-        {
-            "user": user,
-            "can_manage_settings": is_admin(request),
-            "needs_api_setup": fetch_context["needs_api"],
-            **context,
-        },
+        {"user": user, "needs_api_setup": fetch_context["needs_api"], **context},
     )
 
 
@@ -285,7 +280,7 @@ async def camera_settings_panel(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Render camera settings panel (slide-out)."""
     context = await view_service.get_camera_settings_context(camera_id)
@@ -318,7 +313,7 @@ async def save_camera_settings(
     rtsp_quality: Annotated[str, Form()] = "high",
     enabled_intervals: Annotated[list[int] | None, Form()] = None,
     is_active: Annotated[str | None, Form()] = None,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Save camera capture settings."""
     success, message = await view_service.save_camera_settings(
@@ -356,7 +351,7 @@ async def detect_camera_capabilities(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Run capability detection for a camera."""
     capabilities = await view_service.run_capability_detection(camera_id)
@@ -391,7 +386,7 @@ async def delete_camera(
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
-    user: str = Depends(get_current_user),
+    user: str = Depends(require_admin),
 ) -> Response:
     """Delete a camera from the database.
 
@@ -416,19 +411,19 @@ async def delete_camera(
 
 
 @router.get(
-    "/{camera_safe_name}/panel",
+    "/{camera_id}/panel",
     name="cameras.camera_panel",
     response_class=HTMLResponse,
 )
 async def camera_panel(
-    camera_safe_name: str,
+    camera_id: str,
     request: Request,
     templates: TemplatesDep,
     view_service: CamerasViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render camera detail panel (slide-out)."""
-    context = await view_service.get_camera_panel_context(camera_safe_name)
+    context = await view_service.get_camera_panel_context(camera_id)
     if not context["camera"]:
         return templates.TemplateResponse(
             request,

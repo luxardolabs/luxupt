@@ -29,9 +29,11 @@
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("status", [{"value": "completed", "label": "Completed"}, {"value": "pending", "label": "Pending"}, {"value": "failed", "label": "Failed"}], selected=filters.status, placeholder="All Status") }}
         </form>
+        {% if session_is_admin %}
         {{ primary("Create Timelapse", icon_name="film", hx_attrs={"hx-get": page_urls.create, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
         {{ secondary("Historical", icon_name="clock", hx_attrs={"hx-get": page_urls.historical, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
         {{ secondary("Scheduler", icon_name="clock", hx_attrs={"hx-get": page_urls.scheduler, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {% endif %}
     </div>
 {% endcall %}
 
@@ -48,7 +50,7 @@
     {% if timelapse_cards %}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {% for card in timelapse_cards %}
-        {{ timelapse_card(card.timelapse, urls=card.urls) }}
+        {{ timelapse_card(card.timelapse, urls=card.urls, session_is_admin=session_is_admin) }}
         {% endfor %}
     </div>
 
@@ -57,7 +59,7 @@
         {{ pagination_controls(pagination, page_urls.list, {"camera": filters.camera, "date": filters.date|string if filters.date else none, "interval": filters.interval, "status": filters.status}, target="timelapse-grid") }}
     </div>
     {% else %}
-    {{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters') }}
+    {{ empty_state('film', 'No timelapses found', 'Create your first timelapse or adjust filters' if session_is_admin else 'Try adjusting your filters') }}
     {% endif %}
 </div>
 {% endcall %}

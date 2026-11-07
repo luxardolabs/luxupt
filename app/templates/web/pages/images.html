@@ -24,7 +24,9 @@
             {{ filter_select("interval", available_intervals, selected=filters.interval, placeholder="All Intervals") }}
             {{ filter_select("per_page", [{"value": "36", "label": "36"}, {"value": "72", "label": "72"}, {"value": "108", "label": "108"}], selected=pagination.per_page|string, placeholder="Per Page") }}
         </form>
+        {% if session_is_admin %}
         {{ danger("Delete", icon_name="trash", size="md", hx_attrs={"hx-get": page_urls.delete_panel, "hx-target": "#panel-container", "hx-swap": "innerHTML"}) }}
+        {% endif %}
     </div>
 {% endcall %}
 

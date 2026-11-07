@@ -146,10 +146,10 @@
 </div>
 {% endmacro %}
 
-{% macro camera_card(camera, latest_capture=none, stats=none, urls=none) %}
+{% macro camera_card(camera, latest_capture=none, stats=none, urls=none, session_is_admin=false) %}
 <div id="camera-card-{{ camera.safe_name }}"
      class="group relative overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50 transition-all hover:border-surface-300 hover:shadow-lg cursor-pointer"
-     hx-get="{{ urls.settings }}"
+     hx-get="{{ urls.settings if session_is_admin else urls.panel }}"
      hx-target="#panel-container"
      hx-swap="innerHTML">
     <!-- Thumbnail -->
@@ -293,7 +293,7 @@
 </div>
 {% endmacro %}
 
-{% macro running_job_card(job, urls=none) %}
+{% macro running_job_card(job, urls=none, session_is_admin=false) %}
 {# Large card for running jobs with live thumbnail - max-w-sm keeps cards reasonably sized #}
 <div class="rounded-xl border border-primary-500/50 bg-surface-900/80 overflow-hidden max-w-sm"
      id="job-{{ job.job_id }}"
@@ -326,7 +326,7 @@
     <div class="p-3">
         <div class="flex items-center justify-between mb-1">
             <span class="font-medium text-surface-100 text-sm truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
-            {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}
+            {% if session_is_admin %}{{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}{% endif %}
         </div>
         <p class="text-xs text-surface-200 truncate mb-1">{{ job.message or 'Processing...' }}</p>
         <div class="flex items-center gap-3 text-xs text-surface-200">
@@ -337,7 +337,7 @@
 </div>
 {% endmacro %}
 
-{% macro pending_job_card(job, urls=none) %}
+{% macro pending_job_card(job, urls=none, session_is_admin=false) %}
 {# Card for pending/waiting jobs - matches grid layout #}
 <div class="rounded-xl border border-surface-400/50 bg-surface-900/50 p-3 flex flex-col"
      id="job-{{ job.job_id }}"
@@ -348,7 +348,7 @@
     {# Header with badge and delete #}
     <div class="flex items-center justify-between mb-2">
         {{ status_chip('pending') }}
-        {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}
+        {% if session_is_admin %}{{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Cancel job') }}{% endif %}
     </div>
     {# Camera name #}
     <p class="text-sm font-medium text-white truncate mb-2" title="{{ job.camera_safe_name }}">
@@ -374,7 +374,7 @@
 </div>
 {% endmacro %}
 
-{% macro completed_job_card(job, urls=none) %}
+{% macro completed_job_card(job, urls=none, session_is_admin=false) %}
 {# Compact card for completed/failed jobs in Recently Completed section #}
 <div class="rounded-lg border border-surface-400/30 bg-surface-900/50 p-2" id="job-{{ job.job_id }}">
     <div class="flex items-center justify-between gap-2">
@@ -382,7 +382,7 @@
             {{ status_chip(job.status) }}
             <span class="text-sm text-white truncate">{{ job.camera_safe_name | replace('_', ' ') }}</span>
         </div>
-        {{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Remove from list') }}
+        {% if session_is_admin %}{{ delete_icon_button(hx_delete=urls.cancel, hx_target=urls.target, hx_swap='delete', title='Remove from list') }}{% endif %}
     </div>
     <p class="text-xs text-surface-200 mt-0.5">
         for <span class="text-surface-100">{{ job.target_date }}</span> · {{ job.interval }}s
@@ -398,7 +398,7 @@
 </div>
 {% endmacro %}
 
-{% macro timelapse_card(timelapse, urls=none) %}
+{% macro timelapse_card(timelapse, urls=none, session_is_admin=false) %}
 <div id="timelapse-{{ timelapse.id }}" class="overflow-hidden rounded-xl border border-surface-400/30 bg-surface-500/50">
     <div class="relative aspect-video bg-surface-800">
         {% if timelapse.status == 'completed' and timelapse.file_path %}
@@ -436,7 +436,7 @@
                 {% if timelapse.status == 'completed' and timelapse.file_path %}
                 {{ icon_button('arrow-down-tray', 'Download video', href=urls.video, size='sm', variant='success', download=timelapse.file_name or (timelapse.camera_safe_name ~ '.mp4')) }}
                 {% endif %}
-                {{ delete_icon_button(hx_delete=urls.delete, hx_target=urls.target, hx_swap='delete', title='Delete timelapse') }}
+                {% if session_is_admin %}{{ delete_icon_button(hx_delete=urls.delete, hx_target=urls.target, hx_swap='delete', title='Delete timelapse') }}{% endif %}
             </div>
         </div>
         {% if timelapse.status == 'completed' %}

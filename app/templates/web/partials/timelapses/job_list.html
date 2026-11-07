@@ -11,7 +11,7 @@
     </div>
     <div class="grid gap-3 grid-cols-1 {% if concurrent_jobs == 2 %}sm:grid-cols-2{% elif concurrent_jobs == 3 %}sm:grid-cols-2 md:grid-cols-3{% elif concurrent_jobs >= 4 %}sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4{% endif %}">
         {% for card in running_job_cards %}
-        {{ running_job_card(card.job, urls=card.urls) }}
+        {{ running_job_card(card.job, urls=card.urls, session_is_admin=session_is_admin) }}
         {% endfor %}
     </div>
 </div>
@@ -26,7 +26,7 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {% for card in pending_job_cards %}
-        {{ pending_job_card(card.job, urls=card.urls) }}
+        {{ pending_job_card(card.job, urls=card.urls, session_is_admin=session_is_admin) }}
         {% endfor %}
     </div>
 </div>

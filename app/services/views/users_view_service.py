@@ -30,7 +30,7 @@ class UsersViewService:
         form = str(self.path("system.user_form_panel"))
         return {
             "users": users,
-            "tabs": system_tabs(self.path),
+            "tabs": system_tabs(self.path, session_is_admin=True),
             "user_form_url": form,
             # Each row carries its own Edit and Delete targets (fw.urls_from_route_names).
             "user_rows": [

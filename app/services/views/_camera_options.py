@@ -163,6 +163,7 @@ def build_camera_card_urls(
     """
     return {
         "settings": str(path("cameras.camera_settings_panel", camera_id=camera_id)),
+        "panel": str(path("cameras.camera_panel", camera_id=camera_id)),
         "images": with_query(path("images.images_page"), camera=camera_id),
         "timelapses": with_query(path("timelapses.timelapses_page"), camera=camera_id),
         "thumbnail": thumbnail,
