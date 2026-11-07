@@ -17,7 +17,7 @@ from app.crud.capture_crud import FRAME_CHUNK, capture_crud
 from app.models.capture_model import Capture
 from app.models.enum_model import CaptureMethod, CaptureStatus
 from app.utils import capture_files
-from app.utils.capture_files import delete_frame_files
+from app.utils.capture_files import delete_capture_files
 from app.workers.timelapse_service import EncodingSettings, TimelapseService
 
 DAY = date(2026, 1, 1)
@@ -279,7 +279,7 @@ async def test_thumbnails_are_listed_once_per_folder(
         for ts in range(1, 21)
     ]
 
-    assert await asyncio.to_thread(delete_frame_files, file_info) == (0, 20)
+    assert await asyncio.to_thread(delete_capture_files, file_info) == (0, 20)
 
     assert listings == [str(thumbs)]
     assert len(list(thumbs.iterdir())) == 10
@@ -325,7 +325,7 @@ async def test_only_the_deleted_frames_thumbnails_go(
     file_info = await capture_crud.get_frames(
         db, camera_safe_name="cam_a", interval=INTERVAL, frames=frames
     )
-    assert await asyncio.to_thread(delete_frame_files, file_info) == (2, 4)
+    assert await asyncio.to_thread(delete_capture_files, file_info) == (2, 4)
 
     left = sorted(path.name for path in thumbs.iterdir())
     assert left == ["300_200.webp", "300_400.webp"]

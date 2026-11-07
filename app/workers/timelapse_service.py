@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import math
 import os
 import signal
 import time
@@ -30,7 +31,7 @@ from app.db.database import get_db_context
 from app.models.enum_model import ScheduleSource
 from app.services.core.capture_cleanup_core_service import CaptureCleanupCoreService
 from app.utils import async_fs, ffmpeg
-from app.utils.timezones import display_zone, to_display
+from app.utils.timezones import business_day, display_zone, to_display
 
 # Module logger
 logger = logging.getLogger(__name__)
@@ -480,7 +481,7 @@ class TimelapseService:
         target_date: datetime,
         enabled_cameras: list[str] | None = None,
         enabled_intervals: list[int] | None = None,
-        keep_images: bool = True,
+        keep_images: bool | None = None,
         encoding_settings: EncodingSettings | None = None,
     ) -> None:
         """Create time-lapses for a specific date.
@@ -489,7 +490,8 @@ class TimelapseService:
             target_date: The date to create timelapses for.
             enabled_cameras: List of camera safe_names to process, or None for all.
             enabled_intervals: List of intervals to process, or None for all.
-            keep_images: Whether to keep source images after successful creation (default True).
+            keep_images: Whether to keep source images after successful creation (default:
+                the scheduler's Keep Source Images setting).
             encoding_settings: FFmpeg encoding settings from database (default loads from db).
         """
         # Load settings from database if not provided
@@ -497,6 +499,8 @@ class TimelapseService:
             settings = await scheduler_settings_crud.get_settings(db)
             if encoding_settings is None:
                 encoding_settings = EncodingSettings.from_scheduler_settings(settings)
+            if keep_images is None:
+                keep_images = settings.keep_images
         # Ensure semaphore is initialized (thread-safe)
         await self._ensure_semaphore(settings.concurrent_jobs)
         # Get list of cameras
@@ -622,6 +626,7 @@ class TimelapseService:
                 camera_id=camera_id,
                 target_date=target_date.date(),
                 interval=interval,
+                keep_images=keep_images,
             )
             await db.commit()
             job_id = job.job_id
@@ -631,7 +636,6 @@ class TimelapseService:
         job_processor = get_job_processor()
 
         # Process the job directly (not in background since we're already async)
-        # Don't pass keep_images - let job processor use scheduler setting from database
         await job_processor._process_job(job_id, date_str, camera_safe_name, interval)
 
         # Check the result
@@ -733,11 +737,14 @@ class TimelapseService:
         encoding_settings: EncodingSettings,
         job_id: str | None = None,
         recreate_existing: bool = False,
+        delete_windows: list[tuple[datetime, datetime]] | None = None,
     ) -> bool | str | None:
         """Create a time-lapse video for a specific camera and interval.
 
         Concurrency is controlled by JobProcessor._semaphore — callers must
-        acquire that semaphore before invoking this method.
+        acquire that semaphore before invoking this method. With keep_images off, the
+        frames it encoded are deleted, only those inside `delete_windows` when given
+        (a historical job's own fetch windows).
         """
         year = target_date.strftime("%Y")
         month = target_date.strftime("%m")
@@ -861,11 +868,46 @@ class TimelapseService:
         )
 
         if success and not keep_images:
-            await self._delete_encoded_frames(
-                camera_safe_name, interval, target_date, image_files, listed_at
-            )
+            capture_date = target_date.date()
+            for first_timestamp, last_timestamp in self._delete_ranges(
+                listed_at, delete_windows, capture_date
+            ):
+                await self._delete_encoded_frames(
+                    camera_safe_name,
+                    interval,
+                    capture_date,
+                    image_files,
+                    first_timestamp,
+                    last_timestamp,
+                )
 
         return success
+
+    @staticmethod
+    def _delete_ranges(
+        listed_at: int,
+        delete_windows: list[tuple[datetime, datetime]] | None,
+        day: date,
+    ) -> list[tuple[int, int]]:
+        """The timestamp ranges one day folder's cleanup owns, each inclusive.
+
+        Without windows that is the whole day up to when its frames were listed. With a
+        historical job's [start, end) fetch windows, it is each window touching that day.
+        """
+        if delete_windows is None:
+            return [(0, listed_at)]
+        ranges: list[tuple[int, int]] = []
+        for start_at, end_at in delete_windows:
+            if (
+                business_day(start_at)
+                <= day
+                <= business_day(end_at - timedelta(seconds=1))
+            ):
+                first = int(start_at.timestamp())
+                last = min(math.ceil(end_at.timestamp()) - 1, listed_at)
+                if first <= last:
+                    ranges.append((first, last))
+        return ranges
 
     @staticmethod
     def _encoded_frames(
@@ -884,17 +926,18 @@ class TimelapseService:
         self,
         camera_safe_name: str,
         interval: int,
-        target_date: datetime,
+        capture_date: date,
         image_files: list[Path],
-        listed_at: int,
+        first_timestamp: int,
+        last_timestamp: int,
     ) -> None:
         """Delete the frames a finished video was built from: rows, images and thumbnails.
 
-        `image_files` is the set found at `listed_at`, before the encode, and every one of
+        `image_files` is one day folder's set, found before the encode, and every one of
         them is in the video: files are only added to a day folder while it encodes, and
-        ffmpeg globs after this list was taken. A frame outside the set (another format,
-        another folder, one that landed during the encode) is kept. The day's failed
-        captures up to `listed_at` go too.
+        ffmpeg reads after this list was taken. A frame outside the set (another format,
+        another folder, one that landed during the encode) or outside the two timestamps
+        is kept. The day's failed captures between them go too.
         """
         try:
             async with get_db_context() as db:
@@ -902,9 +945,10 @@ class TimelapseService:
                 result = await cleanup_service.delete_frames(
                     camera_safe_name=camera_safe_name,
                     interval=interval,
-                    capture_date=target_date.date(),
+                    capture_date=capture_date,
                     frames=self._encoded_frames(image_files, camera_safe_name),
-                    listed_at=listed_at,
+                    first_timestamp=first_timestamp,
+                    last_timestamp=last_timestamp,
                 )
                 await db.commit()
                 # Reclaim freed pages after bulk capture deletion
@@ -1183,12 +1227,14 @@ class TimelapseService:
         keep_images: bool,
         encoding_settings: EncodingSettings,
         job_id: str | None = None,
+        delete_windows: list[tuple[datetime, datetime]] | None = None,
     ) -> bool | str | None:
         """Assemble ONE timelapse MP4 spanning multiple day directories.
 
         Symlinks all images from each day's directory into a staging directory
         (filenames embed Unix timestamps so an alphabetical sort is chronological),
-        then reuses _create_video unchanged.
+        then reuses _create_video unchanged. With keep_images off, each day's encoded
+        frames are deleted afterwards, only those inside `delete_windows` when given.
 
         Output filename: {camera}_{YYYYMMDD}_to_{YYYYMMDD}_{interval}s.mp4
         Output location: output/videos/{YYYY}/{MM}/{camera}/{interval}s/   (year/month from start_date)
@@ -1196,6 +1242,7 @@ class TimelapseService:
 
         # Collect frames from each day's directory
         all_frames: list[Path] = []
+        frames_by_day: dict[date, list[Path]] = {}
         image_format: str | None = None
         cur = start_date
         while cur <= end_date:
@@ -1215,7 +1262,9 @@ class TimelapseService:
                     if image_format is None:
                         image_format = fmt
                     all_frames.extend(files)
+                    frames_by_day[cur] = files
             cur += timedelta(days=1)
+        listed_at = int(time.time())
 
         if not all_frames or image_format is None:
             logger.info(
@@ -1264,7 +1313,7 @@ class TimelapseService:
 
         # Pass the sorted file list directly — _create_video writes an ffconcat file
         # and feeds it to ffmpeg via the concat demuxer. No staging dir, no symlinks.
-        return await self._create_video(
+        success = await self._create_video(
             images_path=videos_path,  # unused when frame_files is provided, but type expects it
             output_path=output_path,
             camera_safe_name=camera_safe_name,
@@ -1274,6 +1323,26 @@ class TimelapseService:
             job_id=job_id,
             frame_files=all_frames,
         )
+
+        if success and not keep_images:
+            # Every day of the range, frames or not: a day whose fetch failed still has
+            # its failed captures to delete.
+            day = start_date
+            while day <= end_date:
+                for first_timestamp, last_timestamp in self._delete_ranges(
+                    listed_at, delete_windows, day
+                ):
+                    await self._delete_encoded_frames(
+                        camera_safe_name,
+                        interval,
+                        day,
+                        frames_by_day.get(day, []),
+                        first_timestamp,
+                        last_timestamp,
+                    )
+                day += timedelta(days=1)
+
+        return success
 
     async def _update_progress(
         self,

@@ -21,9 +21,10 @@ from app.schemas.job_schema import JobRead
 from app.services.core.historical_fetch_core_service import (
     HistoricalFetchCoreService,
     HistoricalJobCanceled,
+    fetch_windows,
 )
 from app.utils import async_fs, ffmpeg
-from app.utils.timezones import display_zone
+from app.utils.timezones import business_day, display_zone
 from app.workers.timelapse_service import EncodingSettings, TimelapseService
 
 logger = logging.getLogger(__name__)
@@ -84,14 +85,21 @@ class JobCoreService:
         target_date: date,
         interval: int,
         camera_id: str | None = None,
-        keep_images: bool = True,
+        keep_images: bool | None = None,
         job_type: str = "live_daily",
         start_at: datetime | None = None,
         end_at: datetime | None = None,
         daily_window_start: time | None = None,
         daily_window_end: time | None = None,
     ) -> JobRead:
-        """Create a new timelapse job (live_daily or historical)."""
+        """Create a new timelapse job (live_daily or historical).
+
+        `keep_images` is recorded on the job, which keeps or deletes its source images by
+        it; None records the scheduler's Keep Source Images setting.
+        """
+        if keep_images is None:
+            settings = await scheduler_settings_crud.get_settings(self.db)
+            keep_images = settings.keep_images
         job = await job_crud.create_job(
             self.db,
             title=title,
@@ -321,11 +329,10 @@ class JobProcessor:
         date_str: str,
         camera: str,
         interval: int,
-        keep_images: bool | None = None,
     ) -> None:
         """Queue a job for processing in the background (respects concurrency limit)."""
         task = asyncio.create_task(
-            self._process_job(job_id, date_str, camera, interval, keep_images)
+            self._process_job(job_id, date_str, camera, interval)
         )
         self._jobs_in_flight.add(task)
         task.add_done_callback(self._jobs_in_flight.discard)
@@ -369,9 +376,10 @@ class JobProcessor:
         date_str: str,
         camera: str,
         interval: int,
-        keep_images: bool | None = None,
     ) -> None:
         """Process a timelapse job with progress tracking (waits for semaphore).
+
+        The job keeps or deletes its source images as its row's keep_images says.
 
         Dispatches on Job.job_type:
           - "live_daily" (default): assemble MP4 from existing JPEGs in the image tree
@@ -426,10 +434,8 @@ class JobProcessor:
                     scheduler_settings
                 )
 
-                # Determine keep_images: use scheduler setting if not explicitly specified
-                if keep_images is None:
-                    keep_images = scheduler_settings.keep_images
-                elif keep_images and not scheduler_settings.keep_images:
+                keep_images = job_obj.keep_images
+                if keep_images and not scheduler_settings.keep_images:
                     await self.update_job_progress(
                         job_id,
                         5,
@@ -447,6 +453,17 @@ class JobProcessor:
                     # be in. This day is the archive folder and the title.
                     day = date.fromisoformat(date_str)
                     date_obj = datetime.combine(day, time(0, 0), tzinfo=display_zone())
+                    # A historical job deletes only the frames inside the windows it fetched.
+                    delete_windows = (
+                        fetch_windows(
+                            start_at=job_obj.start_at,
+                            end_at=job_obj.end_at,
+                            daily_start=job_obj.daily_window_start,
+                            daily_end=job_obj.daily_window_end,
+                        )
+                        if job_obj.start_at and job_obj.end_at
+                        else None
+                    )
 
                     if job_obj.job_type == "historical_combined":
                         # Multi-day combined assembly — globs across the date range
@@ -454,15 +471,16 @@ class JobProcessor:
                             await timelapse_service.create_combined_timelapse_for_range(
                                 camera,
                                 interval,
-                                start_date=job_obj.start_at.date()
+                                start_date=business_day(job_obj.start_at)
                                 if job_obj.start_at
                                 else date_obj.date(),
-                                end_date=job_obj.end_at.date()
+                                end_date=business_day(job_obj.end_at)
                                 if job_obj.end_at
                                 else date_obj.date(),
                                 keep_images=keep_images,
                                 encoding_settings=encoding_settings,
                                 job_id=job_id,
+                                delete_windows=delete_windows,
                             )
                         )
                     else:
@@ -473,6 +491,7 @@ class JobProcessor:
                             keep_images=keep_images,
                             encoding_settings=encoding_settings,
                             recreate_existing=scheduler_settings.recreate_existing,
+                            delete_windows=delete_windows,
                         )
 
                     if success:
@@ -529,8 +548,8 @@ class JobProcessor:
             and job.start_at
             and job.end_at
         ):
-            start_d = job.start_at.date()
-            end_d = job.end_at.date()
+            start_d = business_day(job.start_at)
+            end_d = business_day(job.end_at)
             year = f"{start_d.year:04d}"
             month = f"{start_d.month:02d}"
             # Include job_id prefix so concurrent jobs with the same range produce different files
@@ -636,7 +655,7 @@ class JobProcessor:
                     # For combined-range jobs, record the last day too so the browser
                     # can render the date span instead of pinning it to start_date.
                     "end_date": (
-                        job.end_at.date()
+                        business_day(job.end_at)
                         if job is not None
                         and job.job_type == "historical_combined"
                         and job.end_at

@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time as time_module
-from datetime import datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 
 from app.clients.protect_client import ProtectClient, ProtectRequestError
@@ -49,8 +49,33 @@ def _expand_timestamps(
     daily_start: time | None,
     daily_end: time | None,
 ) -> list[datetime]:
-    """Expand a range + optional daily window into the list of timestamps to fetch."""
+    """Expand a range + optional daily window into the list of timestamps to fetch.
+
+    Steps are taken and compared in real time (UTC), each value kept in its window's zone so
+    it is foldered by the local day: wall-clock arithmetic on an aware datetime would step
+    into a daylight-saving gap and past the window's end.
+    """
     timestamps: list[datetime] = []
+    step = timedelta(seconds=interval_seconds)
+    for window_start, window_end in fetch_windows(
+        start_at=start_at, end_at=end_at, daily_start=daily_start, daily_end=daily_end
+    ):
+        cur = window_start
+        while cur.timestamp() < window_end.timestamp():
+            timestamps.append(cur)
+            cur = (cur.astimezone(UTC) + step).astimezone(cur.tzinfo)
+    return timestamps
+
+
+def fetch_windows(
+    *,
+    start_at: datetime,
+    end_at: datetime,
+    daily_start: time | None,
+    daily_end: time | None,
+) -> list[tuple[datetime, datetime]]:
+    """The [start, end) spans a historical job fetches: each day's window inside the range."""
+    windows: list[tuple[datetime, datetime]] = []
     # A daily window is a WALL CLOCK the user set ("capture 08:00-18:00"), so both the
     # day boundaries and the window bounds are resolved in the business zone and then
     # converted back to UTC instants. Resolving them against start_at's own zone would
@@ -58,7 +83,6 @@ def _expand_timestamps(
     zone = display_zone()
     cur_date = business_day(start_at)
     last_date = business_day(end_at)
-    step = timedelta(seconds=interval_seconds)
 
     while cur_date <= last_date:
         if daily_start is not None and daily_end is not None:
@@ -74,13 +98,13 @@ def _expand_timestamps(
                 cur_date + timedelta(days=1), time(0, 0), tzinfo=zone
             )
 
-        cur = max(window_start, start_at)
-        limit = min(window_end, end_at)
-        while cur < limit:
-            timestamps.append(cur)
-            cur += step
+        # As instants: two values in one zone compare by wall clock, wrong across DST.
+        cur = max(window_start, start_at, key=datetime.timestamp)
+        limit = min(window_end, end_at, key=datetime.timestamp)
+        if cur.timestamp() < limit.timestamp():
+            windows.append((cur, limit))
         cur_date += timedelta(days=1)
-    return timestamps
+    return windows
 
 
 def _frame_path(safe_name: str, interval: int, ts: datetime) -> Path:

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud import capture_crud
 from app.db import maintenance as db_maintenance
 from app.db.post_commit import after_commit
-from app.utils.capture_files import delete_capture_files, delete_frame_files
+from app.utils.capture_files import delete_capture_files
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,8 @@ class CaptureCleanupCoreService:
         interval: int,
         capture_date: date,
         frames: list[tuple[int, str]],
-        listed_at: int,
+        first_timestamp: int,
+        last_timestamp: int,
     ) -> dict[str, Any]:
         """Delete exactly these frames of one camera: their rows, image files and thumbnails.
 
@@ -143,15 +144,19 @@ class CaptureCleanupCoreService:
             frames: (timestamp, file_path) pairs, file_path as found on disk, all in one
                 folder. A capture goes when its camera, interval, timestamp, file name and
                 folder match one pair, so a frame that is not listed keeps its row, its file
-                and its thumbnails.
-            listed_at: When the frames were listed. The day's captures with no file (failed
-                captures) up to this instant go too.
+                and its thumbnails. Only frames between the two timestamps are deleted.
+            first_timestamp: The start of the range the delete owns.
+            last_timestamp: The end of that range. The day's captures with no file (failed
+                captures) inside it go too.
 
         Returns:
             Dict with db_records_deleted and files_to_clean.
         """
-        if not frames:
-            return {"db_records_deleted": 0, "files_to_clean": 0}
+        frames = [
+            (timestamp, file_path)
+            for timestamp, file_path in frames
+            if first_timestamp <= timestamp <= last_timestamp
+        ]
         file_info = await capture_crud.get_frames(
             self.db, camera_safe_name=camera_safe_name, interval=interval, frames=frames
         )
@@ -168,14 +173,15 @@ class CaptureCleanupCoreService:
             camera_safe_name=camera_safe_name,
             interval=interval,
             capture_date=capture_date,
-            listed_at=listed_at,
+            first_timestamp=first_timestamp,
+            last_timestamp=last_timestamp,
         )
         # File + thumbnail cleanup after the commit, as in delete_by_filters (ADR-003).
         if file_info:
             after_commit(
                 self.db,
                 lambda: asyncio.create_task(
-                    asyncio.to_thread(delete_frame_files, file_info)
+                    asyncio.to_thread(delete_capture_files, file_info)
                 ),
             )
         return {

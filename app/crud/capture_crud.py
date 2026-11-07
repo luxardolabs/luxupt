@@ -641,12 +641,13 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         Args:
             camera: camera_id (UUID) to filter by.
 
-        Returns minimal dicts with: camera (safe_name), date, interval, file_path.
+        Returns minimal dicts with: camera (safe_name), date, interval, timestamp, file_path.
         """
         query = select(
             Capture.camera_safe_name,
             Capture.capture_date,
             Capture.interval,
+            Capture.timestamp,
             Capture.file_path,
         )
 
@@ -663,6 +664,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
                 "camera": row.camera_safe_name,
                 "date": row.capture_date,
                 "interval": row.interval,
+                "timestamp": row.timestamp,
                 "file_path": row.file_path,
             }
             for row in result.all()
@@ -764,9 +766,10 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         camera_safe_name: str,
         interval: int,
         capture_date: date,
-        listed_at: int,
+        first_timestamp: int,
+        last_timestamp: int,
     ) -> int:
-        """Delete one camera, interval and day's captures with no file, up to `listed_at`.
+        """Delete one camera, interval and day's captures with no file, between two timestamps.
 
         Returns count deleted.
         """
@@ -776,7 +779,7 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
                 Capture.camera_safe_name == camera_safe_name,
                 Capture.interval == interval,
                 Capture.capture_date == capture_date,
-                Capture.timestamp <= listed_at,
+                Capture.timestamp.between(first_timestamp, last_timestamp),
                 Capture.file_path.is_(None),
             ),
         )
