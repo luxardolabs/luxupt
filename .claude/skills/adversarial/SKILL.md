@@ -3,7 +3,7 @@ name: adversarial
 description: Attack a change before calling it done — an independent agent that did not write the change tries to make it wrong (security, tenant isolation, data integrity, money, the real stack), reproduces each break as a failing test or a probe, and the author fixes every confirmed break and commits the test. Run it from /wrap-up for any change touching auth, tenancy, data writes or migrations, money, secrets or personal data, deploys, or a guard-red fix.
 ---
 
-<!-- luxarch:adversarial-skill asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-skill`. -->
+<!-- luxarch:adversarial-skill asset v7 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-skill`. -->
 
 # Adversarial pass
 
@@ -12,6 +12,19 @@ Emitted from luxarch (`luxarch --emit adversarial-skill`); re-emit, never hand-e
 **Which agent are you?** In a repo that hosts a luxios app (a nested `apps/ios/` with its own `CLAUDE.md`, beside the backend), there are two agents. If this machine has no Docker (`command -v docker` prints nothing), you are that app's agent: read its `CLAUDE.md` first, follow the iOS reading below, and leave the root guard gates (`make check`, the luxarch, luxlint and luxaudit images) to the backend agent. Never look for a Docker binary to install.
 
 **In an iOS repo, or as the iOS agent of a repo that hosts one** (luxios: native, no Docker), luxios installs this file unchanged (`bash $LUXIOS/scripts/install.sh`). Read every `luxarch --doc X` here as the file `$LUXIOS/docs/fleet/X.md`, and every `luxarch --playbook X` as `$LUXIOS/docs/fleet/playbooks/X.md`. The guard there is luxios: its version is `cat $LUXIOS/VERSION`, and its changelog is `$LUXIOS/CHANGELOG.md`.
+
+## 0. Who the attacker is
+
+The attacker has none of the operator's access: a visitor or signed-in user of the app, another tenant, a caller of its API, a malformed or legacy row, the real stack's own behaviour, or the operator's honest mistake. Out of scope is anyone who already controls the machine the operator runs the change on: its shell environment, git config, home directory, installed tools or typed arguments. Such a person needs no flaw in the change.
+
+A build, release or deploy recipe runs on the operator's machine with the operator's credentials, so it is attacked for **accidents only**:
+
+- publishing a commit the gate did not pass;
+- an artifact that differs from the one tested;
+- a personal identity or a secret reaching a tag, a log or a terminal;
+- a run that half-completes on an ordinary machine.
+
+A finding must also be **real**: an input that a real user, repo or environment produces, not a shape built only to break the code. A finding outside this section is listed under NOT IN SCOPE, and is neither fixed nor filed.
 
 ## 1. Scope the change
 
@@ -28,7 +41,13 @@ THE CHANGE: <base>..HEAD (`git diff <base>..HEAD`). Changed behaviours:
 <the list from step 1>
 
 For each behaviour, ask how a realistic input, state or environment makes it do the wrong thing, and
-REPRODUCE it. Attack in this order:
+REPRODUCE it. The attacker you play has none of the operator's access: a user, another tenant, an API
+caller, a dirty row, the real stack, or the operator's honest mistake. Someone who already controls the
+operator's machine (shell environment, git config, home directory, installed tools, typed arguments)
+is out of scope; so is a build, release or deploy recipe attacked for anything but an accident (an
+untested commit published, an artifact that differs from the tested one, an identity or secret
+reaching a tag, log or terminal, a half-completed run). Only inputs a real user, repo or environment
+produces count. Attack in this order:
 1. security: another user's or tenant's data, an unauthenticated path, a forged header or Host, an
    injection, a secret or personal data reaching a log or a response;
 2. data integrity: a partial write, a missing transaction, a race, dirty or legacy rows the test DB
@@ -62,7 +81,7 @@ naming the refusal, never a pass.
 
 REPORT: a table of CONFIRMED findings, most severe first: behaviour, what goes wrong, the reproducing
 test or probe, the one-line fix. Then INCONCLUSIVE ones with what stopped you. Then UNREPRODUCED ones
-with the reason. Then what you did not attack. Then every host your scripts connected to, read from the scripts and their output.
+with the reason. Then NOT IN SCOPE: findings outside the attacker above, one line each. Then what you did not attack. Then every host your scripts connected to, read from the scripts and their output.
 ```
 
 In a re-attack round (step 4), add to the prompt: `ALREADY FOUND AND FIXED (do not re-report these shapes): <one line per earlier finding>. Attack the fixes themselves and anything they made reachable.`
@@ -75,10 +94,13 @@ In a re-attack round (step 4), add to the prompt: `ALREADY FOUND AND FIXED (do n
 - A finding in a fleet guard or emitted asset is a `/escalate`, not a local fix.
 - **INCONCLUSIVE stays open.** Uncertainty never clears a finding: re-run that attack yourself, or file it in LuxPM as an open lead with what stopped the attacker. It never counts toward a clean pass.
 - UNREPRODUCED findings get one line each in your report. Do not fix guesses.
+- NOT IN SCOPE findings (step 0) are neither fixed nor filed.
 
 ## 4. Attack the fixes: a fresh attacker, at most three rounds
 
 The fixes are new code, and nobody has attacked them. When round 1 confirmed anything, spawn a **new** attacker (a new agent, never the round-1 one continued) on the change as it now stands, with the earlier findings listed as already fixed (step 2). Act on its report as in step 3. Repeat while a round confirms something, **at most three rounds in all**. If round 3 still confirms findings, the design is not converging: stop patching. Split the change, rethink the approach, or take it to the owner with the round counts. A round that finds nothing ends the loop.
+
+**What is left is a stated limit, not new work.** A finding the loop leaves unfixed is one line in the change's stated limits (its changelog entry, docstring or close summary). It becomes an issue only when a real repo, user or incident already hits it.
 
 **A clean first round is a signal, not a pass.** When round 1 confirms nothing on a change to authentication, authorization, tenancy, money or a guard, run one more fresh attacker before believing it. An attacker that never finds anything is as likely lax as the change is clean.
 

@@ -658,7 +658,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.351.0
+LUXARCH_VERSION   := 0.352.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -679,10 +679,16 @@ audit: ## Scan pinned deps against the live vulnerability feed (luxaudit)
 guard-version-check: ## FATAL: fail the gate if any guard pin is behind the published latest
 	@# Behind is a RED, not a warning (FLEET-MAKEFILE-STANDARD). A warn-only check is how an agent
 	@# sat on a stale guard and worked against rules/conduct it never saw. `make guard-upgrade` clears it.
+	@# A failed pull fails the check: a cached :latest may be behind (the guards' registry is
+	@# LUXARCH_REGISTRY here; empty means offline, so the newest local tag is read instead).
 	@rc=0; for g in "luxarch $(LUXARCH_VERSION)" "luxlint $(LUXLINT_VERSION)" "luxaudit $(LUXAUDIT_VERSION)"; do \
 	  set -- $$g; name=$$1; pin=$$2; \
-	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest >/dev/null 2>&1 || true; \
-	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest --version 2>/dev/null | awk '{print $$2}'); \
+	  if [ -n "$(LUXARCH_REGISTRY)" ]; then \
+	    if docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest >/dev/null 2>&1; then latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$name:latest --version 2>/dev/null | awk '{print $$2}'); \
+	    else printf "✗ %s: could not pull its latest, and a copy cached here may be behind, so currency is NOT established\n" "$$name"; rc=1; continue; fi; \
+	  else \
+	    latest=$$(docker images --format '{{.Tag}}' $$name 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1); \
+	  fi; \
 	  if [ -z "$$latest" ]; then \
 	    printf "✗ %s: could not read its latest, so currency is NOT established\n" "$$name"; rc=1; \
 	  elif [ "$$latest" != "$$pin" ]; then \
@@ -691,21 +697,22 @@ guard-version-check: ## FATAL: fail the gate if any guard pin is behind the publ
 	done; exit $$rc
 
 .PHONY: guard-upgrade
-# luxarch:guard-upgrade asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-upgrade`.
+# luxarch:guard-upgrade asset v6 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-upgrade`.
 # Bumps each guard pin to its latest release and prints the rules the new luxarch adds (`--new-rules`).
 # The preview mounts `$(CURDIR)`, this makefile's directory, whatever directory `make -C` ran from.
 # Latest is the registry's `:latest`, or with REGISTRY empty (guards loaded from the release tarball)
 # the highest released `<guard>:X.Y.Z` on this machine, never `:local`. The pin is rewritten with `sed`
 # into a temporary file beside the Makefile (its mode copied first), renamed over it (`mv`, one atomic
 # step: a failed write leaves the Makefile as it was), then read back: the same on macOS and Linux.
-# A guard whose latest cannot be read is named and fails the run: "all pins already at latest" is
-# printed only when every guard was read.
+# A guard whose latest cannot be read, or whose `:latest` could not be pulled (a copy cached here may
+# be behind), is named and fails the run: "all pins already at latest" is printed only when every
+# guard was read.
 guard-upgrade:  ## Bump every guard pin to the published latest (prints what newly bites)
 	@unread=; checked=; bumped=; for g in luxarch luxlint luxaudit; do \
 	  if [ -n "$(REGISTRY)" ]; then \
 	    img=$(REGISTRY)/luxardolabs/$$g; src="$$img:latest"; \
-	    docker pull -q $$img:latest >/dev/null 2>&1 || true; \
-	    latest=$$(docker run --rm $$img:latest --version 2>/dev/null | awk '{print $$2}'); \
+	    if docker pull -q $$img:latest >/dev/null 2>&1; then latest=$$(docker run --rm $$img:latest --version 2>/dev/null | awk '{print $$2}'); \
+	    else latest=; src="$$img:latest (the pull failed, and a copy cached here may be behind)"; fi; \
 	  else \
 	    img=$$g; src="a released $$g:X.Y.Z image on this machine (REGISTRY is empty)"; \
 	    latest=$$(docker images --format '{{.Tag}}' $$g 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1); \
@@ -2918,7 +2925,7 @@ SMOKE_HEALTH_PATH := /health/live
 SMOKE_ENTRY_MODULES := app.main app.web.main
 
 .PHONY: smoke
-# luxarch:smoke asset v10 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit smoke`.
+# luxarch:smoke asset v11 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit smoke`.
 # ── Smoke: probe the DEPLOYED stack from outside, after every dev deploy ──────────────────────────
 # Emitted by `luxarch --emit smoke`; paste below the image block. `make test` runs the app in-process
 # against its test stack, so it cannot see the proxy, the server, the production image or an entry
@@ -2950,6 +2957,10 @@ SMOKE_HEALTH_PATH ?= /health
 SMOKE_STATIC_PATH ?= /static/css/app.css
 # Setting: a path that needs authentication; the token comes from the SMOKE_AUTH_TOKEN env var -
 SMOKE_AUTH_PATH ?=
+# Setting: the content type the signed-in answer carries (e.g. application/json, or
+# text/event-stream for a stream). Required with SMOKE_AUTH_PATH, so a proxy's or an error page's
+# 200 cannot pass for a signed-in answer (v11) -------------------------------------------------
+SMOKE_AUTH_TYPE ?=
 # Setting: the package directory of standalone entry points, and the image's import root -------
 SMOKE_SCRIPTS_DIR ?= app/scripts
 SMOKE_IMPORT_ROOT ?= .
@@ -2968,6 +2979,14 @@ SMOKE_RUN_OPTS ?=
 # Setting: extra curl options (e.g. --cacert <file> for a private CA) -------------------------
 SMOKE_CURL_OPTS ?=
 
+# v11: the key reaches curl on its standard input, never its command line, where any user on the
+# host could read it for as long as curl runs (a stream holds it open). The signed-in probe wants
+# SMOKE_AUTH_TYPE as its media type (any case) and a whole body, or be an event stream still open
+# when the probe stops reading, and a wrong key must be refused: the real key with its second-to-last
+# character before any `=` padding changed (in any case), so a check of the key's shape alone, or of
+# its decoded bytes, does not pass. A forged Host passes only on
+# a 4xx other than a timeout (408) or a rate limit (429): a 5xx is the app failing, not refusing.
+# An empty SMOKE_CONTAINERS prints NOT RUN.
 # v8: a forged-Host 502 also names the SNI cause: a front proxy that sends the client's Host as its
 # upstream TLS SNI meets the catch-all's ssl_reject_handshake, so even `return 400` never answers.
 # v8: the static-asset probe keeps its expected content type in its own variable. v7 reused `want`,
@@ -3024,18 +3043,32 @@ smoke: ## Probe the deployed dev stack: build commit, static asset, forged Host 
 	    else echo "PASS  forged Host refused (connection rejected)"; fi;; \
 	  502|503|504) if [ "$$hcode" = 200 ]; then echo "FAIL  the forged-Host probe got $${r%% *} while $(SMOKE_HEALTH_PATH) answers 200 through the same URL: a proxy in front of the stack reported a refusal it could not pass on (a closed connection: nginx's 444) as $${r%% *}, or the stack failed this request. Either way no refusal was seen. Behind another proxy, refuse with an answer: the app's trusted-host check answers 400 through any proxy, so let the forged Host reach it, or have the catch-all server return 400, not 444. If it already returns 400, the front proxy likely sends the client's Host as its upstream TLS SNI and the catch-all's ssl_reject_handshake drops the handshake: pin the proxy's upstream SNI to the real name, or drop ssl_reject_handshake behind a front proxy. Keep SMOKE_URL on the public address: FLEET-BUILD-DEPLOY-STANDARD, \"Trusted hosts\""; \
 	    else echo "FAIL  the forged-Host probe got $${r%% *} from the proxy: the app did not answer, so whether it refuses a forged Host is unknown"; fi; fail=1;; \
-	  *) echo "PASS  forged Host refused ($${r%% *})";; esac; \
+	  408|429) echo "FAIL  the forged-Host probe got $${r%% *} ($$r): a timeout or a rate limit answered, not a check of the Host, so whether it is refused is unknown"; fail=1;; \
+	  4??) echo "PASS  forged Host refused ($${r%% *})";; \
+	  *) echo "FAIL  the forged-Host probe got $${r%% *} ($$r): a refusal is a 4xx, and an app that fails on a forged Host does not refuse it. The app must refuse it: luxarch --doc FLEET-BUILD-DEPLOY-STANDARD, \"Trusted hosts\""; fail=1;; esac; \
 	if [ -n "$(SMOKE_AUTH_PATH)" ]; then \
 	  r=$$(probe "$(SMOKE_URL)$(SMOKE_AUTH_PATH)"); \
 	  case "$${r%% *}" in 401|403) echo "PASS  $(SMOKE_AUTH_PATH) refuses a request with no credentials ($${r%% *})";; \
 	    *) echo "FAIL  $(SMOKE_AUTH_PATH) answered a request with NO credentials ($$r): it is not protected"; fail=1;; esac; \
+	  aprobe() { w=$$(curl -sS --max-time 15 $(SMOKE_CURL_OPTS) -o "$$B" -w '%{http_code} %{content_type}' -H @- "$(SMOKE_URL)$(SMOKE_AUTH_PATH)" 2>/dev/null); echo "$$? $${w:-000 -}"; }; \
+	  k=$${SMOKE_AUTH_TOKEN:-smoke-wrong-key-$$$$}; pad=; while case "$$k" in *=) true;; *) false;; esac; do pad="$$pad="; k=$${k%=}; done; \
+	  h=$${k%??}; t=$${k#"$$h"}; c=$${t%?}; case "$$c" in [Aa]) c=B;; *) c=A;; esac; \
+	  if [ $${#k} -lt 2 ]; then k="$${k}x$$pad"; else k="$$h$$c$${t#?}$$pad"; fi; h=; t=; \
+	  r=$$(printf 'Authorization: Bearer %s\n' "$$k" | aprobe); k=; r=$${r#* }; \
+	  case "$${r%% *}" in 401|403) echo "PASS  $(SMOKE_AUTH_PATH) refuses a wrong key ($${r%% *})";; \
+	    *) echo "FAIL  $(SMOKE_AUTH_PATH) answered a WRONG key ($$r): it does not check the key it is given"; fail=1;; esac; \
 	  if [ -z "$${SMOKE_AUTH_TOKEN:-}" ]; then echo "FAIL  SMOKE_AUTH_PATH is set but SMOKE_AUTH_TOKEN is not in the environment"; fail=1; \
-	  else r=$$(probe -H "Authorization: Bearer $${SMOKE_AUTH_TOKEN}" "$(SMOKE_URL)$(SMOKE_AUTH_PATH)"); \
-	    if [ "$${r%% *}" = 200 ]; then echo "PASS  authenticated request ($(SMOKE_AUTH_PATH))"; \
-	    else echo "FAIL  authenticated $(SMOKE_AUTH_PATH): $$r"; fail=1; fi; fi; \
+	  elif [ -z "$(strip $(SMOKE_AUTH_TYPE))" ]; then echo "FAIL  SMOKE_AUTH_PATH is set but SMOKE_AUTH_TYPE is empty: set it to the content type the signed-in answer carries (application/json, text/event-stream, text/html), so a proxy's or an error page's 200 cannot pass"; fail=1; \
+	  else r=$$(printf 'Authorization: Bearer %s\n' "$$SMOKE_AUTH_TOKEN" | aprobe); arc=$${r%% *}; r=$${r#* }; code=$${r%% *}; ctype=$$(printf '%s' "$${r#* }" | tr A-Z a-z); \
+	    atype=$$(printf '%s' "$(strip $(SMOKE_AUTH_TYPE))" | tr A-Z a-z); \
+	    base=$${ctype%%;*}; base=$${base%% *}; if [ "$$base" = "$$atype" ]; then typed=1; else typed=; fi; \
+	    case "$$arc $$base" in "0 "*) [ -s "$$B" ] || typed=;; "28 text/event-stream") ;; *) typed=;; esac; \
+	    if [ "$$code" = 200 ] && [ -n "$$typed" ]; then echo "PASS  authenticated request ($(SMOKE_AUTH_PATH), $$ctype)"; \
+	    else echo "FAIL  authenticated $(SMOKE_AUTH_PATH): $$r (curl exit $$arc): a signed-in answer is a whole 200 of $(SMOKE_AUTH_TYPE) with a body, or an event stream still open when the probe stops reading"; fail=1; fi; fi; \
 	else echo "NOT RUN  authenticated request: SMOKE_AUTH_PATH is empty"; fi; \
 	fi; \
 	settle=$(SMOKE_HEALTH_SETTLE); healthy=; \
+	[ -n "$(strip $(SMOKE_CONTAINERS))" ] || echo "NOT RUN  containers (build and health): SMOKE_CONTAINERS is empty"; \
 	for c in $(SMOKE_CONTAINERS); do \
 	  if ! rev=$$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$$c" 2>/dev/null); then echo "FAIL  container $$c is not on this docker host: the deploy did not bring it up"; fail=1; continue; fi; \
 	  if [ -n "$$want" ]; then case "$$rev" in *"$$want"*) echo "PASS  $$c runs $$what ($$want)";; \
