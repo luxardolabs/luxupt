@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud import capture_crud
 from app.db import maintenance as db_maintenance
 from app.db.post_commit import after_commit
-from app.utils.capture_files import delete_capture_files
+from app.utils.capture_files import delete_capture_files, delete_frame_files
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,65 @@ class CaptureCleanupCoreService:
             # post-db-filter: counted off the file list already loaded for deletion
             "files_to_clean": len([f for f in file_info if f["file_path"]]),
             "background_cleanup": True,
+        }
+
+    async def delete_frames(
+        self,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        capture_date: date,
+        frames: list[tuple[int, str]],
+        listed_at: int,
+    ) -> dict[str, Any]:
+        """Delete exactly these frames of one camera: their rows, image files and thumbnails.
+
+        Args:
+            camera_safe_name: The camera folder the frames were found in.
+            interval: The interval folder the frames were found in.
+            capture_date: The day folder the frames were found in.
+            frames: (timestamp, file_path) pairs, file_path as found on disk, all in one
+                folder. A capture goes when its camera, interval, timestamp, file name and
+                folder match one pair, so a frame that is not listed keeps its row, its file
+                and its thumbnails.
+            listed_at: When the frames were listed. The day's captures with no file (failed
+                captures) up to this instant go too.
+
+        Returns:
+            Dict with db_records_deleted and files_to_clean.
+        """
+        if not frames:
+            return {"db_records_deleted": 0, "files_to_clean": 0}
+        file_info = await capture_crud.get_frames(
+            self.db, camera_safe_name=camera_safe_name, interval=interval, frames=frames
+        )
+        # Each file goes by the path it was found at, which a stored path may spell differently.
+        found_at = {Path(file_path).name: file_path for _, file_path in frames}
+        for item in file_info:
+            name = item["file_name"] or Path(item["file_path"]).name
+            item["file_path"] = found_at.get(name, item["file_path"])
+        count = await capture_crud.bulk_delete_frames(
+            self.db, camera_safe_name=camera_safe_name, interval=interval, frames=frames
+        )
+        count += await capture_crud.bulk_delete_fileless(
+            self.db,
+            camera_safe_name=camera_safe_name,
+            interval=interval,
+            capture_date=capture_date,
+            listed_at=listed_at,
+        )
+        # File + thumbnail cleanup after the commit, as in delete_by_filters (ADR-003).
+        if file_info:
+            after_commit(
+                self.db,
+                lambda: asyncio.create_task(
+                    asyncio.to_thread(delete_frame_files, file_info)
+                ),
+            )
+        return {
+            "db_records_deleted": count,
+            # post-db-filter: counted off the file list already loaded for deletion
+            "files_to_clean": len(file_info),
         }
 
     async def get_deletion_preview(

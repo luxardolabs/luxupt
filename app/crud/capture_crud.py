@@ -1,11 +1,13 @@
 """CRUD operations for Capture model."""
 
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import Integer, and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.core import config
 from app.crud.base_crud import CRUDBase
@@ -693,6 +695,134 @@ class CRUDCapture(CRUDBase[Capture, CaptureCreate, CaptureUpdate]):
         count = await execute_rowcount(db, query)
         await db.flush()
         return count
+
+    async def get_frames(
+        self,
+        db: AsyncSession,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        frames: list[tuple[int, str]],
+    ) -> list[dict[str, Any]]:
+        """Cleanup metadata for the captures of these (timestamp, file_path) frames.
+
+        Returns minimal dicts with: camera (safe_name), date, interval, timestamp, file_name,
+        file_path.
+        """
+        rows: list[dict[str, Any]] = []
+        for chunk in _frame_chunks(frames):
+            result = await db.execute(
+                select(
+                    Capture.camera_safe_name,
+                    Capture.capture_date,
+                    Capture.interval,
+                    Capture.timestamp,
+                    Capture.file_name,
+                    Capture.file_path,
+                ).where(*_frames_match(camera_safe_name, interval, chunk))
+            )
+            rows.extend(
+                {
+                    "camera": row.camera_safe_name,
+                    "date": row.capture_date,
+                    "interval": row.interval,
+                    "timestamp": row.timestamp,
+                    "file_name": row.file_name,
+                    "file_path": row.file_path,
+                }
+                for row in result.all()
+            )
+        return rows
+
+    async def bulk_delete_frames(
+        self,
+        db: AsyncSession,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        frames: list[tuple[int, str]],
+    ) -> int:
+        """Delete the captures of these (timestamp, file_path) frames.
+
+        Returns count deleted.
+        """
+        count = 0
+        for chunk in _frame_chunks(frames):
+            count += await execute_rowcount(
+                db,
+                delete(Capture).where(
+                    *_frames_match(camera_safe_name, interval, chunk)
+                ),
+            )
+        await db.flush()
+        return count
+
+    async def bulk_delete_fileless(
+        self,
+        db: AsyncSession,
+        *,
+        camera_safe_name: str,
+        interval: int,
+        capture_date: date,
+        listed_at: int,
+    ) -> int:
+        """Delete one camera, interval and day's captures with no file, up to `listed_at`.
+
+        Returns count deleted.
+        """
+        count = await execute_rowcount(
+            db,
+            delete(Capture).where(
+                Capture.camera_safe_name == camera_safe_name,
+                Capture.interval == interval,
+                Capture.capture_date == capture_date,
+                Capture.timestamp <= listed_at,
+                Capture.file_path.is_(None),
+            ),
+        )
+        await db.flush()
+        return count
+
+
+# Frames per statement: three bound values each stays far below SQLite's variable limit.
+FRAME_CHUNK = 500
+
+
+def _frame_chunks(frames: list[tuple[int, str]]) -> list[list[tuple[int, str]]]:
+    """Frames sorted by timestamp, split so each chunk spans one narrow timestamp range."""
+    ordered = sorted(frames)
+    return [
+        ordered[start : start + FRAME_CHUNK]
+        for start in range(0, len(ordered), FRAME_CHUNK)
+    ]
+
+
+def _frames_match(
+    camera_safe_name: str, interval: int, chunk: list[tuple[int, str]]
+) -> tuple[ColumnElement[bool], ...]:
+    """Match one sorted chunk of frames, all from one folder, to their captures.
+
+    The camera and timestamp range use the index. A capture matches by its stored file
+    name, which holds the timestamp and the format, inside a stored path that ends in the
+    frames' camera/interval/year/month/day folder; or by its full path when it stored no
+    name. Both still match after the image root is spelled differently.
+    """
+    folder = "/" + "/".join(Path(chunk[0][1]).parent.parts[-5:]) + "/"
+    return (
+        Capture.camera_safe_name == camera_safe_name,
+        Capture.interval == interval,
+        Capture.timestamp.between(chunk[0][0], chunk[-1][0]),
+        or_(
+            and_(
+                Capture.file_name.in_([Path(file_path).name for _, file_path in chunk]),
+                Capture.file_path.contains(folder, autoescape=True),
+            ),
+            and_(
+                Capture.file_name.is_(None),
+                Capture.file_path.in_([file_path for _, file_path in chunk]),
+            ),
+        ),
+    )
 
 
 capture_crud = CRUDCapture(Capture)

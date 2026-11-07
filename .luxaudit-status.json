@@ -6,7 +6,7 @@
   "source": "poetry.lock, package-lock.json",
   "summary": {
     "PASS": 127,
-    "FAIL": 2,
+    "FAIL": 4,
     "XFAIL": 0
   },
   "vulnerable": [],
@@ -41,6 +41,26 @@
         "path": "",
         "image": "luxardolabs/luxupt:2026.10.2",
         "fix": "3.0.4"
+      },
+      {
+        "package": "zlib1g",
+        "installed": "1:1.3.dfsg+really1.3.1-1+b1",
+        "vuln_id": "CVE-2026-76844",
+        "severity": "HIGH",
+        "layer": "os",
+        "path": "",
+        "image": "luxardolabs/luxupt:2026.10.2",
+        "fix": "1:1.3.dfsg+really1.3.1-1+deb13u1"
+      },
+      {
+        "package": "zlib1g",
+        "installed": "1:1.3.dfsg+really1.3.1-1+b1",
+        "vuln_id": "CVE-2026-85091",
+        "severity": "HIGH",
+        "layer": "os",
+        "path": "",
+        "image": "luxardolabs/luxupt:2026.10.2",
+        "fix": "1:1.3.dfsg+really1.3.1-1+deb13u1"
       }
     ],
     "deferred": []
@@ -50,6 +70,6 @@
     "expired": [],
     "unjudged": []
   },
-  "commit": "ed54c75e30139e5fdfb048be241722f2786eaea7",
-  "generated_at": "2026-11-07T06:57:17Z"
+  "commit": "756ae2193d0fd79f688681fd62d3c2f86bd97eda",
+  "generated_at": "2026-11-07T14:35:07Z"
 }

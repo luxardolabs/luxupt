@@ -772,6 +772,7 @@ class TimelapseService:
         image_files, image_format = await asyncio.to_thread(
             self._find_image_files, images_path, camera_safe_name
         )
+        listed_at = int(time.time())
         if not image_files:
             logger.debug(
                 "No images found",
@@ -860,44 +861,73 @@ class TimelapseService:
         )
 
         if success and not keep_images:
-            # Delete source images, thumbnails, and database records
-            try:
-                async with get_db_context() as db:
-                    # Resolve safe_name → camera_id (UUID) for DB queries
-                    camera_obj = await camera_crud.get_by_safe_name(
-                        db, camera_safe_name
-                    )
-                    camera_id = camera_obj.camera_id if camera_obj else None
-                    cleanup_service = CaptureCleanupCoreService(db)
-                    result = await cleanup_service.delete_by_filters(
-                        camera=camera_id,
-                        capture_date=target_date.date(),
-                        interval=interval,
-                    )
-                    await db.commit()
-                    # Reclaim freed pages after bulk capture deletion
-                    if result["db_records_deleted"] > 0:
-                        await db_maintenance.incremental_vacuum(db)
-                    logger.info(
-                        "Cleanup after successful video creation",
-                        extra={
-                            "camera": camera_safe_name,
-                            "interval": interval,
-                            "db_records": result["db_records_deleted"],
-                            "files_queued": result["files_to_clean"],
-                        },
-                    )
-            except Exception as e:
-                logger.exception(
-                    "Failed to cleanup after video creation",
+            await self._delete_encoded_frames(
+                camera_safe_name, interval, target_date, image_files, listed_at
+            )
+
+        return success
+
+    @staticmethod
+    def _encoded_frames(
+        image_files: list[Path], camera_safe_name: str
+    ) -> list[tuple[int, str]]:
+        """(timestamp, file_path) of each `{camera_safe_name}_{timestamp}.{ext}` frame."""
+        prefix = f"{camera_safe_name}_"
+        frames: list[tuple[int, str]] = []
+        for path in image_files:
+            digits = path.stem.removeprefix(prefix)
+            if path.stem.startswith(prefix) and digits.isascii() and digits.isdigit():
+                frames.append((int(digits), str(path)))
+        return frames
+
+    async def _delete_encoded_frames(
+        self,
+        camera_safe_name: str,
+        interval: int,
+        target_date: datetime,
+        image_files: list[Path],
+        listed_at: int,
+    ) -> None:
+        """Delete the frames a finished video was built from: rows, images and thumbnails.
+
+        `image_files` is the set found at `listed_at`, before the encode, and every one of
+        them is in the video: files are only added to a day folder while it encodes, and
+        ffmpeg globs after this list was taken. A frame outside the set (another format,
+        another folder, one that landed during the encode) is kept. The day's failed
+        captures up to `listed_at` go too.
+        """
+        try:
+            async with get_db_context() as db:
+                cleanup_service = CaptureCleanupCoreService(db)
+                result = await cleanup_service.delete_frames(
+                    camera_safe_name=camera_safe_name,
+                    interval=interval,
+                    capture_date=target_date.date(),
+                    frames=self._encoded_frames(image_files, camera_safe_name),
+                    listed_at=listed_at,
+                )
+                await db.commit()
+                # Reclaim freed pages after bulk capture deletion
+                if result["db_records_deleted"] > 0:
+                    await db_maintenance.incremental_vacuum(db)
+                logger.info(
+                    "Cleanup after successful video creation",
                     extra={
                         "camera": camera_safe_name,
                         "interval": interval,
-                        "error": str(e),
+                        "db_records": result["db_records_deleted"],
+                        "files_queued": result["files_to_clean"],
                     },
                 )
-
-        return success
+        except Exception as e:
+            logger.exception(
+                "Failed to cleanup after video creation",
+                extra={
+                    "camera": camera_safe_name,
+                    "interval": interval,
+                    "error": str(e),
+                },
+            )
 
     async def _create_video(
         self,

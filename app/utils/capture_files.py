@@ -7,7 +7,10 @@ files. Runs in a worker thread — never inline on the request path.
 """
 
 import logging
+import os
 import shutil
+from collections import defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +40,65 @@ def delete_capture_files(file_info: list[dict[str, Any]]) -> tuple[int, int]:
                 )
 
     return files_deleted, _delete_thumbnail_dirs(file_info)
+
+
+def delete_frame_files(file_info: list[dict[str, Any]]) -> tuple[int, int]:
+    """Delete these frames' image files and only their own thumbnails, never the day's others.
+
+    Each item carries camera (safe_name), date, interval, timestamp, file_path. Returns
+    (files_deleted, thumbnails_deleted). Best-effort: a failed delete is logged, not raised.
+    """
+    files_deleted = 0
+    timestamps_by_dir: dict[Path, set[str]] = defaultdict(set)
+    for item in file_info:
+        if item["file_path"] and _unlink(Path(item["file_path"])):
+            files_deleted += 1
+        timestamps_by_dir[_thumbnail_dir(item)].add(str(item["timestamp"]))
+
+    # One listing per folder: thumbnails are named {timestamp}_{size}.webp.
+    thumbnails_deleted = 0
+    for thumb_dir, timestamps in timestamps_by_dir.items():
+        try:
+            entries = list(os.scandir(thumb_dir))
+        except FileNotFoundError:
+            continue
+        for entry in entries:
+            timestamp, _, rest = entry.name.partition("_")
+            if (
+                rest.endswith(".webp")
+                and timestamp in timestamps
+                and _unlink(Path(entry.path))
+            ):
+                thumbnails_deleted += 1
+    return files_deleted, thumbnails_deleted
+
+
+def _unlink(path: Path) -> bool:
+    """Remove one file; False when it was already gone or could not be removed (logged)."""
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        return False
+    except OSError as e:
+        logger.warning(
+            "Failed to delete frame file", extra={"path": str(path), "error": str(e)}
+        )
+        return False
+    return True
+
+
+def _thumbnail_dir(item: dict[str, Any]) -> Path:
+    """The thumbnail cache folder of one capture's camera, interval and day."""
+    camera: str = item["camera"]
+    day: date = item["date"]
+    return (
+        config.THUMBNAIL_CACHE_PATH
+        / camera
+        / f"{item['interval']}s"
+        / f"{day.year:04d}"
+        / f"{day.month:02d}"
+        / f"{day.day:02d}"
+    )
 
 
 def _delete_thumbnail_dirs(file_info: list[dict[str, Any]]) -> int:
