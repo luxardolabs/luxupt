@@ -14,6 +14,7 @@ import urllib3
 from PIL import Image
 
 from app.utils import async_fs
+from app.utils.ffmpeg import redact_stream_address
 
 # Module logger
 logger = logging.getLogger(__name__)
@@ -820,8 +821,9 @@ class CameraManager:
                         )
                         return make_result(False, error=error_msg)
                 else:
-                    stderr_text = (
-                        stderr.decode("utf-8", errors="ignore") if stderr else ""
+                    stderr_text = redact_stream_address(
+                        stderr.decode("utf-8", errors="ignore") if stderr else "",
+                        rtsps_url,
                     )
                     logger.debug(
                         "RTSP capture FFmpeg full stderr",
@@ -831,8 +833,8 @@ class CameraManager:
                             "stderr": stderr_text,
                         },
                     )
-                    # Show the raw ffmpeg stderr verbatim, so the actual failure is visible in
-                    # the activity log without cracking open a file. Nothing stripped or capped.
+                    # Show ffmpeg's stderr in full, so the actual failure is visible in the activity
+                    # log without cracking open a file. Only the stream's address is taken out.
                     error_msg = (
                         f"FFmpeg error: {stderr_text}"
                         if stderr_text

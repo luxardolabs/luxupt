@@ -7,6 +7,7 @@ before the shift, write one naive local timestamp, upgrade to head, read it back
 connection. Written while rehearsing the 1.1.5 -> 2026.10.1 prod upgrade on a copy of prod data.
 """
 
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -107,3 +108,119 @@ def test_existing_users_get_distinct_session_versions(tmp_path: Path) -> None:
             reader.execute("SELECT username, session_version FROM users")
         )
     assert after_downgrade == versions
+
+
+BEFORE_STREAM_REDACTION = "7c1e4f9a2b3d"
+STORED_STDERR = (
+    "FFmpeg error: [tls @ 0x5] Failed to resolve hostname nvr.invalid: Name not known\n"
+    "rtsps://nvr.invalid:7441/aBcDeFgH?enableSrtp: Connection refused"
+)
+
+
+def test_stored_capture_errors_lose_the_stream_address(tmp_path: Path) -> None:
+    db_file = tmp_path / "timelapse.db"
+    cfg = _config(f"sqlite+aiosqlite:///{db_file}")
+    command.upgrade(cfg, BEFORE_STREAM_REDACTION)
+    with closing(sqlite3.connect(db_file)) as conn, conn:
+        conn.execute(
+            "INSERT INTO captures (camera_id, camera_safe_name, timestamp, capture_datetime, "
+            "capture_date, interval, status, capture_method, error_message) VALUES "
+            "('c', 'c', 1, '2026-01-01 00:00:00', '2026-01-01', 60, 'failed', 'rtsp', ?), "
+            "('c', 'c', 2, '2026-01-01 00:00:00', '2026-01-01', 60, 'failed', 'api', "
+            "'Network error')",
+            (STORED_STDERR,),
+        )
+        conn.execute(
+            "INSERT INTO activities (timestamp, activity_type, message, details) VALUES "
+            "('2026-01-01 00:00:00', 'capture_failed', ?, ?), "
+            "('2026-01-01 00:00:00', 'capture_success', 'See https://docs.invalid/x', NULL)",
+            (
+                f"Failed to capture from c: {STORED_STDERR}",
+                json.dumps({"error": STORED_STDERR}),
+            ),
+        )
+
+    command.upgrade(cfg, "head")
+    with closing(sqlite3.connect(db_file)) as reader:
+        errors = [
+            row[0]
+            for row in reader.execute(
+                "SELECT error_message FROM captures ORDER BY timestamp"
+            )
+        ]
+        activities = reader.execute(
+            "SELECT message, details FROM activities ORDER BY id"
+        ).fetchall()
+
+    assert "nvr.invalid" not in errors[0]
+    assert "aBcDeFgH" not in errors[0]
+    assert "Connection refused" in errors[0]
+    assert errors[1] == "Network error"
+    assert "nvr.invalid" not in activities[0][0]
+    assert "aBcDeFgH" not in activities[0][0]
+    assert "aBcDeFgH" not in json.loads(activities[0][1])["error"]
+    assert "Connection refused" in json.loads(activities[0][1])["error"]
+    assert activities[1][0] == "See https://docs.invalid/x"
+
+
+def test_a_clean_activity_row_is_left_exactly_as_it_was(tmp_path: Path) -> None:
+    db_file = tmp_path / "timelapse.db"
+    cfg = _config(f"sqlite+aiosqlite:///{db_file}")
+    command.upgrade(cfg, BEFORE_STREAM_REDACTION)
+    details = '{"error" : "FFmpeg error: Conversion failed"}'
+    with closing(sqlite3.connect(db_file)) as conn, conn:
+        conn.execute(
+            "INSERT INTO activities (timestamp, activity_type, message, details) VALUES "
+            "('2026-01-01 00:00:00', 'capture_failed', 'FFmpeg error: Conversion failed', ?)",
+            (details,),
+        )
+
+    command.upgrade(cfg, "head")
+
+    with closing(sqlite3.connect(db_file)) as reader:
+        (stored,) = reader.execute("SELECT details FROM activities").fetchone()
+    assert stored == details
+
+
+@pytest.mark.parametrize("details", ["{not json", 3, "[" * 200_000])
+def test_bad_activity_details_do_not_stop_the_upgrade(
+    tmp_path: Path, details: object
+) -> None:
+    db_file = tmp_path / "timelapse.db"
+    cfg = _config(f"sqlite+aiosqlite:///{db_file}")
+    command.upgrade(cfg, BEFORE_STREAM_REDACTION)
+    with closing(sqlite3.connect(db_file)) as conn, conn:
+        conn.execute(
+            "INSERT INTO activities (timestamp, activity_type, message, details) VALUES "
+            "('2026-01-01 00:00:00', 'capture_failed', ?, ?)",
+            (STORED_STDERR, details),
+        )
+
+    command.upgrade(cfg, "head")
+
+    with closing(sqlite3.connect(db_file)) as reader:
+        (message, stored) = reader.execute(
+            "SELECT message, details FROM activities"
+        ).fetchone()
+    assert "aBcDeFgH" not in message
+    assert stored is None
+
+
+def test_more_rows_than_one_batch_are_all_cleaned(tmp_path: Path) -> None:
+    db_file = tmp_path / "timelapse.db"
+    cfg = _config(f"sqlite+aiosqlite:///{db_file}")
+    command.upgrade(cfg, BEFORE_STREAM_REDACTION)
+    with closing(sqlite3.connect(db_file)) as conn, conn:
+        conn.executemany(
+            "INSERT INTO activities (timestamp, activity_type, message) VALUES "
+            "('2026-01-01 00:00:00', 'capture_failed', ?)",
+            [(STORED_STDERR,)] * 1201,
+        )
+
+    command.upgrade(cfg, "head")
+
+    with closing(sqlite3.connect(db_file)) as reader:
+        (left,) = reader.execute(
+            "SELECT COUNT(*) FROM activities WHERE message LIKE '%aBcDeFgH%'"
+        ).fetchone()
+    assert left == 0

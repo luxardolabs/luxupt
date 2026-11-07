@@ -13,10 +13,38 @@ import re
 import subprocess
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from app.utils import async_fs
 
 logger = logging.getLogger(__name__)
+
+_URL_IN_TEXT = re.compile(r"(?<![a-zA-Z0-9+.-])([a-zA-Z0-9+.-]+)://\S+")
+_UNRESOLVED_HOST = re.compile(r"(Failed to resolve hostname ).+?(: )")
+
+
+def redact_stream_address(text: str, stream_url: str) -> str:
+    """ffmpeg's error text without the address of the stream it was reading.
+
+    A Protect stream URL opens the camera with no login, so its alias is as good as a password. The
+    text reaches every signed-in user through the activity log. The URL, its host and its alias are
+    replaced wherever they appear as whole names, whatever their case. Any other URL ffmpeg printed
+    loses everything after its scheme, and a host it could not resolve loses its name, so the rest
+    of the diagnosis stays readable. A URL that cannot be parsed still loses those.
+    """
+    redacted = text.replace(stream_url, "<stream-url>")
+    try:
+        parts = urlsplit(stream_url)
+        secrets = (parts.hostname, parts.path.strip("/"))
+    except ValueError:
+        secrets = (None, "")
+    for secret in secrets:
+        if secret:
+            whole_name = rf"(?<![\w.-]){re.escape(secret)}(?![\w-]|\.\w)"
+            redacted = re.sub(whole_name, "<redacted>", redacted, flags=re.IGNORECASE)
+    redacted = _URL_IN_TEXT.sub(r"\1://<redacted>", redacted)
+    return _UNRESOLVED_HOST.sub(r"\1<redacted>\2", redacted)
+
 
 _FRAME_PATTERN = re.compile(r"frame=\s*(\d+)")
 
