@@ -459,7 +459,7 @@ gitleaks-commit-msg: ## secret + denylist scan of the commit MESSAGE being writt
 	  exit 1; }
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION := 0.74.0
+LUXLINT_VERSION := 0.75.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
