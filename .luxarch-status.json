@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.352.0",
+  "guard_version": "0.370.0",
   "repo": "/repo",
   "targets": [
     {
@@ -1647,6 +1647,17 @@
           "example": ""
         },
         {
+          "rule": "fw.first_party_imports_app_prefixed",
+          "status": "PASS",
+          "since": "0.356.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": false,
+          "inert_reason": "",
+          "fix": "",
+          "example": ""
+        },
+        {
           "rule": "fw.file_size",
           "status": "PASS",
           "since": "0.235.0",
@@ -1898,14 +1909,25 @@
           "inert_reason": "",
           "fix": "",
           "example": ""
+        },
+        {
+          "rule": "fw.api_only_has_no_web_surface",
+          "status": "INERT",
+          "since": "0.356.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "target does not declare api_only = true \u2014 no attestation to check",
+          "fix": "",
+          "example": ""
         }
       ],
       "summary": {
-        "PASS": 146,
+        "PASS": 147,
         "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 26
+        "INERT": 27
       }
     }
   ],
@@ -2034,23 +2056,23 @@
       },
       {
         "rule": "repo.fleet_skills_present",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.245.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "no agent-instruction file (CLAUDE.md / AGENTS.md): this repo is not set up for agents",
+        "inert": false,
+        "inert_reason": "",
         "fix": "",
         "example": ""
       },
       {
         "rule": "repo.agent_push_declared",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.296.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "no agent-instruction file (CLAUDE.md / AGENTS.md): no agent works in this repo",
+        "inert": false,
+        "inert_reason": "",
         "fix": "",
         "example": ""
       },
@@ -2232,12 +2254,12 @@
       },
       {
         "rule": "repo.claude_pointer_present",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.213.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "no agent-instruction file (CLAUDE.md / .claude/CLAUDE.md / AGENTS.md) \u2014 there is nothing to point AT the standard from. NOT a clearance: an agent working here has no route to the fleet conduct rules at all",
+        "inert": false,
+        "inert_reason": "",
         "fix": "",
         "example": ""
       },
@@ -2304,6 +2326,17 @@
         "deferred": false,
         "inert": false,
         "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.ops_scripts_in_runbook",
+        "status": "INERT",
+        "since": "0.358.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "no `scripts/ops/` directory beside any app package, so there is no one-off operator script to judge (a script kept elsewhere is not seen: its home is `<component>/scripts/ops/`)",
         "fix": "",
         "example": ""
       },
@@ -2517,6 +2550,17 @@
         "example": ""
       },
       {
+        "rule": "repo.compose_pg_healthcheck_tcp",
+        "status": "INERT",
+        "since": "0.358.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": true,
+        "inert_reason": "no committed compose service carries a healthcheck that probes Postgres \u2014 nothing to check",
+        "fix": "",
+        "example": ""
+      },
+      {
         "rule": "repo.compose_up_selects_services",
         "status": "PASS",
         "since": "0.264.0",
@@ -2547,6 +2591,17 @@
         "inert": false,
         "inert_reason": "",
         "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.dev_host_declared",
+        "status": "FAIL",
+        "since": "0.365.0",
+        "violations": 1,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Move the dev stack to the dev host: `DEV_HOST := devhost` committed in the Makefile, no host `ports:`, and the stack's front on the `dev-edge` network at the pinned `ipv4_address` infra assigned it: the app's own nginx, or, for an app with none, the app itself. A stack that serves no HTTP (a collector) declares `front = \"none\"` and is proven by its containers' health; its Grafana is an ops UI, never the front. The whole recipe, every shape: --doc FLEET-BUILD-DEPLOY-STANDARD, \"The dev host\", \"Moving a stack to the dev host\".",
         "example": ""
       },
       {
@@ -2705,20 +2760,20 @@
       }
     ],
     "summary": {
-      "PASS": 67,
-      "FAIL": 0,
+      "PASS": 70,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 5
+      "INERT": 4
     }
   },
   "summary": {
-    "PASS": 213,
-    "FAIL": 0,
+    "PASS": 217,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 31
   },
-  "commit": "a80062972d4799baa8ef54e3e32ef71887f632fd",
-  "generated_at": "2026-11-07T16:32:21Z"
+  "commit": "73b86f378d690630ff180abc14ebbb5de2ba9c21",
+  "generated_at": "2026-11-18T01:46:18Z"
 }

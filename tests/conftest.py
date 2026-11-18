@@ -242,7 +242,7 @@ def write_lock_free(real_commits: None) -> Callable[[], Awaitable[bool]]:
     return probe
 
 
-# luxarch:route-smoke asserter v22 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
+# luxarch:route-smoke asserter v23 — DO NOT edit the marker line above (fw.route_smoke_wired finds it).
 #
 # WHY THIS FILE EXISTS
 # A dependency deprecates an API; your code keeps working (warning only); a later pin makes it RAISE;
@@ -480,6 +480,7 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
 
     app = getattr(importlib.import_module(mod), attr or "app")
     entries: list[tuple[str, str, str, int]] = []
+    _UNDESCENDED.clear()
 
     # The walk reads each route by what it carries, not by its class: Starlette's wrappers differ
     # across versions, so a route is any object here.
@@ -540,14 +541,40 @@ def _registered_route_entries() -> list[tuple[str, str, str, int]]:
                         id(route),
                     )
                 )
+            elif _holds_routes(route):
+                # A node that is no route the walk reads, yet carries routes of its own (or holds an
+                # object that does): a container this walk does not descend, so every route under it
+                # is invisible to coverage. That is the mis-walk, whatever the route count.
+                _UNDESCENDED.append(f"{kind} at {path or '/'!r}")
 
     _walk(app.routes)
     return entries
 
 
-# Below this many registered routes, an app with included routers is almost certainly mis-walked
-# (the flat-walk bug), not genuinely tiny — fail loud rather than "certify" a handful.
-_MIN_PLAUSIBLE_ROUTES = 5
+# The route-table nodes the last walk met and could not descend (see `_holds_routes`). A walk that
+# leaves any behind is mis-walking the table (a Starlette wrapper it does not know), so the run
+# certifies nothing. A small app whose every node is read is judged on its routes like any other.
+_UNDESCENDED: list[str] = []
+
+
+def _routes_of(obj: object) -> list[object]:
+    try:
+        routes = getattr(obj, "routes", None)
+    except Exception:  # a property that raises holds nothing this walk can read
+        return []
+    return list(routes) if isinstance(routes, (list, tuple)) else []
+
+
+def _holds_routes(node: object) -> bool:
+    # True when the node carries a non-empty `.routes`, or holds (as any attribute) an object that
+    # does: the shape of every router wrapper, whatever its class or attribute is called.
+    if _routes_of(node):
+        return True
+    try:
+        held = list(vars(node).values())
+    except TypeError:  # no __dict__ (slots): only its `.routes`, read above
+        return False
+    return any(_routes_of(v) for v in held if v is not node)
 
 
 def _by_rid(
@@ -816,10 +843,8 @@ def _pytest_hooks() -> tuple[object, object, object, object]:
                 f"handler — one SHADOWS the other (the shadowed one is dead/unreachable). Remove the dead "
                 f"handler. Duplicates: {dupes}. See --playbook route-smoke."
             )
-        # Loud-fail net #1: implausibly few (INCLUDING ZERO) routes → the enumerator is mis-walking, NOT a
-        # 2-route app. ZERO is the most certain "the walk is broken" signal, so it must fail LOUDEST — the
-        # old `0 < len(entries)` guard excluded zero, so a walk-to-nothing certified GREEN silently, the exact
-        # hollow green this net exists to prevent.
+        # Loud-fail net #1: ZERO routes, or a route-table node the walk could not descend → the
+        # enumerator is mis-walking, so a verdict on what it did read would be a hollow green.
         if not entries:
             raise SystemExit(
                 "luxarch route-smoke: enumerated 0 routes — the walk found NOTHING, so this run certifies "
@@ -828,12 +853,13 @@ def _pytest_hooks() -> tuple[object, object, object, object]:
                 "Refusing to certify. Re-emit the asserter (luxarch --emit route-smoke) and check APP_IMPORT. "
                 "See --playbook route-smoke."
             )
-        if len(entries) < _MIN_PLAUSIBLE_ROUTES:
+        if _UNDESCENDED:
             raise SystemExit(
-                f"luxarch route-smoke: only {len(entries)} route(s) enumerated — implausibly few for an "
-                "app with included routers, so the asserter is almost certainly mis-walking the route table "
-                "(Starlette version?), NOT genuinely tiny. Refusing to certify — a low count would be a "
-                "hollow green. Update the asserter (luxarch --emit route-smoke). See --playbook route-smoke."
+                f"luxarch route-smoke: the route table holds {len(_UNDESCENDED)} node(s) that carry routes "
+                f"this walk does not descend ({sorted(_UNDESCENDED)}), so the routes under them are "
+                "invisible to coverage: the asserter is mis-walking the route table (Starlette version?). "
+                "Refusing to certify — a verdict on the rest would be a hollow green. Update the asserter "
+                "(luxarch --emit route-smoke). See --playbook route-smoke."
             )
         # Loud-fail net #2: routes exist but NOTHING was recorded. Two cases, cleanly separable by the skip
         # count: if the request suite SKIPPED (a DB-less `make test` → 0 hits / many skipped),

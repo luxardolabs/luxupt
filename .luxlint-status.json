@@ -1,6 +1,6 @@
 {
   "guard": "luxlint",
-  "guard_version": "0.75.0",
+  "guard_version": "0.79.1",
   "repo": "/repo",
   "source": [
     "app",
@@ -163,19 +163,21 @@
     },
     {
       "rule": "docs.coverage",
-      "status": "PASS",
+      "status": "INERT",
       "since": "0.5.0",
       "violations": 0,
       "sites": [],
-      "deferred": false
+      "deferred": false,
+      "inert_reason": "docstring checks are opt-in and this repo's `[docs]` block does not enable this one"
     },
     {
       "rule": "docs.substantive",
-      "status": "PASS",
+      "status": "INERT",
       "since": "0.5.0",
       "violations": 0,
       "sites": [],
-      "deferred": false
+      "deferred": false,
+      "inert_reason": "docstring checks are opt-in and this repo's `[docs]` block does not enable this one"
     },
     {
       "rule": "docs.markdown_format",
@@ -195,13 +197,13 @@
     }
   ],
   "summary": {
-    "PASS": 23,
+    "PASS": 21,
     "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 0
+    "INERT": 2
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "a80062972d4799baa8ef54e3e32ef71887f632fd",
-  "generated_at": "2026-11-07T16:32:21Z"
+  "commit": "73b86f378d690630ff180abc14ebbb5de2ba9c21",
+  "generated_at": "2026-11-18T01:46:18Z"
 }

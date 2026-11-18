@@ -1,4 +1,4 @@
-# luxarch:admin-bootstrap-crud asset v5 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-crud`.
+# luxarch:admin-bootstrap-crud asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit admin-bootstrap-crud`.
 """The user-table half of the admin bootstrap. `luxarch --emit admin-bootstrap-crud`.
 
 Drop this in at `app/crud/admin_bootstrap_crud.py`. It is the ONLY module of the bootstrap that
@@ -108,6 +108,35 @@ async def count_users(db: AsyncSession) -> int:
 
 async def get_by_login(db: AsyncSession, login: str) -> User | None:
     return (await db.scalars(select(User).where(_login_matches(login)))).first()
+
+
+async def get_by_login_for_update(db: AsyncSession, login: str) -> User | None:
+    """The user, read fresh and locked until this transaction ends: the read every password set
+    makes before it checks and writes the row.
+
+    A set reads the row, checks it (the current password), then writes it. A recovery reset or a
+    second change that commits in between would be overwritten, so this read takes the row's lock
+    and the other set waits for this transaction. PostgreSQL: `FOR NO KEY UPDATE`
+    (`key_share=True`), with `populate_existing` so a row already in the session (the auth
+    dependency loaded it) is re-read, not trusted. It conflicts with itself, with `FOR UPDATE` and
+    with the UPDATE a set issues, so two sets still take turns; it does not conflict with the
+    `FOR KEY SHARE` an insert of a row whose foreign key references this user holds until its
+    transaction ends (a magic-link token, a session row), which plain `FOR UPDATE` would wait on
+    for as long as that transaction stays open. `FOR SHARE` (`read=True`) would not do: two sets
+    could both hold it, both check, and both write. SQLite has no row lock: the write that matches
+    no row takes the database's write lock first, as `lock_first_boot` does, so the read sees every
+    committed write and no other writer commits until this transaction ends. The app's sign-in reads through it too, before it verifies a
+    password and writes the row or issues a session; anything that commits in a transaction of its
+    own (a failed-attempt count) runs before this read, or it waits on this transaction."""
+    if db.get_bind().dialect.name == "sqlite":
+        await db.execute(delete(User).where(false()))
+    statement = (
+        select(User)
+        .where(_login_matches(login))
+        .with_for_update(key_share=True)
+        .execution_options(populate_existing=True)
+    )
+    return (await db.scalars(statement)).first()
 
 
 async def add_admin(

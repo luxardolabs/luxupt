@@ -1,4 +1,4 @@
-# luxarch:test-db-identity asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit test-db-identity`.
+# luxarch:test-db-identity asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit test-db-identity`.
 """Where a Postgres connection really is, asked of the server on that connection.
 
 TEST_DATABASE_URL's text does not say where the driver lands: a query `host`, a `hostaddr` in a
@@ -381,7 +381,7 @@ def _luxarch_test_db_ask_dbapi(dbapi_conn: object) -> object:
     connection refused; a try whose `BEGIN` itself was cancelled leaves the driver idle for the next
     (`_luxarch_test_db_forget_failed_begin`). A connection handed over already inside a transaction (an app's `do_connect`
     listener's statement) is asked in a savepoint that is rolled back, so that transaction is kept.
-    Stated limit: a connection timeout shorter than a warm question (well under
+    A connection timeout shorter than a warm question (well under
     a millisecond) still refuses it."""
     make = getattr(dbapi_conn, "cursor", None)
     if not callable(make):
