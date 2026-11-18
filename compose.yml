@@ -75,8 +75,9 @@ services:
       retries: 3
       start_period: 60s
 
+    # luxupt-network behind the host's nginx (prod); luxupt_front behind nginx-dev on the dev host.
     networks:
-      - luxupt-network
+      - ${APP_NETWORK:-luxupt-network}
 
   # =============================================================================
   # NGINX SSL TERMINATION  (profile: nginx)
@@ -103,9 +104,47 @@ services:
       - luxupt-network
     restart: unless-stopped
 
+  # =============================================================================
+  # DEV EDGE FRONT  (profile: dev-edge — the bb dev stack starts it on the dev host)
+  # =============================================================================
+  # The dev host's edge sends each site's dev name here at the pinned dev-edge address, TLS on 443.
+  # It picks the site from the name and proxies to that site's app on luxupt_front, where it is the
+  # one pinned address (.10) the apps sit behind. No host port: the edge is the only way in.
+  nginx-dev:
+    profiles:
+      - dev-edge
+    image: nginx:1.31-alpine
+    container_name: luxupt-nginx
+    oom_score_adj: -500
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./deploy/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - ${CERT_ROOT:?set CERT_ROOT in .env.<env>}:/etc/nginx/ssl:ro
+    networks:
+      luxupt_front:
+        ipv4_address: 172.28.48.10
+      dev-edge:
+        ipv4_address: 172.30.0.28
+    healthcheck:
+      test: ["CMD", "nginx", "-t", "-q"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
 networks:
   luxupt-network:
     name: luxupt-network
     # Shared across every site stack on the host. Created once via `make network` so a
     # `docker compose down` on one site never removes it from under another.
+    external: true
+  luxupt_front:
+    # The dev host's front network (172.28.48.0/24, apps in the upper half), shared by both site
+    # stacks. Created once there via `make dev-network`.
+    name: luxupt_front
+    external: true
+  dev-edge:
+    # The dev host's edge network; its edge routes each dev name to a pinned address on it.
+    name: dev-edge
     external: true

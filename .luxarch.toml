@@ -118,3 +118,9 @@ exempt = [
 # work lands, this public repo included; publishing a release stays the release step.
 [agents]
 push = "agent"
+
+# The dev stacks run on the fleet's dev host (DEV_HOST in the Makefile). Its edge hands each dev
+# name to this compose service, the stack's own nginx, at its pinned dev-edge address.
+[dev_host]
+front = "nginx"
+service = "nginx-dev"

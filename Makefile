@@ -1613,6 +1613,11 @@ PUBLIC_LATEST   := 1
 # the block's .env.dev, which this repo does not have, so dev-pin refuses it.
 SITE ?=
 DEV_ENV_FILE := $(if $(SITE),.env.$(SITE)-dev,.env.dev)
+# Both dev stacks run on the fleet's dev host, reached through its edge by their dev names. One
+# front nginx serves both, pinned on the edge network, so it starts with the bb stack and the other
+# site's stack joins its front network (`make dev-network` creates that network on the dev host).
+DEV_HOST := devhost
+DEV_PROFILES := $(if $(filter bb,$(SITE)),dev-edge)
 
 # luxarch:build-core asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit build-core`.
 # ── Build core: the image names, where each is built from, and the quoting every block splices with ──
@@ -4082,6 +4087,13 @@ network: ## Create luxupt-network Docker network (if not exists)
 	@echo '$(BLUE)Creating luxupt-network...$(NC)'
 	@docker network create luxupt-network 2>/dev/null || echo "Network luxupt-network already exists"
 	@echo '$(GREEN)Network ready!$(NC)'
+
+.PHONY: dev-network
+dev-network: ## Create the dev front network (luxupt_front) on the dev host, once
+	@DOCKER_HOST=ssh://$(DEV_HOST) docker network inspect luxupt_front >/dev/null 2>&1 \
+	  && echo "Network luxupt_front already exists on $(DEV_HOST)" \
+	  || DOCKER_HOST=ssh://$(DEV_HOST) docker network create --subnet 172.28.48.0/24 \
+	       --ip-range 172.28.48.128/25 --gateway 172.28.48.1 luxupt_front
 
 
 .PHONY: info
