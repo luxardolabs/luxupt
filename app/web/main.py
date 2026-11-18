@@ -36,7 +36,7 @@ from app.models.enum_model import ActivityType, HealthStatus
 from app.schemas.health_schema import HealthReport, LivenessReport, ReadinessReport
 from app.services.core.health_core_service import HealthCoreService
 from app.services.core.metrics_core_service import MetricsCoreService
-from app.utils.exception_handlers import general_exception_handler
+from app.utils.exception_handlers import install_error_handlers
 from app.web.rate_limit import limiter, rate_limit_exceeded_handler
 
 from .middleware import (
@@ -426,14 +426,6 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
         )
 
-    # ONE content-negotiating handler for every UNEXPECTED exception (luxarch --emit
-    # exception-handler). Routes no longer wrap their bodies in `except Exception` to render
-    # an error partial: that reported bugs to the user as a 200 and to monitoring as success,
-    # and it made filterwarnings=error inert on the route (fw.route_no_broad_except).
-    # Registered on Exception, not on 500: a raised exception never reaches a status-code
-    # handler, so the old @app.exception_handler(500) only ever fired for an explicit 500.
-    app.add_exception_handler(Exception, general_exception_handler)
-
     # The request limiter (FLEET-RATE-LIMIT-STANDARD): routes carry @limiter.limit, slowapi reads
     # the instance from app.state, and an over-limit request is refused with a 429.
     app.state.limiter = limiter
@@ -504,6 +496,13 @@ def create_app() -> FastAPI:
     # therefore matches first. A second `@app.get("/")` used to be declared here and was
     # dead — Starlette matches in registration order, so it could never run. Found by the
     # route-smoke asserter's shadowed-route check.
+
+    # ONE content-negotiating handler for every UNEXPECTED exception and every request validation
+    # error (luxarch --emit exception-handler), on this app and every mounted sub-app. Routes do not
+    # wrap their bodies in `except Exception` to render an error partial: that reports a bug to the
+    # user as a 200 and to monitoring as success (fw.route_no_broad_except). Registered after the
+    # mounts, which it walks.
+    install_error_handlers(app)
 
     return app
 

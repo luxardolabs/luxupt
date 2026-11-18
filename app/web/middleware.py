@@ -6,6 +6,7 @@ Contains security headers, request logging, and authentication middleware.
 
 import logging
 import time
+import uuid
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -87,10 +88,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        """Log request method, URL, status code, and timing. Skip static files unless errored."""
+        """Log request method, URL, status code, and timing. Skip static files unless errored.
+
+        Each request gets an id minted here, never copied from the client: it is
+        `request.state.request_id` for every handler below (the error handlers log and show it as
+        the reference), it is on this middleware's log lines, and it is echoed as `X-Request-ID`."""
+        request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
         start_time = time.time()
         try:
             response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id
             process_time = time.time() - start_time
 
             # Only log non-static requests or errors
@@ -101,6 +109,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 logger.info(
                     "HTTP request completed",
                     extra={
+                        "request_id": request_id,
                         "method": request.method,
                         "url": str(request.url),
                         "status_code": response.status_code,
@@ -114,6 +123,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             logger.exception(
                 "HTTP request failed",
                 extra={
+                    "request_id": request_id,
                     "method": request.method,
                     "url": str(request.url),
                     "error": str(e),

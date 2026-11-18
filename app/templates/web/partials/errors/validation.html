@@ -1,0 +1,12 @@
+{# Validation fragment swapped in by the client when a request is refused at 422 (HX-Error-Swap: true).
+   Rendered by the global validation handler: field paths and error types only, never the values sent. #}
+{% from "macros/alerts.html" import alert_block %}
+{% call alert_block(type="warning", title="Invalid request") %}
+    <p>Some of the values sent were missing or not valid.</p>
+    {% if errors %}
+    <ul class="text-xs mt-1 font-mono">
+        {% for error in errors %}<li>{{ error.loc }}: {{ error.type }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if request_id %}<p class="text-xs mt-1 font-mono">Reference: {{ request_id }}</p>{% endif %}
+{% endcall %}

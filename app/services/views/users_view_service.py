@@ -6,7 +6,10 @@ from urllib.parse import urlencode
 
 from fastapi import Request
 
-from app.services.core.admin_bootstrap_core_service import MIN_PASSWORD_LENGTH
+from app.services.core.admin_bootstrap_core_service import (
+    MIN_PASSWORD_LENGTH,
+    login_policy_problem,
+)
 from app.services.core.user_core_service import UserCoreService
 from app.services.views._system_tabs import system_tabs
 
@@ -109,8 +112,8 @@ class UsersViewService:
         username = username.strip()
         if not username:
             errors.append("Username is required")
-        elif len(username) > 64:
-            errors.append("Username must be 64 characters or less")
+        elif problem := login_policy_problem(username):
+            errors.append(f"Username refused: {problem}")
         elif await self.user_service.username_exists(username):
             errors.append("Username already exists")
 
@@ -145,12 +148,15 @@ class UsersViewService:
             account_page = self.path("account.change_password_page")
             return [f"Change your own password at {account_page}"]
 
-        # Username validation
+        # Username validation. A login stored before the policy stays editable: only a rename is
+        # held to the policy /setup enforces.
         username = username.strip()
+        current = await self.user_service.get_by_id(user_id)
+        renamed = current is None or current.username != username
         if not username:
             errors.append("Username is required")
-        elif len(username) > 64:
-            errors.append("Username must be 64 characters or less")
+        elif renamed and (problem := login_policy_problem(username)):
+            errors.append(f"Username refused: {problem}")
         elif await self.user_service.username_exists(username, exclude_id=user_id):
             errors.append("Username already exists")
 
