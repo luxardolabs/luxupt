@@ -90,14 +90,33 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
     ) -> User | None:
         """Authenticate a user by username and password.
 
-        Returns the User if authentication succeeds, None otherwise.
+        Returns the User if authentication succeeds, None otherwise. The password is verified
+        against a locked, fresh read of the row, so a reset or revoke cannot commit between the
+        verify and the session the caller issues in this transaction.
         """
-        user = await self.get_by_username(db, username)
+        user = await self.get_by_username_for_update(db, username)
         if not user:
             return None
         if not await self.verify_password(password, user.password_hash):
             return None
         return user
+
+    async def get_by_username_for_update(
+        self, db: AsyncSession, username: str
+    ) -> User | None:
+        """The user, read fresh and locked until this transaction ends.
+
+        `populate_existing` re-reads a row already in the session rather than trusting it. On SQLite,
+        which has no row lock, the request transaction is `BEGIN IMMEDIATE` (app/db/database.py):
+        it already holds the database's write lock, so no other writer commits until it ends.
+        """
+        statement = (
+            select(User)
+            .where(User.username == username)
+            .with_for_update(key_share=True)
+            .execution_options(populate_existing=True)
+        )
+        return (await db.scalars(statement)).first()
 
     async def get_retired_env_logins(self, db: AsyncSession) -> list[str]:
         """Usernames still on the retired WEB_PASSWORD login's placeholder hash, which verifies
