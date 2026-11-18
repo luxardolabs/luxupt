@@ -1,6 +1,7 @@
 """Image browser routes."""
 
 from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
@@ -8,7 +9,13 @@ from fastapi.responses import FileResponse, HTMLResponse
 from app.core import config
 from app.web.auth import get_current_user, require_admin
 from app.web.deps import ImagesViewDep, TemplatesDep
-from app.web.query_params import IntFilter, ThumbnailSizeFilter
+from app.web.query_params import (
+    IntFilter,
+    IsoDateString,
+    PageNumber,
+    StoredInt,
+    ThumbnailSizeFilter,
+)
 
 router = APIRouter(tags=["images"])
 
@@ -19,15 +26,13 @@ async def images_page(
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
-    page: int = Query(1, ge=1),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
+    page: PageNumber = 1,
     per_page: int = Query(36, ge=36, le=108),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the image browser page."""
-    # Parse interval (handle empty strings from form)
-    interval_int = int(interval) if interval else None
     # Handle empty strings
     camera = camera if camera else None
     date_str = date_str if date_str else None
@@ -35,7 +40,7 @@ async def images_page(
     context = await view_service.get_browser_context(
         camera=camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
         page=page,
         per_page=per_page,
     )
@@ -55,22 +60,21 @@ async def image_grid_partial(
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
-    page: int = Query(1, ge=1),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
+    page: PageNumber = 1,
     per_page: int = Query(36, ge=36, le=108),
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render image grid partial for HTMX updates."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
     camera = camera if camera else None
     date_str = date_str if date_str else None
 
     context = await view_service.get_image_grid_context(
         camera=camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
         page=page,
         per_page=per_page,
     )
@@ -125,18 +129,17 @@ async def image_filters_partial(
 )
 async def image_lightbox(
     camera_safe_name: str,
-    timestamp: int,
+    timestamp: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     filter_camera: str | None = Query(None, alias="camera"),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render lightbox partial for an image with prev/next navigation."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
     filter_camera = filter_camera if filter_camera else None
     date_str = date_str if date_str else None
 
@@ -145,7 +148,7 @@ async def image_lightbox(
         timestamp=timestamp,
         filter_camera=filter_camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
     )
 
     if not context.get("image"):
@@ -175,17 +178,16 @@ async def image_lightbox(
 )
 async def image_lightbox_content(
     camera_safe_name: str,
-    timestamp: int,
+    timestamp: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     filter_camera: str | None = Query(None, alias="camera"),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render lightbox content only (for HTMX navigation swaps)."""
-    interval_int = int(interval) if interval else None
     filter_camera = filter_camera if filter_camera else None
     date_str = date_str if date_str else None
 
@@ -194,7 +196,7 @@ async def image_lightbox_content(
         timestamp=timestamp,
         filter_camera=filter_camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
     )
 
     if not context.get("image"):
@@ -224,8 +226,8 @@ async def image_lightbox_content(
 @router.get("/file/{camera}/{interval}/{timestamp}", name="images.get_image_file")
 async def get_image_file(
     camera: str,
-    interval: int,
-    timestamp: int,
+    interval: StoredInt,
+    timestamp: StoredInt,
     view_service: ImagesViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
@@ -251,9 +253,9 @@ async def get_image_file(
 )
 async def get_image_thumbnail(
     camera: str,
-    interval: int,
+    interval: StoredInt,
     capture_date: date,
-    timestamp: int,
+    timestamp: StoredInt,
     view_service: ImagesViewDep,
     size: ThumbnailSizeFilter = None,
     _user: str = Depends(get_current_user),
@@ -301,20 +303,19 @@ async def delete_images_preview(
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     user: str = Depends(require_admin),
 ) -> Response:
     """Get preview of images that would be deleted."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
     camera = camera if camera else None
     date_str = date_str if date_str else None
 
     context = await view_service.get_deletion_preview(
         camera=camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
     )
 
     return templates.TemplateResponse(
@@ -330,22 +331,21 @@ async def delete_images(
     templates: TemplatesDep,
     view_service: ImagesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     expected_count: IntFilter = None,
     expected_timestamp_sum: IntFilter = None,
     user: str = Depends(require_admin),
 ) -> Response:
     """Delete images matching filters."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
     camera = camera if camera else None
     date_str = date_str if date_str else None
 
     result = await view_service.delete_images(
         camera=camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
         expected_count=expected_count,
         expected_timestamp_sum=expected_timestamp_sum,
     )

@@ -1,13 +1,22 @@
 """Timelapse routes."""
 
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.web.auth import get_current_user, require_admin
 from app.web.deps import TemplatesDep, TimelapsesViewDep
-from app.web.query_params import TimelapseStatusFilter
+from app.web.query_params import (
+    IntervalSeconds,
+    IntFilter,
+    IsoDate,
+    IsoDateString,
+    PageNumber,
+    StoredInt,
+    TimelapseStatusFilter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,20 +29,19 @@ async def timelapses_page(
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     status: TimelapseStatusFilter = None,
-    page: int = Query(1, ge=1),
+    page: PageNumber = 1,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the timelapses browser page."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
 
     context = await view_service.get_browser_context(
         camera=camera if camera else None,
         date_str=date_str if date_str else None,
-        interval=interval_int,
+        interval=interval,
         status=status if status else None,
         page=page,
     )
@@ -144,9 +152,9 @@ async def create_timelapse(
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
-    camera_id: str = Form(...),
-    date_str: str = Form(..., alias="date"),
-    interval: str = Form(...),
+    camera_id: Annotated[str, Form()],
+    date_str: Annotated[IsoDate, Form(alias="date")],
+    interval: Annotated[IntervalSeconds, Form()],
     user: str = Depends(require_admin),
 ) -> Response:
     """Create a new timelapse job (HTMX).
@@ -157,7 +165,7 @@ async def create_timelapse(
     context = await view_service.create_and_start_job(
         camera_id=camera_id,
         date_str=date_str,
-        interval=int(interval),
+        interval=interval,
     )
     return templates.TemplateResponse(
         request,
@@ -198,7 +206,7 @@ async def intervals_select_partial(
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Return interval select options based on camera and date selection."""
@@ -219,17 +227,16 @@ async def preview_partial(
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Return preview of timelapse to be created."""
-    interval_int = int(interval) if interval else None
 
     context = await view_service.get_preview_context(
         camera=camera,
         date_str=date_str,
-        interval=interval_int,
+        interval=interval,
     )
 
     return templates.TemplateResponse(
@@ -249,20 +256,19 @@ async def timelapse_list_partial(
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
     camera: str | None = Query(None),
-    date_str: str | None = Query(None, alias="date"),
-    interval: str | None = Query(None),
+    date_str: Annotated[IsoDateString, Query(alias="date")] = None,
+    interval: IntFilter = None,
     status: TimelapseStatusFilter = None,
-    page: int = Query(1, ge=1),
+    page: PageNumber = 1,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render timelapse list partial for HTMX updates."""
     # Handle empty strings from form
-    interval_int = int(interval) if interval else None
 
     context = await view_service.get_browser_context(
         camera=camera if camera else None,
         date_str=date_str if date_str else None,
-        interval=interval_int,
+        interval=interval,
         status=status if status else None,
         page=page,
     )
@@ -299,7 +305,7 @@ async def stats_partial(
     response_class=HTMLResponse,
 )
 async def timelapse_lightbox(
-    timelapse_id: int,
+    timelapse_id: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,
@@ -320,7 +326,7 @@ async def timelapse_lightbox(
 
 @router.get("/{timelapse_id}/video", name="timelapses.serve_timelapse_video")
 async def serve_timelapse_video(
-    timelapse_id: int,
+    timelapse_id: StoredInt,
     view_service: TimelapsesViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
@@ -339,7 +345,7 @@ async def serve_timelapse_video(
 
 @router.get("/{timelapse_id}/thumbnail", name="timelapses.serve_timelapse_thumbnail")
 async def serve_timelapse_thumbnail(
-    timelapse_id: int,
+    timelapse_id: StoredInt,
     view_service: TimelapsesViewDep,
     user: str = Depends(get_current_user),
 ) -> Response:
@@ -351,7 +357,7 @@ async def serve_timelapse_thumbnail(
     "/{timelapse_id}", name="timelapses.delete_timelapse", response_class=HTMLResponse
 )
 async def delete_timelapse(
-    timelapse_id: int,
+    timelapse_id: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: TimelapsesViewDep,

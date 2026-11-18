@@ -3,7 +3,7 @@ name: adversarial-audit
 description: Attack the WHOLE platform, not just a change — take the attack surface from `luxarch --sweep attack-surface`, rank it by this repo's committed audit profile, hand each slice to an independent attacker, verify every break with a second agent, and file each confirmed break in LuxPM with its failing test. Direct it in plain words ("what changed since the last release", "just payments, go deep", "quick"); re-runs attack only what changed. Use for a first full review of an app, on the owner's schedule, or when asked to audit or red-team the platform.
 ---
 
-<!-- luxarch:adversarial-audit-skill asset v12 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-audit-skill`. -->
+<!-- luxarch:adversarial-audit-skill asset v13 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit adversarial-audit-skill`. -->
 
 # Adversarial audit: the whole platform
 
@@ -186,7 +186,7 @@ One more independent **general-purpose** agent, on the strongest model (judgment
 
 ## 7. Record the run
 
-No finding becomes an issue: the audit run is the finding pass, and its findings are worked in this run (step 8), or the owner is asked one question listing them (`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD`, "Work what you find; never defer it"). The emitted `no-new-follow-ups` hook denies every create but an escalation. A finding a fleet guard or emitted asset claims to catch but passed is also a `/escalate`, so the guard learns it for every repo.
+No finding becomes an issue: the audit run is the finding pass, and its findings are worked in this run (step 8), or the owner is asked one question listing them (`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD`, "Work what you find; never defer it"). The emitted `no-new-follow-ups` hook denies a finding's create: one for later, one labelled `audit-finding`, or one whose title or description line opens with a deferral slot (`Audit finding:`, `Follow-up:`, `Later:`). A finding a fleet guard or emitted asset claims to catch but passed is also a `/escalate`, so the guard learns it for every repo.
 
 **Keep the reproductions where the fix can reach them.** `<scratch>` dies with this session. Copy each attacker's `<scratch>/<slice id>/` and the verifiers' files into `.adversarial-audit/runs/<date>/<slice id>/` in the repo, and make sure `.gitignore` carries `/.adversarial-audit/` (commit that line; the run files themselves stay uncommitted). That directory is one machine's local cache, so the issue this run works carries the proof: for each REAL finding, the route or job, what goes wrong, severity, the minimal reproduction (the failing test or probe, as text), its failing output and the verifier's verdict paragraph, in one `test_result` activity. Never paste a whole verifier transcript.
 

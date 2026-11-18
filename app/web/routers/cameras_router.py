@@ -68,6 +68,13 @@ async def camera_card_partial(
 ) -> Response:
     """Render single camera card partial."""
     context = await view_service.get_camera_card_context(camera_safe_name)
+    if not context["camera"]:
+        return templates.TemplateResponse(
+            request,
+            "partials/cameras/camera_not_found.html",
+            {},
+            status_code=404,
+        )
 
     return templates.TemplateResponse(
         request,

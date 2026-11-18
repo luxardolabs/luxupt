@@ -40,7 +40,9 @@ _FIRST_BOOT_LOCK = 7_310_412_908_311_525_401
 # --- EDIT THIS: the condition that finds a user by what they sign in with (the core's LOGIN_KIND:
 # `User.username == login` for a username login).
 def _login_matches(login: str) -> ColumnElement[bool]:
-    matches: ColumnElement[bool] = User.username == login
+    # Logins are stored stripped (one per stripped spelling), so a login typed with whitespace
+    # around it matches its stored login, as everywhere else in this app (user_crud.login_matches).
+    matches: ColumnElement[bool] = User.username == login.strip()
     return matches
 
 

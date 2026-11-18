@@ -148,14 +148,15 @@ class UsersViewService:
             account_page = self.path("account.change_password_page")
             return [f"Change your own password at {account_page}"]
 
-        # Username validation. A login stored before the policy stays editable: only a rename is
-        # held to the policy /setup enforces.
+        # Username validation. A login's stripped form is its identity. The stored login, submitted
+        # stripped-equal, is unchanged: it stays editable without the policy /setup enforces, which
+        # holds every rename. Either way no other user may hold the same identity.
         username = username.strip()
         current = await self.user_service.get_by_id(user_id)
-        renamed = current is None or current.username != username
+        unchanged = current is not None and username == current.username.strip()
         if not username:
             errors.append("Username is required")
-        elif renamed and (problem := login_policy_problem(username)):
+        elif not unchanged and (problem := login_policy_problem(username)):
             errors.append(f"Username refused: {problem}")
         elif await self.user_service.username_exists(username, exclude_id=user_id):
             errors.append("Username already exists")
@@ -202,7 +203,10 @@ class UsersViewService:
         password: str | None,
         is_admin: bool,
     ) -> tuple[bool, str]:
-        """Update an existing user. Returns (success, message)."""
+        """Update an existing user. Returns (success, message).
+
+        The login is stored stripped, its identity: a stored login with surrounding spaces is
+        normalised by its next save."""
         username = username.strip()
         if not is_admin and await self.user_service.is_last_admin(user_id):
             return False, "Cannot remove the last administrator"

@@ -3,11 +3,20 @@
 import secrets
 from datetime import datetime
 
-from sqlalchemy import Boolean, Integer, String, false
+from sqlalchemy import Boolean, Index, Integer, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
 from app.db.types import UtcDateTime
+
+# Exactly the characters Python's str.strip() removes (every str.isspace() character). A login is
+# stored stripped of them, and SQLite's trim(username, this) is what the unique index below holds
+# to, so no two rows can differ only by surrounding whitespace.
+LOGIN_WHITESPACE = (
+    "\t\n\x0b\x0c\r\x1c\x1d\x1e\x1f \x85\xa0\u1680"
+    "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+    "\u2028\u2029\u202f\u205f\u3000"
+)
 
 
 def new_session_version() -> int:
@@ -44,3 +53,11 @@ class User(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username})>"
+
+
+# One login per stripped spelling: ` bob` beside `bob` is refused by the database itself.
+Index(
+    "ix_users_login_identity",
+    func.trim(User.username, LOGIN_WHITESPACE),
+    unique=True,
+)

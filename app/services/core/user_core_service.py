@@ -3,7 +3,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user_crud import user_crud
-from app.models.user_model import User
 from app.schemas.user_schema import UserRead
 
 
@@ -22,10 +21,6 @@ class UserCoreService:
         """Get a user by ID."""
         user = await user_crud.get(self.db, user_id)
         return UserRead.model_validate(user) if user is not None else None
-
-    async def get_by_username(self, username: str) -> User | None:
-        """Get a user by username."""
-        return await user_crud.get_by_username(self.db, username)
 
     async def create(
         self, username: str, password: str, is_admin: bool = True
@@ -91,8 +86,9 @@ class UserCoreService:
     async def username_exists(
         self, username: str, exclude_id: int | None = None
     ) -> bool:
-        """Check if username already exists (optionally excluding a specific user ID)."""
-        user = await self.get_by_username(username)
-        if user is None:
-            return False
-        return not (exclude_id is not None and user.id == exclude_id)
+        """Whether another user already holds this login (optionally excluding one user ID).
+
+        Logins compare by their stripped form, which is a login's identity: `bob` is taken while
+        ` bob` exists."""
+        ids = await user_crud.ids_with_login(self.db, username)
+        return any(found != exclude_id for found in ids)

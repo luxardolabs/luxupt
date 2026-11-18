@@ -157,7 +157,7 @@ async def session_user(db: AsyncSession, token: str) -> User | None:
     if claims is None:
         return None
     username, version = claims
-    user = await user_crud.get_by_username(db, username)
+    user = await user_crud.get_by_login(db, username)
     if user is None or user.session_version != version:
         return None
     return user
@@ -241,9 +241,9 @@ async def login(
     success, user_id = await AuthService.authenticate_user(db, username, password)
 
     if not success or user_id is None:
-        logger.warning(
-            "Failed login attempt", extra={"username": username, "client_ip": address}
-        )
+        # Never what was typed: a password typed into the username field would be written here,
+        # at any length the client chose.
+        logger.warning("Failed login attempt", extra={"client_ip": address})
         return cast(
             Response,
             templates.TemplateResponse(
@@ -259,7 +259,11 @@ async def login(
     if signed_in is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    logger.info("Successful login", extra={"username": username, "client_ip": address})
+    # The stored login, never what was typed: sign-in accepts any whitespace around it.
+    logger.info(
+        "Successful login",
+        extra={"username": signed_in.username, "client_ip": address},
+    )
 
     # Create access token
     access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)

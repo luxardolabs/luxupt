@@ -11,7 +11,7 @@ from app.core import config
 from app.web.auth import get_current_user, require_admin
 from app.web.deps import SystemViewDep, TemplatesDep, UsersViewDep
 from app.web.main import get_start_time
-from app.web.query_params import IntFilter
+from app.web.query_params import IntFilter, PageNumber, StoredInt
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ async def activity_log_page(
     show: str = Query("problems"),
     period: str = Query("7d"),
     camera_id: str | None = Query(None),
-    page: int = Query(1, ge=1),
+    page: PageNumber = 1,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render the activity log page."""
@@ -73,7 +73,7 @@ async def activity_feed_partial(
     show: str = Query("problems"),
     period: str = Query("7d"),
     camera_id: str | None = Query(None),
-    page: int = Query(1, ge=1),
+    page: PageNumber = 1,
     user: str = Depends(get_current_user),
 ) -> Response:
     """Render activity feed partial for HTMX updates."""
@@ -277,7 +277,7 @@ async def create_user(
 
 @router.post("/users/{user_id}", name="system.update_user", response_class=HTMLResponse)
 async def update_user(
-    user_id: int,
+    user_id: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
@@ -330,7 +330,7 @@ async def update_user(
     response_class=HTMLResponse,
 )
 async def user_delete_confirm_panel(
-    user_id: int,
+    user_id: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,
@@ -350,7 +350,7 @@ async def user_delete_confirm_panel(
     "/users/{user_id}", name="system.delete_user", response_class=HTMLResponse
 )
 async def delete_user(
-    user_id: int,
+    user_id: StoredInt,
     request: Request,
     templates: TemplatesDep,
     view_service: UsersViewDep,

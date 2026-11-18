@@ -22,11 +22,12 @@ A router then declares e.g. ``status: TimelapseStatusFilter = None`` and does
 nothing else — the value arrives already validated and normalized.
 """
 
+from datetime import date
 from typing import Annotated
 
 from annotated_types import Ge, Le
 from fastapi import Query
-from pydantic import BeforeValidator
+from pydantic import AfterValidator, BeforeValidator
 
 from app.models.enum_model import ActivityType, TimelapseStatus
 
@@ -49,8 +50,54 @@ ActivityTypeFilter = Annotated[
 ]
 
 # ── Optional integer filters: empty ('') → None before int validation ───────
-IntFilter = Annotated[int | None, BeforeValidator(empty_to_none), Query()]
-"""An optional integer query param (e.g. an interval/user-id filter); '' → None."""
+# SQLite stores an INTEGER in 8 bytes: a larger value fails when it is bound, as a 500.
+SQLITE_INT_MIN = -(2**63)
+SQLITE_INT_MAX = 2**63 - 1
+
+IntFilter = Annotated[
+    Annotated[int, Ge(SQLITE_INT_MIN), Le(SQLITE_INT_MAX)] | None,
+    BeforeValidator(empty_to_none),
+    Query(),
+]
+"""An optional integer query param (e.g. an interval/user-id filter); '' → None.
+
+Bounded to what SQLite can store, so a larger value is a 422, never a 500 at the query."""
+
+StoredInt = Annotated[int, Ge(SQLITE_INT_MIN), Le(SQLITE_INT_MAX)]
+"""An integer path parameter (a row id, a capture timestamp), bounded to what SQLite can store:
+a larger one is a 422, never a 500 when the query binds it."""
+
+IntervalSeconds = Annotated[int, Ge(1), Le(SQLITE_INT_MAX)]
+"""A capture interval in seconds that a job is created for: at least one second."""
+
+MAX_PAGE = 1_000_000
+
+PageNumber = Annotated[int, Ge(1), Le(MAX_PAGE), Query()]
+"""A 1-based page number. Bounded so the offset it becomes, times any page size, fits SQLite."""
+
+
+def iso_date_or_none(v: str | None) -> str | None:
+    """A date value as its canonical `YYYY-MM-DD`; anything that is no date is refused (a 422).
+
+    Every ISO spelling of a day (`20261117`, `2026-W47-2`) is the same day, written one way, so a
+    job or a folder it names carries the canonical date."""
+    if v is None:
+        return None
+    return date.fromisoformat(v).isoformat()
+
+
+IsoDateString = Annotated[
+    str | None, BeforeValidator(empty_to_none), AfterValidator(iso_date_or_none)
+]
+"""An optional ISO date query value (`2026-11-17`), kept as the string the views take; '' → None.
+
+A router names it with its `Query()` (`Annotated[IsoDateString, Query(alias="date")]`), so a value
+that is not a date is a 422 naming only the field, never a 500 whose traceback quotes it.
+"""
+
+IsoDate = Annotated[str, AfterValidator(iso_date_or_none)]
+"""A required ISO date form or query value, kept as the string the views take; anything else is a
+422 naming only the field."""
 
 ThumbnailSizeFilter = Annotated[
     Annotated[int, Ge(50), Le(1024)] | None,

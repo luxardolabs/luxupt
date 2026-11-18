@@ -24,6 +24,28 @@ from .auth import (
 
 logger = logging.getLogger(__name__)
 
+_NO_ROUTE = "(no route)"
+
+
+def _logged_route(request: Request) -> str:
+    """The matched route's template (`/system/users/{user_id}`), never the request's own path: a
+    path parameter or an unmatched path is whatever the client sent. The route's own template is
+    relative to its router, so the router's prefix is read off the front of the path; this app's
+    prefixes are literal."""
+    route = request.scope.get("route")
+    template = getattr(route, "path_format", None)
+    if not isinstance(template, str):
+        return _NO_ROUTE
+    params = request.scope.get("path_params") or {}
+    try:
+        tail = template.format_map({name: str(value) for name, value in params.items()})
+    except KeyError, IndexError, ValueError:
+        return template
+    path = request.url.path
+    if not path.endswith(tail):
+        return template
+    return path[: len(path) - len(tail)] + template
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -88,11 +110,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        """Log request method, URL, status code, and timing. Skip static files unless errored.
+        """Log request method, route, status code, and timing. Skip static files unless errored.
 
         Each request gets an id minted here, never copied from the client: it is
         `request.state.request_id` for every handler below (the error handlers log and show it as
-        the reference), it is on this middleware's log lines, and it is echoed as `X-Request-ID`."""
+        the reference), it is on this middleware's log lines, and every response this middleware
+        returns echoes it as `X-Request-ID`. A 500 is built outside it, by the error handler, so
+        that page shows the id as its reference instead.
+
+        The line names the matched route's template, never the path or its query string, and a
+        failure's exception TYPE, never its text or traceback (the error handler logs that once):
+        a path or query value, or an exception's message, can quote what the client sent."""
         request_id = uuid.uuid4().hex
         request.state.request_id = request_id
         start_time = time.time()
@@ -111,7 +139,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     extra={
                         "request_id": request_id,
                         "method": request.method,
-                        "url": str(request.url),
+                        "route": _logged_route(request),
                         "status_code": response.status_code,
                         "process_time_s": round(process_time, 3),
                     },
@@ -119,18 +147,25 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             return response
         except Exception as e:
-            process_time = time.time() - start_time
-            logger.exception(
-                "HTTP request failed",
-                extra={
-                    "request_id": request_id,
-                    "method": request.method,
-                    "url": str(request.url),
-                    "error": str(e),
-                    "process_time_s": round(process_time, 3),
-                },
-            )
+            _log_failure(request, request_id, type(e), time.time() - start_time)
             raise
+
+
+def _log_failure(
+    request: Request, request_id: str, exc_type: type[BaseException], elapsed: float
+) -> None:
+    """The failed request's line: its exception TYPE only. The error handler logs the traceback
+    once, on its own line with the same request id; this line repeats none of its text."""
+    logger.error(
+        "HTTP request failed",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "route": _logged_route(request),
+            "exception_type": exc_type.__qualname__,
+            "process_time_s": round(elapsed, 3),
+        },
+    )
 
 
 class AuthRedirectMiddleware(BaseHTTPMiddleware):

@@ -1178,7 +1178,7 @@ gitleaks-commit-msg: ## secret + denylist scan of the commit MESSAGE being writt
 	  exit 1; }
 
 # Code-style + type guard (luxlint) — pinned; host from Makefile.local ($(LUXARCH_REGISTRY)).
-LUXLINT_VERSION := 0.79.1
+LUXLINT_VERSION := 0.81.0
 LUXLINT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
@@ -1384,7 +1384,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.370.0
+LUXARCH_VERSION   := 0.372.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch
@@ -1394,7 +1394,7 @@ arch: ## Architecture conformance via luxarch (pinned; reads .luxarch.toml)
 # Dependency-vulnerability / SCA guard (luxaudit) — pinned; host from Makefile.local.
 # Mount-only, no tail, no deps: reads poetry.lock and checks every pinned dep against the
 # LIVE OSV+PyPA feed, so each run is current with no rebuild — no cron needed.
-LUXAUDIT_VERSION := 0.18.0
+LUXAUDIT_VERSION := 0.20.0
 LUXAUDIT_IMAGE   ?= $(LUXARCH_REGISTRY)/luxardolabs/luxaudit:$(LUXAUDIT_VERSION)
 
 .PHONY: audit
@@ -1618,6 +1618,13 @@ DEV_ENV_FILE := $(if $(SITE),.env.$(SITE)-dev,.env.dev)
 # site's stack joins its front network (`make dev-network` creates that network on the dev host).
 DEV_HOST := devhost
 DEV_PROFILES := $(if $(filter bb,$(SITE)),dev-edge)
+# nginx-dev reads its config through a bind mount, which keeps the file it started with when git
+# replaces it: the bb deploy, the one that runs nginx-dev, recreates it when the config changed,
+# after `nginx -t` passes. A change to deploy/nginx-dev.conf therefore ships with
+# `make dev-deploy SITE=bb`; the other site's deploy leaves the front as it is.
+DEV_RECREATE := $(if $(filter bb,$(SITE)),nginx-dev)
+nginx-dev_RECREATE_PATHS := deploy/nginx-dev.conf
+nginx-dev_RECREATE_CHECK := nginx -t
 
 # luxarch:build-core asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit build-core`.
 # ── Build core: the image names, where each is built from, and the quoting every block splices with ──

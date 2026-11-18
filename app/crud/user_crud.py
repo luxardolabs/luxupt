@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base_crud import CRUDBase
@@ -12,6 +12,15 @@ from app.utils.password_hash import hash_password, verify_password
 
 # Argon2 for new passwords, legacy bcrypt still verifiable — see app/utils/password_hash.py
 # for why this no longer goes through passlib's argon2 handler.
+
+
+def login_matches(login: str) -> ColumnElement[bool]:
+    """The user who signs in as `login`. Logins are stored stripped, and the database allows one
+    per stripped spelling (`ix_users_login_identity`), so `bob `, `\tbob` and `bob` are one login:
+    every lookup by login (sign-in, the session check, the admin form's uniqueness, the recovery
+    CLI, /setup and /account/password) matches the stripped login exactly."""
+    matches: ColumnElement[bool] = User.username == login.strip()
+    return matches
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
@@ -24,8 +33,8 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         return list(result.scalars().all())
 
     async def get_by_username(self, db: AsyncSession, username: str) -> User | None:
-        """Get a user by username."""
-        result = await db.execute(select(User).where(User.username == username))
+        """The user who signs in as `username` (`login_matches`)."""
+        result = await db.execute(select(User).where(login_matches(username)))
         return result.scalar_one_or_none()
 
     async def create_user(
@@ -40,7 +49,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         """Create a new user with hashed password."""
         password_hash = hash_password(password)
         user = User(
-            username=username,
+            username=username.strip(),
             password_hash=password_hash,
             is_admin=is_admin,
             must_change_password=must_change_password,
@@ -63,10 +72,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
         """Apply field updates to a user (hashing the password if given) and flush."""
         # Hashed before any field changes: a password it refuses leaves the row untouched.
         password_hash = hash_password(password) if password is not None else None
+        if username is not None:
+            username = username.strip()
         if password_hash is not None or (
             username is not None and username != user.username
         ):
-            # A new password or name ends the sessions issued before it, in the same UPDATE.
+            # A new password or a new login ends the sessions issued before it, in the same UPDATE.
             user.session_version = new_session_version()
         if username is not None:
             user.username = username
@@ -104,18 +115,32 @@ class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
     async def get_by_username_for_update(
         self, db: AsyncSession, username: str
     ) -> User | None:
-        """The user, read fresh and locked until this transaction ends.
+        """The user who signs in as `username` (`login_matches`), read fresh and
+        locked until this transaction ends.
 
         `populate_existing` re-reads a row already in the session rather than trusting it. On SQLite,
         which has no row lock, the request transaction is `BEGIN IMMEDIATE` (app/db/database.py):
         it already holds the database's write lock, so no other writer commits until it ends.
+        The session is flushed first: the sessionmaker does not autoflush, and the re-read would
+        otherwise overwrite a change to this user that is still pending in the session.
         """
+        await db.flush()
         statement = (
             select(User)
-            .where(User.username == username)
+            .where(login_matches(username))
             .with_for_update(key_share=True)
             .execution_options(populate_existing=True)
         )
+        return (await db.scalars(statement)).first()
+
+    async def ids_with_login(self, db: AsyncSession, login: str) -> list[int]:
+        """The ids of the users who sign in as `login` (`login_matches`): at most one."""
+        result = await db.execute(select(User.id).where(login_matches(login)))
+        return list(result.scalars().all())
+
+    async def get_by_login(self, db: AsyncSession, login: str) -> User | None:
+        """The user who signs in as `login` (`login_matches`)."""
+        statement = select(User).where(login_matches(login))
         return (await db.scalars(statement)).first()
 
     async def get_retired_env_logins(self, db: AsyncSession) -> list[str]:
