@@ -1618,13 +1618,12 @@ DEV_ENV_FILE := $(if $(SITE),.env.$(SITE)-dev,.env.dev)
 # site's stack joins its front network (`make dev-network` creates that network on the dev host).
 DEV_HOST := devhost
 DEV_PROFILES := $(if $(filter bb,$(SITE)),dev-edge)
-# nginx-dev reads its config through a bind mount, which keeps the file it started with when git
-# replaces it: the bb deploy, the one that runs nginx-dev, recreates it when the config changed,
-# after `nginx -t` passes. A change to deploy/nginx-dev.conf therefore ships with
+# nginx-dev reads its config once, at start: the bb deploy, the one that runs nginx-dev, recreates
+# it when the config changed, after `nginx -t` passes. A change to deploy/nginx-dev.conf therefore ships with
 # `make dev-deploy SITE=bb`; the other site's deploy leaves the front as it is.
 DEV_RECREATE := $(if $(filter bb,$(SITE)),nginx-dev)
 nginx-dev_RECREATE_PATHS := deploy/nginx-dev.conf
-nginx-dev_RECREATE_CHECK := nginx -t
+nginx-dev_RECREATE_CHECK := nginx -t -c /etc/luxupt-nginx/nginx-dev.conf
 
 # luxarch:build-core asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit build-core`.
 # ── Build core: the image names, where each is built from, and the quoting every block splices with ──

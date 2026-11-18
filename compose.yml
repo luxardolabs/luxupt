@@ -115,11 +115,14 @@ services:
       - dev-edge
     image: nginx:1.31-alpine
     container_name: luxupt-nginx
+    command: ["nginx", "-c", "/etc/luxupt-nginx/nginx-dev.conf", "-g", "daemon off;"]
     oom_score_adj: -500
     security_opt:
       - no-new-privileges:true
     volumes:
-      - ./deploy/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      # The directory, not the file: git replaces a file it changes, and a bind mount of the
+      # file keeps the old one (on NFS, a stale handle nginx cannot open at all).
+      - ./deploy:/etc/luxupt-nginx:ro
       - ${CERT_ROOT:?set CERT_ROOT in .env.<env>}:/etc/nginx/ssl:ro
     networks:
       luxupt_front:
@@ -127,7 +130,7 @@ services:
       dev-edge:
         ipv4_address: 172.30.0.28
     healthcheck:
-      test: ["CMD", "nginx", "-t", "-q"]
+      test: ["CMD", "nginx", "-t", "-q", "-c", "/etc/luxupt-nginx/nginx-dev.conf"]
       interval: 30s
       timeout: 5s
       retries: 3
