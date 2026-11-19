@@ -103,6 +103,7 @@ set_env*.sh
 # Documentation (README.md explicitly copied in Dockerfile)
 # -----------------------------------------------------------------------------
 *.md
+*.md.archived
 !README.md
 docs/
 
@@ -154,6 +155,7 @@ nginx/
 # -----------------------------------------------------------------------------
 prod/
 app/scratch/
+scratch/
 
 # -----------------------------------------------------------------------------
 # Bytecode, dotenv, credential, key and git files, at every depth. These come last
@@ -170,3 +172,4 @@ app/scratch/
 **/id_ecdsa*
 **/id_ed25519*
 **/.git
+**/.DS_Store
