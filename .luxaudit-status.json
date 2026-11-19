@@ -16,10 +16,10 @@
   "by_public_version": [],
   "warnings": [],
   "image": {
-    "ref": "luxardolabs/luxupt:2026.10.2",
+    "ref": "luxardolabs/luxupt:2026.11.0",
     "inert": false,
     "inert_reason": "",
-    "error": "the registry has luxardolabs/luxupt:2026.10.2, but the scanner could not read it as an image: lize Podman client: no podman socket found: stat podman/podman.sock: no such file or directory\n\t* remote error: GET https://<registry>/v2/luxardolabs/luxupt/manifests/sha256:bb156004e167be6554204b41e2f5c2a93675754b7a209f9956f62af5a0f4a85c: MANIFEST_UNKNOWN: manifest unknown; map[Name:luxardolabs/luxupt Revision:sha256:bb156004e167be6554204b41e2f5c2a93675754b7a209f9956f62af5a0f4a85c]",
+    "error": "",
     "not_released": [],
     "vulnerable": [],
     "deferred": []
@@ -29,6 +29,6 @@
     "expired": [],
     "unjudged": []
   },
-  "commit": "f6aa603031fd46b969de19c46b39792060287957",
-  "generated_at": "2026-11-19T14:04:37Z"
+  "commit": "8dfc0f55f6a0f86293e0537982b1404c320c5522",
+  "generated_at": "2026-11-19T16:14:26Z"
 }

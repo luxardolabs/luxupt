@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.373.0",
+  "guard_version": "0.373.1",
   "repo": "/repo",
   "targets": [
     {
@@ -669,15 +669,15 @@
         },
         {
           "rule": "fw.no_private_cross_module_imports",
-          "status": "FAIL",
+          "status": "PASS",
           "since": "0.2.0",
-          "violations": 1,
+          "violations": 0,
           "crashed": false,
           "deferred": false,
           "inert": false,
           "inert_reason": "",
-          "fix": "A leading `_` marks an implementation detail: a `_` name is private to its module, and a `_` module or package is private to its parent package and that package's children. Code outside (a test included) that imports it, patches it, or reaches it as an attribute or by a string depends on that detail, so the detail can no longer change without breaking that code. Decide what the private thing is (the playbook's one question): an implementation detail, so test the public behaviour that runs it and fake only what crosses the app's boundary (HTTP, clock, storage); a real capability, so extract it to a public service and test that; or shared data or config wearing an underscore, so make it public where it belongs. Never make it public just so a test can reach it, and never swap the import for a string-path patch, an attribute access or a getattr: that is the same coupling, hidden.",
-          "example": "red     from app.services.core._oidc import _pkce_pair\n        monkeypatch.setattr(\"app.services.core._oidc._discover\", fake_discover)\n\n        def test_pkce_pair():\n            verifier, challenge = _pkce_pair()\n            assert challenge == s256(verifier)\n\nclears  from app.services.core.auth import build_login_redirect   # the public seam\n\n        def test_login_redirect_carries_an_s256_challenge(httpx_mock):\n            httpx_mock.add_response(url=DISCOVERY_URL, json=DISCOVERY)  # fake the IdP, not _oidc\n            url = build_login_redirect(state=\"s\")\n            q = parse_qs(urlparse(url).query)\n            assert q[\"code_challenge_method\"] == [\"S256\"]\n\nThe PKCE coverage survives: it is asserted through the URL the user is sent to, which is\nthe behaviour that matters, and _oidc can now be rewritten without touching a test."
+          "fix": "",
+          "example": ""
         },
         {
           "rule": "fw.paginated_responses_subclass_base",
@@ -2097,8 +2097,8 @@
         }
       ],
       "summary": {
-        "PASS": 146,
-        "FAIL": 1,
+        "PASS": 147,
+        "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
         "INERT": 27
@@ -2433,14 +2433,14 @@
       },
       {
         "rule": "repo.luxpm_backlog_triaged",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.252.0",
-        "violations": 1,
+        "violations": 0,
         "crashed": false,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "run `/luxpm-audit` (`luxarch --emit luxpm-audit-skill > .claude/skills/luxpm-audit/SKILL.md`): verify each open issue against the code and close it with evidence, park it `on_hold` with `waiting_on`, merge it into its duplicate, or comment what remains; backfill a summary on each unexplained close; then re-issue the receipt. Never close live work to move the count, and leave escalations to the guard maintainer.",
+        "fix": "",
         "example": ""
       },
       {
@@ -3009,20 +3009,20 @@
       }
     ],
     "summary": {
-      "PASS": 69,
-      "FAIL": 2,
+      "PASS": 70,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 4
     }
   },
   "summary": {
-    "PASS": 215,
-    "FAIL": 3,
+    "PASS": 217,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 31
   },
-  "commit": "f6aa603031fd46b969de19c46b39792060287957",
-  "generated_at": "2026-11-19T14:04:37Z"
+  "commit": "8dfc0f55f6a0f86293e0537982b1404c320c5522",
+  "generated_at": "2026-11-19T16:14:26Z"
 }
