@@ -94,6 +94,7 @@ compose*.yaml
 # Build and development scripts
 # -----------------------------------------------------------------------------
 Makefile
+Makefile.*
 build.sh
 gather_reqs.sh
 set_env*.sh
@@ -147,6 +148,12 @@ test_*.py
 # External service configs (nginx runs as separate container)
 # -----------------------------------------------------------------------------
 nginx/
+
+# -----------------------------------------------------------------------------
+# Local, gitignored site config and scratch (topology, never in an image)
+# -----------------------------------------------------------------------------
+prod/
+app/scratch/
 
 # -----------------------------------------------------------------------------
 # Bytecode, dotenv, credential, key and git files, at every depth. These come last
