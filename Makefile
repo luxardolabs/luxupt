@@ -1184,7 +1184,7 @@ LUXLINT = $(LUXLINT_IMAGE)
 # Pytest deps come from the lock via Dockerfile.test (used by make test).
 TEST_DEPS_IMAGE    ?= luxupt-test-deps
 
-# luxarch:guard-run asset v11 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-run`.
+# luxarch:guard-run asset v12 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-run`.
 # ── GUARD_RUN: how every guard sees this checkout ───────────────────────────────────────────────────
 # Emitted by `luxarch --emit guard-run`; paste it above the targets that run the guards (`status:`, and
 # `arch:` / `lint:` / `audit:` where they run a guard image).
@@ -1258,9 +1258,15 @@ override GUARD_RUN = guard_slot_run() ( $(guard_slot_body) $(guard_capped) ); gu
 #   - TARGETED runs take none: a GUARD_RUN naming `--rule <id>` (a value holding more than blanks
 #     and commas, which luxarch drops, so `--rule ' '` runs every rule), or a flag that scans nothing
 #     (`--emit*`, `--doc`, `--docs`, `--playbook`, `--version`, `--list-rules`, `--changelog`,
-#     `--new-rules`, `--coverage-ratchet`, `--help`), and `make test-fast PYTEST_ARGS=<…>`. Every
-#     other guard run is a full scan and takes one: `--path <file>` alone too, which narrows only
-#     what is shown while every rule still reads the whole repo.
+#     `--new-rules`, `--coverage-ratchet`, `--help`), a luxarch run with `--path <file>` (a value
+#     holding more than blanks), which from luxarch 0.373.0 runs only the per-file rules on the named
+#     files, and `make test-fast PYTEST_ARGS=<…>`. The image is read as docker reads it: the first
+#     word after `docker run` that is no option and no option's value (`-v <mount>`, `--name <x>`,
+#     `-e <K=V>`). It is `luxarch:<version>` at 0.373.0 or later, or a checkout's own
+#     `luxarch:local-<hash>`. Only the words after it are the guard's, so `--path` and the modes that
+#     read the whole repo (`--plan`, `--sweep`, `--ratchet`, `--json`) are read there, and an
+#     `--entrypoint` anywhere makes it a full scan. Every other guard run is a full scan and takes
+#     one: `--path` on an older image, under another tag, or on another guard, too.
 #   - NESTED heavy jobs take no second slot: a job whose descriptor 9 is open on one of slots
 #     1..HEAVY_SLOTS and holds its lock runs inside the job that took it (`check` running `test`
 #     running a scan), so it starts at once, at HEAVY_SLOTS=1 too. So does a job one of whose
@@ -1329,8 +1335,16 @@ override guard_slot_vals = $(foreach v,HEAVY_SLOTS HEAVY_SLOT_DIR,$(if $(filter 
 override guard_slot = $(if $(guard_dry),:,set -- $(guard_slot_vals); $(guard_slot_body) :)
 override guard_slot_body = gs_d=$$1 gs_n=$$2 gs_job=$$3; shift 3; \
   case "$$gs_n" in (""|0*|*[!0-9]*|?????*) echo "REFUSING: HEAVY_SLOTS is \"$$gs_n\", not a whole number from 1 to 9999: set it in Makefile.local" >&2; exit 2;; esac; \
-  gs_x=; gs_p=; for gs_a in "$$@"; do case "$$gs_p" in (--rule) case "$$gs_a" in (*[![:space:],]*) gs_x=1;; esac;; esac; \
-    case "$$gs_a" in (--rule=*[![:space:],]*|--emit|--emit=?*|--emit-*|--doc|--doc=?*|--docs|--playbook|--playbook=?*|--version|--list-rules|--changelog|--new-rules|--coverage-ratchet|--help) gs_x=1;; esac; gs_p=$$gs_a; done; \
+  gs_x=; gs_p=; gs_pa=; gs_nw=; gs_la=; gs_im=; gs_rn=; gs_sk=; for gs_a in "$$@"; do case "$$gs_p" in (--rule) case "$$gs_a" in (*[![:space:],]*) gs_x=1;; esac;; (--path) [ -z "$$gs_im" ] || case "$$gs_a" in (*[![:space:]]*) gs_pa=1;; (*) gs_nw=1;; esac;; esac; \
+    case "$$gs_a" in (--rule=*[![:space:],]*|--emit|--emit=?*|--emit-*|--doc|--doc=?*|--docs|--playbook|--playbook=?*|--version|--list-rules|--changelog|--new-rules|--coverage-ratchet|--help) gs_x=1;; (--entrypoint|--entrypoint=*) gs_nw=1;; esac; \
+    if [ -n "$$gs_im" ]; then case "$$gs_a" in (--path=*[![:space:]]*) gs_pa=1;; (--path=*|--pl*|--sw*|--ra*|--js*) gs_nw=1;; esac; \
+    elif [ -z "$$gs_rn" ]; then [ "$$gs_a" != run ] || gs_rn=1; \
+    elif [ -n "$$gs_sk" ]; then gs_sk=; \
+    else case "$$gs_a" in (-v|--volume|-e|--env|--env-file|--name|-h|--hostname|-w|--workdir|--network|--net|--network-alias|-u|--user|-l|--label|--label-file|--mount|--platform|-m|--memory|--memory-swap|--memory-reservation|-c|--cpu-shares|--cpus|--cpuset-cpus|--oom-score-adj|--add-host|--cap-add|--cap-drop|--device|--dns|--group-add|--ipc|--pid|--uts|--userns|--cgroupns|--security-opt|--tmpfs|--ulimit|--shm-size|--log-driver|--log-opt|-p|--publish|--expose|--runtime|--gpus|--restart|--stop-signal|--stop-timeout|--cidfile|--pull|--volumes-from|--link|--ip|--ip6|--mac-address|--health-cmd|--health-interval|--health-retries|--health-timeout|--isolation|--attach|-a) gs_sk=1;; (-*) ;; \
+      (*) gs_im=1; case "$$gs_a" in (luxarch:local-?*|*/luxarch:local-?*) gs_la=1;; (luxarch:[0-9]*|*/luxarch:[0-9]*) \
+      gs_mj=$$(expr "x$$gs_a" : '.*luxarch:\([0-9][0-9]*\)\.' || :); gs_mn=$$(expr "x$$gs_a" : '.*luxarch:[0-9][0-9]*\.\([0-9][0-9]*\)' || :); \
+      if [ -n "$$gs_mj" ] && [ -n "$$gs_mn" ] && { [ "$$gs_mj" -gt 0 ] || [ "$$gs_mn" -ge 373 ]; }; then gs_la=1; fi;; esac;; esac; fi; gs_p=$$gs_a; done; \
+  [ -z "$$gs_pa" ] || [ -n "$$gs_nw" ] || [ -z "$$gs_la" ] || gs_x=1; \
   gs_who() { gs_t=$$(mktemp "$$gs_d/.who.XXXXXX") && { printf "%s\n" "$$gs_job (shell pid $$$$, user $$(id -un 2>/dev/null))" > "$$gs_t"; chmod 644 "$$gs_t"; mv -f "$$gs_t" "$$gs_f.who" 2>/dev/null || rm -f "$$gs_t"; }; }; \
   gs_busy() { command -v docker >/dev/null 2>&1 && docker ps -q --filter "label=fleet.heavy-slot=$$1" 2>/dev/null | grep -qE '^[0-9a-f]{12,64}$$'; }; \
   gs_lock() { if command -v flock >/dev/null 2>&1; then flock -n -E 75 9; else python3 -I -c "import fcntl,os,sys; sys.excepthook=lambda t,v,b: os._exit(75 if t is BlockingIOError else 2); fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)"; fi; }; \
@@ -1384,7 +1398,7 @@ mypy: ## mypy — MOUNT-ONLY (fleet typed deps baked); applies the [mypy].baseli
 # Architecture guard (luxarch) — pinned. LUXARCH_REGISTRY comes from Makefile.local (gitignored);
 # empty on a clean public clone (guard-version-check + the guard runs skip cleanly when unset).
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION   := 0.372.0
+LUXARCH_VERSION   := 0.373.0
 LUXARCH_IMAGE    ?= $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 
 .PHONY: arch

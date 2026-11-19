@@ -3,7 +3,7 @@ name: wrap-up
 description: Close out a piece of work the fleet way before calling it done — tests written and run for what changed, every red in touched files fixed, docs updated (stale advice removed), make check green, committed in the issue's worktree, LuxPM fully closed out (issues, checklists, activities, commit links, sync receipt), then landed on the base branch, the worktree removed, and pushed as the repo declares. Every step reports evidence, not a tick.
 ---
 
-<!-- luxarch:wrap-up-skill asset v27 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit wrap-up-skill`. -->
+<!-- luxarch:wrap-up-skill asset v28 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit wrap-up-skill`. -->
 
 # Wrap up
 
@@ -38,7 +38,7 @@ A green suite is evidence only for what it can see. Four bugs in one repo passed
 
 ## 3. Every red in a file you touched, and none moved
 
-You touched it, you own it (conduct standard #11): fix every mypy, ruff and luxarch red in each changed file, not only yours, and never spend time proving one predates you. Check a file's luxarch reds with a targeted run, `luxarch --rule <id> --path <file>` (or `--path <file>` alone over the rules that fire there), never a full scan filtered through `grep`. For mypy, read `luxlint --playbook mypy-sweep` in full first. Fix by aligning the code; never `type: ignore`, `cast`, `Any`, `noqa` or an exemption.
+You touched it, you own it (conduct standard #11): fix every mypy, ruff and luxarch red in each changed file, not only yours, and never spend time proving one predates you. Check a file's luxarch reds with a targeted run, `luxarch --path <file>` for the per-file rules and `luxarch --rule <id> --path <file>` for each whole-tree rule that fires in the repo, never a full scan filtered through `grep`. For mypy, read `luxlint --playbook mypy-sweep` in full first. Fix by aligning the code; never `type: ignore`, `cast`, `Any`, `noqa` or an exemption.
 
 A red can also be moved instead of fixed: the code goes to another layer, helper or consumer module, and a rule stops seeing it or another rule starts. Counting only the files you touched cannot see that. So compare the WHOLE repo. Take the base's committed status (`git show <base>:.luxarch-status.json`, and `.luxlint-status.json` the same way), run `make status` on your tree, and compare each rule's `violations` count in the two. A rule whose count rose anywhere is a red you moved: fix it in this change, or escalate it. A site that cleared because its code moved rather than changed is the same thing. A site you skipped because it is held (conduct standard, "Before you change code to clear a red") is named here with its issue key.
 
@@ -56,7 +56,7 @@ A red can also be moved instead of fixed: the code goes to another layer, helper
 
 - You are in the issue's worktree (`<repo parent>/.worktrees/<repo>/<ISSUE-KEY>`, or `.claude/worktrees/<ISSUE-KEY>` for one made before worktrees moved beside the repository; `luxarch --doc FLEET-AGENT-CONDUCT-STANDARD`, "Concurrent agents: one worktree per issue"). If the work was done in the main checkout, that is the failure the standard exists to stop: say so in the report.
 - `make check` green, run in the worktree. A red you could not fix stays red with an open escalation (`/escalate`), never deferred or silenced.
-- **In a repo whose `.luxarch.toml` declares `[agents] land = "queue"`**, the land queue runs the full gate once for every ready branch together, on the tree that lands, so you do not run `make check` or `make status`. Run the checks for what you changed instead: `luxarch --rule <id> --path <file>` for each rule that fires on a file you touched, and the touched tests (`make test-fast PYTEST_ARGS='<files>'`).
+- **In a repo whose `.luxarch.toml` declares `[agents] land = "queue"`**, the land queue runs the full gate once for every ready branch together, on the tree that lands, so you do not run `make check` or `make status`. Run the checks for what you changed instead: one `luxarch --path <file> --path <file> …` naming every file you touched (the per-file rules, in seconds; its exit 0 clears those rules only, and the whole-tree rules it names are judged by the queue's gate), `luxarch --rule <id> --path <file>` naming those files for each whole-tree rule whose count in `.luxarch-status.json` is above 0, and the touched tests (`make test-fast PYTEST_ARGS='<files>'`).
 - Commit as `luxardolabs` via the global git config (never `git -c user.email=…`), no AI attribution.
 
 **Evidence:** the `make check` result line, the commit SHA, `git status -s` empty in the worktree.
